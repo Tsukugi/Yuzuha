@@ -1,5 +1,15 @@
 import {emptyAppData} from '../types/domain';
-import type {AppData, MoneyAccount, MoneyCategory, MoneyEntry, Note, Task, TimeGoal, UsageSnapshot} from '../types/domain';
+import type {
+  AppData,
+  MoneyAccount,
+  MoneyCategory,
+  MoneyEntry,
+  MoneyTransfer,
+  Note,
+  Task,
+  TimeGoal,
+  UsageSnapshot,
+} from '../types/domain';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -59,6 +69,7 @@ export class SqliteDataCorruptError extends Error {
 
 type RecordType =
   | 'money'
+  | 'transfer'
   | 'account'
   | 'category'
   | 'note'
@@ -135,6 +146,7 @@ export function decodeAppData(
   const data = emptyAppData();
   data.mainCurrency = mainCurrency;
   data.money = [];
+  data.transfers = [];
   data.accounts = [];
   data.categories = [];
   data.notes = [];
@@ -157,6 +169,9 @@ export function decodeAppData(
     switch (recordType) {
       case 'money':
         data.money.push(payload as MoneyEntry);
+        break;
+      case 'transfer':
+        data.transfers.push(payload as MoneyTransfer);
         break;
       case 'account':
         data.accounts.push(payload as MoneyAccount);
@@ -212,6 +227,7 @@ async function writeAppData(database: SqliteExecutor, data: AppData): Promise<vo
 function collectRecords(data: AppData): PersistedRecord[] {
   return [
     ...data.money.map(entry => record('money', entry.id, entry, entry.updatedAt)),
+    ...data.transfers.map(transfer => record('transfer', transfer.id, transfer, transfer.updatedAt)),
     ...data.accounts.map(account => record('account', account.id, account)),
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),

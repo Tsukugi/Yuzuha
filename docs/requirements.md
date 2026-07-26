@@ -190,4 +190,13 @@ Implemented and verified:
 - `MONEY-11` trust rule: each currency has its own report and incompatible currencies are never added together;
 - repository failure behavior: unsupported schema versions and malformed rows block the workspace instead of guessing.
 
-Not yet complete in Phase 4: normalized money tables, budgets, transfers, split transactions, exports, and sync.
+## Money transfer implementation review
+
+Implemented and verified:
+
+- `MONEY-07`: transfers are stored separately from income and expense entries;
+- `MONEY-07`: active same-currency accounts are required, and account balances include transfer inflows/outflows;
+- `MONEY-07` trust rule: transfers do not change income, spending, or category report totals;
+- schema version 3 to schema version 4 migration adds an empty transfer collection without dropping existing records.
+
+Not yet complete: normalized money tables, budgets, split transactions, exports, and sync.

@@ -11,7 +11,7 @@ The app has an Android-first product plan and a native shell that can also suppo
 
 ## Repository status
 
-Phase 4 core is implemented. The repository contains the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, and period/currency-separated money reports. Budgets, sync, and later full-product phases remain planned.
+The current core includes the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, currency-separated reports, and same-currency account transfers. Budgets, split entries, sync, and later full-product phases remain planned.
 
 ## Technology baseline
 

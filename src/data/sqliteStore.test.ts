@@ -101,6 +101,27 @@ describe('SQLite workspace store', () => {
   it('round-trips all Phase 3 collections through one transaction', async () => {
     const data = emptyAppData();
     data.mainCurrency = 'USD';
+    data.accounts = [
+      {...data.accounts[0], currency: 'USD'},
+      {
+        id: 'account_savings',
+        name: 'Savings',
+        currency: 'USD',
+        openingBalanceMinor: 0,
+        isArchived: false,
+      },
+    ];
+    data.transfers.push({
+      id: 'transfer_1',
+      fromAccountId: 'account_everyday',
+      toAccountId: 'account_savings',
+      amountMinor: 500,
+      currency: 'USD',
+      note: 'Move money',
+      occurredAt: '2026-07-26T12:00:00.000Z',
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.notes.push({
       id: 'note_1',
       title: 'A note',

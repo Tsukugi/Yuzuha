@@ -262,3 +262,37 @@ Known limits:
 - The phone `42adce68` still blocks automated touch input, so interactive report evidence is emulator-based.
 
 Next pass: normalized money tables, transfers, split-entry validation, and a budget projection.
+
+## Implementation review: money transfer pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- schema version 4 with a deterministic schema 3 to schema 4 migration;
+- `MoneyTransfer` source records stored through the transactional SQLite repository;
+- validation for positive amounts, distinct active accounts, and matching currencies;
+- account-balance projection from opening balances, entries, and transfer inflows/outflows;
+- Money transfer screen with account selection, history, delete action, and an honest one-account empty state;
+- unit coverage for validation, balances, persistence, and migration behavior.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 10 suites, 28 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator transfer   PASS - EUR 2.50 moved Everyday to Savings; balances changed and reports stayed EUR 9.12
+Emulator restart    PASS - transfer row and projected balances survived force-stop/relaunch
+Phone               PASS - install, launch, and resumed activity with no cleared-logcat app errors
+```
+
+Known limits:
+
+- Money records still use typed JSON rows as the repository migration boundary; normalized money tables remain planned.
+- Split transactions, budgets, recurring rules, exports, sync, and remote bundle activation remain incomplete.
+- The phone `42adce68` blocks automated touch input, so interactive transfer evidence is emulator-based.
+
+Next pass: split-entry validation and a budget projection, with normalized money tables introduced only when their migration contract is tested.

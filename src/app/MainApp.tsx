@@ -16,9 +16,10 @@ import {formatDuration} from '../shared/duration';
 import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from '../shared/period';
 import type {Period} from '../shared/period';
 import {buildMoneyReport} from '../shared/moneyReport';
+import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, MoneyKind} from '../types/domain';
+import type {AppData, MoneyKind, MoneyTransfer} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -175,7 +176,7 @@ function MoneyScreen() {
   const [newAccount, setNewAccount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'entry' | 'report'>('entry');
+  const [view, setView] = useState<'entry' | 'transfer' | 'report'>('entry');
 
   if (!data) {
     return null;
@@ -184,6 +185,9 @@ function MoneyScreen() {
 
   if (view === 'report') {
     return <MoneyReportScreen data={currentData} onBack={() => setView('entry')} />;
+  }
+  if (view === 'transfer') {
+    return <MoneyTransferScreen data={currentData} onBack={() => setView('entry')} />;
   }
 
   async function save() {
@@ -269,6 +273,7 @@ function MoneyScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        <TextButton label="Add transfer" onPress={() => setView('transfer')} />
         <TextButton label="Open money report" onPress={() => setView('report')} />
         {editingId && (
           <View style={styles.editBanner}>
@@ -327,6 +332,21 @@ function MoneyScreen() {
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingId ? 'Update entry' : 'Save entry'} onPress={save} />
           {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} />}
+        </View>
+
+        <SectionTitle title="Account balances" />
+        <View style={styles.formCard}>
+          {data.accounts.filter(account => !account.isArchived).map(account => (
+            <View key={account.id} style={styles.manageRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{account.name}</Text>
+                <Text style={styles.listMeta}>{account.currency}</Text>
+              </View>
+              <Text style={styles.amount}>
+                {formatMoney(calculateAccountBalance(account, data.money, data.transfers), account.currency)}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <SectionTitle title="Add account or category" />
@@ -395,6 +415,149 @@ function MoneyScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function MoneyTransferScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {addMoneyTransfer, deleteMoneyTransfer} = useAppStore();
+  const activeAccounts = data.accounts.filter(account => !account.isArchived);
+  const [fromAccountId, setFromAccountId] = useState(activeAccounts[0]?.id ?? '');
+  const [toAccountId, setToAccountId] = useState(activeAccounts[1]?.id ?? '');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const currency = activeAccounts.find(account => account.id === fromAccountId)?.currency ?? data.mainCurrency;
+
+  async function save() {
+    const parsed = Number.parseFloat(amount.replace(',', '.'));
+    const input = {
+      fromAccountId,
+      toAccountId,
+      amountMinor: Number.isFinite(parsed) ? Math.round(parsed * 100) : 0,
+      currency,
+      note: note.trim(),
+    };
+    const validationError = validateMoneyTransfer(input, data.accounts);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    try {
+      await addMoneyTransfer(input);
+      setAmount('');
+      setNote('');
+      setError(null);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Transfer could not be saved.');
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Transfer money</Text>
+        <Text style={styles.pageIntro}>Move money between same-currency accounts. Transfers do not change income or spending reports.</Text>
+        {activeAccounts.length < 2 ? (
+          <EmptyState text="Add a second active account before creating a transfer." />
+        ) : (
+          <View style={styles.formCard}>
+            <Text style={styles.formLabel}>From account</Text>
+            <View style={styles.chipWrap}>
+              {activeAccounts.map(account => (
+                <ChipButton
+                  key={account.id}
+                  label={`${account.name} (${account.currency})`}
+                  selected={account.id === fromAccountId}
+                  onPress={() => setFromAccountId(account.id)}
+                />
+              ))}
+            </View>
+            <Text style={styles.formLabel}>To account</Text>
+            <View style={styles.chipWrap}>
+              {activeAccounts.map(account => (
+                <ChipButton
+                  key={account.id}
+                  label={`${account.name} (${account.currency})`}
+                  selected={account.id === toAccountId}
+                  onPress={() => setToAccountId(account.id)}
+                />
+              ))}
+            </View>
+            <Text style={styles.formLabel}>Amount ({currency})</Text>
+            <TextInput
+              accessibilityLabel="Transfer amount"
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={amount}
+              onChangeText={setAmount}
+            />
+            <Text style={styles.formLabel}>Note (optional)</Text>
+            <TextInput
+              accessibilityLabel="Transfer note"
+              placeholder="Why move it?"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={note}
+              onChangeText={setNote}
+            />
+            {error && <Text style={styles.errorText}>{error}</Text>}
+            <PrimaryButton label="Save transfer" onPress={save} />
+          </View>
+        )}
+        <SectionTitle title="Account balances" />
+        <View style={styles.formCard}>
+          {activeAccounts.map(account => (
+            <View key={account.id} style={styles.manageRow}>
+              <Text style={styles.listTitle}>{account.name}</Text>
+              <Text style={styles.amount}>{formatMoney(calculateAccountBalance(account, data.money, data.transfers), account.currency)}</Text>
+            </View>
+          ))}
+        </View>
+        <SectionTitle title="Transfers" />
+        {data.transfers.length === 0 ? (
+          <EmptyState text="No transfers yet." />
+        ) : (
+          data.transfers.slice(0, 20).map(transfer => (
+            <TransferRow
+              key={transfer.id}
+              transfer={transfer}
+              accounts={data.accounts}
+              onDelete={() => deleteMoneyTransfer(transfer.id)}
+            />
+          ))
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function TransferRow({
+  transfer,
+  accounts,
+  onDelete,
+}: {
+  transfer: MoneyTransfer;
+  accounts: AppData['accounts'];
+  onDelete: () => void;
+}) {
+  const fromName = accounts.find(account => account.id === transfer.fromAccountId)?.name ?? 'Unknown account';
+  const toName = accounts.find(account => account.id === transfer.toAccountId)?.name ?? 'Unknown account';
+  return (
+    <View style={styles.listRow}>
+      <View style={styles.listBody}>
+        <Text style={styles.listTitle}>{fromName} to {toName}</Text>
+        <Text style={styles.listMeta}>{transfer.note || formatDate(transfer.occurredAt)}</Text>
+      </View>
+      <View style={styles.rowActions}>
+        <Text style={styles.amount}>{formatMoney(transfer.amountMinor, transfer.currency)}</Text>
+        <TextButton label="Delete" danger onPress={onDelete} />
+      </View>
+    </View>
   );
 }
 

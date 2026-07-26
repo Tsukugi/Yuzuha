@@ -97,3 +97,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Use `@op-engineering/op-sqlite` 17.1.2 behind `SqliteWorkspaceStore` for local product data. Keep AsyncStorage for installer metadata, preferences, and one-time legacy import.
 - Reason: Product records need transactions, migrations, period queries, and currency-safe reports. Feature UI must not depend on a native SQL API.
 - Consequence: The first SQLite schema stores typed record rows and a repository schema version. Unsupported versions and malformed rows block the workspace with a deterministic error until a migration or repair path exists.
+
+## DEC-015: Keep transfers separate from income and expense entries
+
+- Status: Accepted.
+- Decision: Store a transfer as a source record with two active same-currency account IDs. Project account balances from opening balances, entries, and transfers; do not represent a transfer as income or expense.
+- Reason: Moving money between accounts must change account balances without changing spending or income reports.
+- Consequence: Cross-currency transfers, split entries, and normalized financial tables need separate contracts and validation passes.

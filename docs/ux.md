@@ -119,6 +119,10 @@ Every advanced feature has a useful local-only state. Examples:
 
 Money opens a report from the entry screen. Day, week, and month are explicit choices. Each currency is shown in its own card with spending, income, net, and category rows. Empty periods show a clear no-entry state.
 
+## Money transfer shipped controls
+
+Money has an `Add transfer` flow. The user chooses two active accounts, enters a positive amount in their shared currency, and can add a note. The screen shows account balances and transfer history. Transfers are explicitly described as excluded from income and spending reports. With fewer than two active accounts, the flow explains that a second account is required.
+
 ## Phase 3 shipped controls
 
 Money rows open in edit mode. The user can update or delete the entry, and the screen clearly shows the editing state. Account and category management uses archive instead of hiding records. The last active account shows a disabled archive action.

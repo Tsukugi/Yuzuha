@@ -1,6 +1,7 @@
 import type {PropsWithChildren} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {createId} from '../shared/id';
+import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import type {
@@ -9,6 +10,7 @@ import type {
   MoneyCategory,
   MoneyKind,
   MoneyEntry,
+  MoneyTransfer,
   Note,
   Task,
   UsagePermissionState,
@@ -38,6 +40,14 @@ interface AppStoreValue {
     note: string;
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
+  addMoneyTransfer: (input: {
+    fromAccountId: string;
+    toAccountId: string;
+    amountMinor: number;
+    currency: string;
+    note: string;
+  }) => Promise<void>;
+  deleteMoneyTransfer: (transferId: string) => Promise<void>;
   addMoneyAccount: (name: string, currency: string) => Promise<void>;
   addMoneyCategory: (name: string, kind: MoneyKind | 'both') => Promise<void>;
   archiveMoneyAccount: (accountId: string) => Promise<void>;
@@ -143,6 +153,38 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   const deleteMoney = useCallback(
     async (entryId: string) => {
       await commit(current => ({...current, money: current.money.filter(entry => entry.id !== entryId)}));
+    },
+    [commit],
+  );
+
+  const addMoneyTransfer = useCallback(
+    async (input: {
+      fromAccountId: string;
+      toAccountId: string;
+      amountMinor: number;
+      currency: string;
+      note: string;
+    }) => {
+      const validationError = validateMoneyTransfer(input, data?.accounts ?? []);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const now = new Date().toISOString();
+      const transfer: MoneyTransfer = {
+        ...input,
+        id: createId('transfer'),
+        occurredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await commit(current => ({...current, transfers: [transfer, ...current.transfers]}));
+    },
+    [commit, data?.accounts],
+  );
+
+  const deleteMoneyTransfer = useCallback(
+    async (transferId: string) => {
+      await commit(current => ({...current, transfers: current.transfers.filter(transfer => transfer.id !== transferId)}));
     },
     [commit],
   );
@@ -321,6 +363,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoney,
       updateMoney,
       deleteMoney,
+      addMoneyTransfer,
+      deleteMoneyTransfer,
       addMoneyAccount,
       addMoneyCategory,
       archiveMoneyAccount,
@@ -341,6 +385,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       archiveMoneyAccount,
       archiveMoneyCategory,
       deleteMoney,
+      deleteMoneyTransfer,
       addNote,
       addTask,
       data,

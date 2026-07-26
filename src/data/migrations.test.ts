@@ -1,4 +1,4 @@
-import {migrateV2ToV3} from './migrations';
+import {migrateV2ToV3, migrateV3ToV4} from './migrations';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -24,6 +24,31 @@ describe('schema migrations', () => {
     expect(data.schemaVersion).toBe(3);
     expect(data.usageExcludedPackages).toEqual([]);
     expect(data.timeGoals).toEqual([]);
+    expect(migrateV3ToV4(data).transfers).toEqual([]);
+  });
+
+  it('adds an empty transfer collection when opening schema 3 data', () => {
+    const data = migrateV3ToV4({
+      schemaVersion: 3,
+      mainCurrency: 'EUR',
+      money: [],
+      accounts: [],
+      categories: [],
+      notes: [],
+      tasks: [],
+      usageSnapshots: [],
+      usageRead: {
+        permission: 'unknown',
+        lastReadAt: null,
+        rangeStartMillis: null,
+        rangeEndMillis: null,
+        errorCode: null,
+      },
+      usageExcludedPackages: [],
+      timeGoals: [],
+    });
+
+    expect(data.schemaVersion).toBe(4);
+    expect(data.transfers).toEqual([]);
   });
 });
-

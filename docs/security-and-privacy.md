@@ -85,6 +85,10 @@ Android Usage Access is now declared and accessed through a native `YuzuhaUsageA
 
 Product records are stored in the app-private SQLite database. The repository uses bound parameters and one transaction for full-workspace writes. A malformed row or unsupported repository version blocks the workspace with a support-safe error; it does not silently discard data. Money reports are computed locally and do not send record content anywhere.
 
+## Money transfer controls
+
+Transfers use stable account IDs, same-currency validation, positive integer minor units, and the existing transactional local repository. They are kept separate from income and expense records so a balance projection cannot silently alter spending reports. Transfer notes remain local user content and are excluded from logs.
+
 ## Phase 3 app-time controls
 
 App exclusions are package-name settings stored only in the local workspace. Excluded snapshots stay local so the user can include them again without another Android read. Excluded apps are not sent to a service, and totals ignore snapshots marked `included = false`.

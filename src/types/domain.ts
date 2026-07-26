@@ -29,6 +29,18 @@ export interface MoneyEntry {
   updatedAt: string;
 }
 
+export interface MoneyTransfer {
+  id: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amountMinor: number;
+  currency: string;
+  note: string;
+  occurredAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -77,9 +89,10 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 3;
+  schemaVersion: 4;
   mainCurrency: string;
   money: MoneyEntry[];
+  transfers: MoneyTransfer[];
   accounts: MoneyAccount[];
   categories: MoneyCategory[];
   notes: Note[];
@@ -101,9 +114,10 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   mainCurrency: 'EUR',
   money: [],
+  transfers: [],
   accounts: [
     {
       id: 'account_everyday',

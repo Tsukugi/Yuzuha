@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Phase 0/1 test strategy. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the money-transfer pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -134,6 +134,15 @@ Run dependency audit, static analysis, secret scanning, malformed-input tests, S
 ## Full-product release matrix
 
 Each phase must test fresh install, upgrade from the previous phase, offline use, data export, deletion, permissions, and rollback. A feature is not complete because its screen works; its migration, sync/export representation, telemetry redaction, accessibility, and failure state must also pass.
+
+## Money transfer evidence
+
+- Jest: 10 suites, 28 tests passing, including same-currency validation, account-balance projection, schema 3 to schema 4 migration, and transfer round-trip coverage.
+- Android build: `app:assembleDebug` passes with Java 17 and React Native 0.86.
+- Emulator transfer flow: added a second EUR account, saved a EUR 2.50 Everyday-to-Savings transfer, and saw balances change from EUR -9.12 / EUR 0.00 to EUR -11.62 / EUR 2.50.
+- Emulator report invariant: Home spending stayed EUR 9.12 after the transfer.
+- Emulator restart: the transfer row and both projected balances were present after force-stop and relaunch.
+- Phone `42adce68`: updated APK installed and `MainActivity` resumed; cleared-logcat launch produced no filtered app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence
 

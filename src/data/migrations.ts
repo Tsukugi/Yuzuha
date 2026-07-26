@@ -20,6 +20,20 @@ interface StoredV2 {
   usageRead: UsageRead;
 }
 
+interface StoredV3 {
+  schemaVersion: 3;
+  mainCurrency: string;
+  money: MoneyEntry[];
+  accounts: AppData['accounts'];
+  categories: AppData['categories'];
+  notes: AppData['notes'];
+  tasks: AppData['tasks'];
+  usageSnapshots: UsageSnapshot[];
+  usageRead: UsageRead;
+  usageExcludedPackages: string[];
+  timeGoals: AppData['timeGoals'];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -49,12 +63,30 @@ export function isStoredV2(value: unknown): value is StoredV2 {
   );
 }
 
-export function isStoredV3(value: unknown): value is AppData {
+export function isStoredV3(value: unknown): value is StoredV3 {
   return (
     isRecord(value) &&
     value.schemaVersion === 3 &&
     typeof value.mainCurrency === 'string' &&
     Array.isArray(value.money) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV4(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 4 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
     Array.isArray(value.accounts) &&
     Array.isArray(value.categories) &&
     Array.isArray(value.notes) &&
@@ -107,7 +139,7 @@ export function migrateV1ToV2(value: StoredV1): StoredV2 {
   };
 }
 
-export function migrateV2ToV3(value: StoredV2): AppData {
+export function migrateV2ToV3(value: StoredV2): StoredV3 {
   return {
     ...value,
     schemaVersion: 3,
@@ -116,15 +148,26 @@ export function migrateV2ToV3(value: StoredV2): AppData {
   };
 }
 
+export function migrateV3ToV4(value: StoredV3): AppData {
+  return {
+    ...value,
+    schemaVersion: 4,
+    transfers: [],
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV3(value)) {
+  if (isStoredV4(value)) {
     return value;
   }
+  if (isStoredV3(value)) {
+    return migrateV3ToV4(value);
+  }
   if (isStoredV2(value)) {
-    return migrateV2ToV3(value);
+    return migrateV3ToV4(migrateV2ToV3(value));
   }
   if (isStoredV1(value)) {
-    return migrateV2ToV3(migrateV1ToV2(value));
+    return migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value)));
   }
   return null;
 }
