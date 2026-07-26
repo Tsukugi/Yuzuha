@@ -6,6 +6,7 @@ import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../sha
 import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
+import {emptyAppData} from '../types/domain';
 import type {
   AppData,
   MoneyAccount,
@@ -42,6 +43,7 @@ interface AppStoreValue {
     note: string;
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
+  resetWorkspace: () => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
   addMoneyBudget: (input: MoneyBudgetInput) => Promise<void>;
   deleteMoneyBudget: (budgetId: string) => Promise<void>;
@@ -165,6 +167,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     },
     [commit],
   );
+
+  const resetWorkspace = useCallback(async () => {
+    await commit(() => emptyAppData());
+  }, [commit]);
 
   const addSplitMoney = useCallback(
     async (input: MoneySplitInput) => {
@@ -422,6 +428,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoney,
       updateMoney,
       deleteMoney,
+      resetWorkspace,
       addSplitMoney,
       addMoneyBudget,
       deleteMoneyBudget,
@@ -457,6 +464,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       error,
       isLoading,
       replaceUsageSnapshots,
+      resetWorkspace,
       setUsagePermission,
       toggleUsageExclusion,
       toggleTask,

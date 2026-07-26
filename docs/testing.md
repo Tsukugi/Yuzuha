@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the normalized-storage and budget-rollover pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the export/delete pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -171,6 +171,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator rollover: a monthly EUR 10.00 Health carry-forward budget showed EUR 10.00 carried, EUR 7.00 used, EUR 13.00 remaining, and 35% used; the prior `none` budget remained at EUR 3.00 remaining and 70% used.
 - Emulator restart: both budget projections remained after force-stop and relaunch.
 - Phone `42adce68`: APK installed, `MainActivity` resumed, and the cleared logcat had no filtered app errors. Touch automation remains blocked by device policy.
+
+## Export and deletion evidence
+
+- Jest: 13 suites, 43 tests passing, including JSON envelope contents, CSV schema/currency fields, CSV escaping, and empty-export behavior.
+- Lint, strict TypeScript, bundle check, and Android debug build: passing.
+- Emulator export: Data tools opened the Android share sheet with Quick Share, Drive, and Bluetooth targets.
+- Emulator deletion: the confirmation dialog appeared; after confirmation, Home showed EUR 0.00, 0 saved notes, and 0 open tasks.
+- Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence
 

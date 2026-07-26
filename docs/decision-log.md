@@ -132,3 +132,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: A budget with `carry-forward` adds the previous day, week, or month unused positive balance to the current limit, capped at one base budget amount. `none` adds zero.
 - Reason: The rule is easy to explain, deterministic across restarts, and prevents multi-period debt or unbounded accumulation in the first budget release.
 - Consequence: Recurring budgets, multi-period carry chains, and alerts remain separate future contracts.
+
+## DEC-020: Use versioned shareable exports and confirmed local deletion
+
+- Status: Accepted.
+- Decision: Provide JSON for all supported local records and CSV for money entries. Include explicit export and app schema versions, send the selected format through the Android system share sheet, and require confirmation before resetting the local workspace to seeded defaults.
+- Reason: The first release needs user-controlled portability and deletion without adding a remote account or a provider-specific file service.
+- Consequence: File-picker import, restore validation, encrypted backup, and cross-device sync remain separate contracts.

@@ -135,6 +135,10 @@ Small settings may live in AsyncStorage or a settings table:
 
 The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 7 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, and exclusions remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 6 is migrated into app schema 7 without dropping records and remains the legacy import source for first open.
 
+## Export and deletion
+
+The data tools expose export schema version 1. JSON contains the complete `AppData` object plus the export version, app schema version, and export time. CSV contains money entries with export/app schema versions, minor-unit amounts, currencies, IDs, categories, notes, timestamps, and split IDs. Both formats are sent through the Android system share sheet after the user requests them. Local deletion requires confirmation and writes `emptyAppData()` through the same repository transaction, leaving only the seeded empty-workspace defaults.
+
 App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 
 Transfers are source records separate from income and expense entries. Account balances project opening balance, account-linked income/expenses, and transfer inflows/outflows. Reports only consume income/expense entries, so transfers do not change spending or income totals.

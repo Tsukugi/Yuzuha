@@ -4,6 +4,8 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Alert,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +22,7 @@ import {buildMoneyReport} from '../shared/moneyReport';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
+import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer} from '../types/domain';
 
@@ -41,6 +44,7 @@ const colors = {
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const {data, isLoading, error} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
+  const [dataToolsOpen, setDataToolsOpen] = useState(false);
 
   if (isLoading || !data) {
     return <LoadingScreen message="Opening your local workspace..." />;
@@ -61,11 +65,17 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
       </View>
 
       <View style={styles.content}>
-        {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} />}
-        {tab === 'money' && <MoneyScreen />}
-        {tab === 'notes' && <NotesScreen />}
-        {tab === 'tasks' && <TasksScreen />}
-        {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
+        {dataToolsOpen ? (
+          <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
+        ) : (
+          <>
+            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} />}
+            {tab === 'money' && <MoneyScreen />}
+            {tab === 'notes' && <NotesScreen />}
+            {tab === 'tasks' && <TasksScreen />}
+            {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
+          </>
+        )}
       </View>
 
       <View style={styles.tabBar} accessibilityRole="tablist">
@@ -90,9 +100,11 @@ function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'nor
 function HomeScreen({
   data,
   onNavigate,
+  onOpenDataTools,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
+  onOpenDataTools: () => void;
 }) {
   const monthRange = getPeriodRange(new Date(), 'month');
   const monthMoney = data.money.filter(entry => isInPeriod(entry.occurredAt, monthRange));
@@ -108,6 +120,7 @@ function HomeScreen({
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.pageTitle}>Today</Text>
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
+      <TextButton label="Export or delete data" onPress={onOpenDataTools} />
 
       <View style={styles.cardGrid}>
         <SummaryCard
@@ -154,6 +167,87 @@ function HomeScreen({
           </View>
         ))
       )}
+    </ScrollView>
+  );
+}
+
+function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {resetWorkspace} = useAppStore();
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function shareJson() {
+    try {
+      await Share.share({
+        title: 'Yuzuha JSON export',
+        message: buildJsonExport(data, new Date().toISOString()),
+      });
+      setError(null);
+      setStatus('JSON export is ready to share.');
+    } catch {
+      setStatus(null);
+      setError('JSON export could not be opened for sharing.');
+    }
+  }
+
+  async function shareCsv() {
+    try {
+      await Share.share({
+        title: 'Yuzuha money CSV export',
+        message: buildMoneyCsvExport(data),
+      });
+      setError(null);
+      setStatus('Money CSV export is ready to share.');
+    } catch {
+      setStatus(null);
+      setError('Money CSV export could not be opened for sharing.');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete local data?',
+      'This removes your money, notes, tasks, app-time history, budgets, accounts, and categories from this device. This cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void resetWorkspace()
+              .then(() => {
+                setError(null);
+                setStatus('Local data was deleted from this device.');
+              })
+              .catch(() => {
+                setStatus(null);
+                setError('Local data could not be deleted.');
+              });
+          },
+        },
+      ],
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+        <Text style={styles.backButtonText}>‹ Home</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>Data tools</Text>
+      <Text style={styles.pageIntro}>Exports include the supported local records. Sharing opens the Android system share sheet.</Text>
+      <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Export</Text>
+        <PrimaryButton label="Share JSON export" onPress={shareJson} />
+        <PrimaryButton label="Share money CSV" onPress={shareCsv} />
+        {status && <Text style={styles.successText}>{status}</Text>}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </View>
+      <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Delete</Text>
+        <Text style={styles.cardDetail}>Delete removes local records and keeps only the empty workspace defaults.</Text>
+        <TextButton label="Delete all local data" danger onPress={confirmDelete} />
+      </View>
     </ScrollView>
   );
 }

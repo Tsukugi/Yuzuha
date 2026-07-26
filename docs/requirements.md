@@ -237,3 +237,15 @@ Implemented and verified:
 - emulator and phone smoke checks pass for migration, persistence, install, launch, and cleared-logcat behavior.
 
 Not yet complete: multi-period rollover, recurring rules, alerts, exports, and sync.
+
+## Export and deletion implementation review
+
+Implemented and verified:
+
+- `CORE-05`: the user can open Data tools, share a complete versioned JSON export, and request a versioned money CSV export;
+- `CORE-05`: local deletion requires a confirmation dialog and resets the repository to seeded empty-workspace defaults;
+- `MONEY-05`: CSV and JSON exports include schema versions and currency fields;
+- emulator smoke confirms the Android share sheet opens and deletion changes Home to EUR 0.00, 0 saved notes, and 0 open tasks;
+- phone smoke confirms the final APK installs and resumes `MainActivity` without cleared-logcat app errors.
+
+Not yet complete: multi-period rollover, recurring rules, alerts, and sync.

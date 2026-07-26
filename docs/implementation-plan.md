@@ -405,3 +405,37 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive rollover evidence is emulator-based.
 
 Next pass: recurring money rules and export contracts, with sync kept behind the local-first boundary.
+
+## Implementation review: export and deletion pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- export schema version 1 for JSON and money CSV;
+- complete JSON export envelope with export time, app schema version, and all supported local collections;
+- money CSV with schema versions, minor-unit amounts, currencies, IDs, categories, notes, timestamps, and split IDs;
+- Data tools screen with Android Share integration for both formats;
+- confirmed local deletion that writes `emptyAppData()` through the SQLite repository and preserves only seeded workspace defaults;
+- unit coverage for JSON contents, CSV fields, CSV escaping, and empty exports.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 13 suites, 43 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator export     PASS - Android share sheet opened with Quick Share, Drive, and Bluetooth targets
+Emulator deletion   PASS - confirmation required; Home showed EUR 0.00, 0 notes, and 0 open tasks afterward
+Phone               PASS - install, launch, and resumed MainActivity with no cleared-logcat app errors
+```
+
+Known limits:
+
+- The current export sends text through the Android share sheet; file-picker import, restore validation, encrypted backup, and sync remain planned.
+- Multi-period rollover, recurring money rules, and alerts remain planned.
+- The phone `42adce68` blocks automated touch input, so interactive export/delete evidence is emulator-based.
+
+Next pass: recurring money rules, then import/restore validation after export is stable.
