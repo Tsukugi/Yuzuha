@@ -6,7 +6,7 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 
 1. Yuzuha is an Android-first React Native app with a dual-platform native shell. The product tracks money, app time, notes, and tasks.
 2. The native shell includes an embedded installer. At startup it must check the bundle version, download a newer verified release when one is available, and only then present `MainApp`.
-3. The baseline is React Native 0.83.0, TypeScript, Metro, and the bundled React Native CLI. This is the stable version recorded for January 2026. Record any version change in the release notes and decision log.
+3. The implementation baseline is React Native 0.86.0, React 19.2.8, TypeScript 5.9.x, Metro 0.86.x, and the bundled React Native CLI 20.2.x. This supersedes the older January 2026 planning baseline. Record any version change in the release notes and decision log.
 4. Keep `README.md`, this file, and the whole `docs/` tree current when features, configuration, or release behavior changes.
 5. Any change to startup, bundle caching, or installer metadata must update `docs/installer.md` and the relevant developer note in `docs/architecture.md`, `docs/testing.md`, or `docs/release.md`.
 
@@ -20,5 +20,4 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 
 ## Current repository status
 
-The repository is a starter shell. It has package and Metro configuration, but no `src/` implementation or native project yet. The documentation describes the target product and an implementation plan; it does not imply that the target features are already built.
-
+Phase 3 core is implemented: the repository has a `src/` app, generated Android/iOS projects, local persistence, an embedded bundle gate, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, and archive controls. SQLite, reports, sync, and later full-product phases remain planned. Check implementation evidence before describing planned work as shipped.

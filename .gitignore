@@ -10,10 +10,12 @@ ios/build/
 
 # Metro
 metro-cache/
+dist/
+coverage/
+.tmp/
 
 # Misc
 *.log
 *.tmp
 *.swp
-package-lock.json
 yarn.lock

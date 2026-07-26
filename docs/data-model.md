@@ -1,6 +1,6 @@
 # Data model
 
-Status: Planned local schema. Exact SQL and binding package are implementation work.
+Status: Phase 3 schema version 3 is implemented in the AsyncStorage boundary. SQLite remains the full-product migration target.
 
 ## Storage rules
 
@@ -94,6 +94,12 @@ Small settings may live in AsyncStorage or a settings table:
 3. Destructive migrations require an export/backup decision and explicit approval.
 4. Each migration has a fixture test for an older schema and a fresh-install test.
 5. A failed migration blocks the product UI and shows a clear support/export path; it must not silently discard records.
+
+## Current Phase 3 schema
+
+The current JSON store has schema version 3 with `mainCurrency`, money accounts, money categories, usage snapshots, a usage-read record, app-time exclusions, and daily/weekly time goals. Existing version 1 and version 2 data is read from legacy keys, migrated without dropping money/notes/tasks, and written to the version 3 key before the app continues.
+
+App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 
 ## Full-product entities
 

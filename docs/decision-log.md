@@ -83,3 +83,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Bank/card connections are not required for the personal core and remain a later evaluated integration.
 - Reason: They add regional, legal, security, and support obligations.
 - Consequence: Manual entry and import/export must remain first-class.
+
+## DEC-013: Upgrade the implementation baseline
+
+- Status: Accepted.
+- Decision: Use React Native 0.86.0, React 19.2.8, Metro 0.86.x, CLI 20.2.x, and TypeScript 5.9.x for implementation.
+- Reason: The user asked to use newer technology rather than preserve the older 0.83.0 scaffold baseline.
+- Consequence: Node 20.19.4 or newer is required, Java 17 is used for Android builds, and the native project must be regenerated from the newer template.

@@ -1,0 +1,9 @@
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/CMakeFiles/appmodules.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/CMakeFiles/edit_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/CMakeFiles/rebuild_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/AsyncStorageSpec_autolinked_build/CMakeFiles/edit_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/AsyncStorageSpec_autolinked_build/CMakeFiles/rebuild_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/safeareacontext_autolinked_build/CMakeFiles/edit_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86_64/safeareacontext_autolinked_build/CMakeFiles/rebuild_cache.dir

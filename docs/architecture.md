@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Target architecture. The current repository is only a scaffold; the modules below are implementation targets.
+Status: Phase 0/1 implementation with full-product target architecture. The installer bridge, local store, app shell, and core screens exist; sync, reports, and advanced adapters remain planned.
 
 ## System shape
 
@@ -84,7 +84,7 @@ src/
 
 ## Key technology decisions
 
-- React Native 0.83.0 is the project baseline recorded for January 2026.
+- React Native 0.86.0, React 19.2.8, TypeScript 5.9.x, Metro 0.86.x, and CLI 20.2.x are the current implementation baseline. This supersedes the older planning baseline.
 - TypeScript strict mode is required.
 - SQLite is the planned product store because records need queries, filters, and migrations.
 - AsyncStorage is limited to small, non-relational state.

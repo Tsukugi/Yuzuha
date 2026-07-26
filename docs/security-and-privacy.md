@@ -76,3 +76,11 @@ Treat imported files and attachments as untrusted input. Validate type, size, ch
 ## Privacy review gates for new features
 
 For every feature, record data collected, source, local storage, server transfer, retention, user control, deletion path, permission, and telemetry fields. A feature cannot enter a release phase if one of those fields is unknown.
+
+## Phase 2 Usage Access implementation
+
+Android Usage Access is now declared and accessed through a native `YuzuhaUsageAccess` module. The module checks the special permission before querying `UsageStatsManager`, opens the system settings screen, and returns aggregate duration/package labels only. The app stores snapshots locally and does not send them to a server. The user can leave the permission off and still use every other feature.
+
+## Phase 3 app-time controls
+
+App exclusions are package-name settings stored only in the local workspace. Excluded snapshots stay local so the user can include them again without another Android read. Excluded apps are not sent to a service, and totals ignore snapshots marked `included = false`.

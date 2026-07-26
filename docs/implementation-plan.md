@@ -131,3 +131,100 @@ Every phase ends with four gates:
 ## Full-product delivery order
 
 Build source-of-truth records before projections, projections before reports, local behavior before sync, and platform adapters before platform-specific UI. Do not build a remote provider before import/export and deletion behavior are stable.
+
+## Implementation review: Phase 0/1 pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- React Native 0.86.0 native Android/iOS shell with Java 17 Android build support;
+- typed embedded-bundle launch gate before `MainApp`;
+- AsyncStorage-backed local schema version 1 store with corruption rejection;
+- Home, Money, Notes, and Tasks screens;
+- manual money entry, note creation, task creation/completion, and local persistence;
+- metadata validation CLI through `npm run check-bundle`;
+- Jest unit coverage for storage, money helpers, installer gate, and metadata validation.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 4 suites, 8 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug
+ADB emulator        PASS - Home launch, money/note/task actions, force-stop persistence
+ADB phone           PASS - install and launch on device 42adce68
+```
+
+Known limits:
+
+- Remote JavaScript bundle download and native activation are not implemented yet; the current gate safely selects the embedded bundle only.
+- Android Usage Access is represented by an honest unavailable Home card; the native adapter is the next phase.
+- The phone blocks `adb shell input` with `INJECT_EVENTS`, so interactive smoke actions were run on the emulator instead.
+
+Next pass: Phase 2 planning and insight, beginning with Android Usage Access, date/period queries, app-time aggregation, and money categories/accounts.
+
+## Implementation review: Phase 2 pass
+
+Status: Core Phase 2 pass completed on 2026-07-26.
+
+Delivered:
+
+- schema version 2 with version 1 migration and legacy-key preservation;
+- money accounts, seeded categories, user-created accounts, and user-created categories;
+- current-month money totals and local period helpers;
+- Android `PACKAGE_USAGE_STATS` declaration and typed `YuzuhaUsageAccess` native module;
+- permission settings flow, daily UsageStatsManager query, local snapshots, top-app rows, and Home refresh;
+- regression test for Android single-day bucket normalization.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 6 suites, 16 tests
+Android debug APK   PASS - native Usage Access module compiles
+ADB emulator        PASS - permission settings, grant, read, top-app rows, Home update
+ADB phone           PASS - install and launch on device 42adce68
+```
+
+Known limits:
+
+- Usage labels currently fall back to package names when Android cannot resolve an application label.
+- The local JSON store remains a temporary Phase 2 boundary; full-product SQLite work is still planned.
+
+Next pass: reports, split transactions, richer time goals, and the SQLite repository boundary.
+
+## Implementation review: Phase 3 pass
+
+Status: Core Phase 3 pass completed on 2026-07-26.
+
+Delivered:
+
+- schema version 3 with migration from versions 1 and 2;
+- money entry edit and permanent delete actions;
+- account and category archive actions, with the last active account protected;
+- app-time package exclusions that immediately change totals;
+- daily and weekly time goals with local progress;
+- period-key coverage and excluded-snapshot unit assertions.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 7 suites, 18 tests
+Emulator money      PASS - edit 12.50 to 13.50, delete, archive category
+Emulator app time   PASS - exclude package, total changed 12 h 30 min to 31 min
+Emulator goal       PASS - weekly 300 minute goal saved and showed 56 min of 5 h
+```
+
+Known limits:
+
+- The local JSON store is still temporary; SQLite remains planned.
+- Reports, transfers, split transactions, and multi-currency reconciliation are not complete.
+- The phone `42adce68` still blocks automated touch input, so interactive evidence remains emulator-based.
+
+Next pass: SQLite repository work, money reports, transfers, split entries, and fuller account/category management.

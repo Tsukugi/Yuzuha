@@ -1,13 +1,5 @@
-const { getDefaultConfig } = require('metro-config');
+const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
-module.exports = (async () => {
-  const config = await getDefaultConfig();
+const config = {};
 
-  return {
-    transformer: config.transformer,
-    resolver: {
-      ...config.resolver,
-      sourceExts: [...config.resolver.sourceExts, 'cjs', 'ts', 'tsx']
-    }
-  };
-})();
+module.exports = mergeConfig(getDefaultConfig(__dirname), config);

@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Planned. The repository currently has no `src/` tests to run.
+Status: Phase 0/1 test strategy. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -134,3 +134,18 @@ Run dependency audit, static analysis, secret scanning, malformed-input tests, S
 ## Full-product release matrix
 
 Each phase must test fresh install, upgrade from the previous phase, offline use, data export, deletion, permissions, and rollback. A feature is not complete because its screen works; its migration, sync/export representation, telemetry redaction, accessibility, and failure state must also pass.
+
+## Phase 3 evidence
+
+- Jest: 7 suites, 18 tests passing, including schema 2 to schema 3 migration, period keys, usage grouping, and excluded-total behavior.
+- Emulator money flow: existing entry edited from EUR 12.50 to EUR 13.50, deleted, and a category archived from the active list.
+- Emulator app-time flow: `com.rapunzel` excluded; Today changed from 12 h 30 min to 31 min and the row changed to `Include`.
+- Emulator goal flow: the default weekly 300 minute goal saved and rendered `56 min of 5 h`.
+- Phone `42adce68`: install, launch, and resumed-activity checks remain clean; touch automation is blocked by the device policy.
+
+## Phase 2 evidence
+
+- Jest: 6 suites, 16 tests passing, including schema migration, period boundaries, usage grouping, and the single-day query regression.
+- Android build: `app:assembleDebug` passes with the native Usage Access package.
+- Emulator: permission settings opened, Usage Access granted, usage read completed, top-app rows rendered, and Home card updated.
+- Phone `42adce68`: updated APK installed and `MainActivity` resumed without app errors. Interactive input remains blocked by the device’s `INJECT_EVENTS` policy.

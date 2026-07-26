@@ -1,0 +1,23 @@
+# ninja log v5
+54	5382	8067903148705333	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1797a6a0696a8fa6ab4b6f97f5a1ecf5/android/build/generated/source/codegen/jni/safeareacontext-generated.cpp.o	a109803043f663dd
+1	29	0	G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86/CMakeFiles/cmake.verify_globs	ffb6512b8513d434
+55	3431	8067894788990410	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/States.cpp.o	7f17929775cd499f
+30	3890	8067894793657034	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/EventEmitters.cpp.o	b6c45203c9318ad4
+63	9969	8067903194318967	CMakeFiles/appmodules.dir/G_/dev/Yuzuha/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o	6bab8ba9a2634b80
+22	7258	8067894827326712	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/ComponentDescriptors.cpp.o	a225ba42f173b3aa
+14	5007	8067894804660153	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/AsyncStorageSpec-generated.cpp.o	e1d01b04d9443b8d
+73	6402	8067903158798382	CMakeFiles/appmodules.dir/OnLoad.cpp.o	b499b6e1e82688ac
+31	803	8067912829301052	build.ninja	64aae18a34cf034c
+46	7007	8067894824824280	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/ShadowNodes.cpp.o	3d026eac81214cda
+38	6295	8067894817689085	AsyncStorageSpec_autolinked_build/CMakeFiles/react_codegen_AsyncStorageSpec.dir/react/renderer/components/AsyncStorageSpec/Props.cpp.o	41fa73a5c38687b8
+10032	10178	8067903196807918	G:/dev/Yuzuha/android/app/build/intermediates/cxx/Debug/5t5n1151/obj/x86/libappmodules.so	baf06885c605b73e
+36	4010	8067903135091333	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/51061b01ef1a90645f122b4d9bc735ff/generated/source/codegen/jni/react/renderer/components/safeareacontext/States.cpp.o	90651f774478d807
+45	4739	8067903142376003	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f6168a84d013e5b6679df1859018306e/source/codegen/jni/react/renderer/components/safeareacontext/EventEmitters.cpp.o	90ca2c12b036dcc6
+82	7213	8067903167073758	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1797a6a0696a8fa6ab4b6f97f5a1ecf5/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewState.cpp.o	20c296b2e9d5e714
+15	7504	8067903169986972	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f6168a84d013e5b6679df1859018306e/source/codegen/jni/react/renderer/components/safeareacontext/ShadowNodes.cpp.o	f4e4712c7f0f4d26
+29	7824	8067903172980150	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/51061b01ef1a90645f122b4d9bc735ff/generated/source/codegen/jni/react/renderer/components/safeareacontext/Props.cpp.o	9e793e9290a17088
+22	8741	8067903182215214	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/f6168a84d013e5b6679df1859018306e/source/codegen/jni/react/renderer/components/safeareacontext/ComponentDescriptors.cpp.o	46c6afaa0b0e72b2
+90	9884	8067903193676358	safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir/1797a6a0696a8fa6ab4b6f97f5a1ecf5/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp.o	b9cebb1b828e15d6
+9885	10031	8067903195284928	G:/dev/Yuzuha/android/app/build/intermediates/cxx/Debug/5t5n1151/obj/x86/libreact_codegen_safeareacontext.so	447e10a0050b9b55
+1	27	0	G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86/CMakeFiles/cmake.verify_globs	ffb6512b8513d434
+1	131	0	G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/x86/CMakeFiles/cmake.verify_globs	ffb6512b8513d434

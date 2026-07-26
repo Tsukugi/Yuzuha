@@ -114,3 +114,13 @@ Every advanced feature has a useful local-only state. Examples:
 - Conflict: `Both devices changed this item. Choose which version to keep.`
 - Integration: `Calendar access is off. Existing Yuzuha tasks are unchanged.`
 - Search: `No matches in the selected filters.`
+
+## Phase 3 shipped controls
+
+Money rows open in edit mode. The user can update or delete the entry, and the screen clearly shows the editing state. Account and category management uses archive instead of hiding records. The last active account shows a disabled archive action.
+
+App Time shows an Include/Exclude action for each package. Excluding a package updates the total immediately and keeps the permission/read state visible. The weekly goal form accepts a name, daily or weekly period, and minutes, then shows current progress.
+
+## Phase 2 shipped flow: App Time
+
+Home shows `Not connected` and `Set up access` until the user grants Android Usage Access. The flow opens the system Usage Access screen, returns to Yuzuha, checks permission again, and exposes `Refresh usage`. A successful read shows today’s duration, the last-read date, and top app rows. A failed or empty read names the source and leaves the rest of the app usable.

@@ -1,0 +1,4 @@
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
+G:/dev/Yuzuha/android/app/.cxx/Debug/5t5n1151/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir

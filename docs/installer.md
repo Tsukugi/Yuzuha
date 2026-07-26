@@ -1,6 +1,6 @@
 # JavaScript bundle installer contract
 
-Status: Target contract. The package scripts mention an installer, but the repository currently has no `src/installer` implementation.
+Status: Phase 0 implementation plus target contract. `src/installer` currently provides the embedded launch gate and metadata validator. Native remote bundle download, verification, and activation remain a later phase.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ Example:
   "schema": 1,
   "appId": "yuzuha-mobile",
   "platform": "android",
-  "runtime": "0.83.0",
+  "runtime": "0.86.0",
   "version": "1.0.0",
   "minNativeVersion": "1.0.0",
   "bundleUrl": "https://updates.yuzuha.dev/bundles/android/1.0.0/main.jsbundle",
@@ -104,4 +104,3 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 ## Developer note
 
 This contract is a startup dependency. Any change to metadata fields, cache paths, version rules, verification, activation, timeout, or rollback must update `architecture.md`, `testing.md`, and `release.md` in the same change.
-

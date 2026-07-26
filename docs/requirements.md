@@ -155,3 +155,28 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | QUAL-03 | 5 | Diagnostics exclude personal content. | Redaction tests fail if forbidden fields enter an event or support package. |
 | QUAL-04 | 5 | Startup, sync, migration, and deletion have operational reason codes. | Support can identify the class of failure without reading user records. |
 | QUAL-05 | 5 | Full-product releases have rollback plans. | The release record names the previous bundle/native/data version. |
+
+## Phase 2 implementation review
+
+Implemented and verified:
+
+- `MONEY-06` foundation: seeded accounts/categories plus user-created accounts/categories;
+- `TIME-01` and `TIME-02`: Android Usage Access explanation, settings link, permission check, and query gate;
+- `TIME-03`: daily total, top-app list, last-read time, and source freshness;
+- `TIME-05`: day-range normalization and deterministic local-date aggregation;
+- `CORE-04`: current-month money totals and local-day app-time grouping;
+- schema 1 to schema 2 migration with a regression test.
+
+Not yet complete in Phase 2: app exclusions, weekly goals, reports, split transactions, and SQLite storage.
+
+## Phase 3 implementation review
+
+Implemented and verified:
+
+- `MONEY-01` extension: existing money entries can be edited or permanently deleted;
+- `MONEY-06` extension: accounts and categories can be archived, while the last active account cannot be archived;
+- `TIME-06` partial: package-level app-time exclusions are stored locally and reflected in totals;
+- `TIME-07`: daily and weekly goals can be saved and show progress from included snapshots;
+- schema version 2 to schema version 3 migration with a fixture test.
+
+Not yet complete in Phase 3: reports, transfers, split transactions, app groups, SQLite storage, and the wider notes/tasks automation scope.
