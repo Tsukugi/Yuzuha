@@ -143,12 +143,18 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 ## DEC-021: Use local calendar dates for recurring money rules
 
 - Status: Accepted.
-- Decision: Store a recurrence's next date as `YYYY-MM-DD`, cadence, interval, account/category links, and pause state. On workspace load and rule creation, generate every due occurrence through the current local date, use a deterministic rule/date entry ID, and advance the rule in the same repository save.
+- Decision: Store a recurrence's next date as `YYYY-MM-DD`, cadence, interval, account/category links, missed-occurrence policy, and pause state. On workspace load and rule creation, apply the policy through the current local date, use a deterministic rule/date entry ID, and advance the rule in the same repository save.
 - Reason: Calendar dates avoid elapsed-millisecond drift across restarts and timezone changes. Deterministic IDs prevent duplicate entries when the same workspace is reopened.
-- Consequence: Missed-occurrence policies, end-of-month anchor preferences, notifications, and recurring task rules remain separate contracts.
+- Consequence: End-of-month anchor preferences, notifications, and recurring task rules remain separate contracts.
 
 ## DEC-022: Restore JSON by validated replacement
 
 - Context: The local JSON export is the complete app-data contract, while merging arbitrary pasted data would make duplicate IDs and broken references hard to reason about.
 - Decision: Restore only export schema 1 envelopes. Migrate supported app schemas, validate the complete record shape and key financial invariants, show record counts, and replace the current workspace only after explicit confirmation. A validation or save failure must leave the current workspace in place.
 - Consequence: The first restore flow is paste-based JSON replacement. CSV import, encrypted backups, merge conflict UI, file picking, and sync restore remain separate work.
+
+## DEC-023: Make missed recurrence handling explicit
+
+- Context: A rule may be opened after several local calendar dates have passed, and silently choosing a catch-up behavior can create unexpected money records.
+- Decision: Persist `all`, `one`, or `skip` on every recurring money rule. `all` creates every due date, `one` creates only the first due date, and `skip` creates none; each policy advances the rule beyond all missed dates in the same save.
+- Consequence: Schema 8 rules migrate to `all`. End-of-month anchoring and recurring task policies remain separate decisions.

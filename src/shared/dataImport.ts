@@ -5,6 +5,7 @@ import type {
   MoneyBudget,
   MoneyCategory,
   MoneyEntry,
+  MissedOccurrencePolicy,
   MoneyRecurrenceRule,
   MoneySplit,
   MoneyTransfer,
@@ -57,7 +58,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 8) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 9) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -79,7 +80,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 8 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 9 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -207,7 +208,7 @@ function validateRecurrence(rule: MoneyRecurrenceRule, accountIds: Set<string>, 
   validateOptionalReference(rule.categoryId, categoryIds, `Recurring rule ${rule.id} category`);
   if (typeof rule.category !== 'string' || typeof rule.note !== 'string' ||
       !isRecurrenceCadence(rule.cadence) || !Number.isSafeInteger(rule.interval) || rule.interval < 1 || rule.interval > 365 ||
-      !isValidLocalDate(rule.nextOccurrenceLocalDate) || typeof rule.isPaused !== 'boolean') {
+      !isValidLocalDate(rule.nextOccurrenceLocalDate) || !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) || typeof rule.isPaused !== 'boolean') {
     throw new JsonImportError(`Recurring rule ${rule.id} has invalid fields.`);
   }
 }
@@ -334,6 +335,10 @@ function isRollover(value: unknown): value is 'none' | 'carry-forward' {
 
 function isRecurrenceCadence(value: unknown): value is 'day' | 'week' | 'month' {
   return value === 'day' || value === 'week' || value === 'month';
+}
+
+function isMissedOccurrencePolicy(value: unknown): value is MissedOccurrencePolicy {
+  return value === 'all' || value === 'one' || value === 'skip';
 }
 
 function countRecords(data: AppData): JsonImportRecordCounts {

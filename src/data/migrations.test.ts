@@ -1,4 +1,4 @@
-import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8} from './migrations';
+import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -172,5 +172,49 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(8);
     expect(data.recurrences).toEqual([]);
+  });
+
+  it('adds the default all-missed policy when opening schema 8 data', () => {
+    const data = migrateV8ToV9({
+      schemaVersion: 8,
+      mainCurrency: 'EUR',
+      money: [],
+      transfers: [],
+      splits: [],
+      budgets: [],
+      recurrences: [{
+        id: 'rule_1',
+        kind: 'expense',
+        amountMinor: 1000,
+        currency: 'EUR',
+        accountId: 'account_everyday',
+        categoryId: 'category_food',
+        category: 'Food',
+        note: '',
+        cadence: 'month',
+        interval: 1,
+        nextOccurrenceLocalDate: '2026-07-26',
+        isPaused: false,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }],
+      accounts: [],
+      categories: [],
+      notes: [],
+      tasks: [],
+      usageSnapshots: [],
+      usageRead: {
+        permission: 'unknown',
+        lastReadAt: null,
+        rangeStartMillis: null,
+        rangeEndMillis: null,
+        errorCode: null,
+      },
+      usageExcludedPackages: [],
+      timeGoals: [],
+    });
+
+    expect(data.schemaVersion).toBe(9);
+    expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
   });
 });

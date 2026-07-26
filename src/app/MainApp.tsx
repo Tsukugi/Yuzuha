@@ -26,7 +26,7 @@ import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
+import type {AppData, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -636,6 +636,7 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
   const [cadence, setCadence] = useState<RecurrenceCadence>('month');
   const [interval, setInterval] = useState('1');
   const [nextOccurrenceLocalDate, setNextOccurrenceLocalDate] = useState(localDateKey(new Date()));
+  const [missedOccurrencePolicy, setMissedOccurrencePolicy] = useState<MissedOccurrencePolicy>('all');
   const [note, setNote] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -660,6 +661,7 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
       cadence,
       interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
       nextOccurrenceLocalDate,
+      missedOccurrencePolicy,
     };
     try {
       await addMoneyRecurrence(input);
@@ -734,6 +736,13 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
             value={nextOccurrenceLocalDate}
             onChangeText={setNextOccurrenceLocalDate}
           />
+          <Text style={styles.formLabel}>When missed dates are found</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="All" selected={missedOccurrencePolicy === 'all'} onPress={() => setMissedOccurrencePolicy('all')} />
+            <SegmentButton label="One" selected={missedOccurrencePolicy === 'one'} onPress={() => setMissedOccurrencePolicy('one')} />
+            <SegmentButton label="Skip" selected={missedOccurrencePolicy === 'skip'} onPress={() => setMissedOccurrencePolicy('skip')} />
+          </View>
+          <Text style={styles.cardDetail}>All creates every missed date. One creates the first missed date. Skip creates none. The rule then advances past all missed dates.</Text>
           <Text style={styles.formLabel}>Note (optional)</Text>
           <TextInput
             accessibilityLabel="Recurring note"
@@ -756,6 +765,7 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
             <View key={rule.id} style={styles.formCard}>
               <Text style={styles.cardTitle}>{rule.category}</Text>
               <Text style={styles.cardDetail}>{rule.kind} · {formatMoney(rule.amountMinor, rule.currency)} every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}</Text>
+              <Text style={styles.cardDetail}>Missed dates: {rule.missedOccurrencePolicy}</Text>
               <Text style={styles.cardDetail}>Next: {rule.nextOccurrenceLocalDate}</Text>
               <TextButton label="Delete rule" danger onPress={() => deleteMoneyRecurrence(rule.id)} />
             </View>

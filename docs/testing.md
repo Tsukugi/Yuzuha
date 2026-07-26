@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the recurring-money pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the recurring-policy pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -182,12 +182,19 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 
 ## Import and restore evidence
 
-- Jest: 15 suites, 51 tests passing, including current JSON restore parsing, schema 7 migration, malformed JSON rejection, duplicate-ID rejection, and split-total validation.
+- Jest: 15 suites, 55 tests passing, including JSON restore parsing, schema 7 migration, schema 8 to schema 9 recurrence migration, old SQLite recurrence-row compatibility, malformed JSON rejection, duplicate-ID rejection, split-total validation, and all/one/skip recurrence behavior.
 - Lint and strict TypeScript: passing.
 - Android bundle and debug APK: passing with Java 17.
 - Emulator restore smoke: Data tools opened, `not-json` was rejected with “The restore text is not valid JSON.”, and no restore was committed.
 - Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. The phone still blocks automated touch input, so valid restore confirmation was tested through parser/unit coverage rather than phone interaction.
 - The restore path has a pure validation step and a separate confirmed replacement step; invalid input never reaches `WorkspaceStore.save`.
+
+## Recurring policy evidence
+
+- Unit tests cover all missed occurrences, one first missed occurrence, skip-all missed occurrences, policy validation, schema migration, and next-date advancement.
+- SQLite regression coverage proves an old recurrence payload without a policy reads as `all` instead of crashing or silently changing its schedule.
+- The recurrence UI includes All, One, and Skip choices and displays the stored policy for each rule.
+- Android APK and device smoke: schema 9 APK built and installed on both devices; emulator rendered and selected All, One, and Skip, then restarted with the existing EUR 2.50 total unchanged and no filtered app errors. The phone `42adce68` remains install/start-only because touch injection is blocked.
 
 ## Recurring money evidence
 

@@ -1,5 +1,5 @@
 import {emptyAppData} from '../types/domain';
-import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, UsageRead, UsageSnapshot} from '../types/domain';
+import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, UsageRead, UsageSnapshot} from '../types/domain';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -97,6 +97,11 @@ interface StoredV7 {
   usageRead: AppData['usageRead'];
   usageExcludedPackages: string[];
   timeGoals: AppData['timeGoals'];
+}
+
+interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences'> {
+  schemaVersion: 8;
+  recurrences: Array<Omit<MoneyRecurrenceRule, 'missedOccurrencePolicy'>>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -223,10 +228,31 @@ export function isStoredV7(value: unknown): value is StoredV7 {
   );
 }
 
-export function isStoredV8(value: unknown): value is AppData {
+export function isStoredV8(value: unknown): value is StoredV8 {
   return (
     isRecord(value) &&
     value.schemaVersion === 8 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
+    Array.isArray(value.splits) &&
+    Array.isArray(value.budgets) &&
+    Array.isArray(value.recurrences) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV9(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 9 &&
     typeof value.mainCurrency === 'string' &&
     Array.isArray(value.money) &&
     Array.isArray(value.transfers) &&
@@ -326,7 +352,7 @@ export function migrateV6ToV7(value: StoredV6): StoredV7 {
   };
 }
 
-export function migrateV7ToV8(value: StoredV7): AppData {
+export function migrateV7ToV8(value: StoredV7): StoredV8 {
   return {
     ...value,
     schemaVersion: 8,
@@ -334,30 +360,41 @@ export function migrateV7ToV8(value: StoredV7): AppData {
   };
 }
 
+export function migrateV8ToV9(value: StoredV8): AppData {
+  return {
+    ...value,
+    schemaVersion: 9,
+    recurrences: value.recurrences.map(rule => ({...rule, missedOccurrencePolicy: 'all'})),
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV8(value)) {
+  if (isStoredV9(value)) {
     return value;
   }
+  if (isStoredV8(value)) {
+    return migrateV8ToV9(value);
+  }
   if (isStoredV7(value)) {
-    return migrateV7ToV8(value);
+    return migrateV8ToV9(migrateV7ToV8(value));
   }
   if (isStoredV6(value)) {
-    return migrateV7ToV8(migrateV6ToV7(value));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)));
   }
   if (isStoredV5(value)) {
-    return migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value)));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))));
   }
   if (isStoredV4(value)) {
-    return migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value))));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))));
   }
   if (isStoredV3(value)) {
-    return migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value)))));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))));
   }
   if (isStoredV2(value)) {
-    return migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value))))));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value)))))));
   }
   if (isStoredV1(value)) {
-    return migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value)))))));
+    return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value))))))));
   }
   return null;
 }

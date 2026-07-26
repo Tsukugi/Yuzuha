@@ -258,6 +258,7 @@ describe('SQLite workspace store', () => {
       cadence: 'month',
       interval: 1,
       nextOccurrenceLocalDate: '2026-08-01',
+      missedOccurrencePolicy: 'all',
       isPaused: false,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
@@ -322,6 +323,39 @@ describe('SQLite workspace store', () => {
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
 
     await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 3.');
+  });
+
+  it('upgrades old SQLite recurrence rows to the explicit all policy', async () => {
+    const database = new MemorySqlite();
+    database.schemaVersion = '2';
+    database.meta.set('schema_version', '2');
+    database.meta.set('main_currency', 'EUR');
+    database.records.set('recurrence:old_rule', {
+      recordType: 'recurrence',
+      recordId: 'old_rule',
+      payloadJson: JSON.stringify({
+        id: 'old_rule',
+        kind: 'expense',
+        amountMinor: 1000,
+        currency: 'EUR',
+        accountId: 'account_everyday',
+        categoryId: 'category_food',
+        category: 'Food',
+        note: '',
+        cadence: 'month',
+        interval: 1,
+        nextOccurrenceLocalDate: '2026-07-26',
+        isPaused: false,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }),
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+
+    const data = await store.load();
+
+    expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
   });
 
   it('rejects malformed persisted record payloads', async () => {

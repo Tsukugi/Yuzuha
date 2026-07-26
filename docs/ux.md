@@ -48,7 +48,7 @@ The Home screen links to Data tools. The user can share a complete JSON export o
 
 ### Create a recurring money rule
 
-Money includes a recurring-rule form for expense or income, amount, category, account, cadence, interval, local start date, and note. Saving a rule creates due entries immediately and shows the next local calendar date. Reopening the app advances only due dates that have not already generated a deterministic entry. Rules can be deleted from the recurring-rules list.
+Money includes a recurring-rule form for expense or income, amount, category, account, cadence, interval, local start date, missed-date policy, and note. The user chooses All, One, or Skip before saving. All creates every missed date, One creates the first missed date, and Skip creates none; each choice advances the rule beyond the missed range. Saving a rule creates due entries immediately and shows the next local calendar date. Reopening the app advances only due dates that have not already generated a deterministic entry. Rules can be deleted from the recurring-rules list.
 
 ### Restore local data
 

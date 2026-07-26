@@ -15,6 +15,7 @@ const input = {
   cadence: 'month' as const,
   interval: 1,
   nextOccurrenceLocalDate: '2026-01-31',
+  missedOccurrencePolicy: 'all' as const,
 };
 
 describe('money recurrences', () => {
@@ -24,6 +25,7 @@ describe('money recurrences', () => {
     expect(validateMoneyRecurrence({...input, currency: 'USD'}, accounts, categories)).toContain('match');
     expect(validateMoneyRecurrence({...input, nextOccurrenceLocalDate: '2026-02-30'}, accounts, categories)).toContain('valid recurring start');
     expect(validateMoneyRecurrence({...input, interval: 0}, accounts, categories)).toContain('1 to 365');
+    expect(validateMoneyRecurrence({...input, missedOccurrencePolicy: 'later' as never}, accounts, categories)).toContain('missed-occurrence');
   });
 
   it('advances calendar dates deterministically and clamps short months', () => {
@@ -49,5 +51,37 @@ describe('money recurrences', () => {
     const second = expandDueMoneyRecurrences(first.data, '2026-07-26', '2026-07-26T12:00:00.000Z');
     expect(second.generatedCount).toBe(0);
     expect(second.data).toBe(first.data);
+  });
+
+  it('creates only the first missed occurrence when policy is one', () => {
+    const data = emptyAppData();
+    const rule = createMoneyRecurrence(
+      {...input, cadence: 'day', interval: 1, nextOccurrenceLocalDate: '2026-07-24', missedOccurrencePolicy: 'one'},
+      'rule_one',
+      '2026-07-24T00:00:00.000Z',
+    );
+    data.recurrences = [rule];
+
+    const result = expandDueMoneyRecurrences(data, '2026-07-26', '2026-07-26T12:00:00.000Z');
+
+    expect(result.generatedCount).toBe(1);
+    expect(result.data.money.map(entry => entry.id)).toEqual(['money_rule_one_2026-07-24']);
+    expect(result.data.recurrences[0].nextOccurrenceLocalDate).toBe('2026-07-27');
+  });
+
+  it('skips all missed occurrences when policy is skip', () => {
+    const data = emptyAppData();
+    const rule = createMoneyRecurrence(
+      {...input, cadence: 'day', interval: 1, nextOccurrenceLocalDate: '2026-07-24', missedOccurrencePolicy: 'skip'},
+      'rule_skip',
+      '2026-07-24T00:00:00.000Z',
+    );
+    data.recurrences = [rule];
+
+    const result = expandDueMoneyRecurrences(data, '2026-07-26', '2026-07-26T12:00:00.000Z');
+
+    expect(result.generatedCount).toBe(0);
+    expect(result.data.money).toEqual([]);
+    expect(result.data.recurrences[0].nextOccurrenceLocalDate).toBe('2026-07-27');
   });
 });

@@ -395,9 +395,14 @@ export function decodeAppData(
         data.budgets.push({...budget, rollover: budget.rollover === 'carry-forward' ? 'carry-forward' : 'none'});
         break;
       }
-      case 'recurrence':
-        data.recurrences.push(payload as MoneyRecurrenceRule);
+      case 'recurrence': {
+        const recurrence = payload as MoneyRecurrenceRule;
+        data.recurrences.push({
+          ...recurrence,
+          missedOccurrencePolicy: recurrence.missedOccurrencePolicy ?? 'all',
+        });
         break;
+      }
       case 'account':
         data.accounts.push(payload as MoneyAccount);
         break;

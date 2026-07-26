@@ -504,3 +504,35 @@ Phone               PASS - final APK installed and MainActivity resumed without 
 ```
 
 Next pass: recurring missed-occurrence policy and backup/import expansion, with sync kept behind the local-first boundary.
+
+## Implementation review: recurring missed-occurrence policy pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- app data schema 9 with schema 8 to schema 9 migration;
+- persisted `all`, `one`, or `skip` policy on every recurring money rule;
+- deterministic catch-up behavior: all creates every due date, one creates the first due date, and skip creates none;
+- all policies advance the rule beyond the full missed range in the same save;
+- old SQLite recurrence payloads without a policy are upgraded at the read boundary to `all`;
+- recurrence form and rule list show the selected policy;
+- unit coverage for all, one, skip, validation, migration, and existing duplicate prevention.
+
+Known limits:
+
+- End-of-month anchor preferences, recurring task rules, notifications, encrypted backups, sync, and recovery keys remain planned.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 15 suites, 55 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator policy     PASS - All, One, and Skip controls rendered and selected; restart preserved EUR 2.50 without an error
+Phone               PASS - final APK installed and MainActivity resumed without filtered app errors
+```
+
+Next pass: local encrypted backup or the next highest-priority continuity contract, with sync kept behind the local-first boundary.

@@ -34,7 +34,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(8);
+    expect(preview.data.schemaVersion).toBe(9);
     expect(preview.data.recurrences).toEqual([]);
   });
 

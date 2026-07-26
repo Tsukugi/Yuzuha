@@ -5,6 +5,7 @@ import type {
   MoneyEntry,
   MoneyKind,
   MoneyRecurrenceRule,
+  MissedOccurrencePolicy,
   RecurrenceCadence,
 } from '../types/domain';
 
@@ -19,6 +20,7 @@ export interface MoneyRecurrenceInput {
   cadence: RecurrenceCadence;
   interval: number;
   nextOccurrenceLocalDate: string;
+  missedOccurrencePolicy: MissedOccurrencePolicy;
 }
 
 export interface RecurrenceExpansion {
@@ -42,6 +44,9 @@ export function validateMoneyRecurrence(
   }
   if (input.cadence !== 'day' && input.cadence !== 'week' && input.cadence !== 'month') {
     return 'Choose a valid recurring cadence.';
+  }
+  if (!isMissedOccurrencePolicy(input.missedOccurrencePolicy)) {
+    return 'Choose a valid missed-occurrence policy.';
   }
   if (!isValidLocalDate(input.nextOccurrenceLocalDate)) {
     return 'Enter a valid recurring start date as YYYY-MM-DD.';
@@ -90,9 +95,21 @@ export function expandDueMoneyRecurrences(
     if (rule.isPaused || rule.nextOccurrenceLocalDate > todayLocalDate) {
       return rule;
     }
+    const dueDates: string[] = [];
     let nextOccurrenceLocalDate = rule.nextOccurrenceLocalDate;
     while (nextOccurrenceLocalDate <= todayLocalDate) {
-      const entryId = `money_${rule.id}_${nextOccurrenceLocalDate}`;
+      dueDates.push(nextOccurrenceLocalDate);
+      nextOccurrenceLocalDate = addRecurrenceDate(nextOccurrenceLocalDate, rule.cadence, rule.interval);
+    }
+    const occurrenceDates = rule.missedOccurrencePolicy === 'all'
+      ? dueDates
+      : rule.missedOccurrencePolicy === 'one'
+        ? dueDates.slice(0, 1)
+        : rule.missedOccurrencePolicy === 'skip'
+          ? []
+          : (() => { throw new Error(`Recurring rule ${rule.id} has an invalid missed-occurrence policy.`); })();
+    occurrenceDates.forEach(occurrenceLocalDate => {
+      const entryId = `money_${rule.id}_${occurrenceLocalDate}`;
       if (!data.money.some(entry => entry.id === entryId) && !generatedEntries.some(entry => entry.id === entryId)) {
         generatedEntries.push({
           id: entryId,
@@ -103,13 +120,12 @@ export function expandDueMoneyRecurrences(
           categoryId: rule.categoryId,
           category: rule.category,
           note: rule.note,
-          occurredAt: localDateToIso(nextOccurrenceLocalDate),
+          occurredAt: localDateToIso(occurrenceLocalDate),
           createdAt: generatedAt,
           updatedAt: generatedAt,
         });
       }
-      nextOccurrenceLocalDate = addRecurrenceDate(nextOccurrenceLocalDate, rule.cadence, rule.interval);
-    }
+    });
     return {...rule, nextOccurrenceLocalDate, updatedAt: generatedAt};
   });
 
@@ -148,6 +164,10 @@ export function isValidLocalDate(value: string): boolean {
   const [year, month, day] = value.split('-').map(Number);
   const parsed = new Date(Date.UTC(year, month - 1, day));
   return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+}
+
+function isMissedOccurrencePolicy(value: unknown): value is MissedOccurrencePolicy {
+  return value === 'all' || value === 'one' || value === 'skip';
 }
 
 function localDateToIso(localDate: string): string {

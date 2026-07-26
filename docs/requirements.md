@@ -257,7 +257,8 @@ Implemented and verified:
 - `MONEY-10`: the user can create day, week, or month money rules with a validated account, category, amount, interval, and local start date;
 - due entries are generated from local calendar dates and the rule's next date advances in the same save;
 - generated entry IDs are deterministic from the rule ID and occurrence date, so reopening the app does not duplicate entries;
-- schema 7 to schema 8 migration adds an empty recurrence collection without dropping existing records;
+- schema 8 to schema 9 migration adds the default `all` missed-occurrence policy without dropping existing records;
+- old SQLite recurrence rows without a policy are read as `all` and survive the next normal repository save;
 - emulator smoke shows one monthly EUR 2.50 entry generated for today, next occurrence 2026-08-26, and the same EUR 2.50 total after restart.
 
 Not yet complete: missed-occurrence choices, end-of-month anchor preferences, recurring task rules, alerts, and sync.
@@ -267,8 +268,20 @@ Not yet complete: missed-occurrence choices, end-of-month anchor preferences, re
 Implemented and verified:
 
 - JSON export schema 1 can be pasted into Data tools and previewed without changing local data;
-- supported app schemas are migrated to schema 8 before restore;
+- supported app schemas are migrated to schema 9 before restore;
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
 Not yet complete: CSV import, encrypted backups, file-picker restore, merge behavior, sync restore, and recovery-key handling.
+
+## Recurring policy implementation review
+
+Implemented and verified:
+
+- every recurring money rule stores `all`, `one`, or `skip` missed-occurrence behavior;
+- `all` creates every due date, `one` creates only the first due date, and `skip` creates none;
+- every policy advances the next occurrence beyond the full missed range, so restart does not repeat skipped dates;
+- schema 8 rules migrate to schema 9 with `all` as the explicit default;
+- the recurrence form shows the policy and the rule list shows the stored choice.
+
+Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, encrypted backups, sync, and recovery-key handling.

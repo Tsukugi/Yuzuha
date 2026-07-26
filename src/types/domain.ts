@@ -75,6 +75,7 @@ export interface MoneyBudget {
 }
 
 export type RecurrenceCadence = 'day' | 'week' | 'month';
+export type MissedOccurrencePolicy = 'all' | 'one' | 'skip';
 
 export interface MoneyRecurrenceRule {
   id: string;
@@ -88,6 +89,7 @@ export interface MoneyRecurrenceRule {
   cadence: RecurrenceCadence;
   interval: number;
   nextOccurrenceLocalDate: string;
+  missedOccurrencePolicy: MissedOccurrencePolicy;
   isPaused: boolean;
   createdAt: string;
   updatedAt: string;
@@ -141,7 +143,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 8;
+  schemaVersion: 9;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -169,7 +171,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 8,
+  schemaVersion: 9,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
