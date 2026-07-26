@@ -552,7 +552,7 @@ Delivered:
 
 Known limits:
 
-- Backup sharing is text-based. Recovery keys, attachments, file-picker storage, platform backup policy, password recovery, and remote sync remain planned.
+- Backup files are JSON documents without recovery keys or attachments. Platform backup policy, password recovery, and remote sync remain planned.
 
 Review evidence:
 
@@ -566,4 +566,36 @@ Emulator backup     PASS - encrypted Data tools UI rendered; weak password was r
 Phone               PASS - final APK installed and MainActivity resumed without filtered app errors
 ```
 
-Next pass: file-based backup portability or recovery-key design, with remote sync kept behind the local-first boundary.
+Next pass: recovery-key design or attachment portability, with remote sync kept behind the local-first boundary.
+
+## Implementation review: encrypted backup file-portability pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- maintained system document picker and native filesystem dependencies for current React Native new architecture;
+- encrypted backup file save through a temporary app-cache file and system Save as flow;
+- encrypted backup file open through the system picker and the existing authenticated decrypt/validation/preview boundary;
+- deterministic picker cancellation behavior and cache cleanup ownership;
+- unit coverage for save/open calls, encrypted content, selected-file preview, cancellation, and cleanup after password validation failure.
+
+Known limits:
+
+- File backups remain password-based JSON envelopes. Recovery keys, attachments, platform backup policy, password recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 17 suites, 63 tests
+npm run check-bundle PASS - Android bundle metadata valid
+npm run bundle:android PASS - embedded release bundle generated
+Android debug build  PASS - app:assembleDebug with Java 17
+Android release build PASS - app:assembleRelease with Java 17
+Emulator smoke       PASS - release APK saved, reopened, decrypted, and previewed an encrypted file with 8 records
+Phone smoke          PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: recovery-key design or attachment portability, with remote sync kept behind the local-first boundary.

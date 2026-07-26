@@ -25,6 +25,11 @@ import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
 import {buildEncryptedBackup, decryptEncryptedBackup, type EncryptedBackupPreview} from '../shared/encryptedBackup';
+import {
+  EncryptedBackupFileCanceled,
+  openEncryptedBackupFile,
+  saveEncryptedBackupFile,
+} from '../shared/encryptedBackupFile';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
@@ -216,6 +221,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   async function shareEncryptedBackup() {
     setStatus(null);
     setError(null);
+    setBackupBusy(true);
     try {
       const backup = await buildEncryptedBackup(data, backupPassword, new Date().toISOString());
       await Share.share({
@@ -225,6 +231,24 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       setStatus('Encrypted backup is ready to share. The password is not stored on this device.');
     } catch (backupError) {
       setError(backupError instanceof Error ? backupError.message : 'Encrypted backup could not be created.');
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  async function saveEncryptedBackupFileToDevice() {
+    setStatus(null);
+    setError(null);
+    setBackupBusy(true);
+    try {
+      const savedFile = await saveEncryptedBackupFile(data, backupPassword, new Date().toISOString());
+      setStatus(`Encrypted backup saved as ${savedFile.name}. The password is not stored on this device.`);
+    } catch (backupError) {
+      if (!(backupError instanceof EncryptedBackupFileCanceled)) {
+        setError(backupError instanceof Error ? backupError.message : 'Encrypted backup file could not be saved.');
+      }
+    } finally {
+      setBackupBusy(false);
     }
   }
 
@@ -308,6 +332,23 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     }
   }
 
+  async function openEncryptedBackupFileFromDevice() {
+    setStatus(null);
+    setError(null);
+    setBackupBusy(true);
+    try {
+      setBackupPreview(await openEncryptedBackupFile(backupPassword));
+      setStatus('Encrypted backup file is validated. Review the preview before restoring it.');
+    } catch (backupError) {
+      if (!(backupError instanceof EncryptedBackupFileCanceled)) {
+        setBackupPreview(null);
+        setError(backupError instanceof Error ? backupError.message : 'Encrypted backup file could not be opened.');
+      }
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
   function confirmEncryptedRestore() {
     if (!backupPreview) {
       return;
@@ -363,6 +404,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           onChangeText={setBackupPassword}
         />
         <PrimaryButton label="Share encrypted backup" onPress={shareEncryptedBackup} disabled={backupBusy} />
+        <PrimaryButton label="Save encrypted backup file" onPress={saveEncryptedBackupFileToDevice} disabled={backupBusy} />
         {status && <Text style={styles.successText}>{status}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
@@ -396,6 +438,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Restore encrypted backup</Text>
         <Text style={styles.cardDetail}>Paste the encrypted backup and enter the same password. The backup is decrypted and validated before any local data changes.</Text>
+        <PrimaryButton label="Open encrypted backup file" onPress={openEncryptedBackupFileFromDevice} disabled={backupBusy} />
         <TextInput
           accessibilityLabel="Encrypted backup text"
           autoCapitalize="none"

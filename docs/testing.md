@@ -202,6 +202,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - The crypto dependency ESM packages are included in the Jest transform allow-list and pass strict TypeScript and lint checks.
 - The final debug APK was installed on the emulator and phone. The emulator rendered the encrypted Data tools fields, rejected a weak password, and opened the Android text chooser for a valid encrypted backup; the phone remains install/start-only because touch injection is blocked by device policy.
 
+## Encrypted backup file evidence
+
+- Unit tests cover encrypted file save, encrypted file open and preview, system-picker cancellation, encrypted content passed to the save boundary, and cleanup ownership when password validation fails before file creation.
+- Android and iOS document-picker calls are isolated in `encryptedBackupFile.ts`; the encrypted file adapter never writes plaintext workspace JSON.
+- Full verification: Jest 17 suites and 63 tests, lint, strict TypeScript, bundle metadata check, Android bundle generation, debug APK build, and release APK build all pass.
+- Release emulator `emulator-5554`: saved `yuzuha-encrypted-backup-2026-07-26.json` through DocumentsUI, selected it again, decrypted it on-device, and showed the validated preview with 8 records. This also covers the strict UTF-8 decoder used when Android does not provide `TextDecoder`.
+- Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered Yuzuha app errors. Touch automation remains blocked by device policy, so file-picker interaction was run on the emulator.
+
 ## Recurring money evidence
 
 - Jest: 14 suites, 47 tests passing, including schema 7 to schema 8 migration, recurrence validation, calendar boundary handling, due generation, duplicate prevention, and SQLite round-trip coverage.

@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Local password-encrypted backup and restore are implemented. Account sync, recovery keys, device enrollment, and remote backup remain planned.
+Status: Local password-encrypted backup and restore are implemented for text and document files. Account sync, recovery keys, device enrollment, attachments, and remote backup remain planned.
 
 ## Goals
 
@@ -73,7 +73,7 @@ The outbox is encrypted at rest and bounded. When full, the app stops adding new
 
 ### Export backup
 
-The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace. The app shows the encrypted size and creation date during preview and never uploads it automatically. The current pass is shared as text through the Android system sheet; attachments, recovery keys, and file-picker export remain planned.
+The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. The password is not stored and the backup is never uploaded automatically. The saved file is a portable JSON envelope with the same authenticated header and ciphertext as the text flow.
 
 ### Platform backup
 
@@ -81,7 +81,7 @@ Android and iOS backup behavior is platform-specific. The app must state whether
 
 ### Restore flow
 
-Encrypted restore derives the key from the entered password, authenticates and decrypts the complete export, runs the existing migration and integrity checks, previews record counts, and commits only after confirmation. If authentication, validation, or commit fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
+Encrypted restore can use pasted text or a selected JSON file. It derives the key from the entered password, authenticates and decrypts the complete export, runs the existing migration and integrity checks, previews record counts, and commits only after confirmation. If the picker is canceled, the app keeps the current screen; if authentication, validation, or commit fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
 
 ## API surface
 

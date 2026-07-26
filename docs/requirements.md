@@ -272,7 +272,7 @@ Implemented and verified:
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
-Not yet complete: CSV import, file-picker restore, merge behavior, sync restore, and recovery-key handling.
+Not yet complete: CSV import, merge behavior, sync restore, and recovery-key handling.
 
 ## Encrypted backup implementation review
 
@@ -283,7 +283,18 @@ Implemented and verified:
 - the user can decrypt a backup with the password, preview its creation date and record counts, and confirm replacement only after validation;
 - wrong passwords, tampering, weak passwords, unsupported parameters, and plaintext leakage are covered by tests.
 
-Not yet complete: recovery-key backups, file-picker files, attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: recovery-key backups, attachments, platform backup policy, remote encrypted sync, and password recovery.
+
+## Encrypted backup file portability review
+
+Implemented and verified:
+
+- the user can save an encrypted JSON backup through the system document picker;
+- the user can select an encrypted JSON backup file and receive the same authenticated decrypt, validation, and preview flow as pasted text;
+- temporary app-cache files are removed after a successful or failed save operation, and a canceled picker leaves the workspace unchanged;
+- file operations preserve the existing password, crypto, and restore validation rules.
+
+Not yet complete: recovery-key backups, attachments, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Recurring policy implementation review
 

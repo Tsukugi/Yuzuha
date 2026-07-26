@@ -18,8 +18,8 @@ describe('encrypted backups', () => {
     const data = emptyAppData();
     data.notes.push({
       id: 'note_secret',
-      title: 'Private',
-      body: 'Do not expose this text',
+      title: 'Privé 🗂️',
+      body: 'Do not expose this text — café',
       isPinned: false,
       createdAt,
       updatedAt: createdAt,
@@ -52,5 +52,17 @@ describe('encrypted backups', () => {
     );
 
     await expect(decryptEncryptedBackup('{"header":{},"ciphertextBase64":""}', password)).rejects.toBeInstanceOf(EncryptedBackupError);
+  });
+
+  it('decrypts on devices without a built-in TextDecoder', async () => {
+    const backup = await buildEncryptedBackup(emptyAppData(), password, createdAt, deterministicRandomBytes);
+    const originalDecoder = globalThis.TextDecoder;
+    Object.defineProperty(globalThis, 'TextDecoder', {configurable: true, value: undefined});
+
+    try {
+      await expect(decryptEncryptedBackup(backup, password)).resolves.toMatchObject({createdAt});
+    } finally {
+      Object.defineProperty(globalThis, 'TextDecoder', {configurable: true, value: originalDecoder});
+    }
   });
 });

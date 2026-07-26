@@ -23,8 +23,10 @@
     "@noble/hashes": "^2.2.0",
     "@op-engineering/op-sqlite": "^17.1.2",
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-documents/picker": "^12.0.1",
     "react": "19.2.8",
     "react-native": "0.86.0",
+    "react-native-file-access": "^4.0.3",
     "react-native-get-random-values": "^2.0.0",
     "react-native-safe-area-context": "^5.8.0"
   },

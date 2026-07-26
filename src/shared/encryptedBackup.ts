@@ -203,15 +203,48 @@ function getRandomBytes(randomBytes: BackupRandomBytes, length: number): Uint8Ar
 }
 
 function decodeUtf8(bytes: Uint8Array): string {
-  const Decoder = (globalThis as typeof globalThis & {TextDecoder?: new (label?: string, options?: {fatal?: boolean}) => {decode(input: Uint8Array): string}}).TextDecoder;
-  if (!Decoder) {
-    throw new EncryptedBackupError('UTF-8 decoding is not available on this device.');
+  let result = '';
+
+  for (let index = 0; index < bytes.length; ) {
+    const first = bytes[index++];
+    let codePoint: number;
+
+    if (first <= 0x7f) {
+      codePoint = first;
+    } else if (first >= 0xc2 && first <= 0xdf) {
+      const second = nextContinuationByte(bytes, index++);
+      codePoint = ((first & 0x1f) << 6) | (second & 0x3f);
+    } else if (first >= 0xe0 && first <= 0xef) {
+      const second = nextContinuationByte(bytes, index++);
+      const third = nextContinuationByte(bytes, index++);
+      if ((first === 0xe0 && second < 0xa0) || (first === 0xed && second >= 0xa0)) {
+        throw new EncryptedBackupError('Encrypted backup text is invalid.');
+      }
+      codePoint = ((first & 0x0f) << 12) | ((second & 0x3f) << 6) | (third & 0x3f);
+    } else if (first >= 0xf0 && first <= 0xf4) {
+      const second = nextContinuationByte(bytes, index++);
+      const third = nextContinuationByte(bytes, index++);
+      const fourth = nextContinuationByte(bytes, index++);
+      if ((first === 0xf0 && second < 0x90) || (first === 0xf4 && second > 0x8f)) {
+        throw new EncryptedBackupError('Encrypted backup text is invalid.');
+      }
+      codePoint = ((first & 0x07) << 18) | ((second & 0x3f) << 12) | ((third & 0x3f) << 6) | (fourth & 0x3f);
+    } else {
+      throw new EncryptedBackupError('Encrypted backup text is invalid.');
+    }
+
+    result += String.fromCodePoint(codePoint);
   }
-  try {
-    return new Decoder('utf-8', {fatal: true}).decode(bytes);
-  } catch {
+
+  return result;
+}
+
+function nextContinuationByte(bytes: Uint8Array, index: number): number {
+  const byte = bytes[index];
+  if (byte === undefined || byte < 0x80 || byte > 0xbf) {
     throw new EncryptedBackupError('Encrypted backup text is invalid.');
   }
+  return byte;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

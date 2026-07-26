@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the local encrypted-backup pass. This document is not a legal privacy policy.
+Status: Security baseline through the encrypted-backup file-portability pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -22,6 +22,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Clear temporary bundle files after failed verification or activation.
 - Use HTTPS and certificate validation for update metadata and bundle downloads.
 - Local encrypted backups use audited Noble XChaCha20-Poly1305 and scrypt implementations, secure random salt/nonce values, authenticated metadata, and a password that is never stored by Yuzuha.
+- File backup save uses an app-cache temporary file and deletes it after the system picker operation. Opened document content remains encrypted until authenticated decryption and validation succeed; file names and provider metadata are not treated as secret storage.
 
 ## Android Usage Access
 

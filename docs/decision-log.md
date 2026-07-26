@@ -164,3 +164,17 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Context: Plain JSON export is useful for portability but exposes all workspace content to anyone who receives the shared text. The app needs a local backup that can be stored without plaintext.
 - Decision: Use export schema 1 JSON as the plaintext payload, derive a 32-byte key with scrypt (`N=32768`, `r=8`, `p=1`), encrypt with XChaCha20-Poly1305, authenticate the versioned header as additional data, and require a password of at least 12 characters. Restore decrypts, validates, previews, and confirms before replacement.
 - Consequence: Password recovery, recovery-key envelopes, attachments, file-picker files, and remote sync remain separate contracts. The password is not stored locally.
+
+## DEC-025: Use the system document picker for encrypted backup files
+
+- Context: Text sharing is portable but awkward for large encrypted backups and easy to lose in chat or clipboard history.
+- Decision: Save and open the existing password-encrypted JSON envelope with `@react-native-documents/picker` and `react-native-file-access`. Save writes only to the app cache before the system picker copies the file; open reads the selected document and uses the existing authenticated decrypt/validation path. Picker cancellation is a no-op.
+- Reason: The system provider handles Android and iOS storage destinations without adding account or server state. The file format stays the same as the text format.
+- Consequence: File names and provider metadata are not security boundaries. Recovery keys, attachments, platform backup policy, and remote sync remain separate contracts.
+
+## DEC-026: Decode encrypted backup payloads without a runtime text API
+
+- Context: The Android runtime used by the debug APK does not provide `TextDecoder`, while the encrypted backup payload is UTF-8 JSON.
+- Decision: Decode the authenticated plaintext with a small strict UTF-8 decoder owned by the backup module. Reject malformed, overlong, surrogate, and out-of-range sequences.
+- Reason: The backup format stays unchanged and device behavior does not depend on an old text-encoding polyfill.
+- Consequence: The decoder needs regression tests for normal Unicode content and malformed byte sequences as the backup format evolves.

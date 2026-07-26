@@ -15,6 +15,8 @@ The current core includes the TypeScript app shell, a transactional SQLite repos
 
 ## Technology baseline
 
+The current encrypted backup flow can also save and open the authenticated JSON envelope through the system document picker. Recovery keys, attachments, and sync remain planned.
+
 - React Native `0.86.0` (current implementation baseline, verified July 2026)
 - React `19.2.8`
 - TypeScript with strict checking
