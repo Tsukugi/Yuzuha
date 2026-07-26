@@ -15,12 +15,13 @@ import {formatDate, formatMoney, sumMoney} from '../shared/format';
 import {formatDuration} from '../shared/duration';
 import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from '../shared/period';
 import type {Period} from '../shared/period';
+import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
 import {buildMoneyReport} from '../shared/moneyReport';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, MoneyKind, MoneyTransfer} from '../types/domain';
+import type {AppData, BudgetPeriod, MoneyKind, MoneyTransfer} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -177,7 +178,7 @@ function MoneyScreen() {
   const [newAccount, setNewAccount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'entry' | 'split' | 'transfer' | 'report'>('entry');
+  const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report'>('entry');
 
   if (!data) {
     return null;
@@ -192,6 +193,9 @@ function MoneyScreen() {
   }
   if (view === 'split') {
     return <MoneySplitScreen data={currentData} onBack={() => setView('entry')} />;
+  }
+  if (view === 'budget') {
+    return <MoneyBudgetScreen data={currentData} onBack={() => setView('entry')} />;
   }
 
   async function save() {
@@ -277,6 +281,7 @@ function MoneyScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        <TextButton label="Open budgets" onPress={() => setView('budget')} />
         <TextButton label="Add split entry" onPress={() => setView('split')} />
         <TextButton label="Add transfer" onPress={() => setView('transfer')} />
         <TextButton label="Open money report" onPress={() => setView('report')} />
@@ -430,6 +435,137 @@ interface SplitLineDraft {
   categoryId: string;
   amount: string;
   note: string;
+}
+
+function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {addMoneyBudget, deleteMoneyBudget} = useAppStore();
+  const categories = data.categories.filter(category => !category.isArchived && (category.kind === 'expense' || category.kind === 'both'));
+  const currencies = [...new Set(data.accounts.filter(account => !account.isArchived).map(account => account.currency))];
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
+  const [currency, setCurrency] = useState(currencies[0] ?? data.mainCurrency);
+  const [period, setPeriod] = useState<BudgetPeriod>('month');
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const parsed = Number.parseFloat(amount.replace(',', '.'));
+    const category = categories.find(item => item.id === categoryId);
+    const input: MoneyBudgetInput = {
+      categoryId,
+      category: category?.name ?? '',
+      amountMinor: Number.isFinite(parsed) ? Math.round(parsed * 100) : 0,
+      currency,
+      period,
+    };
+    const validationError = validateMoneyBudget(input, data.categories);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    try {
+      await addMoneyBudget(input);
+      setAmount('');
+      setError(null);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Budget could not be saved.');
+    }
+  }
+
+  if (categories.length === 0) {
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Budgets</Text>
+        <EmptyState text="Add an active expense category before creating a budget." />
+      </ScrollView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Budgets</Text>
+        <Text style={styles.pageIntro}>Budgets count expense entries and split lines in the selected currency and local period.</Text>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Category</Text>
+          <View style={styles.chipWrap}>
+            {categories.map(category => (
+              <ChipButton
+                key={category.id}
+                label={category.name}
+                selected={category.id === categoryId}
+                onPress={() => setCategoryId(category.id)}
+              />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Currency</Text>
+          <View style={styles.chipWrap}>
+            {currencies.map(option => (
+              <ChipButton key={option} label={option} selected={option === currency} onPress={() => setCurrency(option)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Period</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Day" selected={period === 'day'} onPress={() => setPeriod('day')} />
+            <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
+            <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
+          </View>
+          <Text style={styles.formLabel}>Limit ({currency})</Text>
+          <TextInput
+            accessibilityLabel="Budget limit"
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={amount}
+            onChangeText={setAmount}
+          />
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <PrimaryButton label="Save budget" onPress={save} />
+        </View>
+        <SectionTitle title="Current budgets" />
+        {data.budgets.length === 0 ? (
+          <EmptyState text="No budgets yet." />
+        ) : (
+          data.budgets.filter(budget => !budget.isArchived).map(budget => {
+            const projection = buildBudgetProjection(budget, data.money, data.splits, new Date());
+            return (
+              <View key={budget.id} style={styles.formCard}>
+                <Text style={styles.cardTitle}>{budget.category}</Text>
+                <Text style={styles.cardDetail}>{budget.period} · {budget.currency} {formatMoney(budget.amountMinor, budget.currency)} limit</Text>
+                <Text style={styles.cardValue}>{formatMoney(projection.usedMinor, budget.currency)} used</Text>
+                <Text style={styles.cardDetail}>
+                  {formatMoney(projection.remainingMinor, budget.currency)} remaining · {projection.percentUsed}% used
+                </Text>
+                <Text style={projection.status === 'over' ? styles.errorText : projection.status === 'near-limit' ? styles.warningText : styles.successText}>
+                  {budgetStatusLabel(projection.status)}
+                </Text>
+                <TextButton label="Delete budget" danger onPress={() => deleteMoneyBudget(budget.id)} />
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function budgetStatusLabel(status: 'empty' | 'on-track' | 'near-limit' | 'over'): string {
+  if (status === 'empty') {
+    return 'No spending yet';
+  }
+  if (status === 'near-limit') {
+    return 'Near the budget limit';
+  }
+  if (status === 'over') {
+    return 'Over budget';
+  }
+  return 'On track';
 }
 
 function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
@@ -1289,6 +1425,7 @@ const styles = StyleSheet.create({
   textButtonText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
   pressed: {opacity: 0.72},
   errorText: {color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: 10},
+  warningText: {color: colors.warning, fontSize: 13, lineHeight: 19, marginTop: 10},
   successText: {color: colors.accent, fontSize: 14, lineHeight: 20, marginTop: 12},
   amount: {fontSize: 15, fontWeight: '800', marginLeft: 12},
   incomeText: {color: colors.accent},

@@ -91,6 +91,8 @@ Transfers use stable account IDs, same-currency validation, positive integer min
 
 Split entries use stable category IDs and positive integer minor units. The repository stores one parent and one linked split record in the same workspace transaction. Exact-sum validation prevents a projection from creating or losing money, and split notes remain local user content.
 
+Budgets are local records and projections. They use category IDs, bound local persistence, and no network path. Budget status is derived from local entries and split lines without logging notes or sending financial content.
+
 ## Phase 3 app-time controls
 
 App exclusions are package-name settings stored only in the local workspace. Excluded snapshots stay local so the user can include them again without another Android read. Excluded apps are not sent to a service, and totals ignore snapshots marked `included = false`.

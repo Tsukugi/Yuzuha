@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with schema version 5 data migrations. Transfer records, account-balance projections, and exact-sum split entries are live; normalized report, budget, and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with schema version 6 data migrations. Transfer records, account-balance projections, exact-sum split entries, and budget projections are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -49,6 +49,18 @@ Status: The local SQLite repository boundary is implemented with schema version 
 | `lines` | array | At least two lines; positive integer amounts sum exactly to the parent amount. |
 | `lines[].categoryId` | UUID | Active category matching the parent kind. |
 | `lines[].amountMinor` | integer | Positive amount in the parent currency. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+### Money budget
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `categoryId` | UUID | Active expense or both-kind category. |
+| `amountMinor` | integer | Positive limit in the selected currency. |
+| `currency` | string | Three-letter uppercase code. |
+| `period` | enum | `day`, `week`, or `month`, using the local period helper. |
+| `isArchived` | boolean | Archived budgets are not shown or projected. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
 ### App usage snapshot
@@ -120,13 +132,15 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 5 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, 3, or 4 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks; schema 3 receives an empty transfer collection and schema 4 receives an empty split collection. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 6 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, 3, 4, or 5 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks; schema 3 receives an empty transfer collection, schema 4 receives an empty split collection, and schema 5 receives an empty budget collection. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
 
 App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 
 Transfers are source records separate from income and expense entries. Account balances project opening balance, account-linked income/expenses, and transfer inflows/outflows. Reports only consume income/expense entries, so transfers do not change spending or income totals.
 
 Split entries store one parent money entry and one linked `split` record. Account balances use the parent once. Reports replace the parent category with its validated lines, preserving the parent total while showing each line category.
+
+Budgets store their limit as a source record. The projection counts only matching expense entries or split lines with the same category ID, currency, and local day/week/month range. It returns used, remaining, percentage, and a deterministic status; transfers and income never count.
 
 ## Full-product entities
 

@@ -1,6 +1,7 @@
 import type {PropsWithChildren} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {createId} from '../shared/id';
+import {type MoneyBudgetInput, validateMoneyBudget} from '../shared/moneyBudget';
 import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../shared/moneySplit';
 import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
@@ -42,6 +43,8 @@ interface AppStoreValue {
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
+  addMoneyBudget: (input: MoneyBudgetInput) => Promise<void>;
+  deleteMoneyBudget: (budgetId: string) => Promise<void>;
   addMoneyTransfer: (input: {
     fromAccountId: string;
     toAccountId: string;
@@ -180,6 +183,37 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       }));
     },
     [commit, data?.accounts, data?.categories],
+  );
+
+  const addMoneyBudget = useCallback(
+    async (input: MoneyBudgetInput) => {
+      const validationError = validateMoneyBudget(input, data?.categories ?? []);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      await commit(current => ({
+        ...current,
+        budgets: [
+          {
+            ...input,
+            id: createId('budget'),
+            isArchived: false,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          ...current.budgets,
+        ],
+      }));
+    },
+    [commit, data?.categories],
+  );
+
+  const deleteMoneyBudget = useCallback(
+    async (budgetId: string) => {
+      await commit(current => ({...current, budgets: current.budgets.filter(budget => budget.id !== budgetId)}));
+    },
+    [commit],
   );
 
   const addMoneyTransfer = useCallback(
@@ -389,6 +423,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateMoney,
       deleteMoney,
       addSplitMoney,
+      addMoneyBudget,
+      deleteMoneyBudget,
       addMoneyTransfer,
       deleteMoneyTransfer,
       addMoneyAccount,
@@ -413,6 +449,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteMoney,
       deleteMoneyTransfer,
       addSplitMoney,
+      addMoneyBudget,
+      deleteMoneyBudget,
       addNote,
       addTask,
       data,

@@ -146,6 +146,17 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.budgets.push({
+      id: 'budget_food',
+      categoryId: 'category_food',
+      category: 'Food',
+      amountMinor: 2000,
+      currency: 'USD',
+      period: 'month',
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.notes.push({
       id: 'note_1',
       title: 'A note',

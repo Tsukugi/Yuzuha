@@ -49,6 +49,22 @@ interface StoredV4 {
   timeGoals: AppData['timeGoals'];
 }
 
+interface StoredV5 {
+  schemaVersion: 5;
+  mainCurrency: string;
+  money: MoneyEntry[];
+  transfers: AppData['transfers'];
+  splits: AppData['splits'];
+  accounts: AppData['accounts'];
+  categories: AppData['categories'];
+  notes: AppData['notes'];
+  tasks: AppData['tasks'];
+  usageSnapshots: UsageSnapshot[];
+  usageRead: UsageRead;
+  usageExcludedPackages: string[];
+  timeGoals: AppData['timeGoals'];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -113,7 +129,7 @@ export function isStoredV4(value: unknown): value is StoredV4 {
   );
 }
 
-export function isStoredV5(value: unknown): value is AppData {
+export function isStoredV5(value: unknown): value is StoredV5 {
   return (
     isRecord(value) &&
     value.schemaVersion === 5 &&
@@ -121,6 +137,26 @@ export function isStoredV5(value: unknown): value is AppData {
     Array.isArray(value.money) &&
     Array.isArray(value.transfers) &&
     Array.isArray(value.splits) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV6(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 6 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
+    Array.isArray(value.splits) &&
+    Array.isArray(value.budgets) &&
     Array.isArray(value.accounts) &&
     Array.isArray(value.categories) &&
     Array.isArray(value.notes) &&
@@ -190,7 +226,7 @@ export function migrateV3ToV4(value: StoredV3): StoredV4 {
   };
 }
 
-export function migrateV4ToV5(value: StoredV4): AppData {
+export function migrateV4ToV5(value: StoredV4): StoredV5 {
   return {
     ...value,
     schemaVersion: 5,
@@ -198,21 +234,32 @@ export function migrateV4ToV5(value: StoredV4): AppData {
   };
 }
 
+export function migrateV5ToV6(value: StoredV5): AppData {
+  return {
+    ...value,
+    schemaVersion: 6,
+    budgets: [],
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV5(value)) {
+  if (isStoredV6(value)) {
     return value;
   }
+  if (isStoredV5(value)) {
+    return migrateV5ToV6(value);
+  }
   if (isStoredV4(value)) {
-    return migrateV4ToV5(value);
+    return migrateV5ToV6(migrateV4ToV5(value));
   }
   if (isStoredV3(value)) {
-    return migrateV4ToV5(migrateV3ToV4(value));
+    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value)));
   }
   if (isStoredV2(value)) {
-    return migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value)));
+    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value))));
   }
   if (isStoredV1(value)) {
-    return migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value))));
+    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value)))));
   }
   return null;
 }

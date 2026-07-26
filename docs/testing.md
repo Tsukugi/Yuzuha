@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the split-entry pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the budget pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -152,6 +152,15 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator report: Month view showed EUR 19.12 total, with Health EUR 7.00 and Housing EUR 3.00 categories; the existing EUR 9.12 Food total remained intact.
 - Emulator restart: Home retained EUR 19.12 and the report retained the split categories after force-stop and relaunch.
 - Phone `42adce68`: updated APK installed, `MainActivity` resumed, and current cleared-logcat launch produced no filtered app errors. Touch automation remains blocked by device policy.
+
+## Budget evidence
+
+- Jest: 12 suites, 37 tests passing, including budget validation, period projection, split-line counting, status thresholds, schema 5 to schema 6 migration, and SQLite round-trip coverage.
+- Android build: `app:assembleDebug` passes with Java 17 and React Native 0.86.
+- Emulator budget flow: saved a monthly EUR 10.00 Health budget against EUR 7.00 of matching split-line spending.
+- Emulator projection: the screen showed EUR 7.00 used, EUR 3.00 remaining, and 70% used.
+- Emulator restart: the budget and the same projection remained after force-stop and relaunch.
+- Phone `42adce68`: updated APK installed and `MainActivity` resumed with no filtered current app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence
 

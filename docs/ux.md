@@ -127,6 +127,10 @@ Money has an `Add transfer` flow. The user chooses two active accounts, enters a
 
 Money has an `Add split entry` flow. The user chooses the parent type and account, enters the parent amount, then enters at least two category lines. Save rejects missing, invalid, or non-reconciling lines with an inline message. After save, reports show the line categories and the split screen shows the parent total and delete action.
 
+## Budget shipped controls
+
+Money opens a Budgets screen. The user chooses an active expense category, currency, day/week/month period, and limit. The screen shows used, remaining, percentage, and `On track`, `Near the budget limit`, `Over budget`, or `No spending yet`. Delete removes the local budget record.
+
 ## Phase 3 shipped controls
 
 Money rows open in edit mode. The user can update or delete the entry, and the screen clearly shows the editing state. Account and category management uses archive instead of hiding records. The last active account shows a disabled archive action.

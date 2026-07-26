@@ -1,4 +1,4 @@
-import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5} from './migrations';
+import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6} from './migrations';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -77,5 +77,33 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(5);
     expect(data.splits).toEqual([]);
+    expect(migrateV5ToV6(data).budgets).toEqual([]);
+  });
+
+  it('adds an empty budget collection when opening schema 5 data', () => {
+    const data = migrateV5ToV6({
+      schemaVersion: 5,
+      mainCurrency: 'EUR',
+      money: [],
+      transfers: [],
+      splits: [],
+      accounts: [],
+      categories: [],
+      notes: [],
+      tasks: [],
+      usageSnapshots: [],
+      usageRead: {
+        permission: 'unknown',
+        lastReadAt: null,
+        rangeStartMillis: null,
+        rangeEndMillis: null,
+        errorCode: null,
+      },
+      usageExcludedPackages: [],
+      timeGoals: [],
+    });
+
+    expect(data.schemaVersion).toBe(6);
+    expect(data.budgets).toEqual([]);
   });
 });

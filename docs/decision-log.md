@@ -111,3 +111,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Store one parent money entry with linked split lines. The parent amount affects the account balance once; report projections expand the lines by category.
 - Reason: Split lines must reconcile exactly without double-counting the account or period total.
 - Consequence: A save requires at least two positive lines whose integer minor-unit sum exactly matches the parent. Split parents are managed from the split screen.
+
+## DEC-017: Budget projections use local source records
+
+- Status: Accepted.
+- Decision: A budget stores one active expense category, currency, positive minor-unit limit, and day/week/month period. Used and remaining values are rebuilt from matching expense entries and split lines in the current local period.
+- Reason: Budget values must follow the same source records as reports and must not count income, transfers, other currencies, or entries outside the selected period.
+- Consequence: Rollover, recurring budgets, alerts, and normalized budget tables remain separate future contracts.

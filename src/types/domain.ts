@@ -58,6 +58,20 @@ export interface MoneySplit {
   updatedAt: string;
 }
 
+export type BudgetPeriod = 'day' | 'week' | 'month';
+
+export interface MoneyBudget {
+  id: string;
+  categoryId: string;
+  category: string;
+  amountMinor: number;
+  currency: string;
+  period: BudgetPeriod;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -106,11 +120,12 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 5;
+  schemaVersion: 6;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
   splits: MoneySplit[];
+  budgets: MoneyBudget[];
   accounts: MoneyAccount[];
   categories: MoneyCategory[];
   notes: Note[];
@@ -132,11 +147,12 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 5,
+  schemaVersion: 6,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
   splits: [],
+  budgets: [],
   accounts: [
     {
       id: 'account_everyday',

@@ -212,3 +212,14 @@ Implemented and verified:
 - schema version 4 to schema version 5 migration adds an empty split collection without dropping existing records.
 
 Not yet complete: budgets, recurring money rules, exports, normalized money tables, and sync.
+
+## Budget implementation review
+
+Implemented and verified:
+
+- `MONEY-09`: budgets store an active expense category, currency, positive limit, and day/week/month period;
+- `MONEY-09`: used, remaining, percentage, and status are projected from matching expense entries and split lines;
+- `MONEY-09` trust rule: income, transfers, other currencies, and entries outside the selected period do not count;
+- schema version 5 to schema version 6 migration adds an empty budget collection without dropping existing records.
+
+Not yet complete: budget rollover, recurring rules, alerts, exports, normalized money tables, and sync.

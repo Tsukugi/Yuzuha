@@ -331,3 +331,38 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive split evidence is emulator-based.
 
 Next pass: budget projection and budget-period validation, followed by normalized money tables when their migration contract is ready.
+
+## Implementation review: budget pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- schema version 6 with a deterministic schema 5 to schema 6 migration;
+- `MoneyBudget` source records with category, currency, positive limit, and day/week/month period;
+- validation for active expense categories, uppercase currency codes, valid periods, and positive minor units;
+- source-backed projection that counts matching regular expenses and split lines only;
+- deterministic used, remaining, percentage, and empty/on-track/near-limit/over statuses;
+- Budgets screen with creation, current projection, and deletion;
+- unit coverage for validation, period boundaries, split-line projection, thresholds, migration, and SQLite round-trip behavior.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 12 suites, 37 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator budget     PASS - monthly EUR 10.00 Health budget showed EUR 7.00 used / EUR 3.00 remaining / 70%
+Emulator restart    PASS - budget projection survived force-stop/relaunch
+Phone               PASS - install, launch, and resumed activity with no cleared-logcat app errors
+```
+
+Known limits:
+
+- Money records still use typed JSON rows as the repository migration boundary; normalized financial tables remain planned.
+- Budget rollover, recurring rules, alerts, exports, sync, and remote bundle activation remain incomplete.
+- The phone `42adce68` blocks automated touch input, so interactive budget evidence is emulator-based.
+
+Next pass: normalized money tables and budget rollover rules, with import/export contracts kept separate from the local projection.
