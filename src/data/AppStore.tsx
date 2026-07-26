@@ -4,6 +4,13 @@ import {createId} from '../shared/id';
 import {type MoneyBudgetInput, validateMoneyBudget} from '../shared/moneyBudget';
 import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../shared/moneySplit';
 import {validateMoneyTransfer} from '../shared/moneyTransfer';
+import {
+  createMoneyRecurrence,
+  expandDueMoneyRecurrences,
+  type MoneyRecurrenceInput,
+  validateMoneyRecurrence,
+} from '../shared/moneyRecurrence';
+import {localDateKey} from '../shared/period';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -44,6 +51,8 @@ interface AppStoreValue {
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
   resetWorkspace: () => Promise<void>;
+  addMoneyRecurrence: (input: MoneyRecurrenceInput) => Promise<void>;
+  deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
   addMoneyBudget: (input: MoneyBudgetInput) => Promise<void>;
   deleteMoneyBudget: (budgetId: string) => Promise<void>;
@@ -85,9 +94,13 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     let mounted = true;
     store
       .load()
-      .then(loaded => {
+      .then(async loaded => {
+        const expanded = expandDueMoneyRecurrences(loaded, localDateKey(new Date()));
+        if (expanded.data !== loaded) {
+          await store.save(expanded.data);
+        }
         if (mounted) {
-          setData(loaded);
+          setData(expanded.data);
           setIsLoading(false);
         }
       })
@@ -171,6 +184,33 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   const resetWorkspace = useCallback(async () => {
     await commit(() => emptyAppData());
   }, [commit]);
+
+  const addMoneyRecurrence = useCallback(
+    async (input: MoneyRecurrenceInput) => {
+      const validationError = validateMoneyRecurrence(input, data?.accounts ?? [], data?.categories ?? []);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const rule = createMoneyRecurrence(input, createId('recurrence'), timestamp);
+      await commit(current => expandDueMoneyRecurrences(
+        {...current, recurrences: [rule, ...current.recurrences]},
+        localDateKey(new Date()),
+        timestamp,
+      ).data);
+    },
+    [commit, data?.accounts, data?.categories],
+  );
+
+  const deleteMoneyRecurrence = useCallback(
+    async (ruleId: string) => {
+      await commit(current => ({
+        ...current,
+        recurrences: current.recurrences.filter(rule => rule.id !== ruleId),
+      }));
+    },
+    [commit],
+  );
 
   const addSplitMoney = useCallback(
     async (input: MoneySplitInput) => {
@@ -429,6 +469,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateMoney,
       deleteMoney,
       resetWorkspace,
+      addMoneyRecurrence,
+      deleteMoneyRecurrence,
       addSplitMoney,
       addMoneyBudget,
       deleteMoneyBudget,
@@ -465,6 +507,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       isLoading,
       replaceUsageSnapshots,
       resetWorkspace,
+      addMoneyRecurrence,
+      deleteMoneyRecurrence,
       setUsagePermission,
       toggleUsageExclusion,
       toggleTask,

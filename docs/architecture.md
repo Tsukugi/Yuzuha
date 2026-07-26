@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the export/delete pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, and local deletion exist; sync and advanced adapters remain planned.
+Status: Core implementation through the recurring-money pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, and recurring money rules exist; sync and advanced adapters remain planned.
 
 ## System shape
 
@@ -93,7 +93,7 @@ src/
 
 ## Current repository boundary
 
-`SqliteWorkspaceStore` keeps non-financial records as typed JSON rows and stores money entries, transfers, split parents/lines, and budgets in normalized tables. Repository schema 1 is migrated to schema 2 by reading the old rows and rewriting them in one transaction. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports, account balances, and budget projections are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows. Split entries are one parent record plus normalized lines and are expanded only in report projections. Budgets count matching expense entries and split lines within their local period; carry-forward adds only the previous period's unused positive balance. Data tools serialize all supported records as versioned JSON, serialize money entries as versioned CSV, share through Android's system sheet, and reset to empty workspace defaults only after confirmation.
+`SqliteWorkspaceStore` keeps non-financial records and recurrence rules as typed JSON rows and stores money entries, transfers, split parents/lines, and budgets in normalized tables. Repository schema 1 is migrated to schema 2 by reading the old rows and rewriting them in one transaction. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports, account balances, and budget projections are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows. Split entries are one parent record plus normalized lines and are expanded only in report projections. Budgets count matching expense entries and split lines within their local period; carry-forward adds only the previous period's unused positive balance. Data tools serialize all supported records as versioned JSON, serialize money entries as versioned CSV, share through Android's system sheet, and reset to empty workspace defaults only after confirmation. Recurrence rules use local calendar dates, generate due money entries once, and advance their next date transactionally before the workspace is shown.
 
 ## Error boundaries
 

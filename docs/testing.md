@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the export/delete pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the recurring-money pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -178,6 +178,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Lint, strict TypeScript, bundle check, and Android debug build: passing.
 - Emulator export: Data tools opened the Android share sheet with Quick Share, Drive, and Bluetooth targets.
 - Emulator deletion: the confirmation dialog appeared; after confirmation, Home showed EUR 0.00, 0 saved notes, and 0 open tasks.
+- Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
+
+## Recurring money evidence
+
+- Jest: 14 suites, 47 tests passing, including schema 7 to schema 8 migration, recurrence validation, calendar boundary handling, due generation, duplicate prevention, and SQLite round-trip coverage.
+- Lint, strict TypeScript, bundle check, and Android debug build: passing.
+- Emulator recurrence: created a monthly EUR 2.50 Health rule starting today; Home showed EUR 2.50 and the rule showed next occurrence 2026-08-26.
+- Emulator restart: Home remained EUR 2.50 after force-stop/relaunch, proving the same due occurrence was not generated twice.
 - Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence

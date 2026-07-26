@@ -5,6 +5,7 @@ import type {
   MoneyBudget,
   MoneyCategory,
   MoneyEntry,
+  MoneyRecurrenceRule,
   MoneySplit,
   MoneySplitLine,
   MoneyTransfer,
@@ -157,6 +158,7 @@ type RecordType =
   | 'transfer'
   | 'split'
   | 'budget'
+  | 'recurrence'
   | 'account'
   | 'category'
   | 'note'
@@ -358,6 +360,7 @@ export function decodeAppData(
   data.transfers = [];
   data.splits = [];
   data.budgets = [];
+  data.recurrences = [];
   data.accounts = [];
   data.categories = [];
   data.notes = [];
@@ -392,6 +395,9 @@ export function decodeAppData(
         data.budgets.push({...budget, rollover: budget.rollover === 'carry-forward' ? 'carry-forward' : 'none'});
         break;
       }
+      case 'recurrence':
+        data.recurrences.push(payload as MoneyRecurrenceRule);
+        break;
       case 'account':
         data.accounts.push(payload as MoneyAccount);
         break;
@@ -524,6 +530,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),
+    ...data.recurrences.map(rule => record('recurrence', rule.id, rule, rule.updatedAt)),
     ...data.usageExcludedPackages.map(packageName => record('usage_exclusion', packageName, {packageName})),
   ];
 }

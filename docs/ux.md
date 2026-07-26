@@ -46,6 +46,10 @@ Search is available from the Notes header. Results show title, a short body prev
 
 The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The screen states what each format contains and reports when the share action returns. Delete uses a destructive confirmation with a clear list of affected local records; after confirmation, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
 
+### Create a recurring money rule
+
+Money includes a recurring-rule form for expense or income, amount, category, account, cadence, interval, local start date, and note. Saving a rule creates due entries immediately and shows the next local calendar date. Reopening the app advances only due dates that have not already generated a deterministic entry. Rules can be deleted from the recurring-rules list.
+
 ## Accessibility
 
 - Every control has an accessible label and a useful state description.

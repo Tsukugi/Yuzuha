@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 7 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, and one-period carry-forward are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 8 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, and recurring money rules are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -62,6 +62,21 @@ Status: The local SQLite repository boundary is implemented with app data schema
 | `period` | enum | `day`, `week`, or `month`, using the local period helper. |
 | `rollover` | enum | `none` or `carry-forward`; carry-forward uses only the previous period's unused positive balance. |
 | `isArchived` | boolean | Archived budgets are not shown or projected. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+### Money recurrence rule
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `kind` | enum | `income` or `expense`. |
+| `amountMinor` | integer | Positive amount copied into generated entries. |
+| `currency` | string | Must match the active account currency. |
+| `accountId` / `categoryId` | UUID | Source links used for each generated entry. |
+| `cadence` | enum | `day`, `week`, or `month`. |
+| `interval` | integer | Whole number from 1 to 365. |
+| `nextOccurrenceLocalDate` | `YYYY-MM-DD` | Next local calendar date to generate. |
+| `isPaused` | boolean | Paused rules do not generate entries. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
 ### App usage snapshot
@@ -133,7 +148,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 7 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, and exclusions remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 6 is migrated into app schema 7 without dropping records and remains the legacy import source for first open.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 8 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 7 is migrated into app schema 8 without dropping records and remains the legacy import source for first open.
 
 ## Export and deletion
 
@@ -146,6 +161,8 @@ Transfers are source records separate from income and expense entries. Account b
 Split entries store one parent money entry and one linked `split` record. Account balances use the parent once. Reports replace the parent category with its validated lines, preserving the parent total while showing each line category.
 
 Budgets store their limit and rollover policy as a source record. The projection counts only matching expense entries or split lines with the same category ID, currency, and local day/week/month range. `none` uses the saved limit. `carry-forward` adds the previous period's unused positive balance, capped at the saved limit, to the current effective limit. It returns used, remaining, percentage, and a deterministic status; transfers and income never count.
+
+Recurrence expansion compares validated `YYYY-MM-DD` strings in the device's current local calendar. Daily and weekly rules add calendar days; monthly rules clamp a day to the last day of a shorter month. Each generated entry uses a deterministic rule/date ID, and the rule's next date advances in the same save as the generated entries.
 
 ## Full-product entities
 

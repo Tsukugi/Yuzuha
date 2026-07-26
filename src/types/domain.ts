@@ -74,6 +74,25 @@ export interface MoneyBudget {
   updatedAt: string;
 }
 
+export type RecurrenceCadence = 'day' | 'week' | 'month';
+
+export interface MoneyRecurrenceRule {
+  id: string;
+  kind: MoneyKind;
+  amountMinor: number;
+  currency: string;
+  accountId: string | null;
+  categoryId: string | null;
+  category: string;
+  note: string;
+  cadence: RecurrenceCadence;
+  interval: number;
+  nextOccurrenceLocalDate: string;
+  isPaused: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -122,12 +141,13 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 7;
+  schemaVersion: 8;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
   splits: MoneySplit[];
   budgets: MoneyBudget[];
+  recurrences: MoneyRecurrenceRule[];
   accounts: MoneyAccount[];
   categories: MoneyCategory[];
   notes: Note[];
@@ -149,12 +169,13 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 7,
+  schemaVersion: 8,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
   splits: [],
   budgets: [],
+  recurrences: [],
   accounts: [
     {
       id: 'account_everyday',

@@ -246,6 +246,22 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.recurrences.push({
+      id: 'recurrence_food',
+      kind: 'expense',
+      amountMinor: 1250,
+      currency: 'USD',
+      accountId: 'account_everyday',
+      categoryId: 'category_food',
+      category: 'Food',
+      note: 'Subscription',
+      cadence: 'month',
+      interval: 1,
+      nextOccurrenceLocalDate: '2026-08-01',
+      isPaused: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.notes.push({
       id: 'note_1',
       title: 'A note',

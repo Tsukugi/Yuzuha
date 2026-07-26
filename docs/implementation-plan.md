@@ -439,3 +439,38 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive export/delete evidence is emulator-based.
 
 Next pass: recurring money rules, then import/restore validation after export is stable.
+
+## Implementation review: recurring money pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- app data schema 8 with a deterministic schema 7 to schema 8 migration;
+- persisted `MoneyRecurrenceRule` source records in the typed `app_records` table;
+- day, week, and month cadence validation with intervals from 1 to 365;
+- local calendar expansion with monthly short-month clamping;
+- deterministic rule/date generated entry IDs and next-date advancement;
+- automatic due-entry expansion on rule creation and workspace load;
+- recurring-money creation and rule deletion UI;
+- unit coverage for validation, calendar boundaries, due generation, duplicate prevention, migration, and SQLite round-trip behavior.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 14 suites, 47 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator recurrence PASS - monthly EUR 2.50 rule generated one entry; next date was 2026-08-26
+Emulator restart    PASS - Home remained EUR 2.50 after force-stop/relaunch; no duplicate was generated
+Phone               PASS - final APK installed and MainActivity resumed with no cleared-logcat app errors
+```
+
+Known limits:
+
+- Missed-occurrence choices, end-of-month anchor preferences, recurring task rules, alerts, import/restore, and sync remain planned.
+- The phone `42adce68` blocks automated touch input, so interactive recurrence evidence is emulator-based.
+
+Next pass: import and restore validation for the versioned JSON export.

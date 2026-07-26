@@ -23,8 +23,9 @@ import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
+import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer} from '../types/domain';
+import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -272,7 +273,7 @@ function MoneyScreen() {
   const [newAccount, setNewAccount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report'>('entry');
+  const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
 
   if (!data) {
     return null;
@@ -290,6 +291,9 @@ function MoneyScreen() {
   }
   if (view === 'budget') {
     return <MoneyBudgetScreen data={currentData} onBack={() => setView('entry')} />;
+  }
+  if (view === 'recurrence') {
+    return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} />;
   }
 
   async function save() {
@@ -378,6 +382,7 @@ function MoneyScreen() {
         <TextButton label="Open budgets" onPress={() => setView('budget')} />
         <TextButton label="Add split entry" onPress={() => setView('split')} />
         <TextButton label="Add transfer" onPress={() => setView('transfer')} />
+        <TextButton label="Add recurring rule" onPress={() => setView('recurrence')} />
         <TextButton label="Open money report" onPress={() => setView('report')} />
         {editingId && (
           <View style={styles.editBanner}>
@@ -529,6 +534,145 @@ interface SplitLineDraft {
   categoryId: string;
   amount: string;
   note: string;
+}
+
+function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {addMoneyRecurrence, deleteMoneyRecurrence} = useAppStore();
+  const [kind, setKind] = useState<MoneyKind>('expense');
+  const [amount, setAmount] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [accountId, setAccountId] = useState(data.accounts.find(account => !account.isArchived)?.id ?? '');
+  const [cadence, setCadence] = useState<RecurrenceCadence>('month');
+  const [interval, setInterval] = useState('1');
+  const [nextOccurrenceLocalDate, setNextOccurrenceLocalDate] = useState(localDateKey(new Date()));
+  const [note, setNote] = useState('');
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const categories = data.categories.filter(category => !category.isArchived && (category.kind === kind || category.kind === 'both'));
+  const accounts = data.accounts.filter(account => !account.isArchived);
+  const activeCategoryId = categoryId || categories[0]?.id;
+  const activeAccountId = accountId || accounts[0]?.id;
+
+  async function save() {
+    const account = accounts.find(item => item.id === activeAccountId);
+    const category = categories.find(item => item.id === activeCategoryId);
+    const parsedAmount = Number.parseFloat(amount.replace(',', '.'));
+    const parsedInterval = Number.parseInt(interval, 10);
+    const input: MoneyRecurrenceInput = {
+      kind,
+      amountMinor: Number.isFinite(parsedAmount) ? Math.round(parsedAmount * 100) : 0,
+      currency: account?.currency ?? data.mainCurrency,
+      accountId: activeAccountId ?? '',
+      categoryId: category?.id ?? null,
+      category: category?.name ?? 'Uncategorized',
+      note: note.trim(),
+      cadence,
+      interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
+      nextOccurrenceLocalDate,
+    };
+    try {
+      await addMoneyRecurrence(input);
+      setAmount('');
+      setNote('');
+      setError(null);
+      setStatus('Recurring rule saved. Due entries were added from the start date.');
+    } catch (saveError) {
+      setStatus(null);
+      setError(saveError instanceof Error ? saveError.message : 'Recurring rule could not be saved.');
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Recurring money</Text>
+        <Text style={styles.pageIntro}>Rules use local calendar dates. Restarting the app does not create the same occurrence twice.</Text>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Type</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
+            <SegmentButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
+          </View>
+          <Text style={styles.formLabel}>Amount</Text>
+          <TextInput
+            accessibilityLabel="Recurring amount"
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={amount}
+            onChangeText={setAmount}
+          />
+          <Text style={styles.formLabel}>Category</Text>
+          <View style={styles.chipWrap}>
+            {categories.map(category => (
+              <ChipButton key={category.id} label={category.name} selected={category.id === activeCategoryId} onPress={() => setCategoryId(category.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Account</Text>
+          <View style={styles.chipWrap}>
+            {accounts.map(account => (
+              <ChipButton key={account.id} label={account.name} selected={account.id === activeAccountId} onPress={() => setAccountId(account.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Cadence</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Day" selected={cadence === 'day'} onPress={() => setCadence('day')} />
+            <SegmentButton label="Week" selected={cadence === 'week'} onPress={() => setCadence('week')} />
+            <SegmentButton label="Month" selected={cadence === 'month'} onPress={() => setCadence('month')} />
+          </View>
+          <Text style={styles.formLabel}>Every</Text>
+          <TextInput
+            accessibilityLabel="Recurring interval"
+            keyboardType="number-pad"
+            placeholder="1"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={interval}
+            onChangeText={setInterval}
+          />
+          <Text style={styles.formLabel}>Start date (YYYY-MM-DD)</Text>
+          <TextInput
+            accessibilityLabel="Recurring start date"
+            placeholder="2026-07-26"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={nextOccurrenceLocalDate}
+            onChangeText={setNextOccurrenceLocalDate}
+          />
+          <Text style={styles.formLabel}>Note (optional)</Text>
+          <TextInput
+            accessibilityLabel="Recurring note"
+            placeholder="What is this recurring item for?"
+            placeholderTextColor={colors.muted}
+            style={[styles.input, styles.multilineInput]}
+            value={note}
+            onChangeText={setNote}
+            multiline
+          />
+          {status && <Text style={styles.successText}>{status}</Text>}
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <PrimaryButton label="Save recurring rule" onPress={save} />
+        </View>
+        <SectionTitle title="Current recurring rules" />
+        {data.recurrences.length === 0 ? (
+          <EmptyState text="No recurring money rules yet." />
+        ) : (
+          data.recurrences.map(rule => (
+            <View key={rule.id} style={styles.formCard}>
+              <Text style={styles.cardTitle}>{rule.category}</Text>
+              <Text style={styles.cardDetail}>{rule.kind} · {formatMoney(rule.amountMinor, rule.currency)} every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}</Text>
+              <Text style={styles.cardDetail}>Next: {rule.nextOccurrenceLocalDate}</Text>
+              <TextButton label="Delete rule" danger onPress={() => deleteMoneyRecurrence(rule.id)} />
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
 
 function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) {

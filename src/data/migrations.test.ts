@@ -1,4 +1,4 @@
-import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7} from './migrations';
+import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8} from './migrations';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -143,5 +143,34 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(7);
     expect(data.budgets[0].rollover).toBe('none');
+    expect(migrateV7ToV8(data).recurrences).toEqual([]);
+  });
+
+  it('adds an empty recurrence collection when opening schema 7 data', () => {
+    const data = migrateV7ToV8({
+      schemaVersion: 7,
+      mainCurrency: 'EUR',
+      money: [],
+      transfers: [],
+      splits: [],
+      budgets: [],
+      accounts: [],
+      categories: [],
+      notes: [],
+      tasks: [],
+      usageSnapshots: [],
+      usageRead: {
+        permission: 'unknown',
+        lastReadAt: null,
+        rangeStartMillis: null,
+        rangeEndMillis: null,
+        errorCode: null,
+      },
+      usageExcludedPackages: [],
+      timeGoals: [],
+    });
+
+    expect(data.schemaVersion).toBe(8);
+    expect(data.recurrences).toEqual([]);
   });
 });
