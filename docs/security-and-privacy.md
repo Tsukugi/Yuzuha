@@ -81,6 +81,10 @@ For every feature, record data collected, source, local storage, server transfer
 
 Android Usage Access is now declared and accessed through a native `YuzuhaUsageAccess` module. The module checks the special permission before querying `UsageStatsManager`, opens the system settings screen, and returns aggregate duration/package labels only. The app stores snapshots locally and does not send them to a server. The user can leave the permission off and still use every other feature.
 
+## Phase 4 local repository controls
+
+Product records are stored in the app-private SQLite database. The repository uses bound parameters and one transaction for full-workspace writes. A malformed row or unsupported repository version blocks the workspace with a support-safe error; it does not silently discard data. Money reports are computed locally and do not send record content anywhere.
+
 ## Phase 3 app-time controls
 
 App exclusions are package-name settings stored only in the local workspace. Excluded snapshots stay local so the user can include them again without another Android read. Excluded apps are not sent to a service, and totals ignore snapshots marked `included = false`.

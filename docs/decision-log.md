@@ -90,3 +90,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Use React Native 0.86.0, React 19.2.8, Metro 0.86.x, CLI 20.2.x, and TypeScript 5.9.x for implementation.
 - Reason: The user asked to use newer technology rather than preserve the older 0.83.0 scaffold baseline.
 - Consequence: Node 20.19.4 or newer is required, Java 17 is used for Android builds, and the native project must be regenerated from the newer template.
+
+## DEC-014: Use an app-owned SQLite repository boundary
+
+- Status: Accepted.
+- Decision: Use `@op-engineering/op-sqlite` 17.1.2 behind `SqliteWorkspaceStore` for local product data. Keep AsyncStorage for installer metadata, preferences, and one-time legacy import.
+- Reason: Product records need transactions, migrations, period queries, and currency-safe reports. Feature UI must not depend on a native SQL API.
+- Consequence: The first SQLite schema stores typed record rows and a repository schema version. Unsupported versions and malformed rows block the workspace with a deterministic error until a migration or repair path exists.

@@ -1,6 +1,6 @@
 # Data model
 
-Status: Phase 3 schema version 3 is implemented in the AsyncStorage boundary. SQLite remains the full-product migration target.
+Status: Phase 4 local SQLite repository boundary is implemented with schema version 3 data migrations. Normalized report, budget, and sync tables remain future work.
 
 ## Storage rules
 
@@ -95,9 +95,9 @@ Small settings may live in AsyncStorage or a settings table:
 4. Each migration has a fixture test for an older schema and a fresh-install test.
 5. A failed migration blocks the product UI and shows a clear support/export path; it must not silently discard records.
 
-## Current Phase 3 schema
+## Current Phase 4 storage
 
-The current JSON store has schema version 3 with `mainCurrency`, money accounts, money categories, usage snapshots, a usage-read record, app-time exclusions, and daily/weekly time goals. Existing version 1 and version 2 data is read from legacy keys, migrated without dropping money/notes/tasks, and written to the version 3 key before the app continues.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 3 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, or 3 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
 
 App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 

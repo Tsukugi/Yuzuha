@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phase 0/1 implementation with full-product target architecture. The installer bridge, local store, app shell, and core screens exist; sync, reports, and advanced adapters remain planned.
+Status: Phase 4 implementation with full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, and money reports exist; budgets, sync, and advanced adapters remain planned.
 
 ## System shape
 
@@ -86,10 +86,14 @@ src/
 
 - React Native 0.86.0, React 19.2.8, TypeScript 5.9.x, Metro 0.86.x, and CLI 20.2.x are the current implementation baseline. This supersedes the older planning baseline.
 - TypeScript strict mode is required.
-- SQLite is the planned product store because records need queries, filters, and migrations.
+- `@op-engineering/op-sqlite` `17.1.2` is the current product store bridge. The app-owned repository boundary keeps native SQL out of feature UI and uses transactions for full-workspace writes.
 - AsyncStorage is limited to small, non-relational state.
 - Navigation, SQLite binding, encryption, and analytics packages must be selected from maintained packages during implementation and recorded in `decision-log.md`.
 - No remote sync layer is required for the MVP.
+
+## Current repository boundary
+
+`SqliteWorkspaceStore` stores each product record as a typed record row with JSON payload plus searchable type and update columns. The first repository schema is intentionally small and forward-only. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports are rebuildable projections over loaded source records and never combine currencies.
 
 ## Error boundaries
 

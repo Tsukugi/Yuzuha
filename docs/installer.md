@@ -101,6 +101,10 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 - Monitor metadata availability and bundle download failures without collecting personal content.
 - Test the endpoint with `npm run check-bundle` before release.
 
+## Developer note: local data starts after bundle verification
+
+The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository and imports legacy AsyncStorage data on first use. A database migration error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records.
+
 ## Developer note
 
 This contract is a startup dependency. Any change to metadata fields, cache paths, version rules, verification, activation, timeout, or rollback must update `architecture.md`, `testing.md`, and `release.md` in the same change.

@@ -11,7 +11,7 @@ The app has an Android-first product plan and a native shell that can also suppo
 
 ## Repository status
 
-Phase 3 core is implemented. The repository contains the TypeScript app shell, local persistence, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, and archive controls. SQLite, reports, sync, and later full-product phases remain planned.
+Phase 4 core is implemented. The repository contains the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, and period/currency-separated money reports. Budgets, sync, and later full-product phases remain planned.
 
 ## Technology baseline
 
@@ -20,7 +20,7 @@ Phase 3 core is implemented. The repository contains the TypeScript app shell, l
 - TypeScript with strict checking
 - Metro and the React Native CLI
 - AsyncStorage `3.1.x` for small installer metadata and preferences only
-- A SQLite-backed repository for product data, to be added during implementation
+- `@op-engineering/op-sqlite` `17.1.2` for the transactional local product repository
 
 Use locked dependency versions in implementation branches. The current baseline is the newer React Native 0.86 line requested for this project.
 

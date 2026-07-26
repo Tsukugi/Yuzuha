@@ -135,6 +135,15 @@ Run dependency audit, static analysis, secret scanning, malformed-input tests, S
 
 Each phase must test fresh install, upgrade from the previous phase, offline use, data export, deletion, permissions, and rollback. A feature is not complete because its screen works; its migration, sync/export representation, telemetry redaction, accessibility, and failure state must also pass.
 
+## Phase 4 evidence
+
+- Jest: 9 suites, 24 tests passing, including SQLite import/round-trip/corruption/version tests and currency-safe money reports.
+- Android build: `app:assembleDebug` passes with `@op-engineering/op-sqlite` native C++ code and RN 0.86.
+- Emulator migration: existing AsyncStorage data reopened through SQLite with EUR 0.00 money, 31 minutes included app time, and one saved note.
+- Emulator persistence: two EUR 4.56 entries produced EUR 9.12, which remained after force-stop and relaunch.
+- Emulator report: Money report Month view showed EUR 9.12 spent and Food as the category.
+- Phone `42adce68`: updated APK installed, native SQLite library loaded, and `MainActivity` resumed. Automated touch input remains blocked by device policy.
+
 ## Phase 3 evidence
 
 - Jest: 7 suites, 18 tests passing, including schema 2 to schema 3 migration, period keys, usage grouping, and excluded-total behavior.

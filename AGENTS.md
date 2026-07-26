@@ -20,4 +20,4 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 
 ## Current repository status
 
-Phase 3 core is implemented: the repository has a `src/` app, generated Android/iOS projects, local persistence, an embedded bundle gate, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, and archive controls. SQLite, reports, sync, and later full-product phases remain planned. Check implementation evidence before describing planned work as shipped.
+Phase 4 core is implemented: the repository has a `src/` app, generated Android/iOS projects, a transactional SQLite repository with legacy AsyncStorage import, an embedded bundle gate, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, and period/currency-separated money reports. Budgets, sync, and later full-product phases remain planned. Check implementation evidence before describing planned work as shipped.

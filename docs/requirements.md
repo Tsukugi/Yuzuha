@@ -180,3 +180,14 @@ Implemented and verified:
 - schema version 2 to schema version 3 migration with a fixture test.
 
 Not yet complete in Phase 3: reports, transfers, split transactions, app groups, SQLite storage, and the wider notes/tasks automation scope.
+
+## Phase 4 implementation review
+
+Implemented and verified:
+
+- `CORE-05` extension: the product repository uses transactional SQLite with an explicit schema version and legacy import;
+- `MONEY-11` partial: day, week, and month reports show income, spending, net, and category totals;
+- `MONEY-11` trust rule: each currency has its own report and incompatible currencies are never added together;
+- repository failure behavior: unsupported schema versions and malformed rows block the workspace instead of guessing.
+
+Not yet complete in Phase 4: normalized money tables, budgets, transfers, split transactions, exports, and sync.

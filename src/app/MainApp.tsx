@@ -14,6 +14,8 @@ import {useAppStore} from '../data/AppStore';
 import {formatDate, formatMoney, sumMoney} from '../shared/format';
 import {formatDuration} from '../shared/duration';
 import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from '../shared/period';
+import type {Period} from '../shared/period';
+import {buildMoneyReport} from '../shared/moneyReport';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, MoneyKind} from '../types/domain';
@@ -173,11 +175,16 @@ function MoneyScreen() {
   const [newAccount, setNewAccount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'entry' | 'report'>('entry');
 
   if (!data) {
     return null;
   }
   const currentData = data;
+
+  if (view === 'report') {
+    return <MoneyReportScreen data={currentData} onBack={() => setView('entry')} />;
+  }
 
   async function save() {
     const parsed = Number.parseFloat(amount.replace(',', '.'));
@@ -262,6 +269,7 @@ function MoneyScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        <TextButton label="Open money report" onPress={() => setView('report')} />
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>
@@ -387,6 +395,51 @@ function MoneyScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const [period, setPeriod] = useState<Period>('month');
+  const range = getPeriodRange(new Date(), period);
+  const report = buildMoneyReport(data.money, range);
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+        <Text style={styles.backButtonText}>â€¹ Money</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>Money report</Text>
+      <Text style={styles.pageIntro}>Totals stay separate by currency and use the selected local period.</Text>
+      <View style={styles.segmentRow}>
+        <SegmentButton label="Day" selected={period === 'day'} onPress={() => setPeriod('day')} />
+        <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
+        <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
+      </View>
+      {report.currencies.length === 0 ? (
+        <EmptyState text="No money entries for this period." />
+      ) : (
+        report.currencies.map(currencyReport => (
+          <View key={currencyReport.currency} style={styles.formCard}>
+            <Text style={styles.cardTitle}>{currencyReport.currency}</Text>
+            <Text style={styles.cardValue}>{formatMoney(currencyReport.expenseMinor, currencyReport.currency)} spent</Text>
+            <Text style={styles.cardDetail}>
+              {formatMoney(currencyReport.incomeMinor, currencyReport.currency)} income ·{' '}
+              {formatMoney(currencyReport.incomeMinor - currencyReport.expenseMinor, currencyReport.currency)} net
+            </Text>
+            <SectionTitle title="By category" />
+            {currencyReport.categories.map(category => (
+              <View key={category.name} style={styles.manageRow}>
+                <Text style={styles.listTitle}>{category.name}</Text>
+                <Text style={styles.listMeta}>
+                  {formatMoney(category.expenseMinor, currencyReport.currency)} spent ·{' '}
+                  {formatMoney(category.incomeMinor, currencyReport.currency)} income
+                </Text>
+              </View>
+            ))}
+          </View>
+        ))
+      )}
+    </ScrollView>
   );
 }
 

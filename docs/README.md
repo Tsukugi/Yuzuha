@@ -1,6 +1,6 @@
 # Yuzuha documentation
 
-This is the product and engineering baseline for Yuzuha. Phase 3 core code exists, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
+This is the product and engineering baseline for Yuzuha. Phase 4 core code exists, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
 ## Read in this order
 

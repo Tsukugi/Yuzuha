@@ -1,7 +1,8 @@
 import type {PropsWithChildren} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {createId} from '../shared/id';
-import {LocalStore} from './localStore';
+import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
+import type {WorkspaceStore} from './sqliteStore';
 import type {
   AppData,
   MoneyAccount,
@@ -56,9 +57,9 @@ interface AppStoreValue {
 }
 
 const AppStoreContext = createContext<AppStoreValue | null>(null);
-const defaultLocalStore = new LocalStore();
+const defaultWorkspaceStore = createNativeWorkspaceStore();
 
-export function AppStoreProvider({children, store = defaultLocalStore}: PropsWithChildren<{store?: LocalStore}>) {
+export function AppStoreProvider({children, store = defaultWorkspaceStore}: PropsWithChildren<{store?: WorkspaceStore}>) {
   const [data, setData] = useState<AppData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

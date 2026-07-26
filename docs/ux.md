@@ -115,6 +115,10 @@ Every advanced feature has a useful local-only state. Examples:
 - Integration: `Calendar access is off. Existing Yuzuha tasks are unchanged.`
 - Search: `No matches in the selected filters.`
 
+## Phase 4 shipped controls
+
+Money opens a report from the entry screen. Day, week, and month are explicit choices. Each currency is shown in its own card with spending, income, net, and category rows. Empty periods show a clear no-entry state.
+
 ## Phase 3 shipped controls
 
 Money rows open in edit mode. The user can update or delete the entry, and the screen clearly shows the editing state. Account and category management uses archive instead of hiding records. The last active account shows a disabled archive action.

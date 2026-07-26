@@ -228,3 +228,37 @@ Known limits:
 - The phone `42adce68` still blocks automated touch input, so interactive evidence remains emulator-based.
 
 Next pass: SQLite repository work, money reports, transfers, split entries, and fuller account/category management.
+
+## Implementation review: Phase 4 repository/report pass
+
+Status: Core Phase 4 pass completed on 2026-07-26.
+
+Delivered:
+
+- `@op-engineering/op-sqlite` 17.1.2 wired through `SqliteWorkspaceStore`;
+- transactional repository schema with typed records, metadata, update index, and explicit version rejection;
+- one-time import of AsyncStorage schema versions 1, 2, and 3 into SQLite;
+- corruption and round-trip tests for all Phase 3 collections;
+- source-backed money reports for day, week, and month periods;
+- currency-separated income, spending, net, and category projections.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 9 suites, 24 tests
+Android debug APK   PASS - op-sqlite native bridge and C++ build
+Emulator migration  PASS - legacy workspace reopened with 31 min app time and 1 saved note
+Emulator persistence PASS - EUR 9.12 remained after force-stop and relaunch
+Emulator report     PASS - month report showed EUR 9.12 spent under Food
+Phone               PASS - install, launch, SQLite native load, and activity resume
+```
+
+Known limits:
+
+- The SQLite repository uses typed JSON payload rows as the first migration boundary; normalized feature tables are still planned.
+- Budgets, transfers, split transactions, exports, sync, and remote bundle activation remain incomplete.
+- The phone `42adce68` still blocks automated touch input, so interactive report evidence is emulator-based.
+
+Next pass: normalized money tables, transfers, split-entry validation, and a budget projection.
