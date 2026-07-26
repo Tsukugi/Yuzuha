@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Planned full-product capability. Not part of the first local-only MVP.
+Status: Local password-encrypted backup and restore are implemented. Account sync, recovery keys, device enrollment, and remote backup remain planned.
 
 ## Goals
 
@@ -40,7 +40,7 @@ The planned model is envelope encryption:
 - the recovery key can restore the workspace key;
 - the service stores ciphertext, opaque IDs, size, version, and minimal routing metadata.
 
-The exact cryptographic library and key derivation parameters must be selected and reviewed before sync implementation. Do not invent cryptography or write a custom cipher.
+The local backup contract uses `@noble/ciphers` XChaCha20-Poly1305 and `@noble/hashes` scrypt. The backup stores a versioned header with scrypt parameters, a random 16-byte salt, a random 24-byte nonce, and authenticated ciphertext. The current mobile parameters are `N=32768`, `r=8`, `p=1`, and a 32-byte key. Secure randomness comes from `react-native-get-random-values`. The app does not store the password. Do not invent cryptography or write a custom cipher.
 
 ## Change protocol
 
@@ -73,7 +73,7 @@ The outbox is encrypted at rest and bounded. When full, the app stops adding new
 
 ### Export backup
 
-The user can create an encrypted Yuzuha backup containing schema version, records, attachments, and required settings. The user chooses a password or recovery key. The app shows the file size and date and never uploads it automatically.
+The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace. The app shows the encrypted size and creation date during preview and never uploads it automatically. The current pass is shared as text through the Android system sheet; attachments, recovery keys, and file-picker export remain planned.
 
 ### Platform backup
 
@@ -81,7 +81,7 @@ Android and iOS backup behavior is platform-specific. The app must state whether
 
 ### Restore flow
 
-Restore is staged into a temporary workspace, previewed, validated, and committed as one operation. If the commit fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are handled by the conflict policy.
+Encrypted restore derives the key from the entered password, authenticates and decrypts the complete export, runs the existing migration and integrity checks, previews record counts, and commits only after confirmation. If authentication, validation, or commit fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
 
 ## API surface
 
@@ -107,4 +107,3 @@ All endpoints require authentication, rate limits, request size limits, replay p
 - Lost-device revocation works after the service receives it.
 - Recovery succeeds with a valid recovery key and fails safely with an invalid one.
 - The service cannot decrypt a test fixture without the client key.
-

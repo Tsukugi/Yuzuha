@@ -434,7 +434,7 @@ Phone               PASS - install, launch, and resumed MainActivity with no cle
 
 Known limits:
 
-- The current export sends text through the Android share sheet; file-picker import, restore validation, encrypted backup, and sync remain planned.
+- The current export sends text through the Android share sheet; file-picker import and sync remain planned. JSON restore validation and password-encrypted backup are implemented in later passes.
 - Multi-period rollover, recurring money rules, and alerts remain planned.
 - The phone `42adce68` blocks automated touch input, so interactive export/delete evidence is emulator-based.
 
@@ -489,7 +489,7 @@ Delivered:
 
 Known limits:
 
-- Restore is paste-based JSON replacement. CSV import, encrypted backups, file-picker restore, merge, sync restore, and recovery keys remain planned.
+- Restore is paste-based JSON replacement. CSV import, file-picker restore, merge, sync restore, and recovery keys remain planned; the local password-encrypted backup flow is implemented in a later pass.
 
 Review evidence:
 
@@ -521,7 +521,7 @@ Delivered:
 
 Known limits:
 
-- End-of-month anchor preferences, recurring task rules, notifications, encrypted backups, sync, and recovery keys remain planned.
+- End-of-month anchor preferences, recurring task rules, notifications, sync, and recovery keys remain planned.
 
 Review evidence:
 
@@ -536,3 +536,34 @@ Phone               PASS - final APK installed and MainActivity resumed without 
 ```
 
 Next pass: local encrypted backup or the next highest-priority continuity contract, with sync kept behind the local-first boundary.
+
+## Implementation review: encrypted local backup pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- audited Noble XChaCha20-Poly1305 and scrypt dependencies plus the React Native secure-random polyfill;
+- versioned encrypted backup envelope with authenticated header, random 16-byte salt, random 24-byte nonce, and 32-byte derived key;
+- password validation requiring at least 12 characters and no local password storage;
+- Data tools encrypted backup sharing and decrypt/preview/confirm restore flow;
+- unit coverage for round-trip content, plaintext absence, wrong password, tampering, weak password, and unsupported envelope parameters;
+- Jest transform coverage for the ESM crypto packages.
+
+Known limits:
+
+- Backup sharing is text-based. Recovery keys, attachments, file-picker storage, platform backup policy, password recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 16 suites, 58 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17; installed on emulator and phone
+Emulator backup     PASS - encrypted Data tools UI rendered; weak password was rejected; valid password opened the Android text chooser
+Phone               PASS - final APK installed and MainActivity resumed without filtered app errors
+```
+
+Next pass: file-based backup portability or recovery-key design, with remote sync kept behind the local-first boundary.

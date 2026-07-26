@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the recurring-policy pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the encrypted-backup pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -195,6 +195,12 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - SQLite regression coverage proves an old recurrence payload without a policy reads as `all` instead of crashing or silently changing its schedule.
 - The recurrence UI includes All, One, and Skip choices and displays the stored policy for each rule.
 - Android APK and device smoke: schema 9 APK built and installed on both devices; emulator rendered and selected All, One, and Skip, then restarted with the existing EUR 2.50 total unchanged and no filtered app errors. The phone `42adce68` remains install/start-only because touch injection is blocked.
+
+## Encrypted backup evidence
+
+- Unit tests cover encrypted round-trip, absence of plaintext, wrong password, authenticated tampering, weak passwords, and unsupported envelope parameters.
+- The crypto dependency ESM packages are included in the Jest transform allow-list and pass strict TypeScript and lint checks.
+- The final debug APK was installed on the emulator and phone. The emulator rendered the encrypted Data tools fields, rejected a weak password, and opened the Android text chooser for a valid encrypted backup; the phone remains install/start-only because touch injection is blocked by device policy.
 
 ## Recurring money evidence
 

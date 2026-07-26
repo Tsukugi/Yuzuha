@@ -158,3 +158,9 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Context: A rule may be opened after several local calendar dates have passed, and silently choosing a catch-up behavior can create unexpected money records.
 - Decision: Persist `all`, `one`, or `skip` on every recurring money rule. `all` creates every due date, `one` creates only the first due date, and `skip` creates none; each policy advances the rule beyond all missed dates in the same save.
 - Consequence: Schema 8 rules migrate to `all`. End-of-month anchoring and recurring task policies remain separate decisions.
+
+## DEC-024: Use a password-encrypted local backup envelope
+
+- Context: Plain JSON export is useful for portability but exposes all workspace content to anyone who receives the shared text. The app needs a local backup that can be stored without plaintext.
+- Decision: Use export schema 1 JSON as the plaintext payload, derive a 32-byte key with scrypt (`N=32768`, `r=8`, `p=1`), encrypt with XChaCha20-Poly1305, authenticate the versioned header as additional data, and require a password of at least 12 characters. Restore decrypts, validates, previews, and confirms before replacement.
+- Consequence: Password recovery, recovery-key envelopes, attachments, file-picker files, and remote sync remain separate contracts. The password is not stored locally.

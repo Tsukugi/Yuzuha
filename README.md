@@ -11,7 +11,7 @@ The app has an Android-first product plan and a native shell that can also suppo
 
 ## Repository status
 
-The current core includes the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, currency-separated reports, same-currency account transfers, exact-sum split entries, source-backed budgets, normalized financial tables, one-period budget carry-forward, versioned JSON/CSV exports, validated JSON restore with preview and confirmation, confirmed local deletion, and recurring money rules with deterministic missed-occurrence policies. Sync and later full-product phases remain planned.
+The current core includes the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, money editing/deletion, archive controls, currency-separated reports, same-currency account transfers, exact-sum split entries, source-backed budgets, normalized financial tables, one-period budget carry-forward, versioned JSON/CSV exports, password-encrypted XChaCha20-Poly1305 backups with previewed restore, validated JSON restore with preview and confirmation, confirmed local deletion, and recurring money rules with deterministic missed-occurrence policies. Sync and later full-product phases remain planned.
 
 ## Technology baseline
 

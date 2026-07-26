@@ -24,6 +24,7 @@ import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTra
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
+import {buildEncryptedBackup, decryptEncryptedBackup, type EncryptedBackupPreview} from '../shared/encryptedBackup';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
@@ -179,6 +180,10 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [error, setError] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
   const [importPreview, setImportPreview] = useState<JsonImportPreview | null>(null);
+  const [backupPassword, setBackupPassword] = useState('');
+  const [backupText, setBackupText] = useState('');
+  const [backupPreview, setBackupPreview] = useState<EncryptedBackupPreview | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
 
   async function shareJson() {
     try {
@@ -205,6 +210,21 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     } catch {
       setStatus(null);
       setError('Money CSV export could not be opened for sharing.');
+    }
+  }
+
+  async function shareEncryptedBackup() {
+    setStatus(null);
+    setError(null);
+    try {
+      const backup = await buildEncryptedBackup(data, backupPassword, new Date().toISOString());
+      await Share.share({
+        title: 'Yuzuha encrypted backup',
+        message: backup,
+      });
+      setStatus('Encrypted backup is ready to share. The password is not stored on this device.');
+    } catch (backupError) {
+      setError(backupError instanceof Error ? backupError.message : 'Encrypted backup could not be created.');
     }
   }
 
@@ -274,6 +294,51 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     );
   }
 
+  async function previewEncryptedRestore() {
+    setStatus(null);
+    setError(null);
+    setBackupBusy(true);
+    try {
+      setBackupPreview(await decryptEncryptedBackup(backupText, backupPassword));
+    } catch (backupError) {
+      setBackupPreview(null);
+      setError(backupError instanceof Error ? backupError.message : 'The encrypted backup could not be opened.');
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  function confirmEncryptedRestore() {
+    if (!backupPreview) {
+      return;
+    }
+    Alert.alert(
+      'Replace local workspace?',
+      `This will replace local data with ${backupPreview.totalRecords} decrypted records from ${backupPreview.createdAt}. The current workspace will be overwritten.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () => {
+            void restoreWorkspace(backupPreview.data)
+              .then(() => {
+                setError(null);
+                setStatus('Workspace restored from the validated encrypted backup.');
+                setBackupText('');
+                setBackupPassword('');
+                setBackupPreview(null);
+              })
+              .catch(() => {
+                setStatus(null);
+                setError('Workspace restore failed. The current workspace was kept.');
+              });
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
@@ -285,6 +350,19 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         <Text style={styles.formLabel}>Export</Text>
         <PrimaryButton label="Share JSON export" onPress={shareJson} />
         <PrimaryButton label="Share money CSV" onPress={shareCsv} />
+        <Text style={styles.formLabel}>Encrypted backup password</Text>
+        <TextInput
+          accessibilityLabel="Encrypted backup password"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          placeholder="At least 12 characters"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={backupPassword}
+          onChangeText={setBackupPassword}
+        />
+        <PrimaryButton label="Share encrypted backup" onPress={shareEncryptedBackup} disabled={backupBusy} />
         {status && <Text style={styles.successText}>{status}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
@@ -312,6 +390,48 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
             <Text style={styles.cardTitle}>Validated preview</Text>
             <Text style={styles.cardDetail}>{formatImportPreview(importPreview)}</Text>
             <PrimaryButton label="Restore this workspace" onPress={confirmRestore} />
+          </View>
+        )}
+      </View>
+      <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Restore encrypted backup</Text>
+        <Text style={styles.cardDetail}>Paste the encrypted backup and enter the same password. The backup is decrypted and validated before any local data changes.</Text>
+        <TextInput
+          accessibilityLabel="Encrypted backup text"
+          autoCapitalize="none"
+          autoCorrect={false}
+          multiline
+          onChangeText={value => {
+            setBackupText(value);
+            setBackupPreview(null);
+            setStatus(null);
+          }}
+          placeholder="Paste encrypted backup"
+          placeholderTextColor={colors.muted}
+          style={[styles.input, styles.multilineInput]}
+          value={backupText}
+        />
+        <TextInput
+          accessibilityLabel="Encrypted restore password"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          placeholder="Backup password"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={backupPassword}
+          onChangeText={value => {
+            setBackupPassword(value);
+            setBackupPreview(null);
+          }}
+        />
+        <PrimaryButton label={backupBusy ? 'Opening encrypted backup...' : 'Preview encrypted restore'} onPress={previewEncryptedRestore} disabled={backupBusy} />
+        {backupPreview && (
+          <View style={styles.importPreview}>
+            <Text style={styles.cardTitle}>Validated encrypted preview</Text>
+            <Text style={styles.cardDetail}>Created: {backupPreview.createdAt}. Encrypted bytes: {backupPreview.encryptedBytes}.</Text>
+            <Text style={styles.cardDetail}>{formatImportPreview(backupPreview)}</Text>
+            <PrimaryButton label="Restore encrypted workspace" onPress={confirmEncryptedRestore} />
           </View>
         )}
       </View>
@@ -1649,12 +1769,13 @@ function EmptyState({text}: {text: string}) {
   return <Text style={styles.emptyState}>{text}</Text>;
 }
 
-function PrimaryButton({label, onPress}: {label: string; onPress: () => void}) {
+function PrimaryButton({label, onPress, disabled = false}: {label: string; onPress: () => void; disabled?: boolean}) {
   return (
     <Pressable
       accessibilityLabel={label}
       accessibilityRole="button"
-      style={({pressed}) => [styles.primaryButton, pressed && styles.pressed]}
+      disabled={disabled}
+      style={({pressed}) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabledAction]}
       onPress={onPress}>
       <Text style={styles.primaryButtonText}>{label}</Text>
     </Pressable>

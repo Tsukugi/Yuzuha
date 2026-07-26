@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Planned security baseline. This document is not a legal privacy policy.
+Status: Security baseline through the local encrypted-backup pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -21,6 +21,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Redact URLs, file paths, and identifiers in crash reports.
 - Clear temporary bundle files after failed verification or activation.
 - Use HTTPS and certificate validation for update metadata and bundle downloads.
+- Local encrypted backups use audited Noble XChaCha20-Poly1305 and scrypt implementations, secure random salt/nonce values, authenticated metadata, and a password that is never stored by Yuzuha.
 
 ## Android Usage Access
 

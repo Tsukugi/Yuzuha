@@ -272,7 +272,18 @@ Implemented and verified:
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
-Not yet complete: CSV import, encrypted backups, file-picker restore, merge behavior, sync restore, and recovery-key handling.
+Not yet complete: CSV import, file-picker restore, merge behavior, sync restore, and recovery-key handling.
+
+## Encrypted backup implementation review
+
+Implemented and verified:
+
+- the user can create a password-encrypted backup from Data tools;
+- the backup uses a versioned header, secure random salt and nonce, scrypt key derivation, and XChaCha20-Poly1305 authenticated encryption;
+- the user can decrypt a backup with the password, preview its creation date and record counts, and confirm replacement only after validation;
+- wrong passwords, tampering, weak passwords, unsupported parameters, and plaintext leakage are covered by tests.
+
+Not yet complete: recovery-key backups, file-picker files, attachments, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Recurring policy implementation review
 
@@ -284,4 +295,4 @@ Implemented and verified:
 - schema 8 rules migrate to schema 9 with `all` as the explicit default;
 - the recurrence form shows the policy and the rule list shows the stored choice.
 
-Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, encrypted backups, sync, and recovery-key handling.
+Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, sync, and recovery-key handling.

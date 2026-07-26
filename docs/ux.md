@@ -54,6 +54,10 @@ Money includes a recurring-rule form for expense or income, amount, category, ac
 
 Data tools accepts a pasted Yuzuha JSON export. Preview shows the total and record groups before any write. Restore is destructive: the user confirms the replacement, and invalid JSON or invalid records leave the current workspace unchanged.
 
+### Create or restore an encrypted backup
+
+Data tools asks for a password of at least 12 characters before sharing an encrypted backup. The password is not saved. Restore asks for the backup text and password, decrypts and validates the contents, shows the creation date and record count, and requires a destructive confirmation before replacing local data. Wrong passwords and tampered backups do not change the workspace.
+
 ## Accessibility
 
 - Every control has an accessible label and a useful state description.
