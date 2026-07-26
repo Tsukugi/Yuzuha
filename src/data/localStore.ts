@@ -3,8 +3,8 @@ import {migrateStoredData} from './migrations';
 import {emptyAppData} from '../types/domain';
 import type {AppData} from '../types/domain';
 
-const STORAGE_KEY = '@yuzuha/app-data/v4';
-const LEGACY_SCHEMA_KEYS = ['@yuzuha/app-data/v3', '@yuzuha/app-data/v2', '@yuzuha/app-data/v1'];
+const STORAGE_KEY = '@yuzuha/app-data/v5';
+const LEGACY_SCHEMA_KEYS = ['@yuzuha/app-data/v4', '@yuzuha/app-data/v3', '@yuzuha/app-data/v2', '@yuzuha/app-data/v1'];
 
 export interface StorageDriver {
   getItem(key: string): Promise<string | null>;

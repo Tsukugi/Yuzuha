@@ -122,6 +122,30 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.money.push({
+      id: 'money_split_parent',
+      kind: 'expense',
+      amountMinor: 1000,
+      currency: 'USD',
+      accountId: 'account_everyday',
+      categoryId: null,
+      category: 'Split',
+      note: 'Trip',
+      occurredAt: '2026-07-26T12:00:00.000Z',
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+      splitId: 'split_1',
+    });
+    data.splits.push({
+      id: 'split_1',
+      parentEntryId: 'money_split_parent',
+      lines: [
+        {id: 'split_line_1', categoryId: 'category_food', category: 'Food', amountMinor: 700, note: ''},
+        {id: 'split_line_2', categoryId: 'category_transport', category: 'Transport', amountMinor: 300, note: ''},
+      ],
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.notes.push({
       id: 'note_1',
       title: 'A note',

@@ -89,6 +89,8 @@ Product records are stored in the app-private SQLite database. The repository us
 
 Transfers use stable account IDs, same-currency validation, positive integer minor units, and the existing transactional local repository. They are kept separate from income and expense records so a balance projection cannot silently alter spending reports. Transfer notes remain local user content and are excluded from logs.
 
+Split entries use stable category IDs and positive integer minor units. The repository stores one parent and one linked split record in the same workspace transaction. Exact-sum validation prevents a projection from creating or losing money, and split notes remain local user content.
+
 ## Phase 3 app-time controls
 
 App exclusions are package-name settings stored only in the local workspace. Excluded snapshots stay local so the user can include them again without another Android read. Excluded apps are not sent to a service, and totals ignore snapshots marked `included = false`.

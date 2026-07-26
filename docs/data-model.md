@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with schema version 4 data migrations. Transfer records and account-balance projections are live; normalized report, split-entry, budget, and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with schema version 5 data migrations. Transfer records, account-balance projections, and exact-sum split entries are live; normalized report, budget, and sync tables remain future work.
 
 ## Storage rules
 
@@ -38,6 +38,17 @@ Status: The local SQLite repository boundary is implemented with schema version 
 | `currency` | string | Must match both account currencies. |
 | `occurredAt` | UTC datetime | Required. |
 | `note` | string | Optional, user-entered. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+### Money split
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `parentEntryId` | UUID | Links to one parent money entry. |
+| `lines` | array | At least two lines; positive integer amounts sum exactly to the parent amount. |
+| `lines[].categoryId` | UUID | Active category matching the parent kind. |
+| `lines[].amountMinor` | integer | Positive amount in the parent currency. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
 ### App usage snapshot
@@ -109,11 +120,13 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 4 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, or 3 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks; schema 3 receives an empty transfer collection. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 5 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, 3, or 4 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks; schema 3 receives an empty transfer collection and schema 4 receives an empty split collection. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
 
 App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 
 Transfers are source records separate from income and expense entries. Account balances project opening balance, account-linked income/expenses, and transfer inflows/outflows. Reports only consume income/expense entries, so transfers do not change spending or income totals.
+
+Split entries store one parent money entry and one linked `split` record. Account balances use the parent once. Reports replace the parent category with its validated lines, preserving the parent total while showing each line category.
 
 ## Full-product entities
 

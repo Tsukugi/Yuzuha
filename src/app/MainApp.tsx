@@ -16,6 +16,7 @@ import {formatDuration} from '../shared/duration';
 import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from '../shared/period';
 import type {Period} from '../shared/period';
 import {buildMoneyReport} from '../shared/moneyReport';
+import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {usageAccess} from '../platform/usageAccess';
@@ -176,7 +177,7 @@ function MoneyScreen() {
   const [newAccount, setNewAccount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'entry' | 'transfer' | 'report'>('entry');
+  const [view, setView] = useState<'entry' | 'split' | 'transfer' | 'report'>('entry');
 
   if (!data) {
     return null;
@@ -188,6 +189,9 @@ function MoneyScreen() {
   }
   if (view === 'transfer') {
     return <MoneyTransferScreen data={currentData} onBack={() => setView('entry')} />;
+  }
+  if (view === 'split') {
+    return <MoneySplitScreen data={currentData} onBack={() => setView('entry')} />;
   }
 
   async function save() {
@@ -273,6 +277,7 @@ function MoneyScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        <TextButton label="Add split entry" onPress={() => setView('split')} />
         <TextButton label="Add transfer" onPress={() => setView('transfer')} />
         <TextButton label="Open money report" onPress={() => setView('report')} />
         {editingId && (
@@ -392,10 +397,13 @@ function MoneyScreen() {
         </View>
 
         <SectionTitle title="Recent entries" />
-        {data.money.length === 0 ? (
+        {data.money.filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id)).length === 0 ? (
           <EmptyState text="No money entries for this workspace." />
         ) : (
-          data.money.slice(0, 20).map(entry => (
+          data.money
+            .filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id))
+            .slice(0, 20)
+            .map(entry => (
             <Pressable
               key={entry.id}
               accessibilityLabel={`Edit ${entry.category} ${formatMoney(entry.amountMinor, entry.currency)}`}
@@ -411,7 +419,205 @@ function MoneyScreen() {
                 {formatMoney(entry.amountMinor, entry.currency)}
               </Text>
             </Pressable>
-          ))
+            ))
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+interface SplitLineDraft {
+  categoryId: string;
+  amount: string;
+  note: string;
+}
+
+function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {addSplitMoney, deleteMoney} = useAppStore();
+  const activeAccounts = data.accounts.filter(account => !account.isArchived);
+  const [kind, setKind] = useState<MoneyKind>('expense');
+  const visibleCategories = data.categories.filter(
+    category => !category.isArchived && (category.kind === kind || category.kind === 'both'),
+  );
+  const [accountId, setAccountId] = useState(activeAccounts[0]?.id ?? '');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [lines, setLines] = useState<SplitLineDraft[]>(() => [
+    {categoryId: visibleCategories[0]?.id ?? '', amount: '', note: ''},
+    {categoryId: visibleCategories[1]?.id ?? visibleCategories[0]?.id ?? '', amount: '', note: ''},
+  ]);
+  const [error, setError] = useState<string | null>(null);
+  const currency = activeAccounts.find(account => account.id === accountId)?.currency ?? data.mainCurrency;
+
+  function changeKind(nextKind: MoneyKind) {
+    setKind(nextKind);
+    const nextCategories = data.categories.filter(
+      category => !category.isArchived && (category.kind === nextKind || category.kind === 'both'),
+    );
+    setLines(current => current.map((line, index) => ({
+      ...line,
+      categoryId: nextCategories.some(category => category.id === line.categoryId)
+        ? line.categoryId
+        : nextCategories[index % Math.max(nextCategories.length, 1)]?.id ?? '',
+    })));
+  }
+
+  async function save() {
+    const parsedAmount = Number.parseFloat(amount.replace(',', '.'));
+    const input: MoneySplitInput = {
+      kind,
+      amountMinor: Number.isFinite(parsedAmount) ? Math.round(parsedAmount * 100) : 0,
+      currency,
+      accountId,
+      category: 'Split',
+      note: note.trim(),
+      lines: lines.map(line => ({
+        categoryId: line.categoryId,
+        category: visibleCategories.find(category => category.id === line.categoryId)?.name ?? '',
+        amountMinor: Number.isFinite(Number.parseFloat(line.amount.replace(',', '.')))
+          ? Math.round(Number.parseFloat(line.amount.replace(',', '.')) * 100)
+          : 0,
+        note: line.note.trim(),
+      })),
+    };
+    const validationError = validateMoneySplit(input, data.accounts, data.categories);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    try {
+      await addSplitMoney(input);
+      setAmount('');
+      setNote('');
+      setLines([
+        {categoryId: visibleCategories[0]?.id ?? '', amount: '', note: ''},
+        {categoryId: visibleCategories[1]?.id ?? visibleCategories[0]?.id ?? '', amount: '', note: ''},
+      ]);
+      setError(null);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Split entry could not be saved.');
+    }
+  }
+
+  function updateLine(index: number, update: Partial<SplitLineDraft>) {
+    setLines(current => current.map((line, lineIndex) => (lineIndex === index ? {...line, ...update} : line)));
+  }
+
+  if (activeAccounts.length === 0 || visibleCategories.length < 2) {
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Split entry</Text>
+        <EmptyState text="Add an active account and at least two matching categories before creating a split entry." />
+      </ScrollView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>‹ Money</Text>
+        </Pressable>
+        <Text style={styles.pageTitle}>Split entry</Text>
+        <Text style={styles.pageIntro}>Line amounts must add up exactly to the parent amount. Each line appears under its own report category.</Text>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Type</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => changeKind('expense')} />
+            <SegmentButton label="Income" selected={kind === 'income'} onPress={() => changeKind('income')} />
+          </View>
+          <Text style={styles.formLabel}>Account</Text>
+          <View style={styles.chipWrap}>
+            {activeAccounts.map(account => (
+              <ChipButton
+                key={account.id}
+                label={`${account.name} (${account.currency})`}
+                selected={account.id === accountId}
+                onPress={() => setAccountId(account.id)}
+              />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Parent amount ({currency})</Text>
+          <TextInput
+            accessibilityLabel="Split parent amount"
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={amount}
+            onChangeText={setAmount}
+          />
+          <Text style={styles.formLabel}>Parent note (optional)</Text>
+          <TextInput
+            accessibilityLabel="Split parent note"
+            placeholder="What was this for?"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={note}
+            onChangeText={setNote}
+          />
+          {lines.map((line, index) => (
+            <View key={index} style={styles.splitLineCard}>
+              <Text style={styles.formLabel}>Line {index + 1} category</Text>
+              <View style={styles.chipWrap}>
+                {visibleCategories.map(category => (
+                  <ChipButton
+                    key={category.id}
+                    label={category.name}
+                    selected={category.id === line.categoryId}
+                    onPress={() => updateLine(index, {categoryId: category.id})}
+                  />
+                ))}
+              </View>
+              <TextInput
+                accessibilityLabel={`Split line ${index + 1} amount`}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+                value={line.amount}
+                onChangeText={value => updateLine(index, {amount: value})}
+              />
+              <TextInput
+                accessibilityLabel={`Split line ${index + 1} note`}
+                placeholder="Line note (optional)"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+                value={line.note}
+                onChangeText={value => updateLine(index, {note: value})}
+              />
+              {lines.length > 2 && <TextButton label="Remove line" danger onPress={() => setLines(current => current.filter((_, lineIndex) => lineIndex !== index))} />}
+            </View>
+          ))}
+          <TextButton
+            label="Add another line"
+            onPress={() => setLines(current => [...current, {categoryId: visibleCategories[0]?.id ?? '', amount: '', note: ''}])}
+          />
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <PrimaryButton label="Save split entry" onPress={save} />
+        </View>
+        <SectionTitle title="Recent split entries" />
+        {data.splits.length === 0 ? (
+          <EmptyState text="No split entries yet." />
+        ) : (
+          data.splits.slice(0, 20).map(split => {
+            const parentEntry = data.money.find(entry => entry.id === split.parentEntryId);
+            return parentEntry ? (
+              <View key={split.id} style={styles.listRow}>
+                <View style={styles.listBody}>
+                  <Text style={styles.listTitle}>{split.lines.map(line => line.category).join(' + ')}</Text>
+                  <Text style={styles.listMeta}>{parentEntry.note || formatDate(parentEntry.occurredAt)}</Text>
+                </View>
+                <View style={styles.rowActions}>
+                  <Text style={styles.amount}>{formatMoney(parentEntry.amountMinor, parentEntry.currency)}</Text>
+                  <TextButton label="Delete" danger onPress={() => deleteMoney(parentEntry.id)} />
+                </View>
+              </View>
+            ) : null;
+          })
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -564,7 +770,7 @@ function TransferRow({
 function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [period, setPeriod] = useState<Period>('month');
   const range = getPeriodRange(new Date(), period);
-  const report = buildMoneyReport(data.money, range);
+  const report = buildMoneyReport(data.money, range, data.splits);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -1063,6 +1269,7 @@ const styles = StyleSheet.create({
   listMeta: {color: colors.muted, fontSize: 13, marginTop: 5},
   chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
   formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 16},
+  splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
   segmentRow: {flexDirection: 'row', gap: 8},
   segmentButton: {borderColor: colors.border, borderRadius: 10, borderWidth: 1, flex: 1, paddingVertical: 11},

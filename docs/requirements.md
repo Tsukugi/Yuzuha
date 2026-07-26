@@ -200,3 +200,15 @@ Implemented and verified:
 - schema version 3 to schema version 4 migration adds an empty transfer collection without dropping existing records.
 
 Not yet complete: normalized money tables, budgets, split transactions, exports, and sync.
+
+## Split entry implementation review
+
+Implemented and verified:
+
+- `MONEY-08`: a split has one balance-affecting parent and at least two positive lines;
+- `MONEY-08`: integer minor-unit lines must sum exactly to the parent before save;
+- `MONEY-08`: each line uses an active category matching the parent kind;
+- `MONEY-11` extension: report totals remain unchanged while split lines appear under their own categories;
+- schema version 4 to schema version 5 migration adds an empty split collection without dropping existing records.
+
+Not yet complete: budgets, recurring money rules, exports, normalized money tables, and sync.

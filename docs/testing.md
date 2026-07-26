@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the money-transfer pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the split-entry pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -143,6 +143,15 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator report invariant: Home spending stayed EUR 9.12 after the transfer.
 - Emulator restart: the transfer row and both projected balances were present after force-stop and relaunch.
 - Phone `42adce68`: updated APK installed and `MainActivity` resumed; cleared-logcat launch produced no filtered app errors. Touch automation remains blocked by device policy.
+
+## Split entry evidence
+
+- Jest: 11 suites, 33 tests passing, including exact-sum validation, split report expansion, schema 4 to schema 5 migration, and SQLite round-trip coverage.
+- Android build: `app:assembleDebug` passes with Java 17 and React Native 0.86.
+- Emulator split flow: saved a EUR 10.00 parent with EUR 7.00 Health and EUR 3.00 Housing lines.
+- Emulator report: Month view showed EUR 19.12 total, with Health EUR 7.00 and Housing EUR 3.00 categories; the existing EUR 9.12 Food total remained intact.
+- Emulator restart: Home retained EUR 19.12 and the report retained the split categories after force-stop and relaunch.
+- Phone `42adce68`: updated APK installed, `MainActivity` resumed, and current cleared-logcat launch produced no filtered app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence
 

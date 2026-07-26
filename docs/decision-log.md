@@ -104,3 +104,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Store a transfer as a source record with two active same-currency account IDs. Project account balances from opening balances, entries, and transfers; do not represent a transfer as income or expense.
 - Reason: Moving money between accounts must change account balances without changing spending or income reports.
 - Consequence: Cross-currency transfers, split entries, and normalized financial tables need separate contracts and validation passes.
+
+## DEC-016: Split entries keep one balance-affecting parent
+
+- Status: Accepted.
+- Decision: Store one parent money entry with linked split lines. The parent amount affects the account balance once; report projections expand the lines by category.
+- Reason: Split lines must reconcile exactly without double-counting the account or period total.
+- Consequence: A save requires at least two positive lines whose integer minor-unit sum exactly matches the parent. Split parents are managed from the split screen.

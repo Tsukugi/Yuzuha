@@ -1,6 +1,6 @@
 import {getPeriodRange} from './period';
 import {buildMoneyReport} from './moneyReport';
-import type {MoneyEntry} from '../types/domain';
+import type {MoneyEntry, MoneySplit} from '../types/domain';
 
 function entry(overrides: Partial<MoneyEntry>): MoneyEntry {
   return {
@@ -50,5 +50,27 @@ describe('money reports', () => {
     );
 
     expect(report.currencies[0].expenseMinor).toBe(100);
+  });
+
+  it('reports split lines by their categories without duplicating the parent total', () => {
+    const splitEntry = entry({id: 'split_parent', amountMinor: 1000, category: 'Split'});
+    splitEntry.splitId = 'split_1';
+    const split: MoneySplit = {
+      id: 'split_1',
+      parentEntryId: splitEntry.id,
+      lines: [
+        {id: 'line_food', categoryId: 'category_food', category: 'Food', amountMinor: 700, note: ''},
+        {id: 'line_transport', categoryId: 'category_transport', category: 'Transport', amountMinor: 300, note: ''},
+      ],
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    };
+    const report = buildMoneyReport([splitEntry], getPeriodRange(new Date(2026, 6, 26), 'month'), [split]);
+
+    expect(report.currencies[0].expenseMinor).toBe(1000);
+    expect(report.currencies[0].categories).toEqual([
+      {name: 'Food', expenseMinor: 700, incomeMinor: 0},
+      {name: 'Transport', expenseMinor: 300, incomeMinor: 0},
+    ]);
   });
 });

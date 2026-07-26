@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the money-transfer pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, and transfers exist; split entries, budgets, sync, and advanced adapters remain planned.
+Status: Core implementation through the split-entry pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, and split entries exist; budgets, sync, and advanced adapters remain planned.
 
 ## System shape
 
@@ -93,7 +93,7 @@ src/
 
 ## Current repository boundary
 
-`SqliteWorkspaceStore` stores each product record as a typed record row with JSON payload plus searchable type and update columns. The first repository schema is intentionally small and forward-only. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports and account balances are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows.
+`SqliteWorkspaceStore` stores each product record as a typed record row with JSON payload plus searchable type and update columns. The first repository schema is intentionally small and forward-only. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports and account balances are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows. Split entries are one parent record plus one linked line record and are expanded only in report projections.
 
 ## Error boundaries
 

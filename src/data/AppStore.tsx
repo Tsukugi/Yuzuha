@@ -1,6 +1,7 @@
 import type {PropsWithChildren} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {createId} from '../shared/id';
+import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../shared/moneySplit';
 import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -40,6 +41,7 @@ interface AppStoreValue {
     note: string;
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
+  addSplitMoney: (input: MoneySplitInput) => Promise<void>;
   addMoneyTransfer: (input: {
     fromAccountId: string;
     toAccountId: string;
@@ -152,9 +154,32 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const deleteMoney = useCallback(
     async (entryId: string) => {
-      await commit(current => ({...current, money: current.money.filter(entry => entry.id !== entryId)}));
+      await commit(current => ({
+        ...current,
+        money: current.money.filter(entry => entry.id !== entryId),
+        splits: current.splits.filter(split => split.parentEntryId !== entryId),
+      }));
     },
     [commit],
+  );
+
+  const addSplitMoney = useCallback(
+    async (input: MoneySplitInput) => {
+      const validationError = validateMoneySplit(input, data?.accounts ?? [], data?.categories ?? []);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const parentEntryId = createId('money');
+      const splitId = createId('split');
+      const {entry, split} = createMoneySplit(input, parentEntryId, splitId, timestamp, createId);
+      await commit(current => ({
+        ...current,
+        money: [entry, ...current.money],
+        splits: [split, ...current.splits],
+      }));
+    },
+    [commit, data?.accounts, data?.categories],
   );
 
   const addMoneyTransfer = useCallback(
@@ -363,6 +388,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoney,
       updateMoney,
       deleteMoney,
+      addSplitMoney,
       addMoneyTransfer,
       deleteMoneyTransfer,
       addMoneyAccount,
@@ -386,6 +412,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       archiveMoneyCategory,
       deleteMoney,
       deleteMoneyTransfer,
+      addSplitMoney,
       addNote,
       addTask,
       data,

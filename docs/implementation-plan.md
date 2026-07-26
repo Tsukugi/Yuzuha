@@ -296,3 +296,38 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive transfer evidence is emulator-based.
 
 Next pass: split-entry validation and a budget projection, with normalized money tables introduced only when their migration contract is tested.
+
+## Implementation review: split-entry pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- schema version 5 with a deterministic schema 4 to schema 5 migration;
+- `MoneySplit` source records linked to one parent money entry;
+- exact integer minor-unit validation for at least two positive lines;
+- active, kind-matching category validation for every line;
+- report expansion that preserves the parent total and shows line categories;
+- split screen with line editing, add/remove line controls, history, and deletion;
+- unit coverage for validation, creation, report projection, migration, and SQLite round-trip behavior.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 11 suites, 33 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator split      PASS - EUR 10.00 parent saved as EUR 7.00 Health + EUR 3.00 Housing
+Emulator report     PASS - EUR 19.12 total with split categories after save and restart
+Phone               PASS - install, launch, and resumed activity with no cleared-logcat app errors
+```
+
+Known limits:
+
+- Money records still use typed JSON rows as the repository migration boundary; normalized financial tables remain planned.
+- Budgets, recurring rules, exports, sync, and remote bundle activation remain incomplete.
+- The phone `42adce68` blocks automated touch input, so interactive split evidence is emulator-based.
+
+Next pass: budget projection and budget-period validation, followed by normalized money tables when their migration contract is ready.

@@ -4,6 +4,7 @@ import type {
   MoneyAccount,
   MoneyCategory,
   MoneyEntry,
+  MoneySplit,
   MoneyTransfer,
   Note,
   Task,
@@ -70,6 +71,7 @@ export class SqliteDataCorruptError extends Error {
 type RecordType =
   | 'money'
   | 'transfer'
+  | 'split'
   | 'account'
   | 'category'
   | 'note'
@@ -147,6 +149,7 @@ export function decodeAppData(
   data.mainCurrency = mainCurrency;
   data.money = [];
   data.transfers = [];
+  data.splits = [];
   data.accounts = [];
   data.categories = [];
   data.notes = [];
@@ -172,6 +175,9 @@ export function decodeAppData(
         break;
       case 'transfer':
         data.transfers.push(payload as MoneyTransfer);
+        break;
+      case 'split':
+        data.splits.push(payload as MoneySplit);
         break;
       case 'account':
         data.accounts.push(payload as MoneyAccount);
@@ -228,6 +234,7 @@ function collectRecords(data: AppData): PersistedRecord[] {
   return [
     ...data.money.map(entry => record('money', entry.id, entry, entry.updatedAt)),
     ...data.transfers.map(transfer => record('transfer', transfer.id, transfer, transfer.updatedAt)),
+    ...data.splits.map(split => record('split', split.id, split, split.updatedAt)),
     ...data.accounts.map(account => record('account', account.id, account)),
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
