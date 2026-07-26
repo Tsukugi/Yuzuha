@@ -2,6 +2,7 @@ node_modules/
 
 # React Native
 android/.gradle/
+android/app/.cxx/
 android/app/build/
 android/build/
 ios/Pods/
