@@ -1,0 +1,353 @@
+import {migrateStoredData} from '../data/migrations';
+import type {
+  AppData,
+  MoneyAccount,
+  MoneyBudget,
+  MoneyCategory,
+  MoneyEntry,
+  MoneyRecurrenceRule,
+  MoneySplit,
+  MoneyTransfer,
+  Note,
+  Task,
+  TimeGoal,
+  UsageSnapshot,
+} from '../types/domain';
+import {isValidLocalDate} from './moneyRecurrence';
+
+export interface JsonImportRecordCounts {
+  money: number;
+  transfers: number;
+  splits: number;
+  budgets: number;
+  recurrences: number;
+  accounts: number;
+  categories: number;
+  notes: number;
+  tasks: number;
+  usageSnapshots: number;
+  timeGoals: number;
+}
+
+export interface JsonImportPreview {
+  data: AppData;
+  recordCounts: JsonImportRecordCounts;
+  totalRecords: number;
+}
+
+export class JsonImportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'JsonImportError';
+  }
+}
+
+export function parseJsonImport(raw: string): JsonImportPreview {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new JsonImportError('The restore text is not valid JSON.');
+  }
+
+  if (!isRecord(parsed)) {
+    throw new JsonImportError('The restore envelope must be a JSON object.');
+  }
+  if (parsed.exportSchemaVersion !== 1) {
+    throw new JsonImportError('This JSON export version is not supported.');
+  }
+  const appSchemaVersion = parsed.appSchemaVersion;
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 8) {
+    throw new JsonImportError('This app data version is not supported.');
+  }
+  if (!isIsoDate(parsed.exportedAt)) {
+    throw new JsonImportError('The export timestamp is invalid.');
+  }
+
+  const data = migrateStoredData(parsed.data);
+  if (!data) {
+    throw new JsonImportError('The export data shape is not supported.');
+  }
+
+  validateAppData(data);
+  const recordCounts = countRecords(data);
+  return {
+    data,
+    recordCounts,
+    totalRecords: Object.values(recordCounts).reduce((total, count) => total + count, 0),
+  };
+}
+
+function validateAppData(data: AppData): void {
+  if (data.schemaVersion !== 8 || !isCurrency(data.mainCurrency)) {
+    throw new JsonImportError('The export has an invalid app header.');
+  }
+
+  validateUniqueIds('money entries', data.money);
+  validateUniqueIds('transfers', data.transfers);
+  validateUniqueIds('splits', data.splits);
+  validateUniqueIds('budgets', data.budgets);
+  validateUniqueIds('recurring rules', data.recurrences);
+  validateUniqueIds('accounts', data.accounts);
+  validateUniqueIds('categories', data.categories);
+  validateUniqueIds('notes', data.notes);
+  validateUniqueIds('tasks', data.tasks);
+  validateUniqueIds('usage snapshots', data.usageSnapshots);
+  validateUniqueIds('time goals', data.timeGoals);
+
+  const accountIds = new Set(data.accounts.map(account => account.id));
+  const categoryIds = new Set(data.categories.map(category => category.id));
+  const moneyById = new Map(data.money.map(entry => [entry.id, entry]));
+  const splitLineIds = new Set<string>();
+
+  data.accounts.forEach(validateAccount);
+  data.categories.forEach(validateCategory);
+  data.money.forEach(entry => validateMoneyEntry(entry, accountIds, categoryIds));
+  data.transfers.forEach(transfer => validateTransfer(transfer, accountIds));
+  data.splits.forEach(split => {
+    validateSplit(split, moneyById, categoryIds, splitLineIds);
+  });
+  data.budgets.forEach(budget => validateBudget(budget, categoryIds));
+  data.recurrences.forEach(rule => validateRecurrence(rule, accountIds, categoryIds));
+  data.notes.forEach(validateNote);
+  data.tasks.forEach(validateTask);
+  data.usageSnapshots.forEach(validateUsageSnapshot);
+  validateUsageRead(data);
+  data.timeGoals.forEach(validateTimeGoal);
+
+  if (!Array.isArray(data.usageExcludedPackages) || data.usageExcludedPackages.some(item => typeof item !== 'string')) {
+    throw new JsonImportError('The export has invalid app-time exclusions.');
+  }
+}
+
+function validateAccount(account: MoneyAccount): void {
+  validateId(account.id, 'account');
+  if (typeof account.name !== 'string' || !isCurrency(account.currency) || !Number.isSafeInteger(account.openingBalanceMinor)) {
+    throw new JsonImportError(`Account ${account.id} has invalid fields.`);
+  }
+  if (typeof account.isArchived !== 'boolean') {
+    throw new JsonImportError(`Account ${account.id} has an invalid archive flag.`);
+  }
+}
+
+function validateCategory(category: MoneyCategory): void {
+  validateId(category.id, 'category');
+  if (typeof category.name !== 'string' || !isValidKindOrBoth(category.kind) || typeof category.isArchived !== 'boolean') {
+    throw new JsonImportError(`Category ${category.id} has invalid fields.`);
+  }
+}
+
+function validateMoneyEntry(entry: MoneyEntry, accountIds: Set<string>, categoryIds: Set<string>): void {
+  validateId(entry.id, 'money entry');
+  validateMoneyFields(entry.amountMinor, entry.currency, entry.kind, entry.occurredAt, entry.createdAt, entry.updatedAt, entry.id);
+  validateOptionalReference(entry.accountId, accountIds, `Money entry ${entry.id} account`);
+  validateOptionalReference(entry.categoryId, categoryIds, `Money entry ${entry.id} category`);
+  if (typeof entry.category !== 'string' || typeof entry.note !== 'string' || (entry.splitId !== undefined && entry.splitId !== null && typeof entry.splitId !== 'string')) {
+    throw new JsonImportError(`Money entry ${entry.id} has invalid fields.`);
+  }
+}
+
+function validateTransfer(transfer: MoneyTransfer, accountIds: Set<string>): void {
+  validateId(transfer.id, 'transfer');
+  validateMoneyFields(transfer.amountMinor, transfer.currency, 'expense', transfer.occurredAt, transfer.createdAt, transfer.updatedAt, transfer.id);
+  if (typeof transfer.fromAccountId !== 'string' || typeof transfer.toAccountId !== 'string' || transfer.fromAccountId === transfer.toAccountId) {
+    throw new JsonImportError(`Transfer ${transfer.id} has invalid account links.`);
+  }
+  validateReference(transfer.fromAccountId, accountIds, `Transfer ${transfer.id} source account`);
+  validateReference(transfer.toAccountId, accountIds, `Transfer ${transfer.id} target account`);
+  if (typeof transfer.note !== 'string') {
+    throw new JsonImportError(`Transfer ${transfer.id} has an invalid note.`);
+  }
+}
+
+function validateSplit(
+  split: MoneySplit,
+  moneyById: Map<string, MoneyEntry>,
+  categoryIds: Set<string>,
+  splitLineIds: Set<string>,
+): void {
+  validateId(split.id, 'split');
+  validateReference(split.parentEntryId, moneyById, `Split ${split.id} parent`);
+  if (!Array.isArray(split.lines) || split.lines.length < 2 || !isIsoDate(split.createdAt) || !isIsoDate(split.updatedAt)) {
+    throw new JsonImportError(`Split ${split.id} has invalid fields.`);
+  }
+  const parent = moneyById.get(split.parentEntryId);
+  let lineTotal = 0;
+  split.lines.forEach(line => {
+    validateId(line.id, 'split line');
+    if (splitLineIds.has(line.id)) {
+      throw new JsonImportError(`Split line ${line.id} is duplicated.`);
+    }
+    splitLineIds.add(line.id);
+    validateReference(line.categoryId, categoryIds, `Split line ${line.id} category`);
+    if (!Number.isSafeInteger(line.amountMinor) || line.amountMinor <= 0 || typeof line.category !== 'string' || typeof line.note !== 'string') {
+      throw new JsonImportError(`Split line ${line.id} has invalid fields.`);
+    }
+    lineTotal += line.amountMinor;
+  });
+  if (!parent || lineTotal !== parent.amountMinor || parent.splitId !== split.id) {
+    throw new JsonImportError(`Split ${split.id} does not match its parent amount.`);
+  }
+}
+
+function validateBudget(budget: MoneyBudget, categoryIds: Set<string>): void {
+  validateId(budget.id, 'budget');
+  validateReference(budget.categoryId, categoryIds, `Budget ${budget.id} category`);
+  if (!Number.isSafeInteger(budget.amountMinor) || budget.amountMinor <= 0 || !isCurrency(budget.currency) ||
+      !isBudgetPeriod(budget.period) || !isRollover(budget.rollover) || typeof budget.category !== 'string' ||
+      typeof budget.isArchived !== 'boolean' || !isIsoDate(budget.createdAt) || !isIsoDate(budget.updatedAt)) {
+    throw new JsonImportError(`Budget ${budget.id} has invalid fields.`);
+  }
+}
+
+function validateRecurrence(rule: MoneyRecurrenceRule, accountIds: Set<string>, categoryIds: Set<string>): void {
+  validateId(rule.id, 'recurring rule');
+  validateMoneyFields(rule.amountMinor, rule.currency, rule.kind, rule.createdAt, rule.createdAt, rule.updatedAt, rule.id);
+  validateOptionalReference(rule.accountId, accountIds, `Recurring rule ${rule.id} account`);
+  validateOptionalReference(rule.categoryId, categoryIds, `Recurring rule ${rule.id} category`);
+  if (typeof rule.category !== 'string' || typeof rule.note !== 'string' ||
+      !isRecurrenceCadence(rule.cadence) || !Number.isSafeInteger(rule.interval) || rule.interval < 1 || rule.interval > 365 ||
+      !isValidLocalDate(rule.nextOccurrenceLocalDate) || typeof rule.isPaused !== 'boolean') {
+    throw new JsonImportError(`Recurring rule ${rule.id} has invalid fields.`);
+  }
+}
+
+function validateNote(note: Note): void {
+  validateId(note.id, 'note');
+  if (typeof note.title !== 'string' || typeof note.body !== 'string' || typeof note.isPinned !== 'boolean' ||
+      !isIsoDate(note.createdAt) || !isIsoDate(note.updatedAt)) {
+    throw new JsonImportError(`Note ${note.id} has invalid fields.`);
+  }
+}
+
+function validateTask(task: Task): void {
+  validateId(task.id, 'task');
+  if (typeof task.title !== 'string' || typeof task.details !== 'string' ||
+      (task.status !== 'open' && task.status !== 'completed') ||
+      (task.dueLocalDate !== null && !isValidLocalDate(task.dueLocalDate)) ||
+      !isIsoDate(task.createdAt) || !isIsoDate(task.updatedAt)) {
+    throw new JsonImportError(`Task ${task.id} has invalid fields.`);
+  }
+}
+
+function validateUsageSnapshot(snapshot: UsageSnapshot): void {
+  validateId(snapshot.id, 'usage snapshot');
+  if (typeof snapshot.packageName !== 'string' || typeof snapshot.displayName !== 'string' ||
+      !isValidLocalDate(snapshot.localDate) || !Number.isSafeInteger(snapshot.durationSeconds) || snapshot.durationSeconds < 0 ||
+      !isIsoDate(snapshot.sourceReadAt) || typeof snapshot.included !== 'boolean') {
+    throw new JsonImportError(`Usage snapshot ${snapshot.id} has invalid fields.`);
+  }
+}
+
+function validateUsageRead(data: AppData): void {
+  const read = data.usageRead;
+  if (!isRecord(read) || !['unknown', 'granted', 'denied', 'unsupported'].includes(read.permission) ||
+      (read.lastReadAt !== null && !isIsoDate(read.lastReadAt)) ||
+      (read.rangeStartMillis !== null && !Number.isSafeInteger(read.rangeStartMillis)) ||
+      (read.rangeEndMillis !== null && !Number.isSafeInteger(read.rangeEndMillis)) ||
+      (read.errorCode !== null && typeof read.errorCode !== 'string')) {
+    throw new JsonImportError('The export has invalid app-time read metadata.');
+  }
+}
+
+function validateTimeGoal(goal: TimeGoal): void {
+  validateId(goal.id, 'time goal');
+  if (typeof goal.name !== 'string' || (goal.period !== 'day' && goal.period !== 'week') ||
+      !Number.isSafeInteger(goal.targetSeconds) || goal.targetSeconds <= 0 || typeof goal.isArchived !== 'boolean') {
+    throw new JsonImportError(`Time goal ${goal.id} has invalid fields.`);
+  }
+}
+
+function validateMoneyFields(
+  amountMinor: number,
+  currency: string,
+  kind: string,
+  occurredAt: string,
+  createdAt: string,
+  updatedAt: string,
+  id: string,
+): void {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || !isCurrency(currency) ||
+      !isValidKind(kind) || !isIsoDate(occurredAt) || !isIsoDate(createdAt) || !isIsoDate(updatedAt)) {
+    throw new JsonImportError(`Record ${id} has invalid money fields.`);
+  }
+}
+
+function validateUniqueIds<T extends {id: string}>(label: string, values: T[]): void {
+  if (!Array.isArray(values)) {
+    throw new JsonImportError(`The export has invalid ${label}.`);
+  }
+  const ids = new Set<string>();
+  values.forEach(value => {
+    if (!isRecord(value) || typeof value.id !== 'string' || value.id.trim() === '' || ids.has(value.id)) {
+      throw new JsonImportError(`The export has invalid or duplicate ${label}.`);
+    }
+    ids.add(value.id);
+  });
+}
+
+function validateId(value: string, label: string): void {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new JsonImportError(`The export has an invalid ${label} ID.`);
+  }
+}
+
+function validateReference<T>(value: string, values: Set<string> | Map<string, T>, label: string): void {
+  if (typeof value !== 'string' || !values.has(value)) {
+    throw new JsonImportError(`${label} is missing.`);
+  }
+}
+
+function validateOptionalReference(value: string | null, values: Set<string>, label: string): void {
+  if (value !== null) {
+    validateReference(value, values, label);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
+function isCurrency(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Z]{3}$/.test(value);
+}
+
+function isValidKind(value: string): value is 'income' | 'expense' {
+  return value === 'income' || value === 'expense';
+}
+
+function isValidKindOrBoth(value: unknown): value is 'income' | 'expense' | 'both' {
+  return value === 'income' || value === 'expense' || value === 'both';
+}
+
+function isBudgetPeriod(value: unknown): value is 'day' | 'week' | 'month' {
+  return value === 'day' || value === 'week' || value === 'month';
+}
+
+function isRollover(value: unknown): value is 'none' | 'carry-forward' {
+  return value === 'none' || value === 'carry-forward';
+}
+
+function isRecurrenceCadence(value: unknown): value is 'day' | 'week' | 'month' {
+  return value === 'day' || value === 'week' || value === 'month';
+}
+
+function countRecords(data: AppData): JsonImportRecordCounts {
+  return {
+    money: data.money.length,
+    transfers: data.transfers.length,
+    splits: data.splits.length,
+    budgets: data.budgets.length,
+    recurrences: data.recurrences.length,
+    accounts: data.accounts.length,
+    categories: data.categories.length,
+    notes: data.notes.length,
+    tasks: data.tasks.length,
+    usageSnapshots: data.usageSnapshots.length,
+    timeGoals: data.timeGoals.length,
+  };
+}

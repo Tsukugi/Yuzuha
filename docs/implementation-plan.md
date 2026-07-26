@@ -474,3 +474,33 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive recurrence evidence is emulator-based.
 
 Next pass: import and restore validation for the versioned JSON export.
+
+## Implementation review: JSON import and restore pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- strict parser for export schema 1 with app-schema migration support;
+- validation for collection shape, duplicate IDs, record references, timestamps, currencies, money values, recurrence dates, and split totals;
+- Data tools restore text area with preview counts and destructive confirmation;
+- full workspace replacement through the existing SQLite save boundary;
+- unit coverage for current exports, schema 7 migration, malformed JSON, duplicate IDs, and broken split totals.
+
+Known limits:
+
+- Restore is paste-based JSON replacement. CSV import, encrypted backups, file-picker restore, merge, sync restore, and recovery keys remain planned.
+
+Review evidence:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 15 suites, 51 tests
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator restore    PASS - invalid JSON preview was rejected without a write
+Phone               PASS - final APK installed and MainActivity resumed without filtered app errors
+```
+
+Next pass: recurring missed-occurrence policy and backup/import expansion, with sync kept behind the local-first boundary.

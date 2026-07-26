@@ -23,6 +23,7 @@ import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
+import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
@@ -121,7 +122,7 @@ function HomeScreen({
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.pageTitle}>Today</Text>
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
-      <TextButton label="Export or delete data" onPress={onOpenDataTools} />
+      <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
 
       <View style={styles.cardGrid}>
         <SummaryCard
@@ -173,9 +174,11 @@ function HomeScreen({
 }
 
 function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {resetWorkspace} = useAppStore();
+  const {resetWorkspace, restoreWorkspace} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importText, setImportText] = useState('');
+  const [importPreview, setImportPreview] = useState<JsonImportPreview | null>(null);
 
   async function shareJson() {
     try {
@@ -230,13 +233,54 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     );
   }
 
+  function previewRestore() {
+    setStatus(null);
+    setError(null);
+    try {
+      setImportPreview(parseJsonImport(importText));
+    } catch (restoreError) {
+      setImportPreview(null);
+      setError(restoreError instanceof Error ? restoreError.message : 'The JSON export could not be validated.');
+    }
+  }
+
+  function confirmRestore() {
+    if (!importPreview) {
+      return;
+    }
+    Alert.alert(
+      'Replace local workspace?',
+      `This will replace local data with ${importPreview.totalRecords} imported records. The current workspace will be overwritten.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () => {
+            void restoreWorkspace(importPreview.data)
+              .then(() => {
+                setError(null);
+                setStatus('Workspace restored from the validated JSON export.');
+                setImportText('');
+                setImportPreview(null);
+              })
+              .catch(() => {
+                setStatus(null);
+                setError('Workspace restore failed. The current workspace was kept.');
+              });
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
         <Text style={styles.backButtonText}>‹ Home</Text>
       </Pressable>
       <Text style={styles.pageTitle}>Data tools</Text>
-      <Text style={styles.pageIntro}>Exports include the supported local records. Sharing opens the Android system share sheet.</Text>
+      <Text style={styles.pageIntro}>Exports include supported local records. Restore validates a JSON export and shows a preview before replacing this workspace.</Text>
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Export</Text>
         <PrimaryButton label="Share JSON export" onPress={shareJson} />
@@ -245,12 +289,59 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
       <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Restore JSON export</Text>
+        <Text style={styles.cardDetail}>Paste a Yuzuha JSON export here. Nothing changes until you review the count and confirm the replacement.</Text>
+        <TextInput
+          accessibilityLabel="JSON restore text"
+          autoCapitalize="none"
+          autoCorrect={false}
+          multiline
+          onChangeText={value => {
+            setImportText(value);
+            setImportPreview(null);
+            setStatus(null);
+          }}
+          placeholder="Paste JSON export"
+          placeholderTextColor={colors.muted}
+          style={[styles.input, styles.multilineInput]}
+          value={importText}
+        />
+        <PrimaryButton label="Preview restore" onPress={previewRestore} />
+        {importPreview && (
+          <View style={styles.importPreview}>
+            <Text style={styles.cardTitle}>Validated preview</Text>
+            <Text style={styles.cardDetail}>{formatImportPreview(importPreview)}</Text>
+            <PrimaryButton label="Restore this workspace" onPress={confirmRestore} />
+          </View>
+        )}
+      </View>
+      <View style={styles.formCard}>
         <Text style={styles.formLabel}>Delete</Text>
         <Text style={styles.cardDetail}>Delete removes local records and keeps only the empty workspace defaults.</Text>
         <TextButton label="Delete all local data" danger onPress={confirmDelete} />
       </View>
     </ScrollView>
   );
+}
+
+function formatImportPreview(preview: JsonImportPreview): string {
+  const labels: Array<[keyof JsonImportPreview['recordCounts'], string]> = [
+    ['money', 'money'],
+    ['transfers', 'transfers'],
+    ['splits', 'splits'],
+    ['budgets', 'budgets'],
+    ['recurrences', 'recurring rules'],
+    ['accounts', 'accounts'],
+    ['categories', 'categories'],
+    ['notes', 'notes'],
+    ['tasks', 'tasks'],
+    ['usageSnapshots', 'app-time records'],
+    ['timeGoals', 'time goals'],
+  ];
+  const summary = labels
+    .filter(([key]) => preview.recordCounts[key] > 0)
+    .map(([key, label]) => `${preview.recordCounts[key]} ${label}`);
+  return `${preview.totalRecords} total records${summary.length > 0 ? `: ${summary.join(', ')}` : '.'}`;
 }
 
 function MoneyScreen() {
@@ -1653,6 +1744,7 @@ const styles = StyleSheet.create({
   listMeta: {color: colors.muted, fontSize: 13, marginTop: 5},
   chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
   formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 16},
+  importPreview: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
   segmentRow: {flexDirection: 'row', gap: 8},

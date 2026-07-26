@@ -71,7 +71,7 @@ The client encrypts record payloads before upload. The service must not receive 
 
 ## Import, attachments, and integrations
 
-Treat imported files and attachments as untrusted input. Validate type, size, checksum, and parser limits. Do not execute imported content. Provider credentials stay in protected native storage and are deleted on disconnect according to the provider contract. Share sheets and widgets must not leak sensitive content on a locked screen.
+Treat imported files, pasted JSON, and attachments as untrusted input. Validate type, size, checksum, schema, record references, and parser limits. Do not execute imported content. Provider credentials stay in protected native storage and are deleted on disconnect according to the provider contract. Share sheets and widgets must not leak sensitive content on a locked screen. JSON restore must show a preview and require confirmation before replacing local records.
 
 ## Privacy review gates for new features
 

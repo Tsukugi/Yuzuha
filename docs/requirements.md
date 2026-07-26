@@ -260,4 +260,15 @@ Implemented and verified:
 - schema 7 to schema 8 migration adds an empty recurrence collection without dropping existing records;
 - emulator smoke shows one monthly EUR 2.50 entry generated for today, next occurrence 2026-08-26, and the same EUR 2.50 total after restart.
 
-Not yet complete: missed-occurrence choices, end-of-month anchor preferences, recurring task rules, alerts, import/restore, and sync.
+Not yet complete: missed-occurrence choices, end-of-month anchor preferences, recurring task rules, alerts, and sync.
+
+## Import and restore implementation review
+
+Implemented and verified:
+
+- JSON export schema 1 can be pasted into Data tools and previewed without changing local data;
+- supported app schemas are migrated to schema 8 before restore;
+- restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
+- the user must confirm the preview before the validated data replaces the current workspace.
+
+Not yet complete: CSV import, encrypted backups, file-picker restore, merge behavior, sync restore, and recovery-key handling.

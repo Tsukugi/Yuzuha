@@ -51,6 +51,7 @@ interface AppStoreValue {
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
   resetWorkspace: () => Promise<void>;
+  restoreWorkspace: (next: AppData) => Promise<void>;
   addMoneyRecurrence: (input: MoneyRecurrenceInput) => Promise<void>;
   deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
@@ -183,6 +184,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const resetWorkspace = useCallback(async () => {
     await commit(() => emptyAppData());
+  }, [commit]);
+
+  const restoreWorkspace = useCallback(async (next: AppData) => {
+    await commit(() => next);
   }, [commit]);
 
   const addMoneyRecurrence = useCallback(
@@ -469,6 +474,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateMoney,
       deleteMoney,
       resetWorkspace,
+      restoreWorkspace,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
       addSplitMoney,
@@ -507,6 +513,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       isLoading,
       replaceUsageSnapshots,
       resetWorkspace,
+      restoreWorkspace,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
       setUsagePermission,

@@ -66,7 +66,7 @@ Any release that changes the bundle gate, cache, metadata schema, activation, or
 
 ### Data release
 
-Use when adding or changing schema, migrations, exports, sync encoding, conflict records, or deletion. The release record includes old/new schema versions, migration fixtures, export compatibility, rollback limits, and a restore test.
+Use when adding or changing schema, migrations, exports, restore validation, sync encoding, conflict records, or deletion. The release record includes old/new schema versions, migration fixtures, export compatibility, rollback limits, and a restore test. For local JSON restore, record the export schema, supported app-schema migrations, validation rules, preview/confirmation behavior, and proof that a failed restore keeps the current workspace.
 
 ### Sync release
 

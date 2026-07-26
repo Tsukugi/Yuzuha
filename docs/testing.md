@@ -180,6 +180,15 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator deletion: the confirmation dialog appeared; after confirmation, Home showed EUR 0.00, 0 saved notes, and 0 open tasks.
 - Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
+## Import and restore evidence
+
+- Jest: 15 suites, 51 tests passing, including current JSON restore parsing, schema 7 migration, malformed JSON rejection, duplicate-ID rejection, and split-total validation.
+- Lint and strict TypeScript: passing.
+- Android bundle and debug APK: passing with Java 17.
+- Emulator restore smoke: Data tools opened, `not-json` was rejected with “The restore text is not valid JSON.”, and no restore was committed.
+- Phone `42adce68`: final APK installed and `MainActivity` resumed with no filtered app errors. The phone still blocks automated touch input, so valid restore confirmation was tested through parser/unit coverage rather than phone interaction.
+- The restore path has a pure validation step and a separate confirmed replacement step; invalid input never reaches `WorkspaceStore.save`.
+
 ## Recurring money evidence
 
 - Jest: 14 suites, 47 tests passing, including schema 7 to schema 8 migration, recurrence validation, calendar boundary handling, due generation, duplicate prevention, and SQLite round-trip coverage.

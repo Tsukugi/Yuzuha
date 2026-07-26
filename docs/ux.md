@@ -50,6 +50,10 @@ The Home screen links to Data tools. The user can share a complete JSON export o
 
 Money includes a recurring-rule form for expense or income, amount, category, account, cadence, interval, local start date, and note. Saving a rule creates due entries immediately and shows the next local calendar date. Reopening the app advances only due dates that have not already generated a deterministic entry. Rules can be deleted from the recurring-rules list.
 
+### Restore local data
+
+Data tools accepts a pasted Yuzuha JSON export. Preview shows the total and record groups before any write. Restore is destructive: the user confirms the replacement, and invalid JSON or invalid records leave the current workspace unchanged.
+
 ## Accessibility
 
 - Every control has an accessible label and a useful state description.

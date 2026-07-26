@@ -138,7 +138,7 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Status: Accepted.
 - Decision: Provide JSON for all supported local records and CSV for money entries. Include explicit export and app schema versions, send the selected format through the Android system share sheet, and require confirmation before resetting the local workspace to seeded defaults.
 - Reason: The first release needs user-controlled portability and deletion without adding a remote account or a provider-specific file service.
-- Consequence: File-picker import, restore validation, encrypted backup, and cross-device sync remain separate contracts.
+- Consequence: File-picker import, encrypted backup, and cross-device sync remain separate contracts.
 
 ## DEC-021: Use local calendar dates for recurring money rules
 
@@ -146,3 +146,9 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Store a recurrence's next date as `YYYY-MM-DD`, cadence, interval, account/category links, and pause state. On workspace load and rule creation, generate every due occurrence through the current local date, use a deterministic rule/date entry ID, and advance the rule in the same repository save.
 - Reason: Calendar dates avoid elapsed-millisecond drift across restarts and timezone changes. Deterministic IDs prevent duplicate entries when the same workspace is reopened.
 - Consequence: Missed-occurrence policies, end-of-month anchor preferences, notifications, and recurring task rules remain separate contracts.
+
+## DEC-022: Restore JSON by validated replacement
+
+- Context: The local JSON export is the complete app-data contract, while merging arbitrary pasted data would make duplicate IDs and broken references hard to reason about.
+- Decision: Restore only export schema 1 envelopes. Migrate supported app schemas, validate the complete record shape and key financial invariants, show record counts, and replace the current workspace only after explicit confirmation. A validation or save failure must leave the current workspace in place.
+- Consequence: The first restore flow is paste-based JSON replacement. CSV import, encrypted backups, merge conflict UI, file picking, and sync restore remain separate work.

@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 8 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, and recurring money rules are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 8 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules, and validated JSON restore are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -148,7 +148,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 8 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 7 is migrated into app schema 8 without dropping records and remains the legacy import source for first open.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 8 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 7 is migrated into app schema 8 without dropping records and remains the legacy import source for first open. JSON restore accepts export schema 1, migrates supported app schemas, validates record IDs, references, timestamps, currencies, split totals, and recurrence dates, then replaces all app collections in one repository save after confirmation.
 
 ## Export and deletion
 
