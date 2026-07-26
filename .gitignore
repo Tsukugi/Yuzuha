@@ -1,0 +1,19 @@
+node_modules/
+
+# React Native
+android/.gradle/
+android/app/build/
+android/build/
+ios/Pods/
+ios/DerivedData/
+ios/build/
+
+# Metro
+metro-cache/
+
+# Misc
+*.log
+*.tmp
+*.swp
+package-lock.json
+yarn.lock

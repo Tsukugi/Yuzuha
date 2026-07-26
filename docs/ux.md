@@ -1,0 +1,116 @@
+# UX plan
+
+Status: Planned Android MVP.
+
+## Navigation
+
+Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. A global add action may create a money entry, note, or task.
+
+## First run
+
+1. Welcome: explain that data stays on the device by default.
+2. Main currency: choose a default currency; allow later changes without rewriting old entries.
+3. App time: explain Usage Access, with `Not now` as a valid choice.
+4. Home: show the four cards with honest empty states.
+
+Do not force account creation, cloud sync, or Usage Access permission during onboarding.
+
+## Home card behavior
+
+| Card | Populated state | Empty or unavailable state |
+| --- | --- | --- |
+| Money | Period total and entry count. | `Add your first entry` or `No entries in this period`. |
+| App time | Total duration, last-read time, and top apps. | `Allow Usage Access` or `No usage data for this period`. |
+| Tasks | Open count, overdue count, and next due task. | `All clear` with add action. |
+| Notes | Pinned and recent notes. | `Create a note`. |
+
+## Important flows
+
+### Add money
+
+The form asks for type, amount, currency, category, date, account label, and note. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
+
+### Read app time
+
+The permission explanation appears before the system settings page. After returning, the app checks permission again, reads the selected range, stores a local snapshot, and shows the read timestamp. If permission was not granted, the app remains useful and explains how to try again.
+
+### Add a task
+
+The short form asks for a title first. Details, due date, priority, and list are optional. Completing a task uses an undo action so an accidental tap is recoverable.
+
+### Search notes
+
+Search is available from the Notes header. Results show title, a short body preview, tags, and updated time. Search must not send note content to a server.
+
+## Accessibility
+
+- Every control has an accessible label and a useful state description.
+- Touch targets are at least 44 dp.
+- Color is not the only way to show income/expense, priority, overdue, or completion.
+- Layout works at large system font sizes without clipped text.
+- Focus order follows the visual order.
+- Motion is limited and respects reduced-motion settings where supported.
+- Forms announce validation errors and save success.
+
+## Content rules
+
+Use plain, specific messages. Examples:
+
+- `Usage Access is off. Android has not shared app-time data with Yuzuha.`
+- `This bundle could not be verified. Your saved version is still safe.`
+- `No spending recorded for this period.`
+
+Avoid blame, alarm, and vague messages such as `Something went wrong` without an action or reason.
+
+## Full-product navigation
+
+The Android phone layout keeps Home, Money, Notes, and Tasks in the primary bar. Projects, App Time, Reviews, Reports, Search, and Settings are reachable from Home or a global command surface. On larger screens, a navigation rail and two-pane layouts may expose the same destinations without changing data behavior.
+
+## Full-product flows
+
+### Enable sync
+
+The Privacy Center explains local-only and synced modes side by side. The user chooses what to sync, creates or confirms recovery material, enrolls the current device, and sees a first-sync preview. The app reports `Not started`, `Syncing`, `Up to date`, `Paused`, `Needs attention`, or `Conflict needs review`.
+
+### Create a budget
+
+The user chooses category, currency, period, amount, start rule, and rollover policy. A preview shows how existing transactions will count. Save creates the budget and its optional alert; it does not alter transactions.
+
+### Import money
+
+The flow is choose file, map fields, review duplicates, preview totals/errors, commit, and show import history. Cancel leaves the database unchanged. The import report can open the affected records.
+
+### Create recurring work
+
+The user chooses a template, recurrence, timezone, missed-occurrence rule, and reminder. The preview shows the next three occurrences. Editing one occurrence versus the series is an explicit choice.
+
+### Resolve a conflict
+
+The conflict screen shows local and remote versions, changed fields, source device, and time. For money, it offers `Keep local`, `Keep remote`, `Keep both`, or `Edit merged copy`; it never picks a total silently. Resolution creates a new revision and records the choice.
+
+### Daily review
+
+The review is a sequence of source-backed cards. Each card can open the source list, filter the period, or be dismissed for the current review. Reflection text is optional and stays with the review record.
+
+## Full-product screen map
+
+| Area | Screens |
+| --- | --- |
+| Home | Dashboard, daily review, weekly review, card settings. |
+| Money | Transactions, entry form, accounts, categories, budgets, goals, reports, imports. |
+| App time | Summary, app groups, goals, focus sessions, permission details. |
+| Notes | Note list, editor, folders, tags, templates, saved searches, attachment picker. |
+| Tasks | Inbox, lists, project, calendar, agenda, recurrence rules, templates. |
+| Search | Global search, filters, saved searches, command results. |
+| Settings | Appearance, locale, notifications, permissions, integrations, sync/devices, export/delete, support. |
+
+## Full-product empty and failure states
+
+Every advanced feature has a useful local-only state. Examples:
+
+- Sync: `You are using this device only. Turn on sync when you want another device to share this workspace.`
+- Budget: `No transactions match this budget period.`
+- Import: `No changes were saved. Review the rows and try again.`
+- Conflict: `Both devices changed this item. Choose which version to keep.`
+- Integration: `Calendar access is off. Existing Yuzuha tasks are unchanged.`
+- Search: `No matches in the selected filters.`
