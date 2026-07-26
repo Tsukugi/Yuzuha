@@ -13,6 +13,7 @@ const budget: MoneyBudget = {
   amountMinor: 2000,
   currency: 'EUR',
   period: 'month',
+  rollover: 'none',
   isArchived: false,
   createdAt: '2026-07-26T12:00:00.000Z',
   updatedAt: '2026-07-26T12:00:00.000Z',
@@ -69,7 +70,26 @@ describe('money budgets', () => {
     expect(projection.usedMinor).toBe(1100);
     expect(projection.remainingMinor).toBe(900);
     expect(projection.percentUsed).toBe(55);
+    expect(projection.effectiveLimitMinor).toBe(2000);
+    expect(projection.rolloverMinor).toBe(0);
     expect(projection.status).toBe('on-track');
+  });
+
+  it('carries only an unused positive balance from the previous period', () => {
+    const projection = buildBudgetProjection(
+      {...budget, amountMinor: 2000, rollover: 'carry-forward'},
+      [
+        entry({id: 'previous', amountMinor: 500, occurredAt: '2026-06-26T12:00:00.000Z'}),
+        entry({id: 'current', amountMinor: 1000}),
+      ],
+      [],
+      new Date(2026, 6, 26),
+    );
+
+    expect(projection.rolloverMinor).toBe(1500);
+    expect(projection.effectiveLimitMinor).toBe(3500);
+    expect(projection.remainingMinor).toBe(2500);
+    expect(projection.percentUsed).toBe(29);
   });
 
   it('marks near-limit and over-budget projections', () => {

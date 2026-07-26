@@ -117,4 +117,18 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Status: Accepted.
 - Decision: A budget stores one active expense category, currency, positive minor-unit limit, and day/week/month period. Used and remaining values are rebuilt from matching expense entries and split lines in the current local period.
 - Reason: Budget values must follow the same source records as reports and must not count income, transfers, other currencies, or entries outside the selected period.
-- Consequence: Rollover, recurring budgets, alerts, and normalized budget tables remain separate future contracts.
+- Consequence: Recurring budgets and alerts remain separate future contracts.
+
+## DEC-018: Normalize financial SQLite tables at repository schema 2
+
+- Status: Accepted.
+- Decision: Store money entries, transfers, split parents/lines, and budgets in normalized SQLite tables. Keep smaller non-financial collections in the typed `app_records` table during this phase.
+- Reason: Financial queries need typed amounts, currencies, dates, account links, and category links without parsing JSON. The boundary also makes future reports and imports easier to test.
+- Consequence: Repository schema 1 requires a deterministic rewrite migration. Unsupported repository versions still block instead of guessing.
+
+## DEC-019: Carry forward one previous budget period
+
+- Status: Accepted.
+- Decision: A budget with `carry-forward` adds the previous day, week, or month unused positive balance to the current limit, capped at one base budget amount. `none` adds zero.
+- Reason: The rule is easy to explain, deterministic across restarts, and prevents multi-period debt or unbounded accumulation in the first budget release.
+- Consequence: Recurring budgets, multi-period carry chains, and alerts remain separate future contracts.

@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with schema version 6 data migrations. Transfer records, account-balance projections, exact-sum split entries, and budget projections are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 7 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, and one-period carry-forward are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -60,6 +60,7 @@ Status: The local SQLite repository boundary is implemented with schema version 
 | `amountMinor` | integer | Positive limit in the selected currency. |
 | `currency` | string | Three-letter uppercase code. |
 | `period` | enum | `day`, `week`, or `month`, using the local period helper. |
+| `rollover` | enum | `none` or `carry-forward`; carry-forward uses only the previous period's unused positive balance. |
 | `isArchived` | boolean | Archived budgets are not shown or projected. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
@@ -132,7 +133,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. The repository stores version 6 records in transactional `app_records` rows plus `repository_meta`. On first open, version 1, 2, 3, 4, or 5 AsyncStorage data is migrated into SQLite without dropping money/notes/tasks; schema 3 receives an empty transfer collection, schema 4 receives an empty split collection, and schema 5 receives an empty budget collection. AsyncStorage remains the legacy import source and is still used for installer metadata and small preferences.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 7 and the SQLite repository is schema 2. Accounts, categories, notes, tasks, usage snapshots, time goals, and exclusions remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 6 is migrated into app schema 7 without dropping records and remains the legacy import source for first open.
 
 App-time exclusions are stored as package names and also copied to the `included` flag on refreshed snapshots. Totals use `included = true`, so changing an exclusion does not require another Android read.
 
@@ -140,7 +141,7 @@ Transfers are source records separate from income and expense entries. Account b
 
 Split entries store one parent money entry and one linked `split` record. Account balances use the parent once. Reports replace the parent category with its validated lines, preserving the parent total while showing each line category.
 
-Budgets store their limit as a source record. The projection counts only matching expense entries or split lines with the same category ID, currency, and local day/week/month range. It returns used, remaining, percentage, and a deterministic status; transfers and income never count.
+Budgets store their limit and rollover policy as a source record. The projection counts only matching expense entries or split lines with the same category ID, currency, and local day/week/month range. `none` uses the saved limit. `carry-forward` adds the previous period's unused positive balance, capped at the saved limit, to the current effective limit. It returns used, remaining, percentage, and a deterministic status; transfers and income never count.
 
 ## Full-product entities
 

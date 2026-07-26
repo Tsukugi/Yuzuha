@@ -1,6 +1,6 @@
 import {getPeriodRange, isInPeriod} from './period';
 import type {PeriodRange} from './period';
-import type {BudgetPeriod, MoneyBudget, MoneyCategory, MoneyEntry, MoneySplit} from '../types/domain';
+import type {BudgetPeriod, BudgetRollover, MoneyBudget, MoneyCategory, MoneyEntry, MoneySplit} from '../types/domain';
 
 export interface MoneyBudgetInput {
   categoryId: string;
@@ -8,6 +8,7 @@ export interface MoneyBudgetInput {
   amountMinor: number;
   currency: string;
   period: BudgetPeriod;
+  rollover: BudgetRollover;
 }
 
 export interface BudgetProjection {
@@ -16,6 +17,8 @@ export interface BudgetProjection {
   usedMinor: number;
   remainingMinor: number;
   percentUsed: number;
+  effectiveLimitMinor: number;
+  rolloverMinor: number;
   status: 'empty' | 'on-track' | 'near-limit' | 'over';
 }
 
@@ -28,6 +31,9 @@ export function validateMoneyBudget(input: MoneyBudgetInput, categories: MoneyCa
   }
   if (input.period !== 'day' && input.period !== 'week' && input.period !== 'month') {
     return 'Choose a valid budget period.';
+  }
+  if (input.rollover !== 'none' && input.rollover !== 'carry-forward') {
+    return 'Choose a valid budget rollover rule.';
   }
   const category = categories.find(item => item.id === input.categoryId);
   if (!category || category.isArchived || (category.kind !== 'expense' && category.kind !== 'both')) {
@@ -43,6 +49,27 @@ export function buildBudgetProjection(
   now: Date,
 ): BudgetProjection {
   const range = getPeriodRange(now, budget.period);
+  const rolloverMinor = budget.rollover === 'carry-forward'
+    ? Math.max(0, budget.amountMinor - usedForRange(budget, entries, splits, previousPeriodRange(now, budget.period)))
+    : 0;
+  const effectiveLimitMinor = budget.amountMinor + rolloverMinor;
+  const usedMinor = usedForRange(budget, entries, splits, range);
+  const remainingMinor = effectiveLimitMinor - usedMinor;
+  const percentUsed = effectiveLimitMinor === 0 ? 0 : Math.round((usedMinor / effectiveLimitMinor) * 100);
+  const status = usedMinor === 0 ? 'empty' : remainingMinor < 0 ? 'over' : percentUsed >= 80 ? 'near-limit' : 'on-track';
+  return {
+    start: range.start,
+    end: range.end,
+    usedMinor,
+    remainingMinor,
+    percentUsed,
+    effectiveLimitMinor,
+    rolloverMinor,
+    status,
+  };
+}
+
+function usedForRange(budget: MoneyBudget, entries: MoneyEntry[], splits: MoneySplit[], range: PeriodRange): number {
   const splitByParent = new Map(splits.map(split => [split.parentEntryId, split]));
   let usedMinor = 0;
   for (const entry of entries) {
@@ -58,10 +85,16 @@ export function buildBudgetProjection(
       usedMinor += entry.amountMinor;
     }
   }
-  const remainingMinor = budget.amountMinor - usedMinor;
-  const percentUsed = budget.amountMinor === 0 ? 0 : Math.round((usedMinor / budget.amountMinor) * 100);
-  const status = usedMinor === 0 ? 'empty' : remainingMinor < 0 ? 'over' : percentUsed >= 80 ? 'near-limit' : 'on-track';
-  return {start: range.start, end: range.end, usedMinor, remainingMinor, percentUsed, status};
+  return usedMinor;
+}
+
+function previousPeriodRange(now: Date, period: BudgetPeriod): PeriodRange {
+  if (period === 'month') {
+    return getPeriodRange(new Date(now.getFullYear(), now.getMonth() - 1, 1), period);
+  }
+  const previous = new Date(now);
+  previous.setDate(previous.getDate() - (period === 'week' ? 7 : 1));
+  return getPeriodRange(previous, period);
 }
 
 export function budgetRange(budget: MoneyBudget, now: Date): PeriodRange {

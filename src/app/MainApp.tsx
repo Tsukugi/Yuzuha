@@ -21,7 +21,7 @@ import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, BudgetPeriod, MoneyKind, MoneyTransfer} from '../types/domain';
+import type {AppData, BudgetPeriod, BudgetRollover, MoneyKind, MoneyTransfer} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -444,6 +444,7 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
   const [currency, setCurrency] = useState(currencies[0] ?? data.mainCurrency);
   const [period, setPeriod] = useState<BudgetPeriod>('month');
+  const [rollover, setRollover] = useState<BudgetRollover>('none');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -456,6 +457,7 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
       amountMinor: Number.isFinite(parsed) ? Math.round(parsed * 100) : 0,
       currency,
       period,
+      rollover,
     };
     const validationError = validateMoneyBudget(input, data.categories);
     if (validationError) {
@@ -515,6 +517,11 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
             <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
             <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
           </View>
+          <Text style={styles.formLabel}>Rollover</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="None" selected={rollover === 'none'} onPress={() => setRollover('none')} />
+            <SegmentButton label="Carry forward" selected={rollover === 'carry-forward'} onPress={() => setRollover('carry-forward')} />
+          </View>
           <Text style={styles.formLabel}>Limit ({currency})</Text>
           <TextInput
             accessibilityLabel="Budget limit"
@@ -538,6 +545,9 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
               <View key={budget.id} style={styles.formCard}>
                 <Text style={styles.cardTitle}>{budget.category}</Text>
                 <Text style={styles.cardDetail}>{budget.period} · {budget.currency} {formatMoney(budget.amountMinor, budget.currency)} limit</Text>
+                {projection.rolloverMinor > 0 && (
+                  <Text style={styles.cardDetail}>{formatMoney(projection.rolloverMinor, budget.currency)} carried forward from the previous period</Text>
+                )}
                 <Text style={styles.cardValue}>{formatMoney(projection.usedMinor, budget.currency)} used</Text>
                 <Text style={styles.cardDetail}>
                   {formatMoney(projection.remainingMinor, budget.currency)} remaining · {projection.percentUsed}% used

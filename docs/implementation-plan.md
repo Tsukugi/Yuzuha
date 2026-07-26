@@ -366,3 +366,42 @@ Known limits:
 - The phone `42adce68` blocks automated touch input, so interactive budget evidence is emulator-based.
 
 Next pass: normalized money tables and budget rollover rules, with import/export contracts kept separate from the local projection.
+
+## Implementation review: normalized storage and rollover pass
+
+Status: Completed on 2026-07-26.
+
+Delivered:
+
+- app data schema 7 with a deterministic schema 6 to schema 7 migration that defaults old budgets to `none`;
+- repository schema 2 with normalized `money_entries`, `money_transfers`, `money_splits`, `money_split_lines`, and `money_budgets` tables;
+- one-transaction migration from repository schema 1 typed financial rows into the normalized tables;
+- typed-column read validation for normalized financial rows and explicit rejection of orphan split lines;
+- `none` and one-period `carry-forward` budget rules, with the carried amount capped at one base budget limit;
+- budget UI controls and display for the selected rollover rule and carried amount.
+
+Review evidence so far:
+
+```text
+npm run lint         PASS
+npm run typecheck    PASS
+npm test             PASS - 12 suites, 40 tests
+```
+
+Review evidence:
+
+```text
+npm run check-bundle PASS
+Android debug APK   PASS - app:assembleDebug with Java 17
+Emulator migration  PASS - EUR 19.12, 31 min, note, accounts, transfer, split, and old budget remained available
+Emulator rollover   PASS - EUR 10.00 carried + EUR 7.00 used = EUR 13.00 remaining / 35%
+Emulator restart    PASS - both none and carry-forward budget projections remained after force-stop/relaunch
+Phone               PASS - install, launch, and resumed MainActivity with no cleared-logcat app errors
+```
+
+Known limits:
+
+- Multi-period rollover, recurring budgets, alerts, exports, sync, and remote bundle activation remain planned.
+- The phone `42adce68` blocks automated touch input, so interactive rollover evidence is emulator-based.
+
+Next pass: recurring money rules and export contracts, with sync kept behind the local-first boundary.

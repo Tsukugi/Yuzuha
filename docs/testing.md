@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the budget pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the normalized-storage and budget-rollover pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -99,7 +99,7 @@ For a bug, first add a failing test that reproduces the current behavior. Then m
 - transfers excluded from income/spending;
 - split totals equal the parent;
 - multi-currency reports never add incompatible units;
-- budget rollover, refunds, recurring rules, timezone changes, and leap days;
+- multi-period budget rollover, refunds, recurring rules, timezone changes, and leap days;
 - import preview, duplicate detection, commit, rollback, malformed rows, and large files.
 
 ### Notes and tasks
@@ -161,6 +161,16 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator projection: the screen showed EUR 7.00 used, EUR 3.00 remaining, and 70% used.
 - Emulator restart: the budget and the same projection remained after force-stop and relaunch.
 - Phone `42adce68`: updated APK installed and `MainActivity` resumed with no filtered current app errors. Touch automation remains blocked by device policy.
+
+## Normalized storage and rollover evidence
+
+- Jest: 12 suites, 40 tests passing, including schema 6 to schema 7 migration, repository schema 1 to schema 2 rewrite, normalized financial round-trip, malformed-row rejection, and carry-forward projection.
+- Lint and strict TypeScript: passing.
+- Bundle check and Android debug build: passing with Java 17.
+- Emulator migration: existing EUR 19.12 money, 31 minutes of app time, one note, accounts, transfer, split, and old budget remained available after repository schema 1 to 2 rewrite.
+- Emulator rollover: a monthly EUR 10.00 Health carry-forward budget showed EUR 10.00 carried, EUR 7.00 used, EUR 13.00 remaining, and 35% used; the prior `none` budget remained at EUR 3.00 remaining and 70% used.
+- Emulator restart: both budget projections remained after force-stop and relaunch.
+- Phone `42adce68`: APK installed, `MainActivity` resumed, and the cleared logcat had no filtered app errors. Touch automation remains blocked by device policy.
 
 ## Phase 4 evidence
 

@@ -222,4 +222,18 @@ Implemented and verified:
 - `MONEY-09` trust rule: income, transfers, other currencies, and entries outside the selected period do not count;
 - schema version 5 to schema version 6 migration adds an empty budget collection without dropping existing records.
 
-Not yet complete: budget rollover, recurring rules, alerts, exports, normalized money tables, and sync.
+Not yet complete: recurring rules, alerts, exports, and sync.
+
+The current budget implementation supports one previous-period carry-forward rule. Multi-period rollover and recurring budget creation remain planned.
+
+## Normalized storage and rollover implementation review
+
+Implemented and verified:
+
+- financial records use normalized SQLite tables behind the typed repository boundary;
+- repository schema 1 is migrated to schema 2 in one transaction without dropping old financial records;
+- app data schema 6 budgets migrate to schema 7 with an explicit `none` rollover rule;
+- budget projections support `none` and one-period `carry-forward` with the previous period's unused positive balance capped at one base limit;
+- emulator and phone smoke checks pass for migration, persistence, install, launch, and cleared-logcat behavior.
+
+Not yet complete: multi-period rollover, recurring rules, alerts, exports, and sync.

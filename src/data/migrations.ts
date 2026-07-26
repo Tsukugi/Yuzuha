@@ -1,5 +1,5 @@
 import {emptyAppData} from '../types/domain';
-import type {AppData, MoneyCategory, MoneyEntry, UsageRead, UsageSnapshot} from '../types/domain';
+import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, UsageRead, UsageSnapshot} from '../types/domain';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -61,6 +61,23 @@ interface StoredV5 {
   tasks: AppData['tasks'];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
+  usageExcludedPackages: string[];
+  timeGoals: AppData['timeGoals'];
+}
+
+interface StoredV6 {
+  schemaVersion: 6;
+  mainCurrency: string;
+  money: AppData['money'];
+  transfers: AppData['transfers'];
+  splits: AppData['splits'];
+  budgets: Array<Omit<MoneyBudget, 'rollover'>>;
+  accounts: AppData['accounts'];
+  categories: AppData['categories'];
+  notes: AppData['notes'];
+  tasks: AppData['tasks'];
+  usageSnapshots: AppData['usageSnapshots'];
+  usageRead: AppData['usageRead'];
   usageExcludedPackages: string[];
   timeGoals: AppData['timeGoals'];
 }
@@ -148,7 +165,7 @@ export function isStoredV5(value: unknown): value is StoredV5 {
   );
 }
 
-export function isStoredV6(value: unknown): value is AppData {
+export function isStoredV6(value: unknown): value is StoredV6 {
   return (
     isRecord(value) &&
     value.schemaVersion === 6 &&
@@ -157,6 +174,27 @@ export function isStoredV6(value: unknown): value is AppData {
     Array.isArray(value.transfers) &&
     Array.isArray(value.splits) &&
     Array.isArray(value.budgets) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV7(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 7 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
+    Array.isArray(value.splits) &&
+    Array.isArray(value.budgets) &&
+    value.budgets.every(budget => isRecord(budget) && (budget.rollover === 'none' || budget.rollover === 'carry-forward')) &&
     Array.isArray(value.accounts) &&
     Array.isArray(value.categories) &&
     Array.isArray(value.notes) &&
@@ -234,7 +272,7 @@ export function migrateV4ToV5(value: StoredV4): StoredV5 {
   };
 }
 
-export function migrateV5ToV6(value: StoredV5): AppData {
+export function migrateV5ToV6(value: StoredV5): StoredV6 {
   return {
     ...value,
     schemaVersion: 6,
@@ -242,24 +280,35 @@ export function migrateV5ToV6(value: StoredV5): AppData {
   };
 }
 
+export function migrateV6ToV7(value: StoredV6): AppData {
+  return {
+    ...value,
+    schemaVersion: 7,
+    budgets: value.budgets.map(budget => ({...budget, rollover: 'none'})),
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV6(value)) {
+  if (isStoredV7(value)) {
     return value;
   }
+  if (isStoredV6(value)) {
+    return migrateV6ToV7(value);
+  }
   if (isStoredV5(value)) {
-    return migrateV5ToV6(value);
+    return migrateV6ToV7(migrateV5ToV6(value));
   }
   if (isStoredV4(value)) {
-    return migrateV5ToV6(migrateV4ToV5(value));
+    return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)));
   }
   if (isStoredV3(value)) {
-    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value)));
+    return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))));
   }
   if (isStoredV2(value)) {
-    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value))));
+    return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value)))));
   }
   if (isStoredV1(value)) {
-    return migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value)))));
+    return migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value))))));
   }
   return null;
 }

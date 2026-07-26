@@ -1,4 +1,4 @@
-import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6} from './migrations';
+import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7} from './migrations';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -105,5 +105,43 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(6);
     expect(data.budgets).toEqual([]);
+  });
+
+  it('adds the explicit no-rollover rule when opening schema 6 data', () => {
+    const data = migrateV6ToV7({
+      schemaVersion: 6,
+      mainCurrency: 'EUR',
+      money: [],
+      transfers: [],
+      splits: [],
+      budgets: [{
+        id: 'budget_food',
+        categoryId: 'category_food',
+        category: 'Food',
+        amountMinor: 2000,
+        currency: 'EUR',
+        period: 'month',
+        isArchived: false,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }],
+      accounts: [],
+      categories: [],
+      notes: [],
+      tasks: [],
+      usageSnapshots: [],
+      usageRead: {
+        permission: 'unknown',
+        lastReadAt: null,
+        rangeStartMillis: null,
+        rangeEndMillis: null,
+        errorCode: null,
+      },
+      usageExcludedPackages: [],
+      timeGoals: [],
+    });
+
+    expect(data.schemaVersion).toBe(7);
+    expect(data.budgets[0].rollover).toBe('none');
   });
 });

@@ -10,6 +10,11 @@ class MemorySqlite implements SqliteExecutor {
   schemaVersion: string | null = null;
   meta = new Map<string, string>();
   records = new Map<string, {recordType: string; recordId: string; payloadJson: string; updatedAt: string}>();
+  moneyEntries = new Map<string, Array<string | number | null>>();
+  transfers = new Map<string, Array<string | number>>();
+  splits = new Map<string, Array<string>>();
+  splitLines = new Map<string, Array<string | number>>();
+  budgets = new Map<string, Array<string | number>>();
 
   async execute(query: string, params: Array<string | number | boolean | null> = []): Promise<SqliteResult> {
     const normalized = query.replace(/\s+/g, ' ').trim();
@@ -34,8 +39,70 @@ class MemorySqlite implements SqliteExecutor {
         rowsAffected: 0,
       };
     }
+    if (normalized === 'SELECT id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id') {
+      return {
+        rows: [...this.moneyEntries.values()].map(values => ({
+          id: values[0], kind: values[1], amount_minor: values[2], currency: values[3], account_id: values[4],
+          category_id: values[5], category: values[6], note: values[7], occurred_at: values[8], created_at: values[9],
+          updated_at: values[10], split_id: values[11],
+        })),
+        rowsAffected: 0,
+      };
+    }
+    if (normalized === 'SELECT id, from_account_id, to_account_id, amount_minor, currency, note, occurred_at, created_at, updated_at FROM money_transfers ORDER BY occurred_at, id') {
+      return {
+        rows: [...this.transfers.values()].map(values => ({
+          id: values[0], from_account_id: values[1], to_account_id: values[2], amount_minor: values[3], currency: values[4],
+          note: values[5], occurred_at: values[6], created_at: values[7], updated_at: values[8],
+        })),
+        rowsAffected: 0,
+      };
+    }
+    if (normalized === 'SELECT id, split_id, category_id, category, amount_minor, note FROM money_split_lines ORDER BY split_id, id') {
+      return {
+        rows: [...this.splitLines.values()].map(values => ({
+          id: values[0], split_id: values[1], category_id: values[2], category: values[3], amount_minor: values[4], note: values[5],
+        })),
+        rowsAffected: 0,
+      };
+    }
+    if (normalized === 'SELECT id, parent_entry_id, created_at, updated_at FROM money_splits ORDER BY id') {
+      return {
+        rows: [...this.splits.values()].map(values => ({id: values[0], parent_entry_id: values[1], created_at: values[2], updated_at: values[3]})),
+        rowsAffected: 0,
+      };
+    }
+    if (normalized === 'SELECT id, category_id, category, amount_minor, currency, period, rollover, is_archived, created_at, updated_at FROM money_budgets ORDER BY id') {
+      return {
+        rows: [...this.budgets.values()].map(values => ({
+          id: values[0], category_id: values[1], category: values[2], amount_minor: values[3], currency: values[4], period: values[5],
+          rollover: values[6], is_archived: values[7], created_at: values[8], updated_at: values[9],
+        })),
+        rowsAffected: 0,
+      };
+    }
     if (normalized === 'DELETE FROM app_records') {
       this.records.clear();
+      return {rows: [], rowsAffected: 0};
+    }
+    if (normalized === 'DELETE FROM money_split_lines') {
+      this.splitLines.clear();
+      return {rows: [], rowsAffected: 0};
+    }
+    if (normalized === 'DELETE FROM money_splits') {
+      this.splits.clear();
+      return {rows: [], rowsAffected: 0};
+    }
+    if (normalized === 'DELETE FROM money_transfers') {
+      this.transfers.clear();
+      return {rows: [], rowsAffected: 0};
+    }
+    if (normalized === 'DELETE FROM money_entries') {
+      this.moneyEntries.clear();
+      return {rows: [], rowsAffected: 0};
+    }
+    if (normalized === 'DELETE FROM money_budgets') {
+      this.budgets.clear();
       return {rows: [], rowsAffected: 0};
     }
     if (normalized === 'DELETE FROM repository_meta') {
@@ -55,6 +122,26 @@ class MemorySqlite implements SqliteExecutor {
     if (normalized === 'INSERT INTO app_records (record_type, record_id, payload_json, updated_at) VALUES (?, ?, ?, ?)') {
       const [recordType, recordId, payloadJson, updatedAt] = params.map(String);
       this.records.set(`${recordType}:${recordId}`, {recordType, recordId, payloadJson, updatedAt});
+      return {rows: [], rowsAffected: 1};
+    }
+    if (normalized === 'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') {
+      this.moneyEntries.set(String(params[0]), params as Array<string | number | null>);
+      return {rows: [], rowsAffected: 1};
+    }
+    if (normalized === 'INSERT INTO money_transfers (id, from_account_id, to_account_id, amount_minor, currency, note, occurred_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)') {
+      this.transfers.set(String(params[0]), params as Array<string | number>);
+      return {rows: [], rowsAffected: 1};
+    }
+    if (normalized === 'INSERT INTO money_splits (id, parent_entry_id, created_at, updated_at) VALUES (?, ?, ?, ?)') {
+      this.splits.set(String(params[0]), params as string[]);
+      return {rows: [], rowsAffected: 1};
+    }
+    if (normalized === 'INSERT INTO money_split_lines (id, split_id, category_id, category, amount_minor, note) VALUES (?, ?, ?, ?, ?, ?)') {
+      this.splitLines.set(String(params[0]), params as Array<string | number>);
+      return {rows: [], rowsAffected: 1};
+    }
+    if (normalized === 'INSERT INTO money_budgets (id, category_id, category, amount_minor, currency, period, rollover, is_archived, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') {
+      this.budgets.set(String(params[0]), params as Array<string | number>);
       return {rows: [], rowsAffected: 1};
     }
     throw new Error(`Unexpected query in test database: ${normalized}`);
@@ -93,8 +180,9 @@ describe('SQLite workspace store', () => {
     const store = new SqliteWorkspaceStore(database, legacyStore(legacy));
 
     await expect(store.load()).resolves.toEqual(legacy);
-    expect(database.schemaVersion).toBe('1');
-    expect(database.records.has('money:money_legacy')).toBe(true);
+    expect(database.schemaVersion).toBe('2');
+    expect(database.moneyEntries.has('money_legacy')).toBe(true);
+    expect(database.records.has('money:money_legacy')).toBe(false);
     expect(database.records.has('usage_exclusion:com.example.excluded')).toBe(true);
   });
 
@@ -153,6 +241,7 @@ describe('SQLite workspace store', () => {
       amountMinor: 2000,
       currency: 'USD',
       period: 'month',
+      rollover: 'none',
       isArchived: false,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
@@ -174,13 +263,49 @@ describe('SQLite workspace store', () => {
     await expect(store.load()).resolves.toEqual(data);
   });
 
-  it('rejects unsupported repository versions instead of guessing', async () => {
+  it('migrates schema 1 financial records into normalized tables', async () => {
+    const legacy = emptyAppData();
+    legacy.accounts = [];
+    legacy.categories = [];
+    legacy.money.push({
+      id: 'money_old',
+      kind: 'expense',
+      amountMinor: 900,
+      currency: 'EUR',
+      accountId: 'account_everyday',
+      categoryId: 'category_food',
+      category: 'Food',
+      note: '',
+      occurredAt: '2026-07-26T12:00:00.000Z',
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     const database = new MemorySqlite();
-    database.schemaVersion = '2';
-    database.meta.set('schema_version', '2');
+    database.schemaVersion = '1';
+    database.meta.set('schema_version', '1');
+    database.meta.set('main_currency', 'EUR');
+    database.meta.set('usage_read', JSON.stringify(legacy.usageRead));
+    database.records.set('money:money_old', {
+      recordType: 'money',
+      recordId: 'money_old',
+      payloadJson: JSON.stringify(legacy.money[0]),
+      updatedAt: legacy.money[0].updatedAt,
+    });
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
 
-    await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 2.');
+    await expect(store.load()).resolves.toEqual(legacy);
+    expect(database.schemaVersion).toBe('2');
+    expect(database.moneyEntries.has('money_old')).toBe(true);
+    expect(database.records.has('money:money_old')).toBe(false);
+  });
+
+  it('rejects unsupported repository versions instead of guessing', async () => {
+    const database = new MemorySqlite();
+    database.schemaVersion = '3';
+    database.meta.set('schema_version', '3');
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+
+    await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 3.');
   });
 
   it('rejects malformed persisted record payloads', async () => {

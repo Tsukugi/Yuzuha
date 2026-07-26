@@ -59,6 +59,7 @@ export interface MoneySplit {
 }
 
 export type BudgetPeriod = 'day' | 'week' | 'month';
+export type BudgetRollover = 'none' | 'carry-forward';
 
 export interface MoneyBudget {
   id: string;
@@ -67,6 +68,7 @@ export interface MoneyBudget {
   amountMinor: number;
   currency: string;
   period: BudgetPeriod;
+  rollover: BudgetRollover;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -120,7 +122,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 6;
+  schemaVersion: 7;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -147,7 +149,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 6,
+  schemaVersion: 7,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

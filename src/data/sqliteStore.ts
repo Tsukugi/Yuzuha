@@ -2,11 +2,12 @@ import {emptyAppData} from '../types/domain';
 import type {
   AppData,
   MoneyAccount,
+  MoneyBudget,
   MoneyCategory,
   MoneyEntry,
   MoneySplit,
+  MoneySplitLine,
   MoneyTransfer,
-  MoneyBudget,
   Note,
   Task,
   TimeGoal,
@@ -30,7 +31,7 @@ export interface WorkspaceStore {
   save(data: AppData): Promise<void>;
 }
 
-const REPOSITORY_SCHEMA_VERSION = 1;
+const REPOSITORY_SCHEMA_VERSION = 2;
 const DEFAULT_UPDATED_AT = '1970-01-01T00:00:00.000Z';
 
 const CREATE_META_TABLE = `
@@ -53,6 +54,88 @@ const CREATE_RECORDS_TABLE = `
 const CREATE_RECORDS_INDEX = `
   CREATE INDEX IF NOT EXISTS app_records_type_updated_idx
   ON app_records (record_type, updated_at)
+`;
+
+const CREATE_MONEY_ENTRIES_TABLE = `
+  CREATE TABLE IF NOT EXISTS money_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    account_id TEXT,
+    category_id TEXT,
+    category TEXT NOT NULL,
+    note TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    split_id TEXT
+  )
+`;
+
+const CREATE_MONEY_ENTRIES_INDEX = `
+  CREATE INDEX IF NOT EXISTS money_entries_occurred_idx
+  ON money_entries (occurred_at, id)
+`;
+
+const CREATE_MONEY_TRANSFERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS money_transfers (
+    id TEXT PRIMARY KEY NOT NULL,
+    from_account_id TEXT NOT NULL,
+    to_account_id TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    note TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
+const CREATE_MONEY_SPLITS_TABLE = `
+  CREATE TABLE IF NOT EXISTS money_splits (
+    id TEXT PRIMARY KEY NOT NULL,
+    parent_entry_id TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
+const CREATE_MONEY_SPLIT_LINES_TABLE = `
+  CREATE TABLE IF NOT EXISTS money_split_lines (
+    id TEXT PRIMARY KEY NOT NULL,
+    split_id TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    note TEXT NOT NULL,
+    FOREIGN KEY (split_id) REFERENCES money_splits(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_MONEY_SPLIT_LINES_INDEX = `
+  CREATE INDEX IF NOT EXISTS money_split_lines_split_idx
+  ON money_split_lines (split_id, id)
+`;
+
+const CREATE_MONEY_BUDGETS_TABLE = `
+  CREATE TABLE IF NOT EXISTS money_budgets (
+    id TEXT PRIMARY KEY NOT NULL,
+    category_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL,
+    currency TEXT NOT NULL,
+    period TEXT NOT NULL,
+    rollover TEXT NOT NULL,
+    is_archived INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
+const CREATE_MONEY_BUDGETS_INDEX = `
+  CREATE INDEX IF NOT EXISTS money_budgets_category_period_idx
+  ON money_budgets (category_id, period, is_archived)
 `;
 
 export class SqliteSchemaError extends Error {
@@ -82,7 +165,7 @@ type RecordType =
   | 'time_goal'
   | 'usage_exclusion';
 
-interface PersistedRecord {
+interface PersistedRecord extends Record<string, unknown> {
   recordType: RecordType;
   recordId: string;
   payloadJson: string;
@@ -99,12 +182,7 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
 
   async load(): Promise<AppData> {
     await this.ensureInitialized();
-    const meta = await this.database.execute('SELECT value FROM repository_meta WHERE key = ?', ['usage_read']);
-    const currency = await this.database.execute('SELECT value FROM repository_meta WHERE key = ?', ['main_currency']);
-    const records = await this.database.execute(
-      'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
-    );
-    return decodeAppData(records.rows, readText(currency.rows[0]?.value) ?? 'EUR', readText(meta.rows[0]?.value));
+    return readAppData(this.database);
   }
 
   async save(data: AppData): Promise<void> {
@@ -128,6 +206,14 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
     await this.database.execute(CREATE_META_TABLE);
     await this.database.execute(CREATE_RECORDS_TABLE);
     await this.database.execute(CREATE_RECORDS_INDEX);
+    await this.database.execute(CREATE_MONEY_ENTRIES_TABLE);
+    await this.database.execute(CREATE_MONEY_ENTRIES_INDEX);
+    await this.database.execute(CREATE_MONEY_TRANSFERS_TABLE);
+    await this.database.execute(CREATE_MONEY_SPLITS_TABLE);
+    await this.database.execute(CREATE_MONEY_SPLIT_LINES_TABLE);
+    await this.database.execute(CREATE_MONEY_SPLIT_LINES_INDEX);
+    await this.database.execute(CREATE_MONEY_BUDGETS_TABLE);
+    await this.database.execute(CREATE_MONEY_BUDGETS_INDEX);
 
     const result = await this.database.execute('SELECT value FROM repository_meta WHERE key = ?', ['schema_version']);
     const version = readText(result.rows[0]?.value);
@@ -136,10 +222,129 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
       await writeAppData(this.database, legacy);
       return;
     }
+    if (version === '1') {
+      await this.database.transaction(async tx => {
+        const oldData = await readAppData(tx);
+        await writeAppDataInTransaction(tx, oldData);
+      });
+      return;
+    }
     if (version !== String(REPOSITORY_SCHEMA_VERSION)) {
       throw new SqliteSchemaError(version);
     }
   }
+}
+
+async function readAppData(database: SqliteExecutor): Promise<AppData> {
+  const meta = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['usage_read']);
+  const currency = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['main_currency']);
+  const records = await database.execute(
+    'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
+  );
+  const normalizedRecords = await readNormalizedRecords(database);
+  return decodeAppData(
+    [...records.rows, ...normalizedRecords],
+    readText(currency.rows[0]?.value) ?? 'EUR',
+    readText(meta.rows[0]?.value),
+  );
+}
+
+async function readNormalizedRecords(database: SqliteExecutor): Promise<Array<Record<string, unknown>>> {
+  const records: Array<Record<string, unknown>> = [];
+  const entries = await database.execute(
+    'SELECT id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id',
+  );
+  for (const row of entries.rows) {
+    const splitId = readNullableText(row.split_id);
+    const entry: MoneyEntry = {
+      id: readRequiredText(row.id),
+      kind: readRequiredText(row.kind) as MoneyEntry['kind'],
+      amountMinor: readRequiredNumber(row.amount_minor),
+      currency: readRequiredText(row.currency),
+      accountId: readNullableText(row.account_id),
+      categoryId: readNullableText(row.category_id),
+      category: readRequiredText(row.category),
+      note: readRequiredText(row.note),
+      occurredAt: readRequiredText(row.occurred_at),
+      createdAt: readRequiredText(row.created_at),
+      updatedAt: readRequiredText(row.updated_at),
+      ...(splitId === null ? {} : {splitId}),
+    };
+    records.push(normalizedRecord('money', entry.id, entry, entry.updatedAt));
+  }
+
+  const transfers = await database.execute(
+    'SELECT id, from_account_id, to_account_id, amount_minor, currency, note, occurred_at, created_at, updated_at FROM money_transfers ORDER BY occurred_at, id',
+  );
+  for (const row of transfers.rows) {
+    const transfer: MoneyTransfer = {
+      id: readRequiredText(row.id),
+      fromAccountId: readRequiredText(row.from_account_id),
+      toAccountId: readRequiredText(row.to_account_id),
+      amountMinor: readRequiredNumber(row.amount_minor),
+      currency: readRequiredText(row.currency),
+      note: readRequiredText(row.note),
+      occurredAt: readRequiredText(row.occurred_at),
+      createdAt: readRequiredText(row.created_at),
+      updatedAt: readRequiredText(row.updated_at),
+    };
+    records.push(normalizedRecord('transfer', transfer.id, transfer, transfer.updatedAt));
+  }
+
+  const splitLines = await database.execute(
+    'SELECT id, split_id, category_id, category, amount_minor, note FROM money_split_lines ORDER BY split_id, id',
+  );
+  const linesBySplit = new Map<string, MoneySplitLine[]>();
+  for (const row of splitLines.rows) {
+    const splitId = readRequiredText(row.split_id);
+    const lines = linesBySplit.get(splitId) ?? [];
+    lines.push({
+      id: readRequiredText(row.id),
+      categoryId: readRequiredText(row.category_id),
+      category: readRequiredText(row.category),
+      amountMinor: readRequiredNumber(row.amount_minor),
+      note: readRequiredText(row.note),
+    });
+    linesBySplit.set(splitId, lines);
+  }
+
+  const splits = await database.execute(
+    'SELECT id, parent_entry_id, created_at, updated_at FROM money_splits ORDER BY id',
+  );
+  for (const row of splits.rows) {
+    const splitId = readRequiredText(row.id);
+    const split: MoneySplit = {
+      id: splitId,
+      parentEntryId: readRequiredText(row.parent_entry_id),
+      lines: linesBySplit.get(splitId) ?? [],
+      createdAt: readRequiredText(row.created_at),
+      updatedAt: readRequiredText(row.updated_at),
+    };
+    records.push(normalizedRecord('split', split.id, split, split.updatedAt));
+  }
+  if ([...linesBySplit.keys()].some(splitId => !splits.rows.some(row => readText(row.id) === splitId))) {
+    throw new SqliteDataCorruptError();
+  }
+
+  const budgets = await database.execute(
+    'SELECT id, category_id, category, amount_minor, currency, period, rollover, is_archived, created_at, updated_at FROM money_budgets ORDER BY id',
+  );
+  for (const row of budgets.rows) {
+    const budget: MoneyBudget = {
+      id: readRequiredText(row.id),
+      categoryId: readRequiredText(row.category_id),
+      category: readRequiredText(row.category),
+      amountMinor: readRequiredNumber(row.amount_minor),
+      currency: readRequiredText(row.currency),
+      period: readRequiredText(row.period) as MoneyBudget['period'],
+      rollover: readRequiredText(row.rollover) as MoneyBudget['rollover'],
+      isArchived: readRequiredBoolean(row.is_archived),
+      createdAt: readRequiredText(row.created_at),
+      updatedAt: readRequiredText(row.updated_at),
+    };
+    records.push(normalizedRecord('budget', budget.id, budget, budget.updatedAt));
+  }
+  return records;
 }
 
 export function decodeAppData(
@@ -182,9 +387,11 @@ export function decodeAppData(
       case 'split':
         data.splits.push(payload as MoneySplit);
         break;
-      case 'budget':
-        data.budgets.push(payload as MoneyBudget);
+      case 'budget': {
+        const budget = payload as MoneyBudget;
+        data.budgets.push({...budget, rollover: budget.rollover === 'carry-forward' ? 'carry-forward' : 'none'});
         break;
+      }
       case 'account':
         data.accounts.push(payload as MoneyAccount);
         break;
@@ -214,34 +421,103 @@ export function decodeAppData(
 }
 
 async function writeAppData(database: SqliteExecutor, data: AppData): Promise<void> {
-  const records = collectRecords(data);
   await database.transaction(async tx => {
-    await tx.execute('DELETE FROM app_records');
-    await tx.execute('DELETE FROM repository_meta');
-    await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
-      'schema_version',
-      String(REPOSITORY_SCHEMA_VERSION),
-    ]);
-    await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['main_currency', data.mainCurrency]);
-    await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
-      'usage_read',
-      JSON.stringify(data.usageRead),
-    ]);
-    for (const record of records) {
-      await tx.execute(
-        'INSERT INTO app_records (record_type, record_id, payload_json, updated_at) VALUES (?, ?, ?, ?)',
-        [record.recordType, record.recordId, record.payloadJson, record.updatedAt],
-      );
-    }
+    await writeAppDataInTransaction(tx, data);
   });
 }
 
-function collectRecords(data: AppData): PersistedRecord[] {
+async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Promise<void> {
+  const records = collectNonMoneyRecords(data);
+  await tx.execute('DELETE FROM app_records');
+  await tx.execute('DELETE FROM money_split_lines');
+  await tx.execute('DELETE FROM money_splits');
+  await tx.execute('DELETE FROM money_transfers');
+  await tx.execute('DELETE FROM money_entries');
+  await tx.execute('DELETE FROM money_budgets');
+  await tx.execute('DELETE FROM repository_meta');
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
+    'schema_version',
+    String(REPOSITORY_SCHEMA_VERSION),
+  ]);
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['main_currency', data.mainCurrency]);
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
+    'usage_read',
+    JSON.stringify(data.usageRead),
+  ]);
+  for (const record of records) {
+    await tx.execute(
+      'INSERT INTO app_records (record_type, record_id, payload_json, updated_at) VALUES (?, ?, ?, ?)',
+      [record.recordType, record.recordId, record.payloadJson, record.updatedAt],
+    );
+  }
+  for (const entry of data.money) {
+    await tx.execute(
+      'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        entry.id,
+        entry.kind,
+        entry.amountMinor,
+        entry.currency,
+        entry.accountId,
+        entry.categoryId,
+        entry.category,
+        entry.note,
+        entry.occurredAt,
+        entry.createdAt,
+        entry.updatedAt,
+        entry.splitId ?? null,
+      ],
+    );
+  }
+  for (const transfer of data.transfers) {
+    await tx.execute(
+      'INSERT INTO money_transfers (id, from_account_id, to_account_id, amount_minor, currency, note, occurred_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        transfer.id,
+        transfer.fromAccountId,
+        transfer.toAccountId,
+        transfer.amountMinor,
+        transfer.currency,
+        transfer.note,
+        transfer.occurredAt,
+        transfer.createdAt,
+        transfer.updatedAt,
+      ],
+    );
+  }
+  for (const split of data.splits) {
+    await tx.execute(
+      'INSERT INTO money_splits (id, parent_entry_id, created_at, updated_at) VALUES (?, ?, ?, ?)',
+      [split.id, split.parentEntryId, split.createdAt, split.updatedAt],
+    );
+    for (const line of split.lines) {
+      await tx.execute(
+        'INSERT INTO money_split_lines (id, split_id, category_id, category, amount_minor, note) VALUES (?, ?, ?, ?, ?, ?)',
+        [line.id, split.id, line.categoryId, line.category, line.amountMinor, line.note],
+      );
+    }
+  }
+  for (const budget of data.budgets) {
+    await tx.execute(
+      'INSERT INTO money_budgets (id, category_id, category, amount_minor, currency, period, rollover, is_archived, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        budget.id,
+        budget.categoryId,
+        budget.category,
+        budget.amountMinor,
+        budget.currency,
+        budget.period,
+        budget.rollover,
+        budget.isArchived ? 1 : 0,
+        budget.createdAt,
+        budget.updatedAt,
+      ],
+    );
+  }
+}
+
+function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
   return [
-    ...data.money.map(entry => record('money', entry.id, entry, entry.updatedAt)),
-    ...data.transfers.map(transfer => record('transfer', transfer.id, transfer, transfer.updatedAt)),
-    ...data.splits.map(split => record('split', split.id, split, split.updatedAt)),
-    ...data.budgets.map(budget => record('budget', budget.id, budget, budget.updatedAt)),
     ...data.accounts.map(account => record('account', account.id, account)),
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
@@ -250,6 +526,15 @@ function collectRecords(data: AppData): PersistedRecord[] {
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),
     ...data.usageExcludedPackages.map(packageName => record('usage_exclusion', packageName, {packageName})),
   ];
+}
+
+function normalizedRecord(recordType: RecordType, recordId: string, payload: unknown, updatedAt: string): Record<string, unknown> {
+  return {
+    record_type: recordType,
+    record_id: recordId,
+    payload_json: JSON.stringify(payload),
+    updated_at: updatedAt,
+  };
 }
 
 function record(recordType: RecordType, recordId: string, payload: unknown, updatedAt = DEFAULT_UPDATED_AT): PersistedRecord {
@@ -271,4 +556,36 @@ function parsePayload(value: string): unknown {
 
 function readText(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+function readRequiredText(value: unknown): string {
+  const text = readText(value);
+  if (text === null) {
+    throw new SqliteDataCorruptError();
+  }
+  return text;
+}
+
+function readNullableText(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return readRequiredText(value);
+}
+
+function readRequiredNumber(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    throw new SqliteDataCorruptError();
+  }
+  return value;
+}
+
+function readRequiredBoolean(value: unknown): boolean {
+  if (value === 0) {
+    return false;
+  }
+  if (value === 1) {
+    return true;
+  }
+  throw new SqliteDataCorruptError();
 }
