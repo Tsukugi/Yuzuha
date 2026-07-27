@@ -53,6 +53,7 @@ import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, open
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {normalizeNoteTags} from '../shared/noteSearch';
+import {applyNoteMarkup, parseNoteMarkup, type NoteMarkupAction, type NoteTextSelection} from '../shared/noteMarkup';
 import {NOTE_LINK_TARGET_TYPES} from '../shared/noteLinks';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
@@ -2684,6 +2685,7 @@ function NotesScreen() {
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [bodySelection, setBodySelection] = useState<NoteTextSelection>({start: 0, end: 0});
   const [tags, setTags] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [savedSearchName, setSavedSearchName] = useState('');
@@ -2733,6 +2735,7 @@ function NotesScreen() {
     setEditingNoteId(null);
     setTitle('');
     setBody('');
+    setBodySelection({start: 0, end: 0});
     setTags('');
   }
 
@@ -2740,8 +2743,15 @@ function NotesScreen() {
     setEditingNoteId(note.id);
     setTitle(note.title);
     setBody(note.body);
+    setBodySelection({start: note.body.length, end: note.body.length});
     setTags(note.tags.join(', '));
     setError(null);
+  }
+
+  function formatBody(action: NoteMarkupAction) {
+    const formatted = applyNoteMarkup(body, bodySelection, action);
+    setBody(formatted.text);
+    setBodySelection(formatted.selection);
   }
 
   function startLinking(note: Note) {
@@ -2956,6 +2966,14 @@ function NotesScreen() {
             onChangeText={setTitle}
           />
           <Text style={styles.formLabel}>Body (optional)</Text>
+          <View style={styles.noteMarkupToolbar}>
+            <ChipButton label="Bold" selected={false} onPress={() => formatBody('bold')} />
+            <ChipButton label="Italic" selected={false} onPress={() => formatBody('italic')} />
+            <ChipButton label="Code" selected={false} onPress={() => formatBody('code')} />
+            <ChipButton label="Bullet" selected={false} onPress={() => formatBody('bullet')} />
+            <ChipButton label="Heading" selected={false} onPress={() => formatBody('heading')} />
+          </View>
+          <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
           <TextInput
             accessibilityLabel="Note body"
             placeholder="Write a few lines..."
@@ -2963,6 +2981,8 @@ function NotesScreen() {
             style={[styles.input, styles.multilineInput]}
             value={body}
             onChangeText={setBody}
+            onSelectionChange={event => setBodySelection(event.nativeEvent.selection)}
+            selection={bodySelection}
             multiline
           />
           <Text style={styles.formLabel}>Tags (comma separated, optional)</Text>
@@ -3033,7 +3053,7 @@ function NotesScreen() {
             return (
               <View key={note.id} style={styles.noteCard}>
                 <Text style={styles.listTitle}>{note.title}</Text>
-                {!!note.body && <Text style={styles.noteBody} numberOfLines={3}>{note.body}</Text>}
+                {!!note.body && <NoteBodyPreview body={note.body} />}
                 {note.tags.length > 0 && <Text style={styles.listMeta}>Tags: {note.tags.map(tag => `#${tag}`).join(' ')}</Text>}
                 {note.isPinned && <Text style={styles.successText}>Pinned</Text>}
                 {note.isArchived && <Text style={styles.warningText}>Archived</Text>}
@@ -3123,6 +3143,26 @@ function NotesScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function NoteBodyPreview({body}: {body: string}) {
+  return (
+    <Text style={styles.noteBody} numberOfLines={3}>
+      {parseNoteMarkup(body).map((line, lineIndex) => (
+        <Text key={`line-${lineIndex}`} style={line.isHeading ? styles.noteHeading : undefined}>
+          {lineIndex > 0 ? '\n' : ''}
+          {line.isBullet && <Text style={styles.noteBulletMarker}>• </Text>}
+          {line.segments.map((segment, segmentIndex) => (
+            <Text
+              key={`segment-${lineIndex}-${segmentIndex}`}
+              style={segment.style === 'bold' ? styles.noteMarkupBold : segment.style === 'italic' ? styles.noteMarkupItalic : segment.style === 'code' ? styles.noteMarkupCode : undefined}>
+              {segment.text}
+            </Text>
+          ))}
+        </Text>
+      ))}
+    </Text>
   );
 }
 
@@ -4303,6 +4343,7 @@ const styles = StyleSheet.create({
   linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
+  noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4},
   segmentRow: {flexDirection: 'row', gap: 8},
   segmentButton: {borderColor: colors.border, borderRadius: 10, borderWidth: 1, flex: 1, paddingVertical: 11},
   segmentButtonSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
@@ -4337,6 +4378,11 @@ const styles = StyleSheet.create({
   manageRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8},
   rowActions: {alignItems: 'flex-end', marginLeft: 10},
   noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 8},
+  noteHeading: {color: colors.text, fontSize: 15, fontWeight: '800'},
+  noteBulletMarker: {color: colors.accent, fontWeight: '800'},
+  noteMarkupBold: {fontWeight: '800'},
+  noteMarkupItalic: {fontStyle: 'italic'},
+  noteMarkupCode: {backgroundColor: colors.cardRaised, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},
   taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
   taskActions: {alignItems: 'center', flexDirection: 'row'},

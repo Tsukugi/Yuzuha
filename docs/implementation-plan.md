@@ -2339,4 +2339,38 @@ Known limits:
 - archived target rules are currently explicit for archived projects; broader cross-device search and sync remain planned;
 - arbitrary bank CSV mapping and expanded import/export history remain future work and were not changed in this pass.
 
-Next pass: choose the next bounded local product contract after review; keep rich note formatting, attachment search, account/device recovery, and remote sync behind their own decisions.
+Next pass: choose the next bounded local product contract after review; keep attachment search, account/device recovery, and remote sync behind their own decisions.
+
+## Implementation review: Android rich-note pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- Notes editor toolbar actions for bold, italic, code, bullets, and headings;
+- deterministic selection formatting with heading toggling and multi-line bullet support;
+- bounded local rendering for known Markdown-like markers in note cards;
+- plain-text fallback for existing, unsupported, or incomplete body text;
+- no note schema field, migration, rich-text dependency, import/export UI change, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - five note-markup parser/edit tests
+Full Jest                PASS - 51 suites, 225 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - toolbar created `# Smoke`; saved card displayed `Smoke` without raw markers
+Phone smoke              PASS - cold release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- only the bounded marker subset is rendered; links, tables, images, nested markup, and collaborative revisions remain planned;
+- the body remains source text, so there is no persistent rich-text AST or selection state;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded local product contract after review; keep attachments, account/device recovery, and remote sync behind their own decisions.

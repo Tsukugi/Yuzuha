@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android linked-target-search pass.
+Status: Current Android MVP through the Android rich-note pass.
 
 ## Navigation
 
@@ -63,6 +63,8 @@ A task row shows `Calendar` only as a one-way Android draft action. The task mus
 ### Search notes
 
 Notes has a local search field. It matches title, body, normalized tags, and attachment file names case-insensitively. Results show the title, a short body preview, tags, attachments, and updated time. An empty query shows all notes; a query with no matches shows an honest empty state. Search never reads attachment bytes or sends note content to a server.
+
+The note editor keeps body text portable and offers Bold, Italic, Code, Bullet, and Heading actions. Bold uses `**text**`, italic uses `*text*`, code uses backticks, bullets use `- ` line prefixes, and headings use `# `. The note card renders these known markers. Unsupported or incomplete text stays visible as plain text, and the stored body remains the same string used by search and local data tools.
 
 Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default. Show archived notes reveals them for review or restore, and pinned notes appear first. Deleting a note also removes its attachment metadata and private files.
 

@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android rich-note pass:
+
+- Notes now offer small local formatting actions for bold, italic, code, bullets, and headings;
+- formatting stays in the existing plain `Note.body` string, so search, task conversion, JSON, encrypted backup, and SQLite keep the same portable body data; unsupported markup stays readable;
+- no app/repository schema, dependency, permission, import/export UI, network request, worker, or background process changed;
+- focused markup tests, full Jest (51 suites, 225 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator Notes smoke, and phone cold-start smoke passed; the temporary emulator smoke note was deleted with confirmation and both devices were force-stopped.
+
 2026-07-28 Android linked-target-search pass:
 
 - Global Search now finds an active note through searchable fields on its linked task, project, money entry, or focus session;

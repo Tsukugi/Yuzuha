@@ -561,3 +561,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Keep Global Search as an in-memory projection. Add searchable fields from current linked tasks, projects, money entries, and focus sessions to the owning note result, and append a readable `Linked ...` label to that result. Archived project fields are included only when archived results are enabled. Missing target content is not searchable, while the deleted-target label remains visible when the note itself matches.
 - Reason: This keeps one source of truth, makes the relationship discoverable, respects current archive/delete rules, and adds no schema, worker, network request, or background process.
 - Consequence: Search remains local to loaded AppData. It has no persistent index, cross-device merge, synced search, or target restoration behavior.
+
+## DEC-081: Store rich note formatting as bounded plain text
+
+- Status: Accepted.
+- Context: The notes requirement needs useful formatting, but a native rich-text editor or a large rendering dependency would add bundle size, platform behavior, and another stored representation. The existing note body is already searchable and portable text.
+- Decision: Keep `Note.body` as one plain string and support a small Markdown-like subset: `**bold**`, `*italic*`, `` `code` ``, `- bullet` lines, and `# heading` lines. The editor inserts these markers through local toolbar actions. The note card renders only this known subset; unsupported or incomplete syntax stays readable as raw text. Search, task conversion, JSON, and encrypted backup keep using the original body string; the money CSV flow is unchanged.
+- Reason: The rule is local, deterministic, backward-safe for existing bodies, and cheap on memory and bundle size. It delivers formatting without a schema change or import/export expansion.
+- Consequence: Links, tables, images, nested markup, and collaborative rich-text revisions remain future work. App schema 32 and repository schema 3 do not change.
