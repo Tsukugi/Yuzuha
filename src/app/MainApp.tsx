@@ -109,6 +109,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
   const [pendingMoneyId, setPendingMoneyId] = useState<string | null>(null);
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
@@ -116,6 +117,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setPendingTaskId(navigation.focusTaskId);
     setPendingNoteId(navigation.focusNoteId);
     setPendingMoneyId(navigation.focusMoneyId);
+    setPendingProjectId(navigation.focusProjectId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -314,7 +316,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} onFocusHandled={() => setPendingMoneyId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
-            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} onFocusHandled={() => setPendingTaskId(null)} />}
+            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} />}
             {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
           </>
         )}
@@ -3280,7 +3282,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
   return new Intl.DateTimeFormat(undefined, {weekday: 'long', month: 'short', day: 'numeric'}).format(new Date(year, month - 1, day));
 }
 
-function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
+function TasksScreen({focusTaskId, focusProjectId, onTaskFocusHandled, onProjectFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void}) {
   const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -3346,7 +3348,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
     const task = data.tasks.find(item => item.id === focusTaskId);
     if (!task) {
-      onFocusHandled();
+      onTaskFocusHandled();
       return;
     }
     setFilter('all');
@@ -3360,8 +3362,24 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
     setError(null);
-    onFocusHandled();
-  }, [data, focusTaskId, onFocusHandled]);
+    onTaskFocusHandled();
+  }, [data, focusTaskId, onTaskFocusHandled]);
+
+  useEffect(() => {
+    if (!focusProjectId || !data) {
+      return;
+    }
+    const project = data.projects.find(item => item.id === focusProjectId);
+    if (!project) {
+      onProjectFocusHandled();
+      return;
+    }
+    setEditingProjectId(project.id);
+    setProjectName(project.name);
+    setProjectStatus(project.status);
+    setProjectError(null);
+    onProjectFocusHandled();
+  }, [data, focusProjectId, onProjectFocusHandled]);
 
   useEffect(() => {
     if (!data) {

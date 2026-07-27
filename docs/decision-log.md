@@ -601,3 +601,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: When a Global Search result kind is `money`, carry its stable ID through `pendingMoneyId`. Close Search, open Money, and load the existing entry into edit mode. Note and task results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
 - Reason: This gives money search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
 - Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-086: Focus project results from global search
+
+- Status: Accepted.
+- Context: The Tasks screen already owns a project edit form and `editingProjectId` state. A project result can use that form without adding another route or changing task/project storage.
+- Decision: When a Global Search result kind is `project`, carry its stable ID through `pendingProjectId`. Close Search, open Tasks, and load the existing project into the project edit form. Money, note, and task results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
+- Reason: This gives project search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
+- Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, task lists, templates, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
