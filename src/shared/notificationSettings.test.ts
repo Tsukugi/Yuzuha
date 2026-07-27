@@ -24,15 +24,15 @@ describe('notification settings', () => {
     const reminder = new Date(2026, 6, 27, 21, 30).getTime();
     const quietReminder = new Date(2026, 6, 27, 22, 30).getTime();
 
-    expect(adjustTaskReminderForQuietHours(reminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '23:00', snoozeDurationMinutes: 60})).toBe(reminder);
-    expect(adjustTaskReminderForQuietHours(quietReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '23:00', snoozeDurationMinutes: 60})).toBe(new Date(2026, 6, 27, 23, 0).getTime());
+    expect(adjustTaskReminderForQuietHours(reminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '23:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true})).toBe(reminder);
+    expect(adjustTaskReminderForQuietHours(quietReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '23:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true})).toBe(new Date(2026, 6, 27, 23, 0).getTime());
   });
 
   it('moves overnight reminders to the correct local next end', () => {
     const lateReminder = new Date(2026, 6, 27, 23, 30).getTime();
     const earlyReminder = new Date(2026, 6, 28, 1, 30).getTime();
 
-    expect(adjustTaskReminderForQuietHours(lateReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60})).toBe(new Date(2026, 6, 28, 7, 0).getTime());
-    expect(adjustTaskReminderForQuietHours(earlyReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60})).toBe(new Date(2026, 6, 28, 7, 0).getTime());
+    expect(adjustTaskReminderForQuietHours(lateReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true})).toBe(new Date(2026, 6, 28, 7, 0).getTime());
+    expect(adjustTaskReminderForQuietHours(earlyReminder, {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true})).toBe(new Date(2026, 6, 28, 7, 0).getTime());
   });
 });

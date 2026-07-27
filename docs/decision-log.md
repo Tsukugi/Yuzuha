@@ -311,3 +311,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add required `notificationSettings.snoozeDurationMinutes` to app schema 19. Accept only 15, 30, 60, or 120 minutes, default old schema 18 and legacy SQLite data to 60, show the choice in Tasks notification settings, and let the Android `Snooze` action use the selected value. Keep the native action label generic because Android reads the action only after JavaScript loads the local workspace.
 - Reason: The bounded enum is easy to validate, migrate, explain, and test. It preserves the local-first boundary and keeps the task reminder timestamp as the only scheduled record.
 - Consequence: Current Android supports local `Open`, `Complete`, and configurable `Snooze`. Recurring notification policy, per-notification custom durations, iOS actions, account recovery, device enrollment, and sync remain separate contracts.
+
+## DEC-046: Pause the local task-reminder category in schema 20
+
+- Context: Users need to stop task reminder interruptions temporarily without losing reminder times already attached to tasks.
+- Decision: Add required `notificationSettings.taskRemindersEnabled` to app schema 20, default old schema 19 and legacy SQLite data to `true`, and expose an On/Off setting in Tasks. When disabled, AppStore sync clears all native task-reminder alarms, reminder creation stores only the logical timestamp, and stale `Snooze` actions are no-ops. Re-enabling rebuilds future alarms through the existing quiet-hours projection.
+- Reason: The logical task timestamp remains the source of truth while the native schedule becomes an explicit projection controlled by one local category flag. This avoids deleting user data and prevents a stale notification action from silently re-enabling reminders.
+- Consequence: The current category pause is local and Android-focused. Per-category automation, global pause, timezone rules, recurring-rule notifications, iOS reminders, and sync remain separate contracts.

@@ -59,7 +59,7 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | TASK-03 | The user can view overdue, today, upcoming, and completed tasks. | Each view uses one documented timezone and completion rule. |
 | TASK-04 | The user can create, rename, archive, restore, and delete custom task lists. | Inbox cannot be archived/deleted, and a list with tasks cannot be deleted. |
 
-Current implementation extension: the user can create, pause/resume, and delete date-based recurring task rules. Startup creates due open tasks using the stored All, One, or Skip missed-occurrence policy. A task list with a rule cannot be deleted. An open task can have one optional future Android local reminder; permission is explicit, completing, deleting, clearing, or replacing the reminder removes the old native schedule, tapping the notification opens the matching task in edit mode, `Complete` performs one open-to-completed transition, and `Snooze` replaces the logical reminder using the selected 15/30/60/120-minute duration through the quiet-hours projection. Missing and completed action targets are ignored. Daily local quiet hours are optional and project in-window reminders to the configured local end without changing the stored task timestamp.
+Current implementation extension: the user can create, pause/resume, and delete date-based recurring task rules. Startup creates due open tasks using the stored All, One, or Skip missed-occurrence policy. A task list with a rule cannot be deleted. An open task can have one optional future Android local reminder; permission is explicit, completing, deleting, clearing, or replacing the reminder removes the old native schedule, tapping the notification opens the matching task in edit mode, `Complete` performs one open-to-completed transition, and `Snooze` replaces the logical reminder using the selected 15/30/60/120-minute duration through the quiet-hours projection. The local Task reminders category can be switched off to clear native alarms while retaining logical reminder times; re-enabling rebuilds future alarms. Missing, completed, and paused-category action targets are ignored. Daily local quiet hours are optional and project in-window reminders to the configured local end without changing the stored task timestamp.
 
 ## Quality requirements
 
@@ -373,7 +373,7 @@ Note-to-task conversion is implemented and verified:
 - deleting the source note leaves the task and its source ID, so the task can show `Deleted note`;
 - schema 13 tasks migrate to schema 14 with `sourceNoteId: null`.
 
-Task lifecycle basics are implemented and verified: create, edit, complete/reopen, delete after confirmation, due date, priority, Inbox list, and All/Overdue/Today/Upcoming/Completed views. Recurring task rules, one-off Android local reminders, the local 15/30/60/120-minute snooze setting, and the local `Open`/`Complete`/`Snooze` reminder actions are implemented; broader notification automation and remote sync remain planned.
+Task lifecycle basics are implemented and verified: create, edit, complete/reopen, delete after confirmation, due date, priority, Inbox list, and All/Overdue/Today/Upcoming/Completed views. Recurring task rules, one-off Android local reminders, the local 15/30/60/120-minute snooze setting, the local Task reminders On/Off category, and the local `Open`/`Complete`/`Snooze` reminder actions are implemented; broader notification automation and remote sync remain planned.
 
 ## Portable encrypted attachment implementation review
 

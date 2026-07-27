@@ -1232,3 +1232,34 @@ Known limits:
 - no per-notification custom duration, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
 Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.
+
+## Implementation review: Android task-reminder category-pause pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 20 with required local `notificationSettings.taskRemindersEnabled`;
+- schema 19, legacy SQLite, JSON, encrypted backup, and AsyncStorage paths default existing workspaces to reminders enabled;
+- Tasks notification settings UI to switch the local Task reminders category On or Off;
+- disabling the category clears native task-reminder alarms while retaining logical task reminder timestamps, and re-enabling rebuilds future alarms through quiet-hours projection;
+- reminder creation while paused stores the logical timestamp without native permission/scheduling, and stale `Snooze` actions while paused are no-ops.
+
+Review evidence:
+
+```text
+Focused Jest                PASS - 7 suites, 55 tests for settings, migration, SQLite, import/export, and pause behavior
+Full Jest                   PASS - 32 suites, 143 tests
+npm run lint                PASS
+npm run typecheck           PASS
+npm run check-bundle        PASS - Android metadata valid
+Android builds              PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator category smoke     PASS - category pause retained logical reminder data and cleared native schedules
+Phone smoke                 PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no per-category automation, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.

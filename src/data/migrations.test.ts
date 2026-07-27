@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
@@ -325,7 +325,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.taskRecurrences).toEqual([]);
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
   });
@@ -351,7 +351,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.tasks[0].reminderAtMillis).toBeNull();
   });
 
@@ -361,8 +361,8 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
-    expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null, snoozeDurationMinutes: 60});
+    expect(data?.schemaVersion).toBe(20);
+    expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null, snoozeDurationMinutes: 60, taskRemindersEnabled: true});
   });
 
   it('adds the default snooze duration when opening schema 18 data', () => {
@@ -372,7 +372,18 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(19);
+    expect(data?.schemaVersion).toBe(20);
     expect(data?.notificationSettings.snoozeDurationMinutes).toBe(60);
+  });
+
+  it('enables task reminders by default when opening schema 19 data', () => {
+    const legacy = {...emptyAppData(), schemaVersion: 19 as const} as Record<string, unknown>;
+    const settings = legacy.notificationSettings as Record<string, unknown>;
+    delete settings.taskRemindersEnabled;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(20);
+    expect(data?.notificationSettings.taskRemindersEnabled).toBe(true);
   });
 });

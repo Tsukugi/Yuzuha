@@ -396,6 +396,7 @@ export function decodeAppData(
     data.notificationSettings = {
       ...parsedSettings,
       snoozeDurationMinutes: parsedSettings.snoozeDurationMinutes ?? DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES,
+      taskRemindersEnabled: parsedSettings.taskRemindersEnabled ?? true,
     };
   }
 
@@ -648,6 +649,10 @@ function isNotificationSettingsPayload(value: unknown): value is NotificationSet
     return false;
   }
   if (snoozeDurationMinutes !== undefined && !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes)) {
+    return false;
+  }
+  const taskRemindersEnabled = settings.taskRemindersEnabled;
+  if (taskRemindersEnabled !== undefined && typeof taskRemindersEnabled !== 'boolean') {
     return false;
   }
   const startInput = typeof start === 'string' ? start : '';

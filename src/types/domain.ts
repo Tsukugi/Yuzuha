@@ -190,6 +190,7 @@ export interface NotificationSettings {
   quietHoursStartLocalTime: string | null;
   quietHoursEndLocalTime: string | null;
   snoozeDurationMinutes: TaskReminderSnoozeDurationMinutes;
+  taskRemindersEnabled: boolean;
 }
 
 export type TaskReminderSnoozeDurationMinutes = 15 | 30 | 60 | 120;
@@ -203,7 +204,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 19;
+  schemaVersion: 20;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -236,7 +237,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 19,
+  schemaVersion: 20,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -281,5 +282,6 @@ export const emptyAppData = (): AppData => ({
     quietHoursStartLocalTime: null,
     quietHoursEndLocalTime: null,
     snoozeDurationMinutes: 60,
+    taskRemindersEnabled: true,
   },
 });

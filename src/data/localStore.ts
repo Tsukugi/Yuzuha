@@ -3,8 +3,8 @@ import {migrateStoredData} from './migrations';
 import {emptyAppData} from '../types/domain';
 import type {AppData} from '../types/domain';
 
-const STORAGE_KEY = '@yuzuha/app-data/v19';
-const LEGACY_SCHEMA_KEYS = ['@yuzuha/app-data/v18', '@yuzuha/app-data/v17', '@yuzuha/app-data/v16', '@yuzuha/app-data/v15', '@yuzuha/app-data/v14', '@yuzuha/app-data/v13', '@yuzuha/app-data/v12', '@yuzuha/app-data/v11', '@yuzuha/app-data/v10', '@yuzuha/app-data/v9', '@yuzuha/app-data/v8', '@yuzuha/app-data/v7', '@yuzuha/app-data/v6', '@yuzuha/app-data/v5', '@yuzuha/app-data/v4', '@yuzuha/app-data/v3', '@yuzuha/app-data/v2', '@yuzuha/app-data/v1'];
+const STORAGE_KEY = '@yuzuha/app-data/v20';
+const LEGACY_SCHEMA_KEYS = ['@yuzuha/app-data/v19', '@yuzuha/app-data/v18', '@yuzuha/app-data/v17', '@yuzuha/app-data/v16', '@yuzuha/app-data/v15', '@yuzuha/app-data/v14', '@yuzuha/app-data/v13', '@yuzuha/app-data/v12', '@yuzuha/app-data/v11', '@yuzuha/app-data/v10', '@yuzuha/app-data/v9', '@yuzuha/app-data/v8', '@yuzuha/app-data/v7', '@yuzuha/app-data/v6', '@yuzuha/app-data/v5', '@yuzuha/app-data/v4', '@yuzuha/app-data/v3', '@yuzuha/app-data/v2', '@yuzuha/app-data/v1'];
 
 export interface StorageDriver {
   getItem(key: string): Promise<string | null>;

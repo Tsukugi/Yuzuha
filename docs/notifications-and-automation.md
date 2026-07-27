@@ -1,10 +1,10 @@
 # Notifications and automation
 
-Status: Android task reminders, local daily quiet hours, and `Open`/`Complete`/`Snooze` reminder actions with a local duration setting are implemented; broader notification and automation capability remains planned.
+Status: Android task reminders, local daily quiet hours, the local Task reminders category pause, and `Open`/`Complete`/`Snooze` reminder actions with a local duration setting are implemented; broader notification and automation capability remains planned.
 
 ## Current Android scope
 
-The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe. Its content opens the matching task in edit mode, `Complete` completes an existing open task once, and `Snooze` replaces the logical reminder using the selected local duration of 15, 30, 60, or 120 minutes; 60 minutes is the default. Both actions dismiss the notification; missing and completed targets do nothing. A snoozed alarm is projected through the optional daily `HH:mm` quiet-hours window. Recurring-rule notifications and sync are not implemented.
+The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules when the local Task reminders category is enabled. Turning that category off clears native reminder alarms but keeps each logical task reminder time; turning it back on rebuilds future alarms. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe. Its content opens the matching task in edit mode, `Complete` completes an existing open task once, and `Snooze` replaces the logical reminder using the selected local duration of 15, 30, 60, or 120 minutes; 60 minutes is the default. Both actions dismiss the notification; missing, completed, and paused-category targets do nothing. A snoozed alarm is projected through the optional daily `HH:mm` quiet-hours window. Recurring-rule notifications and sync are not implemented.
 
 ## Principles
 
@@ -32,9 +32,9 @@ The current release supports one optional local reminder on each open task. The 
 
 Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data. The notification content intent carries the stable task ID; cold starts use the initial-intent getter, and warm app launches use a native event before the Tasks form loads that task.
 
-The full-product target adds explicit timezone, notification category, and synced notification state. The current quiet-hours pair is in app schema 18 and the local snooze-duration policy is in schema 19; broader category and timezone contracts remain planned.
+The full-product target adds explicit timezone and synced notification state. The current local Task reminders category flag and quiet-hours pair are in app schema 20, along with the local snooze-duration policy; broader category automation and timezone contracts remain planned.
 
-The current Android action contract is `Complete`, `Snooze`, or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once. `Snooze` reads the selected local duration, schedules its projected alarm, and replaces the old schedule before committing the new timestamp. Missing and completed targets are ignored. The full-product target may add recurring notification state, category policy, and synced notification state later.
+The current Android action contract is `Complete`, `Snooze`, or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once. `Snooze` reads the selected local duration, schedules its projected alarm, and replaces the old schedule before committing the new timestamp. Missing, completed, and paused-category targets are ignored. The full-product target may add recurring notification state and synced notification state later.
 
 ## Recurring work
 

@@ -71,7 +71,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 19) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 20) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -93,7 +93,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 19 || !isCurrency(data.mainCurrency) || !isValidTaskReminderSnoozeDuration(data.notificationSettings.snoozeDurationMinutes)) {
+  if (data.schemaVersion !== 20 || !isCurrency(data.mainCurrency) || !isValidTaskReminderSnoozeDuration(data.notificationSettings.snoozeDurationMinutes) || typeof data.notificationSettings.taskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
   }
 

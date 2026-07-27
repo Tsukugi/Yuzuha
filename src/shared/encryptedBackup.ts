@@ -210,7 +210,7 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
     typeof header.appSchemaVersion !== 'number' ||
     !Number.isInteger(header.appSchemaVersion) ||
     header.appSchemaVersion < 1 ||
-    header.appSchemaVersion > 19 ||
+    header.appSchemaVersion > 20 ||
     !isIsoDate(header.createdAt) ||
     (credential !== undefined && credential !== 'password' && credential !== 'recovery-key') ||
     !isRecord(kdf) ||

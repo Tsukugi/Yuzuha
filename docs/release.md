@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 Android task-reminder category-pause pass:
+
+- app data schema 20 adds required `notificationSettings.taskRemindersEnabled`, defaulting existing schema 19 data and legacy SQLite settings to `true`;
+- Tasks notification settings can pause the local Task reminders category; pausing removes native alarms without deleting logical task reminder times, and re-enabling rebuilds future alarms;
+- setting a reminder while paused stores the logical timestamp without requesting permission or scheduling native work; stale `Snooze` actions while paused are no-ops;
+- JSON import, encrypted backup validation, SQLite persistence, and local-store keys accept schema 20; focused migration and AppStore tests cover the pause contract;
+- recurring-rule notifications, broader category policy, iOS reminders, and sync remain planned.
+
 2026-07-27 Android snooze-duration policy pass:
 
 - app data schema 19 adds `notificationSettings.snoozeDurationMinutes` with allowed values 15, 30, 60, and 120; existing schema 18 data defaults to 60;

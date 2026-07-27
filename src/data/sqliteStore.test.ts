@@ -327,7 +327,7 @@ describe('SQLite workspace store', () => {
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
-    data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60};
+    data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true};
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
 
@@ -343,11 +343,12 @@ describe('SQLite workspace store', () => {
     database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
 
     await expect(store.load()).resolves.toMatchObject({
-      schemaVersion: 19,
+      schemaVersion: 20,
       notificationSettings: {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 60,
+        taskRemindersEnabled: true,
       },
     });
   });

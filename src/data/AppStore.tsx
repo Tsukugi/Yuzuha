@@ -104,7 +104,7 @@ interface AppStoreValue {
   deleteTaskReminder: (taskId: string) => Promise<void>;
   completeTaskFromReminder: (taskId: string) => Promise<void>;
   snoozeTaskFromReminder: (taskId: string) => Promise<void>;
-  setNotificationQuietHours: (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number) => Promise<void>;
+  setNotificationQuietHours: (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number, taskRemindersEnabled?: boolean) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
   setTaskListArchived: (listId: string, isArchived: boolean) => Promise<void>;
@@ -131,7 +131,7 @@ const defaultWorkspaceStore = createNativeWorkspaceStore();
 function activeTaskReminderEntries(workspace: AppData): Array<{taskId: string; triggerAtMillis: number}> {
   const now = Date.now();
   return workspace.tasks
-    .filter(task => task.status === 'open' && task.reminderAtMillis !== null && task.reminderAtMillis > now)
+    .filter(task => workspace.notificationSettings.taskRemindersEnabled && task.status === 'open' && task.reminderAtMillis !== null && task.reminderAtMillis > now)
     .map(task => ({taskId: task.id, triggerAtMillis: adjustTaskReminderForQuietHours(task.reminderAtMillis as number, workspace.notificationSettings)}))
     .filter(reminder => reminder.triggerAtMillis > now);
 }
@@ -262,7 +262,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   }, [commit, data]);
 
   const setNotificationQuietHours = useCallback(
-    async (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number) => {
+    async (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number, taskRemindersEnabled?: boolean) => {
       const current = dataRef.current;
       if (!current) {
         throw new Error('App data is not ready.');
@@ -275,12 +275,17 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       if (!isValidTaskReminderSnoozeDuration(nextSnoozeDurationMinutes)) {
         throw new Error('Choose a valid snooze duration.');
       }
+      const nextTaskRemindersEnabled = taskRemindersEnabled ?? current.notificationSettings.taskRemindersEnabled;
+      if (typeof nextTaskRemindersEnabled !== 'boolean') {
+        throw new Error('Choose whether task reminders are enabled.');
+      }
       const next: AppData = {
         ...current,
         notificationSettings: {
           quietHoursStartLocalTime: startLocalTime.trim() || null,
           quietHoursEndLocalTime: endLocalTime.trim() || null,
           snoozeDurationMinutes: nextSnoozeDurationMinutes,
+          taskRemindersEnabled: nextTaskRemindersEnabled,
         },
       };
       await taskReminders.sync(activeTaskReminderEntries(next));
@@ -688,14 +693,19 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         throw new Error(validationError);
       }
       const previousReminderAtMillis = task.reminderAtMillis;
-      await taskReminders.requestPermission();
-      await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(triggerAtMillis, current.notificationSettings));
+      if (current.notificationSettings.taskRemindersEnabled) {
+        await taskReminders.requestPermission();
+        await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(triggerAtMillis, current.notificationSettings));
+      }
       try {
         await commit(current => ({
           ...current,
           tasks: current.tasks.map(item => item.id === taskId ? {...item, reminderAtMillis: triggerAtMillis, updatedAt: new Date().toISOString()} : item),
         }));
       } catch (error) {
+        if (!current.notificationSettings.taskRemindersEnabled) {
+          throw error;
+        }
         if (previousReminderAtMillis !== null && previousReminderAtMillis > Date.now()) {
           await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(previousReminderAtMillis, current.notificationSettings));
         } else {
@@ -765,6 +775,9 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       const current = dataRef.current;
       const task = current?.tasks.find(item => item.id === taskId);
       if (!current || !task || task.status === 'completed') {
+        return;
+      }
+      if (!current.notificationSettings.taskRemindersEnabled) {
         return;
       }
       const previousReminderAtMillis = task.reminderAtMillis;

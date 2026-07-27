@@ -76,6 +76,7 @@ describe('AppStore task reminders', () => {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 30,
+        taskRemindersEnabled: true,
       },
       tasks: [existingTask],
     } as AppData;
@@ -131,6 +132,7 @@ describe('AppStore task reminders', () => {
         quietHoursStartLocalTime: formatHour(startHour),
         quietHoursEndLocalTime: formatHour(endHour),
         snoozeDurationMinutes: 60,
+        taskRemindersEnabled: true,
       },
       tasks: [existingTask],
     } as AppData;
@@ -211,6 +213,7 @@ describe('AppStore task reminders', () => {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 30,
+        taskRemindersEnabled: true,
       },
       tasks: [task],
     } as AppData;
@@ -295,6 +298,64 @@ describe('AppStore task reminders', () => {
     expect(saved.tasks[0]?.reminderAtMillis).toBe(completedTask.reminderAtMillis);
     expect(schedule).not.toHaveBeenCalled();
     expect(cancel).not.toHaveBeenCalled();
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
+  it('pauses native task reminders without deleting logical reminder times', async () => {
+    const task = createTaskRecord(
+      {title: 'Pause reminder category', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_pause_category',
+      new Date().toISOString(),
+    );
+    task.reminderAtMillis = Date.now() + 60_000;
+    let saved = {...emptyAppData(), tasks: [task]} as AppData;
+    const store = {
+      load: async () => saved,
+      save: jest.fn(async (next: AppData) => {
+        saved = next;
+      }),
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const sync = taskReminders.sync as jest.Mock;
+    sync.mockClear();
+    await act(async () => {
+      await value!.setNotificationQuietHours('', '', 60, false);
+    });
+
+    expect(saved.tasks[0]?.reminderAtMillis).toBe(task.reminderAtMillis);
+    expect((saved.notificationSettings as typeof saved.notificationSettings & {taskRemindersEnabled: boolean}).taskRemindersEnabled).toBe(false);
+    expect(sync).toHaveBeenLastCalledWith([]);
+    const requestPermission = taskReminders.requestPermission as jest.Mock;
+    const schedule = taskReminders.schedule as jest.Mock;
+    requestPermission.mockClear();
+    schedule.mockClear();
+    const replacementReminderAt = Date.now() + 120_000;
+    await act(async () => {
+      await value!.setTaskReminder('task_pause_category', replacementReminderAt);
+    });
+    expect(saved.tasks[0]?.reminderAtMillis).toBe(replacementReminderAt);
+    expect(requestPermission).not.toHaveBeenCalled();
+    expect(schedule).not.toHaveBeenCalled();
+    const saveCalls = (store.save as jest.Mock).mock.calls.length;
+    await act(async () => {
+      await value!.snoozeTaskFromReminder('task_pause_category');
+    });
+    expect(saved.tasks[0]?.reminderAtMillis).toBe(replacementReminderAt);
+    expect((store.save as jest.Mock).mock.calls.length).toBe(saveCalls);
     await act(async () => {
       renderer?.unmount();
     });

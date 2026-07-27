@@ -119,7 +119,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(19);
+    expect(preview.data.schemaVersion).toBe(20);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -130,7 +130,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(19);
+    expect(migrated?.schemaVersion).toBe(20);
     expect(migrated?.attachments).toEqual([]);
   });
 
