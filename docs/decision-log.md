@@ -617,3 +617,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: When a Global Search result kind is `task-template`, carry its stable ID through `pendingTemplateId`. Close Search, open Tasks, and load the existing template into the template edit form. Money, note, task, and project results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
 - Reason: This gives template search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
 - Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, task lists, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-088: Focus task-list results from global search
+
+- Status: Accepted.
+- Context: The Tasks screen already owns a task-list rename form and `editingListId` state. A task-list result can use that form without adding another route or changing list storage.
+- Decision: When a Global Search result kind is `task-list`, carry its stable ID through `pendingListId`. Close Search, open Tasks, and load the existing list into the rename form. Money, note, task, project, and task-template results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
+- Reason: This gives list search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
+- Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

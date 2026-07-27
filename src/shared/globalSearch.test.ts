@@ -277,11 +277,12 @@ describe('global search', () => {
     ]);
   });
 
-  it('focuses money, task, note, project, and template results while keeping other results tab-only', () => {
-    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus', focusNoteId: null, focusMoneyId: null, focusProjectId: null, focusTemplateId: null});
-    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null, focusNoteId: 'note_focus', focusMoneyId: null, focusProjectId: null, focusTemplateId: null});
-    expect(globalSearchNavigation({kind: 'money', id: 'money_focus'})).toEqual({destination: 'money', focusTaskId: null, focusNoteId: null, focusMoneyId: 'money_focus', focusProjectId: null, focusTemplateId: null});
-    expect(globalSearchNavigation({kind: 'project', id: 'project_focus'})).toEqual({destination: 'tasks', focusTaskId: null, focusNoteId: null, focusMoneyId: null, focusProjectId: 'project_focus', focusTemplateId: null});
-    expect(globalSearchNavigation({kind: 'task-template', id: 'template_focus'})).toEqual({destination: 'tasks', focusTaskId: null, focusNoteId: null, focusMoneyId: null, focusProjectId: null, focusTemplateId: 'template_focus'});
+  it('focuses money, task, note, project, template, and list results while keeping other results tab-only', () => {
+    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus', focusNoteId: null, focusMoneyId: null, focusProjectId: null, focusTemplateId: null, focusListId: null});
+    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null, focusNoteId: 'note_focus', focusMoneyId: null, focusProjectId: null, focusTemplateId: null, focusListId: null});
+    expect(globalSearchNavigation({kind: 'money', id: 'money_focus'})).toEqual({destination: 'money', focusTaskId: null, focusNoteId: null, focusMoneyId: 'money_focus', focusProjectId: null, focusTemplateId: null, focusListId: null});
+    expect(globalSearchNavigation({kind: 'project', id: 'project_focus'})).toEqual({destination: 'tasks', focusTaskId: null, focusNoteId: null, focusMoneyId: null, focusProjectId: 'project_focus', focusTemplateId: null, focusListId: null});
+    expect(globalSearchNavigation({kind: 'task-template', id: 'template_focus'})).toEqual({destination: 'tasks', focusTaskId: null, focusNoteId: null, focusMoneyId: null, focusProjectId: null, focusTemplateId: 'template_focus', focusListId: null});
+    expect(globalSearchNavigation({kind: 'task-list', id: 'list_focus'})).toEqual({destination: 'tasks', focusTaskId: null, focusNoteId: null, focusMoneyId: null, focusProjectId: null, focusTemplateId: null, focusListId: 'list_focus'});
   });
 });
