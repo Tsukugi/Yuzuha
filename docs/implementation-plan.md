@@ -1426,3 +1426,33 @@ Resource cleanup         PASS - no Gradle/Java build processes or Yuzuha app pro
 Known limits:
 
 - no timezone or week-start preference, month navigation, calendar integration, or sync is included in this bounded pass.
+
+## Implementation review: latest-only dead-code cleanup pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- removed the commented-out legacy task screen from `MainApp`;
+- confirmed that the active runtime already has no legacy product-data import or old-schema upgrade path;
+- corrected stale current schema wording in the release notes and recorded the cleanup decision;
+- made no app schema, repository schema, persistence, or user-visible behavior change.
+
+Review evidence:
+
+```text
+Implementation review  PASS - only the current Tasks implementation remains in source
+Full Jest              PASS - 32 suites, 138 tests
+npm run lint           PASS
+npm run typecheck      PASS
+npm run check-bundle   PASS - Android metadata valid
+Android builds         PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke         PASS - fresh release opened MainActivity, Tasks, List, Agenda, and dated AgendaSmoke task
+Phone smoke            PASS - fresh release opened MainActivity on 42adce68
+Resource cleanup       PASS - no Gradle/Java build processes or Yuzuha app processes remained
+```
+
+Known limits:
+
+- historical migration notes remain in the documentation for audit context; they are not supported runtime paths;
+- a public upgrade policy remains intentionally deferred until an external release creates real user data.

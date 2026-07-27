@@ -353,3 +353,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a derived Agenda mode that groups tasks with due dates for the next 14 device-local calendar days. Include open and completed tasks in their date group, leave undated tasks in List mode, and do not add a schema field or persisted projection.
 - Reason: The user gets a useful planning view without duplicating task data or inventing timezone behavior. The fixed bounded window is easy to test and keeps rendering work small.
 - Consequence: Selected timezone/week-start preferences, month/week navigation, calendar integration, and remote agenda state remain planned.
+
+## DEC-052: Remove dead legacy UI after the latest-only boundary
+
+- Context: The unreleased build already removed old product-data imports and compatibility paths, but `MainApp` still contained a commented-out task screen from an earlier rewrite.
+- Decision: Remove the dead commented screen. Keep historical migration and release notes as audit history, but keep only the current implementation in source files.
+- Reason: Unused code increases review and maintenance cost without helping a user or a supported runtime path.
+- Consequence: No schema or runtime behavior changes. Future compatibility work must be added only when a public release creates a real upgrade contract.

@@ -14,6 +14,13 @@ The latest-only entry below supersedes compatibility statements in older histori
 - focused and full Jest tests, lint, typecheck, bundle checks, Android debug/release builds, emulator UI smoke, and phone launch smoke passed;
 - selected timezone/week-start preferences, month navigation, calendar integration, and sync remain planned.
 
+2026-07-27 latest-only dead-code cleanup pass:
+
+- removed the commented-out `LegacyTasksScreen`; the shipped Tasks screen has one active implementation;
+- no app schema, repository schema, runtime behavior, or compatibility path changed;
+- full Jest, lint, typecheck, bundle validation, Android debug/release builds, emulator Tasks/Agenda smoke, and phone launch smoke passed;
+- historical migration notes remain release history only and do not describe supported runtime behavior.
+
 2026-07-27 task-dependency pass:
 
 - app data schema 23 adds `taskDependencies` with the `completed` prerequisite condition;
@@ -34,7 +41,7 @@ The latest-only entry below supersedes compatibility statements in older histori
 
 2026-07-27 latest-only data-boundary pass:
 
-- the unreleased build accepts app schema 22, export schema 1 with app schema 22 data, encrypted backup schema 2, and SQLite repository schema 2 only;
+- the unreleased build accepts app schema 23, export schema 1 with app schema 23 data, encrypted backup schema 2, and SQLite repository schema 2 only;
 - old app JSON, old encrypted backup envelopes, old SQLite repository schema 1, and incomplete current records are rejected with explicit errors instead of receiving guessed defaults;
 - the legacy AsyncStorage product-data store, migration chain, and unused package dependency were removed; fresh SQLite startup seeds current empty data directly;
 - focused and full Jest tests, lint, typecheck, and bundle checks passed before Android build and smoke verification;
