@@ -569,3 +569,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Keep `Note.body` as one plain string and support a small Markdown-like subset: `**bold**`, `*italic*`, `` `code` ``, `- bullet` lines, and `# heading` lines. The editor inserts these markers through local toolbar actions. The note card renders only this known subset; unsupported or incomplete syntax stays readable as raw text. Search, task conversion, JSON, and encrypted backup keep using the original body string; the money CSV flow is unchanged.
 - Reason: The rule is local, deterministic, backward-safe for existing bodies, and cheap on memory and bundle size. It delivers formatting without a schema change or import/export expansion.
 - Consequence: Links, tables, images, nested markup, and collaborative rich-text revisions remain future work. App schema 32 and repository schema 3 do not change.
+
+## DEC-082: Route global-search results to owning feature tabs
+
+- Status: Accepted.
+- Context: Global Search showed useful result details, but a result did not provide a direct way to continue into the owning feature. Exact record editing is not available in every screen, so a partial deep-link promise would be misleading.
+- Decision: Make each result row a local button and map its kind deterministically to Money, Notes, Tasks, or App Time. Tapping closes Search and opens only the owning tab; it does not claim to open or edit an exact record.
+- Reason: This adds a clear next action with no data mutation, no new route state, and no platform dependency. A single kind-to-tab map is easy to test and keeps unsupported exact-record navigation honest.
+- Consequence: Search result selection remains local tab navigation. Exact record focus, cross-screen filter transfer, deep links with IDs, and synced navigation remain separate contracts.

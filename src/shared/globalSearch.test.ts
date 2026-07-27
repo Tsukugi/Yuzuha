@@ -1,5 +1,5 @@
 import {emptyAppData} from '../types/domain';
-import {searchGlobal} from './globalSearch';
+import {globalSearchDestination, searchGlobal} from './globalSearch';
 
 describe('global search', () => {
   it('matches supported local records by their searchable text', () => {
@@ -263,5 +263,17 @@ describe('global search', () => {
     expect(archivedNote?.detail).toContain('Linked project: Hidden plan');
     expect(searchGlobal(data, 'deleted task').some(result => result.kind === 'note')).toBe(false);
     expect(searchGlobal(data, 'task').find(result => result.kind === 'note')?.detail).toContain('Linked task: Deleted task');
+  });
+
+  it('maps every result kind to its owning feature tab', () => {
+    const kinds = [
+      'money', 'note', 'project', 'app-group', 'saved-search', 'task', 'task-list', 'focus-session',
+      'account', 'category', 'transfer', 'split', 'budget', 'recurrence', 'time-goal', 'usage', 'task-template',
+    ] as const;
+
+    expect(kinds.map(globalSearchDestination)).toEqual([
+      'money', 'notes', 'tasks', 'appTime', 'notes', 'tasks', 'tasks', 'appTime',
+      'money', 'money', 'money', 'money', 'money', 'money', 'appTime', 'appTime', 'tasks',
+    ]);
   });
 });

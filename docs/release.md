@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android search-navigation pass:
+
+- Global Search result rows are now tappable and route to the owning Money, Notes, Tasks, or App Time tab;
+- the mapping covers every current result kind, closes Search, and does not claim exact-record focus or mutate data;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused navigation mapping tests, full Jest (51 suites, 226 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator route smoke, and phone cold-start smoke passed; both devices were force-stopped.
+
 2026-07-28 Android rich-note pass:
 
 - Notes now offer small local formatting actions for bold, italic, code, bullets, and headings;

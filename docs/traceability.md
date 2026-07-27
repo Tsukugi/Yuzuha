@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android rich-note pass.
+Status: Traceability baseline through the Android search-navigation pass.
 
 ## Authoritative source by concern
 
@@ -56,6 +56,8 @@ Current note-link evidence: `NOTE-05` maps to `NoteLink`, `noteLinks.ts`, `Notes
 Current linked-search evidence: `CROSS-02` maps to `searchGlobal`, `GlobalSearchScreen`, linked-target search helpers, `src/shared/globalSearch.test.ts`, and the 2026-07-28 linked-target-search release note. Active linked target fields can match the owning note, note details explain the relationship, archived project fields require the archived-results option, and deleted target content is excluded without adding a persistent index or background work.
 
 Current rich-note evidence: `NOTE-04` maps to `noteMarkup.ts`, `NotesScreen`, the formatting toolbar and `NoteBodyPreview`, `src/shared/noteMarkup.test.ts`, the current body/search/backup persistence paths, and the 2026-07-28 rich-note release note. Supported markers render locally, unsupported or incomplete markers remain readable, and the body remains a plain string with no schema or dependency change.
+
+Current search-navigation evidence: `CROSS-02` also maps to `globalSearchDestination`, tappable `GlobalSearchScreen` result rows, the result-kind mapping test in `src/shared/globalSearch.test.ts`, and the 2026-07-28 search-navigation release note. All supported kinds route to an existing tab, close Search, and add no data or route record.
 
 ## Open decision register
 

@@ -2374,3 +2374,36 @@ Known limits:
 - import/export behavior was not expanded in this pass.
 
 Next pass: choose the next bounded local product contract after review; keep attachments, account/device recovery, and remote sync behind their own decisions.
+
+## Implementation review: Android search-navigation pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- every supported Global Search result is a tappable local row;
+- deterministic result-kind mapping routes to Money, Notes, Tasks, or App Time;
+- tapping a result closes Search and changes only the selected tab;
+- no exact-record editing promise, data mutation, schema change, import/export UI change, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - all supported result kinds map to an owning tab
+Full Jest                PASS - 51 suites, 226 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - `Open Note LinkNote` and `Open Task LinkTask` appeared; tapping the note opened Notes
+Phone smoke              PASS - cold release startup with live MainActivity and no fatal errors
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- Search opens a feature tab, not an exact record or an edit form;
+- cross-screen filters, ID-bearing deep links, synced navigation, and remote search remain planned;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded local product contract after review; keep exact-record navigation, account/device recovery, and remote sync behind their own decisions.

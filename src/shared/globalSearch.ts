@@ -31,6 +31,34 @@ export interface GlobalSearchOptions {
   includeArchived?: boolean;
 }
 
+export type GlobalSearchDestination = 'money' | 'notes' | 'tasks' | 'appTime';
+
+export function globalSearchDestination(kind: GlobalSearchKind): GlobalSearchDestination {
+  switch (kind) {
+    case 'money':
+    case 'account':
+    case 'category':
+    case 'transfer':
+    case 'split':
+    case 'budget':
+    case 'recurrence':
+      return 'money';
+    case 'note':
+    case 'saved-search':
+      return 'notes';
+    case 'project':
+    case 'task':
+    case 'task-list':
+    case 'task-template':
+      return 'tasks';
+    case 'app-group':
+    case 'focus-session':
+    case 'time-goal':
+    case 'usage':
+      return 'appTime';
+  }
+}
+
 const KIND_ORDER: Record<GlobalSearchKind, number> = {
   money: 0,
   note: 1,

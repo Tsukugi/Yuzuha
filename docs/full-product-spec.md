@@ -196,7 +196,7 @@ Deleting a linked object preserves the other object and replaces the link with a
 
 ## 9. Search and commands
 
-Global search supports text, filters, and date ranges. Search is local in local-only mode and searches decrypted local indexes in synced mode. The command surface includes create, complete, archive, move, link, export, and open settings actions. Destructive actions require confirmation; create/edit actions support undo where practical.
+Global search supports text, filters, and date ranges. Search is local in local-only mode and searches decrypted local indexes in synced mode. The current Android result rows open the owning Money, Notes, Tasks, or App Time tab without claiming exact-record focus. The command surface includes create, complete, archive, move, link, export, and open settings actions. Destructive actions require confirmation; create/edit actions support undo where practical.
 
 ## 10. Settings
 

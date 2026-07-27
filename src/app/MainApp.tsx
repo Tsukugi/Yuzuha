@@ -56,7 +56,7 @@ import {normalizeNoteTags} from '../shared/noteSearch';
 import {applyNoteMarkup, parseNoteMarkup, type NoteMarkupAction, type NoteTextSelection} from '../shared/noteMarkup';
 import {NOTE_LINK_TARGET_TYPES} from '../shared/noteLinks';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
-import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
+import {globalSearchDestination, searchGlobal, type GlobalSearchDestination, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, sortTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter, type TaskSort} from '../shared/taskLifecycle';
 import {validateProjectDraft, type ProjectDraft} from '../shared/projectLifecycle';
@@ -296,7 +296,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
         ) : dataToolsOpen ? (
           <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
         ) : globalSearchOpen ? (
-          <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} />
+          <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={setTab} />
         ) : reviewOpen ? (
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
@@ -580,7 +580,7 @@ function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => 
   );
 }
 
-function GlobalSearchScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (destination: GlobalSearchDestination) => void}) {
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
   const results = searchGlobal(data, query, {includeArchived});
@@ -612,11 +612,19 @@ function GlobalSearchScreen({data, onBack}: {data: AppData; onBack: () => void})
           <View>
             <SectionTitle title={`${results.length} result${results.length === 1 ? '' : 's'}`} />
             {results.map(result => (
-              <View key={`${result.kind}:${result.id}`} style={styles.searchResultRow}>
+              <Pressable
+                key={`${result.kind}:${result.id}`}
+                accessibilityLabel={`Open ${globalSearchKindLabel(result.kind)} ${result.title}`}
+                accessibilityRole="button"
+                style={({pressed}) => [styles.searchResultRow, pressed && styles.pressed]}
+                onPress={() => {
+                  onNavigate(globalSearchDestination(result.kind));
+                  onBack();
+                }}>
                 <Text style={styles.searchResultKind}>{globalSearchKindLabel(result.kind)}</Text>
                 <Text style={styles.listTitle}>{result.title}</Text>
                 <Text style={styles.listMeta}>{result.detail}{result.isArchived ? ' · archived' : ''}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
