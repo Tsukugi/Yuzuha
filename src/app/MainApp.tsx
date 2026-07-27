@@ -53,6 +53,7 @@ import {validateAppGroupDraft} from '../shared/appGroupLifecycle';
 import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {validateTaskTemplateDraft, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
+import {QUICK_CAPTURE_OPTIONS} from '../shared/quickCapture';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
@@ -205,6 +206,7 @@ function HomeScreen({
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
 }) {
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const monthRange = getPeriodRange(new Date(), 'month');
   const monthMoney = data.money.filter(entry => isInPeriod(entry.occurredAt, monthRange));
   const expenses = sumMoney(monthMoney, 'expense');
@@ -222,6 +224,14 @@ function HomeScreen({
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
       <TextButton label="Search everything" onPress={onOpenSearch} />
       <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
+      <TextButton label={quickCaptureOpen ? 'Close quick capture' : 'Quick capture'} onPress={() => setQuickCaptureOpen(current => !current)} />
+      {quickCaptureOpen && (
+        <View style={styles.segmentRow}>
+          {QUICK_CAPTURE_OPTIONS.map(option => (
+            <TextButton key={option.target} label={option.label} onPress={() => {setQuickCaptureOpen(false); onNavigate(option.target);}} />
+          ))}
+        </View>
+      )}
 
       <View style={styles.cardGrid}>
         <SummaryCard

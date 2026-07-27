@@ -4,7 +4,7 @@ Status: Current Android MVP through the Android reminder-snooze pass.
 
 ## Navigation
 
-Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. A global add action may create a money entry, note, or task.
+Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home has a Quick capture action that opens Add money, Add note, or Add task and routes to the existing form without creating a separate capture record.
 
 ## First run
 

@@ -1618,3 +1618,34 @@ Known limits:
 
 - templates are local task-shaped inputs only; dynamic variables, due-date/reminder copying, recurrence ownership, cross-feature templates, version history, and sync remain planned;
 - using a template creates the task immediately; there is no preview or undo action yet.
+
+## Implementation review: Home quick-capture pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- Home now has a local Quick capture action with Add money, Add note, and Add task targets;
+- each target routes to the existing feature form and uses its existing validation and persistence path;
+- no app schema, repository record, native adapter, or background process was added;
+- UX, product plan, architecture, requirements, decision, release, and testing docs include the current quick-capture contract.
+
+Review evidence:
+
+```text
+Failing test first       PASS - quick-capture target import was reproduced as a missing module before implementation
+Focused Jest             PASS - quick-capture target and label coverage
+Full Jest                PASS - 37 suites, 160 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release showed Quick capture, Add money, Add note, and Add task
+Phone smoke              PASS - clean release opened MainActivity with no fatal or ReactNativeJS error
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- Quick capture is an in-app routing menu only; share intents, widgets, lock-screen capture, and global drafts remain planned;
+- the menu does not preserve a partially entered draft when the user changes targets.

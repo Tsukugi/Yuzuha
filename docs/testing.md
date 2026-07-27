@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the task-template pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the quick-capture pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -33,6 +33,7 @@ Status: Current test strategy through the task-template pass. Unit tests and And
 - Emulator focus smoke: clean release opened App Time, showed the focus link selectors and app-group controls, started a session without crashing, completed it, and showed the completed session after force-stop/relaunch.
 - Subtask coverage: same-list parent validation, missing-parent and self-link rejection, cycle rejection, AppStore persistence, JSON/SQLite field validation, and direct-child promotion after parent deletion.
 - Template coverage: strict template lifecycle validation, unique names, archive/delete behavior, active-template task creation, project reference protection, JSON import, encrypted-backup round trip, SQLite persistence, and archived/global-search filtering.
+- Quick-capture coverage: deterministic Money, Notes, and Tasks targets and labels; the menu has no persistence contract.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
@@ -72,6 +73,7 @@ Current evidence for the Android snooze-duration policy pass:
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
 - emulator UI dump showed the schema 28 task form, Inbox list, priority controls, due-date and reminder fields, project selection, optional parent-task selection, task-template controls, Task reminders On/Off, Recurring task reminders On/Off, dependency controls, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed Home Quick capture, Add money, Add note, and Add task targets; selecting a target is covered by the existing feature-form smoke path;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;

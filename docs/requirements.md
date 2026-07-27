@@ -323,6 +323,8 @@ Current subtask extension: Tasks support one optional same-list parent link. Mis
 
 Current template extension: Tasks support local templates with unique names, strict title/details/priority/list/project fields, archive/restore, edit/delete, and direct creation of normal tasks. Archived templates cannot be used. Template references keep projects and lists from being deleted, and template data is validated across JSON import, encrypted backup restore, SQLite persistence, and global search.
 
+Current quick-capture extension: Home shows a Quick capture action with Add money, Add note, and Add task targets. Each target opens the existing feature form; no separate capture record, schema field, or background process is added.
+
 ## Local recovery-key backup implementation review
 
 Implemented and verified:

@@ -395,3 +395,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add schema 28 `TaskTemplate` records with a unique name, task title/details, priority, list, and optional project. Allow edit, archive/restore, delete, and direct creation of a normal task from an active template.
 - Reason: The contract removes repeated typing while keeping one clear source of truth: templates are reusable inputs, and created tasks are ordinary independent records.
 - Consequence: Templates do not copy reminders, due dates, parents, recurrence rules, source-note links, or dynamic variables. Cross-feature templates, template version history, recurring template expansion, and sync remain future contracts. Schema 27 data is rejected rather than upgraded.
+
+## DEC-058: Keep quick capture as routing, not a new record type
+
+- Context: Home should make common entry faster, but a second capture store would duplicate Money, Notes, and Tasks validation and create another restore/search contract.
+- Decision: Add a local Quick capture menu with Add money, Add note, and Add task targets. Selecting a target changes the active tab and opens the existing feature form.
+- Reason: The user gets one fast entry point while each feature keeps ownership of its fields, validation, persistence, and errors. The menu is cheap to render and has no background work.
+- Consequence: Share intents, widgets, lock-screen capture, templates across features, and a global draft object remain separate future contracts. No app schema change is needed.

@@ -55,6 +55,8 @@ Shows today and the current period:
 
 Each card opens the source feature. The home screen must not invent a value when data is missing; it shows `Not available` with the reason.
 
+Home also offers Quick capture. The menu routes to the existing Money, Notes, and Tasks forms so the user can start an entry without first opening a feature card.
+
 ### Money
 
 - Add income or expense manually.

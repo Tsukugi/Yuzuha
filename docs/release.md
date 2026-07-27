@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Home quick-capture pass:
+
+- no app schema change; Home adds a local Quick capture menu with Add money, Add note, and Add task targets;
+- each target routes to the existing feature form, so normal validation and saving remain the source of truth;
+- focused quick-capture unit coverage, full Jest (37 suites, 160 tests), lint, typecheck, bundle validation, Android debug/release builds, clean emulator UI smoke, and clean phone launch smoke passed;
+- clean emulator smoke showed Quick capture, Add money, Add note, and Add task; both devices were force-stopped after the check, with no Gradle/Java processes left running.
+
 2026-07-27 local-task-template pass:
 
 - app data schema 28 adds local task templates with strict task-shaped fields; schema 27 data remains rejected because the app has no external users;
