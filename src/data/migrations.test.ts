@@ -1,4 +1,5 @@
-import {migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
+import {migrateStoredData, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
+import {emptyAppData} from '../types/domain';
 import type {MoneyCategory} from '../types/domain';
 
 describe('schema migrations', () => {
@@ -216,5 +217,15 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(9);
     expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
+  });
+
+  it('adds the attachment collection when opening schema 9 data', () => {
+    const legacy: Record<string, unknown> = {...emptyAppData(), schemaVersion: 9};
+    delete legacy.attachments;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(10);
+    expect(data?.attachments).toEqual([]);
   });
 });

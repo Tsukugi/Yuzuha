@@ -268,7 +268,7 @@ Not yet complete: missed-occurrence choices, end-of-month anchor preferences, re
 Implemented and verified:
 
 - JSON export schema 1 can be pasted into Data tools and previewed without changing local data;
-- supported app schemas are migrated to schema 9 before restore;
+- supported app schemas are migrated to schema 10 before restore;
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
@@ -283,7 +283,7 @@ Implemented and verified:
 - the user can decrypt a backup with the password, preview its creation date and record counts, and confirm replacement only after validation;
 - wrong passwords, tampering, weak passwords, unsupported parameters, and plaintext leakage are covered by tests.
 
-Not yet complete: attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: attachment bytes in encrypted backups, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Encrypted backup file portability review
 
@@ -294,7 +294,7 @@ Implemented and verified:
 - temporary app-cache files are removed after a successful or failed save operation, and a canceled picker leaves the workspace unchanged;
 - file operations preserve the existing password, crypto, and restore validation rules.
 
-Not yet complete: attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: attachment bytes in encrypted backups, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Recurring policy implementation review
 
@@ -318,4 +318,15 @@ Implemented and verified:
 - restore accepts the grouped or ungrouped key, normalizes it from the authenticated envelope marker, and previews the same validated workspace records;
 - malformed recovery keys, wrong keys, and tampered envelopes fail before any workspace write.
 
-Not yet complete: account recovery, device enrollment, attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: account recovery, device enrollment, encrypted attachment bytes, platform backup policy, remote encrypted sync, and password recovery.
+
+## Local note attachment implementation review
+
+Implemented and verified:
+
+- `NOTE-06` local pass: a note can hold up to 10 image, PDF, or plain-text files;
+- each file is copied into app-private storage and checked for a safe name, supported MIME type, size from 1 byte through 10 MiB, and a lowercase SHA-256 checksum;
+- attachment metadata is stored in SQLite-backed app records, included in JSON/encrypted-backup metadata, and validated against its parent note on restore;
+- Notes shows file names and sizes and removes the private file before removing the metadata.
+
+Not yet complete: portable encrypted attachment bytes, synced attachments, previews, and attachment search.

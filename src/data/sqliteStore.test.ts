@@ -271,6 +271,16 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.attachments.push({
+      id: 'attachment_1',
+      noteId: 'note_1',
+      name: 'reference.txt',
+      mimeType: 'text/plain',
+      byteSize: 24,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));

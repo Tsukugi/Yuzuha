@@ -42,6 +42,10 @@ The short form asks for a title first. Details, due date, priority, and list are
 
 Search is available from the Notes header. Results show title, a short body preview, tags, and updated time. Search must not send note content to a server.
 
+### Add a note attachment
+
+Each saved note has an `Add attachment` action. The system picker allows images, PDFs, and plain-text files. Yuzuha copies the selected file into private app storage, checks its name, size, type, and SHA-256 checksum, then saves the metadata under the note. The note shows the file name and size. Removing an attachment deletes the private file before removing its metadata. A note can have at most 10 attachments and each file can be at most 10 MiB. Canceling the picker leaves the note unchanged.
+
 ### Export and delete local data
 
 The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The screen states what each format contains and reports when the share action returns. Delete uses a destructive confirmation with a clear list of affected local records; after confirmation, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.

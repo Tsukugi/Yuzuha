@@ -69,9 +69,9 @@ describe('LocalStore', () => {
     );
 
     const data = await new LocalStore(driver).load();
-    expect(data.schemaVersion).toBe(9);
+    expect(data.schemaVersion).toBe(10);
     expect(data.money[0].accountId).toBe('account_everyday');
     expect(data.money[0].categoryId).toBe('category_lunch');
-    await expect(driver.getItem('@yuzuha/app-data/v9')).resolves.toContain('schemaVersion');
+    await expect(driver.getItem('@yuzuha/app-data/v10')).resolves.toContain('schemaVersion');
   });
 });

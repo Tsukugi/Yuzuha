@@ -38,8 +38,11 @@ import {
   saveEncryptedBackupFile,
 } from '../shared/encryptedBackupFile';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
+import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
+import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile} from '../shared/attachmentFiles';
+import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -562,6 +565,7 @@ function formatImportPreview(preview: JsonImportPreview): string {
     ['accounts', 'accounts'],
     ['categories', 'categories'],
     ['notes', 'notes'],
+    ['attachments', 'attachments'],
     ['tasks', 'tasks'],
     ['usageSnapshots', 'app-time records'],
     ['timeGoals', 'time goals'],
@@ -1708,10 +1712,11 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 }
 
 function NotesScreen() {
-  const {data, addNote} = useAppStore();
+  const {data, addNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [attachmentBusyNoteId, setAttachmentBusyNoteId] = useState<string | null>(null);
 
   if (!data) {
     return null;
@@ -1727,6 +1732,39 @@ function NotesScreen() {
     await addNote({title: trimmedTitle, body: body.trim()});
     setTitle('');
     setBody('');
+  }
+
+  async function addNoteAttachment(noteId: string) {
+    if ((data?.attachments ?? []).filter(attachment => attachment.noteId === noteId).length >= ATTACHMENT_MAX_PER_NOTE) {
+      setError(`A note can have at most ${ATTACHMENT_MAX_PER_NOTE} attachments.`);
+      return;
+    }
+    const createdAt = new Date().toISOString();
+    setError(null);
+    setAttachmentBusyNoteId(noteId);
+    try {
+      const attachment = await importAttachmentFile(noteId, createId('attachment'), createdAt);
+      await addAttachment(noteId, attachment);
+    } catch (attachmentError) {
+      if (!(attachmentError instanceof AttachmentFileCanceled)) {
+        setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be added.');
+      }
+    } finally {
+      setAttachmentBusyNoteId(null);
+    }
+  }
+
+  async function removeNoteAttachment(attachment: Attachment) {
+    setError(null);
+    setAttachmentBusyNoteId(attachment.noteId);
+    try {
+      await deleteAttachmentFile(attachment.id);
+      await deleteAttachment(attachment.id);
+    } catch (attachmentError) {
+      setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be removed.');
+    } finally {
+      setAttachmentBusyNoteId(null);
+    }
   }
 
   return (
@@ -1760,18 +1798,56 @@ function NotesScreen() {
         <SectionTitle title="All notes" />
         {data.notes.length === 0 ? (
           <EmptyState text="No notes yet." />
-        ) : (
-          data.notes.map(note => (
-            <View key={note.id} style={styles.noteCard}>
-              <Text style={styles.listTitle}>{note.title}</Text>
-              {!!note.body && <Text style={styles.noteBody} numberOfLines={3}>{note.body}</Text>}
-              <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
-            </View>
-          ))
+          ) : (
+          data.notes.map(note => {
+            const noteAttachments = data.attachments.filter(attachment => attachment.noteId === note.id);
+            const isAttachmentBusy = attachmentBusyNoteId === note.id;
+            return (
+              <View key={note.id} style={styles.noteCard}>
+                <Text style={styles.listTitle}>{note.title}</Text>
+                {!!note.body && <Text style={styles.noteBody} numberOfLines={3}>{note.body}</Text>}
+                <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
+                {noteAttachments.length > 0 && (
+                  <View style={styles.attachmentSection}>
+                    <Text style={styles.formLabel}>Attachments</Text>
+                    {noteAttachments.map(attachment => (
+                      <View key={attachment.id} style={styles.attachmentRow}>
+                        <View style={styles.listBody}>
+                          <Text style={styles.attachmentName} numberOfLines={1}>{attachment.name}</Text>
+                          <Text style={styles.listMeta}>{formatBytes(attachment.byteSize)}</Text>
+                        </View>
+                        <TextButton
+                          label="Remove attachment"
+                          danger
+                          disabled={isAttachmentBusy}
+                          onPress={() => void removeNoteAttachment(attachment)}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <PrimaryButton
+                  label={isAttachmentBusy ? 'Working...' : 'Add attachment'}
+                  disabled={attachmentBusyNoteId !== null}
+                  onPress={() => void addNoteAttachment(note.id)}
+                />
+              </View>
+            );
+          })
         )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+function formatBytes(byteSize: number): string {
+  if (byteSize < 1024) {
+    return `${byteSize} B`;
+  }
+  if (byteSize < 1024 * 1024) {
+    return `${(byteSize / 1024).toFixed(1)} KB`;
+  }
+  return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function TasksScreen() {
@@ -2024,6 +2100,9 @@ const styles = StyleSheet.create({
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
   noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginBottom: 10, padding: 15},
+  attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
+  attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 4},
+  attachmentName: {color: colors.text, fontSize: 14, fontWeight: '700'},
   manageRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8},
   rowActions: {alignItems: 'flex-end', marginLeft: 10},
   noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 8},

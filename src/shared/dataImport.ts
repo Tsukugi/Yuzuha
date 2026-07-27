@@ -1,6 +1,7 @@
 import {migrateStoredData} from '../data/migrations';
 import type {
   AppData,
+  Attachment,
   MoneyAccount,
   MoneyBudget,
   MoneyCategory,
@@ -14,6 +15,7 @@ import type {
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
+import {ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_NAME_LENGTH, ATTACHMENT_MAX_PER_NOTE, isSha256, isSupportedAttachmentMimeType} from './attachment';
 import {isValidLocalDate} from './moneyRecurrence';
 
 export interface JsonImportRecordCounts {
@@ -25,6 +27,7 @@ export interface JsonImportRecordCounts {
   accounts: number;
   categories: number;
   notes: number;
+  attachments: number;
   tasks: number;
   usageSnapshots: number;
   timeGoals: number;
@@ -58,7 +61,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 9) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 10) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -80,7 +83,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 9 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 10 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -92,12 +95,14 @@ function validateAppData(data: AppData): void {
   validateUniqueIds('accounts', data.accounts);
   validateUniqueIds('categories', data.categories);
   validateUniqueIds('notes', data.notes);
+  validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('tasks', data.tasks);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
 
   const accountIds = new Set(data.accounts.map(account => account.id));
   const categoryIds = new Set(data.categories.map(category => category.id));
+  const noteIds = new Set(data.notes.map(note => note.id));
   const moneyById = new Map(data.money.map(entry => [entry.id, entry]));
   const splitLineIds = new Set<string>();
 
@@ -111,6 +116,15 @@ function validateAppData(data: AppData): void {
   data.budgets.forEach(budget => validateBudget(budget, categoryIds));
   data.recurrences.forEach(rule => validateRecurrence(rule, accountIds, categoryIds));
   data.notes.forEach(validateNote);
+  const attachmentCounts = new Map<string, number>();
+  data.attachments.forEach(attachment => {
+    validateAttachment(attachment, noteIds);
+    const count = (attachmentCounts.get(attachment.noteId) ?? 0) + 1;
+    attachmentCounts.set(attachment.noteId, count);
+    if (count > ATTACHMENT_MAX_PER_NOTE) {
+      throw new JsonImportError(`Note ${attachment.noteId} has more than ${ATTACHMENT_MAX_PER_NOTE} attachments.`);
+    }
+  });
   data.tasks.forEach(validateTask);
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
@@ -218,6 +232,16 @@ function validateNote(note: Note): void {
   if (typeof note.title !== 'string' || typeof note.body !== 'string' || typeof note.isPinned !== 'boolean' ||
       !isIsoDate(note.createdAt) || !isIsoDate(note.updatedAt)) {
     throw new JsonImportError(`Note ${note.id} has invalid fields.`);
+  }
+}
+
+function validateAttachment(attachment: Attachment, noteIds: Set<string>): void {
+  validateId(attachment.id, 'attachment');
+  validateReference(attachment.noteId, noteIds, `Attachment ${attachment.id} note`);
+  if (typeof attachment.name !== 'string' || attachment.name.trim().length === 0 || attachment.name.length > ATTACHMENT_MAX_NAME_LENGTH ||
+      !isSupportedAttachmentMimeType(attachment.mimeType) || !Number.isSafeInteger(attachment.byteSize) || attachment.byteSize <= 0 ||
+      attachment.byteSize > ATTACHMENT_MAX_BYTES || !isSha256(attachment.sha256) || !isIsoDate(attachment.createdAt) || !isIsoDate(attachment.updatedAt)) {
+    throw new JsonImportError(`Attachment ${attachment.id} has invalid fields.`);
   }
 }
 
@@ -351,6 +375,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     accounts: data.accounts.length,
     categories: data.categories.length,
     notes: data.notes.length,
+    attachments: data.attachments.length,
     tasks: data.tasks.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,

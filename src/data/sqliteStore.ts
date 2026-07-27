@@ -1,6 +1,7 @@
 import {emptyAppData} from '../types/domain';
 import type {
   AppData,
+  Attachment,
   MoneyAccount,
   MoneyBudget,
   MoneyCategory,
@@ -162,6 +163,7 @@ type RecordType =
   | 'account'
   | 'category'
   | 'note'
+  | 'attachment'
   | 'task'
   | 'usage_snapshot'
   | 'time_goal'
@@ -364,6 +366,7 @@ export function decodeAppData(
   data.accounts = [];
   data.categories = [];
   data.notes = [];
+  data.attachments = [];
   data.tasks = [];
   data.usageSnapshots = [];
   data.usageExcludedPackages = [];
@@ -411,6 +414,9 @@ export function decodeAppData(
         break;
       case 'note':
         data.notes.push(payload as Note);
+        break;
+      case 'attachment':
+        data.attachments.push(payload as Attachment);
         break;
       case 'task':
         data.tasks.push(payload as Task);
@@ -532,6 +538,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.accounts.map(account => record('account', account.id, account)),
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
+    ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),

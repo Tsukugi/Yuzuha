@@ -615,7 +615,7 @@ Delivered:
 
 Known limits:
 
-- This pass covers local backup portability only. Account recovery, device enrollment, native secure key storage, attachments, platform backup policy, password recovery, and remote sync remain planned.
+- This pass covers local backup portability only. Account recovery, device enrollment, native secure key storage, encrypted attachment bytes, platform backup policy, password recovery, and remote sync remain planned.
 
 Review evidence:
 
@@ -632,3 +632,36 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: attachment portability or account/device recovery design, with remote sync kept behind the local-first boundary.
+
+## Implementation review: local note attachment storage pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 10 with schema 9 migration and attachment metadata in JSON/SQLite records;
+- system picker import for images, PDFs, and plain-text files;
+- app-private file storage with name/type/size checks and SHA-256 checksum metadata;
+- Notes UI to add and remove attachments, with a 10 MiB per-file limit and 10 attachments per note;
+- focused unit coverage for migration, restore validation, encrypted metadata round-trip, SQLite round-trip, picker cancellation, size rejection, checksum metadata, attachment-count limits, workspace cleanup, and private-file deletion.
+
+Known limits:
+
+- encrypted backups carry attachment metadata but not attachment bytes;
+- attachment previews, portable encrypted attachment bundles, sync, and attachment search remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 4 attachment/schema suites, 27 tests
+npm test           PASS - 18 suites, 76 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - note attachment imported from DocumentsUI, displayed, and removed
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: portable encrypted attachment bytes or account/device recovery design, with remote sync kept behind the local-first boundary.

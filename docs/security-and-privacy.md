@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the local recovery-key pass. This document is not a legal privacy policy.
+Status: Security baseline through the local note attachment storage pass. This document is not a legal privacy policy.
 
 ## Data collected
 

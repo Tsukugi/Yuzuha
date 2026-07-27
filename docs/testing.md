@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the local recovery-key pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the local note attachment storage pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -217,6 +217,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - The emulator release APK generated a recovery key, accepted a 64-character key through Android key events, saved `yuzuha-recovery-backup-2026-07-27.json`, reopened it, and showed `Credential: recovery key` with the validated 8-record preview.
 - The same emulator run reproduced the pre-fix failure for unnormalized recovery input; the regression test failed before the normalization fix and passed after it.
 - Phone `42adce68`: the current release APK installed and `MainActivity` resumed with no filtered Yuzuha app errors. Touch automation remains blocked by device policy.
+
+## Local note attachment evidence
+
+- Focused Jest: 4 suites and 27 tests pass for schema 9 to 10 migration, attachment JSON validation/counting, attachment-count limits, SQLite record round-trip, file import, unsupported types, picker cancellation, size limits, checksum metadata, private-file deletion, workspace file cleanup, and unsafe IDs.
+- The implementation uses the system document picker, app-private document storage, a 10 MiB per-file limit, a 10-attachment per-note limit, and SHA-256 metadata.
+- Full Jest: 18 suites and 76 tests pass. Lint, strict TypeScript, bundle metadata, Android bundle generation, debug APK build, and release APK build also pass.
+- Emulator `emulator-5554`: release APK created a note, opened DocumentsUI, imported `yuzuha-attachment.txt`, showed the stored name and `3.2 KB` size, then removed the attachment and returned to the note without an attachment row.
+- Encrypted JSON backups include attachment metadata but not attachment bytes. Phone `42adce68`: release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
 
 ## Recurring money evidence
 

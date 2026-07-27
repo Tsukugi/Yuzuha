@@ -1,5 +1,6 @@
 import {buildJsonExport} from './dataExport';
 import {JsonImportError, parseJsonImport} from './dataImport';
+import {migrateStoredData} from '../data/migrations';
 import {emptyAppData} from '../types/domain';
 
 describe('JSON restore validation', () => {
@@ -13,13 +14,24 @@ describe('JSON restore validation', () => {
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
+    data.attachments.push({
+      id: 'attachment_1',
+      noteId: 'note_1',
+      name: 'reference.txt',
+      mimeType: 'text/plain',
+      byteSize: 24,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
 
     const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
 
     expect(preview.data).toEqual(data);
     expect(preview.recordCounts.notes).toBe(1);
+    expect(preview.recordCounts.attachments).toBe(1);
     expect(preview.recordCounts.accounts).toBe(1);
-    expect(preview.totalRecords).toBe(9);
+    expect(preview.totalRecords).toBe(10);
   });
 
   it('migrates a supported schema 7 export before validation', () => {
@@ -34,8 +46,19 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(9);
+    expect(preview.data.schemaVersion).toBe(10);
     expect(preview.data.recurrences).toEqual([]);
+    expect(preview.data.attachments).toEqual([]);
+  });
+
+  it('migrates schema 9 data to an empty attachment collection', () => {
+    const legacy: Record<string, unknown> = {...emptyAppData(), schemaVersion: 9};
+    delete legacy.attachments;
+
+    const migrated = migrateStoredData(legacy);
+
+    expect(migrated?.schemaVersion).toBe(10);
+    expect(migrated?.attachments).toEqual([]);
   });
 
   it('rejects malformed JSON and duplicate record IDs', () => {
@@ -92,5 +115,45 @@ describe('JSON restore validation', () => {
     });
 
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/parent amount/i);
+  });
+
+  it('rejects an attachment that points to an unknown note', () => {
+    const data = emptyAppData();
+    data.attachments.push({
+      id: 'attachment_1',
+      noteId: 'missing_note',
+      name: 'reference.txt',
+      mimeType: 'text/plain',
+      byteSize: 24,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/attachment .* note/i);
+  });
+
+  it('rejects a note with more than the attachment limit', () => {
+    const data = emptyAppData();
+    data.notes.push({
+      id: 'note_1',
+      title: 'Keep this',
+      body: '',
+      isPinned: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    data.attachments = Array.from({length: 11}, (_, index) => ({
+      id: `attachment_${index}`,
+      noteId: 'note_1',
+      name: `file-${index}.txt`,
+      mimeType: 'text/plain',
+      byteSize: 1,
+      sha256: String(index % 10).repeat(64),
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    }));
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/more than 10 attachments/i);
   });
 });

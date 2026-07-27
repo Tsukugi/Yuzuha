@@ -104,6 +104,17 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface Attachment {
+  id: string;
+  noteId: string;
+  name: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -143,7 +154,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 9;
+  schemaVersion: 10;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -153,6 +164,7 @@ export interface AppData {
   accounts: MoneyAccount[];
   categories: MoneyCategory[];
   notes: Note[];
+  attachments: Attachment[];
   tasks: Task[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
@@ -171,7 +183,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 9,
+  schemaVersion: 10,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -189,6 +201,7 @@ export const emptyAppData = (): AppData => ({
   ],
   categories: createDefaultCategories(),
   notes: [],
+  attachments: [],
   tasks: [],
   usageSnapshots: [],
   usageRead: {

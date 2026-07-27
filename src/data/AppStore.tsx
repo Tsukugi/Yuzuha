@@ -11,6 +11,8 @@ import {
   validateMoneyRecurrence,
 } from '../shared/moneyRecurrence';
 import {localDateKey} from '../shared/period';
+import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
+import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -22,6 +24,7 @@ import type {
   MoneyEntry,
   MoneyTransfer,
   Note,
+  Attachment,
   Task,
   UsagePermissionState,
   UsageSnapshot,
@@ -70,6 +73,8 @@ interface AppStoreValue {
   archiveMoneyAccount: (accountId: string) => Promise<void>;
   archiveMoneyCategory: (categoryId: string) => Promise<void>;
   addNote: (input: {title: string; body: string}) => Promise<void>;
+  addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
+  deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: {title: string; details: string}) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   setUsagePermission: (permission: UsagePermissionState, errorCode?: string | null) => Promise<void>;
@@ -183,12 +188,14 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const resetWorkspace = useCallback(async () => {
+    await deleteAttachmentFiles(data?.attachments ?? []);
     await commit(() => emptyAppData());
-  }, [commit]);
+  }, [commit, data?.attachments]);
 
   const restoreWorkspace = useCallback(async (next: AppData) => {
+    await deleteAttachmentFiles(data?.attachments ?? []);
     await commit(() => next);
-  }, [commit]);
+  }, [commit, data?.attachments]);
 
   const addMoneyRecurrence = useCallback(
     async (input: MoneyRecurrenceInput) => {
@@ -365,6 +372,50 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const addAttachment = useCallback(
+    async (noteId: string, attachment: Attachment) => {
+      await commit(current => {
+        if (!current.notes.some(note => note.id === noteId)) {
+          throw new Error('The note for this attachment no longer exists.');
+        }
+        if (attachment.noteId !== noteId) {
+          throw new Error('The attachment does not belong to this note.');
+        }
+        if (current.attachments.some(item => item.id === attachment.id)) {
+          throw new Error('This attachment already exists.');
+        }
+        if (current.attachments.filter(item => item.noteId === noteId).length >= ATTACHMENT_MAX_PER_NOTE) {
+          throw new Error(`A note can have at most ${ATTACHMENT_MAX_PER_NOTE} attachments.`);
+        }
+        const updatedAt = new Date().toISOString();
+        return {
+          ...current,
+          attachments: [attachment, ...current.attachments],
+          notes: current.notes.map(note => note.id === noteId ? {...note, updatedAt} : note),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const deleteAttachment = useCallback(
+    async (attachmentId: string) => {
+      await commit(current => {
+        const attachment = current.attachments.find(item => item.id === attachmentId);
+        if (!attachment) {
+          throw new Error('The attachment no longer exists.');
+        }
+        const updatedAt = new Date().toISOString();
+        return {
+          ...current,
+          attachments: current.attachments.filter(item => item.id !== attachmentId),
+          notes: current.notes.map(note => note.id === attachment.noteId ? {...note, updatedAt} : note),
+        };
+      });
+    },
+    [commit],
+  );
+
   const addTask = useCallback(
     async (input: {title: string; details: string}) => {
       const now = new Date().toISOString();
@@ -487,6 +538,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       archiveMoneyAccount,
       archiveMoneyCategory,
       addNote,
+      addAttachment,
+      deleteAttachment,
       addTask,
       toggleTask,
       setUsagePermission,
@@ -507,6 +560,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoneyBudget,
       deleteMoneyBudget,
       addNote,
+      addAttachment,
+      deleteAttachment,
       addTask,
       data,
       error,

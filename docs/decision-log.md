@@ -185,3 +185,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Generate 32 secure random bytes, display them as eight uppercase hexadecimal groups, require in-session re-entry, and use the normalized key as the credential for a separate authenticated backup envelope. Mark the envelope with `credential: recovery-key` and use a distinct recovery-backup file name. Restore normalizes grouped, ungrouped, and lowercase input only for that marker.
 - Reason: The existing audited XChaCha20-Poly1305 and scrypt boundary remains the only crypto path. The key is never stored, logged, or uploaded, and the marker makes normalization deterministic without changing old password backups.
 - Consequence: This is local backup portability, not account recovery or device enrollment. Attachments, sync recovery, password recovery, and native secure key storage remain separate contracts.
+
+## DEC-028: Store note attachments locally before bundling their bytes
+
+- Context: Notes need useful local file attachments, but putting file bytes into the existing JSON backup envelope would change its size, cleanup, and restore contracts.
+- Decision: In the local pass, allow only images, PDFs, and plain-text files. Copy each selected file into app-private document storage under a validated attachment ID, enforce 10 MiB per file and 10 attachments per note, and store the file size and SHA-256 checksum with the note ID. JSON and encrypted backups carry metadata only until an attachment bundle format is designed and tested.
+- Reason: This gives the user a deterministic local file boundary and keeps the current authenticated JSON backup format unchanged.
+- Consequence: Backup restore can recreate metadata but not attachment files yet. Portable encrypted attachment bytes, previews, synced files, and attachment search remain separate contracts.

@@ -26,6 +26,16 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.attachments.push({
+      id: 'attachment_secret',
+      noteId: 'note_secret',
+      name: 'private.txt',
+      mimeType: 'text/plain',
+      byteSize: 12,
+      sha256: 'a'.repeat(64),
+      createdAt,
+      updatedAt: createdAt,
+    });
 
     const backup = await buildEncryptedBackup(data, password, createdAt, deterministicRandomBytes);
     const preview = await decryptEncryptedBackup(backup, password);
@@ -33,6 +43,7 @@ describe('encrypted backups', () => {
     expect(backup).not.toContain('Do not expose this text');
     expect(preview.data).toEqual(data);
     expect(preview.recordCounts.notes).toBe(1);
+    expect(preview.recordCounts.attachments).toBe(1);
     expect(preview.createdAt).toBe(createdAt);
     expect(preview.encryptedBytes).toBeGreaterThan(16);
   });
