@@ -514,3 +514,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Run one typed period/type/category/account filter over the existing non-split history source, use that result for the list, and group its integer minor-unit count, spending, income, and net totals by currency. Keep the separate split-aware report unchanged.
 - Reason: The list and totals cannot drift, currencies cannot be mixed, and the pass adds no persisted filter preference, schema, migration, report rewrite, or background work.
 - Consequence: Totals follow the non-split history boundary and filter state resets on relaunch. Split-line category totals remain in the existing report, while saved filters and cross-screen filter state remain future contracts.
+
+## DEC-075: Add local payees as stable current-schema references
+
+- Context: `MONEY-06` requires payees in money forms and reports, but display-name matching would break when a name changes or is archived.
+- Decision: Add local payee records with trimmed case-insensitively unique names, archive instead of delete, and nullable `payeeId` references on money entries. Persist them in current JSON, encrypted backups, CSV, SQLite repository schema 3, and global search. Raise app schema to 29 and reject older versions.
+- Reason: Stable IDs preserve history and keep local data portable without adding a provider, account, sync, or background contract. Latest-only schema rejection is safe because the app has no external users.
+- Consequence: New and edited entries can choose only active payees; existing entries retain archived references. Recurring rules and split parents currently use no payee, and provider payees, sync, and migration remain future work.

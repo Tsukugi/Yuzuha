@@ -2149,3 +2149,35 @@ Known limits:
 - filter state resets on relaunch;
 - totals follow the existing non-split history list and do not alter the separate report screen;
 - split-line category totals remain available through the existing Money report boundary.
+
+## Implementation review: Android Money-payee pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- local payee records with trimmed case-insensitively unique names;
+- optional stable `payeeId` references on money entries;
+- entry-form selection, payee creation, archive controls, and list/search display;
+- current JSON/CSV/encrypted-backup/SQLite persistence with app schema 29 and repository schema 3;
+- no compatibility migration, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - payee lifecycle tests; 2 focused tests
+Full Jest                PASS - 48 suites, 203 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Money Payee selector and New payee controls rendered
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- payees are local records and are not synced or linked to provider transactions;
+- recurring money rules and split-entry creation currently use no payee and leave generated/parent `payeeId` null;
+- payee state is not a separate filter; it is shown in the entry form, history row, and global search.

@@ -335,6 +335,16 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/duplicate/i);
   });
 
+  it('rejects duplicate payee names regardless of case', () => {
+    const data = emptyAppData();
+    data.payees.push(
+      {id: 'payee_one', name: 'Market', isArchived: false, createdAt: '2026-07-26T00:00:00.000Z', updatedAt: '2026-07-26T00:00:00.000Z'},
+      {id: 'payee_two', name: 'market', isArchived: false, createdAt: '2026-07-26T00:00:00.000Z', updatedAt: '2026-07-26T00:00:00.000Z'},
+    );
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/payee.*duplicate/i);
+  });
+
   it('rejects a split whose lines do not equal the parent amount', () => {
     const data = emptyAppData();
     data.money.push({
@@ -344,6 +354,7 @@ describe('JSON restore validation', () => {
       currency: 'EUR',
       accountId: 'account_everyday',
       categoryId: null,
+      payeeId: null,
       category: 'Split',
       note: '',
       occurredAt: '2026-07-26T12:00:00.000Z',

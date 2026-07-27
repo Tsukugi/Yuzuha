@@ -8,6 +8,7 @@ import type {
   MoneyBudget,
   MoneyCategory,
   MoneyEntry,
+  MoneyPayee,
   MoneyRecurrenceRule,
   MoneySplit,
   MoneySplitLine,
@@ -45,7 +46,7 @@ export interface WorkspaceStore {
   save(data: AppData): Promise<void>;
 }
 
-const REPOSITORY_SCHEMA_VERSION = 2;
+const REPOSITORY_SCHEMA_VERSION = 3;
 const DEFAULT_UPDATED_AT = '1970-01-01T00:00:00.000Z';
 
 const CREATE_META_TABLE = `
@@ -78,6 +79,7 @@ const CREATE_MONEY_ENTRIES_TABLE = `
     currency TEXT NOT NULL,
     account_id TEXT,
     category_id TEXT,
+    payee_id TEXT,
     category TEXT NOT NULL,
     note TEXT NOT NULL,
     occurred_at TEXT NOT NULL,
@@ -174,6 +176,7 @@ type RecordType =
   | 'recurrence'
   | 'account'
   | 'category'
+  | 'payee'
   | 'note'
   | 'attachment'
   | 'saved_search'
@@ -275,7 +278,7 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
 async function readNormalizedRecords(database: SqliteExecutor): Promise<Array<Record<string, unknown>>> {
   const records: Array<Record<string, unknown>> = [];
   const entries = await database.execute(
-    'SELECT id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id',
+    'SELECT id, kind, amount_minor, currency, account_id, category_id, payee_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id',
   );
   for (const row of entries.rows) {
     const splitId = readNullableText(row.split_id);
@@ -286,6 +289,7 @@ async function readNormalizedRecords(database: SqliteExecutor): Promise<Array<Re
       currency: readRequiredText(row.currency),
       accountId: readNullableText(row.account_id),
       categoryId: readNullableText(row.category_id),
+      payeeId: readNullableText(row.payee_id),
       category: readRequiredText(row.category),
       note: readRequiredText(row.note),
       occurredAt: readRequiredText(row.occurred_at),
@@ -385,6 +389,7 @@ export function decodeAppData(
   data.recurrences = [];
   data.accounts = [];
   data.categories = [];
+  data.payees = [];
   data.notes = [];
   data.attachments = [];
   data.savedSearches = [];
@@ -450,6 +455,9 @@ export function decodeAppData(
         break;
       case 'category':
         data.categories.push(payload as MoneyCategory);
+        break;
+      case 'payee':
+        data.payees.push(payload as MoneyPayee);
         break;
       case 'note': {
         if (typeof payload !== 'object' || payload === null) {
@@ -604,7 +612,7 @@ async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Pro
   }
   for (const entry of data.money) {
     await tx.execute(
-      'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, payee_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         entry.id,
         entry.kind,
@@ -612,6 +620,7 @@ async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Pro
         entry.currency,
         entry.accountId,
         entry.categoryId,
+        entry.payeeId,
         entry.category,
         entry.note,
         entry.occurredAt,
@@ -672,6 +681,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
   return [
     ...data.accounts.map(account => record('account', account.id, account)),
     ...data.categories.map(category => record('category', category.id, category)),
+    ...data.payees.map(payee => record('payee', payee.id, payee, payee.updatedAt)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),

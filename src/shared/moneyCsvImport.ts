@@ -13,6 +13,7 @@ const MONEY_CSV_HEADERS = [
   'currency',
   'accountId',
   'categoryId',
+  'payeeId',
   'category',
   'note',
   'occurredAt',
@@ -56,6 +57,7 @@ export function parseMoneyCsvImport(raw: string, current: AppData): MoneyCsvImpo
   const existingIds = new Set(current.money.map(entry => entry.id));
   const accountIds = new Set(current.accounts.map(account => account.id));
   const categoryIds = new Set(current.categories.map(category => category.id));
+  const payeeIds = new Set(current.payees.map(payee => payee.id));
   const accountsById = new Map(current.accounts.map(account => [account.id, account]));
   const entries: MoneyEntry[] = [];
   const errors: string[] = [];
@@ -67,7 +69,7 @@ export function parseMoneyCsvImport(raw: string, current: AppData): MoneyCsvImpo
       return;
     }
     try {
-      const entry = parseMoneyRow(row, current.schemaVersion, accountIds, categoryIds, accountsById);
+      const entry = parseMoneyRow(row, current.schemaVersion, accountIds, categoryIds, payeeIds, accountsById);
       if (existingIds.has(entry.id)) {
         throw new MoneyCsvImportError(`Row ${rowNumber}: money entry ID ${entry.id} already exists.`);
       }
@@ -92,6 +94,7 @@ function parseMoneyRow(
   appSchemaVersion: number,
   accountIds: Set<string>,
   categoryIds: Set<string>,
+  payeeIds: Set<string>,
   accountsById: Map<string, AppData['accounts'][number]>,
 ): MoneyEntry {
   const exportSchemaVersion = parseInteger(row[0], 'export schema version');
@@ -129,7 +132,11 @@ function parseMoneyRow(
   if (categoryId !== null && !categoryIds.has(categoryId)) {
     throw new MoneyCsvImportError(`category ${categoryId} is missing from this workspace.`);
   }
-  const splitId = optionalText(row[13]);
+  const payeeId = optionalText(row[8]);
+  if (payeeId !== null && !payeeIds.has(payeeId)) {
+    throw new MoneyCsvImportError(`payee ${payeeId} is missing from this workspace.`);
+  }
+  const splitId = optionalText(row[14]);
   if (splitId !== null) {
     throw new MoneyCsvImportError('split-linked rows require a JSON export or encrypted backup.');
   }
@@ -141,11 +148,12 @@ function parseMoneyRow(
     currency,
     accountId,
     categoryId,
-    category: row[8],
-    note: row[9],
-    occurredAt: validIsoDate(row[10], 'occurred date'),
-    createdAt: validIsoDate(row[11], 'created date'),
-    updatedAt: validIsoDate(row[12], 'updated date'),
+    payeeId,
+    category: row[9],
+    note: row[10],
+    occurredAt: validIsoDate(row[11], 'occurred date'),
+    createdAt: validIsoDate(row[12], 'created date'),
+    updatedAt: validIsoDate(row[13], 'updated date'),
     splitId: null,
   };
 }

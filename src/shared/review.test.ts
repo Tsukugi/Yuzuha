@@ -8,10 +8,10 @@ describe('review summary', () => {
     data.usageRead.permission = 'granted';
     data.usageRead.lastReadAt = '2026-07-26T16:00:00.000Z';
     data.money = [
-      {id: 'expense-eur', kind: 'expense', amountMinor: 500, currency: 'EUR', accountId: null, categoryId: null, category: 'Food', note: '', occurredAt: '2026-07-22T10:00:00.000Z', createdAt: '2026-07-22T10:00:00.000Z', updatedAt: '2026-07-22T10:00:00.000Z'},
-      {id: 'income-eur', kind: 'income', amountMinor: 200, currency: 'EUR', accountId: null, categoryId: null, category: 'Income', note: '', occurredAt: '2026-07-23T10:00:00.000Z', createdAt: '2026-07-23T10:00:00.000Z', updatedAt: '2026-07-23T10:00:00.000Z'},
-      {id: 'expense-usd', kind: 'expense', amountMinor: 900, currency: 'USD', accountId: null, categoryId: null, category: 'Food', note: '', occurredAt: '2026-07-22T10:00:00.000Z', createdAt: '2026-07-22T10:00:00.000Z', updatedAt: '2026-07-22T10:00:00.000Z'},
-      {id: 'old-expense', kind: 'expense', amountMinor: 700, currency: 'EUR', accountId: null, categoryId: null, category: 'Food', note: '', occurredAt: '2026-07-19T10:00:00.000Z', createdAt: '2026-07-19T10:00:00.000Z', updatedAt: '2026-07-19T10:00:00.000Z'},
+      {id: 'expense-eur', kind: 'expense', amountMinor: 500, currency: 'EUR', accountId: null, categoryId: null, payeeId: null, category: 'Food', note: '', occurredAt: '2026-07-22T10:00:00.000Z', createdAt: '2026-07-22T10:00:00.000Z', updatedAt: '2026-07-22T10:00:00.000Z'},
+      {id: 'income-eur', kind: 'income', amountMinor: 200, currency: 'EUR', accountId: null, categoryId: null, payeeId: null, category: 'Income', note: '', occurredAt: '2026-07-23T10:00:00.000Z', createdAt: '2026-07-23T10:00:00.000Z', updatedAt: '2026-07-23T10:00:00.000Z'},
+      {id: 'expense-usd', kind: 'expense', amountMinor: 900, currency: 'USD', accountId: null, categoryId: null, payeeId: null, category: 'Food', note: '', occurredAt: '2026-07-22T10:00:00.000Z', createdAt: '2026-07-22T10:00:00.000Z', updatedAt: '2026-07-22T10:00:00.000Z'},
+      {id: 'old-expense', kind: 'expense', amountMinor: 700, currency: 'EUR', accountId: null, categoryId: null, payeeId: null, category: 'Food', note: '', occurredAt: '2026-07-19T10:00:00.000Z', createdAt: '2026-07-19T10:00:00.000Z', updatedAt: '2026-07-19T10:00:00.000Z'},
     ];
     data.usageSnapshots = [
       {id: 'usage-included', packageName: 'com.chat', displayName: 'Chat', localDate: '2026-07-22', durationSeconds: 120, sourceReadAt: '2026-07-26T16:00:00.000Z', included: true},

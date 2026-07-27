@@ -36,6 +36,7 @@ const entry = (accountId: string, kind: MoneyEntry['kind'], amountMinor: number)
   currency: 'EUR',
   accountId,
   categoryId: 'category_food',
+  payeeId: null,
   category: 'Food',
   note: '',
   occurredAt: '2026-07-26T12:00:00.000Z',

@@ -38,12 +38,12 @@ class MemorySqlite implements SqliteExecutor {
         rowsAffected: 0,
       };
     }
-    if (normalized === 'SELECT id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id') {
+    if (normalized === 'SELECT id, kind, amount_minor, currency, account_id, category_id, payee_id, category, note, occurred_at, created_at, updated_at, split_id FROM money_entries ORDER BY occurred_at, id') {
       return {
         rows: [...this.moneyEntries.values()].map(values => ({
           id: values[0], kind: values[1], amount_minor: values[2], currency: values[3], account_id: values[4],
-          category_id: values[5], category: values[6], note: values[7], occurred_at: values[8], created_at: values[9],
-          updated_at: values[10], split_id: values[11],
+          category_id: values[5], payee_id: values[6], category: values[7], note: values[8], occurred_at: values[9], created_at: values[10],
+          updated_at: values[11], split_id: values[12],
         })),
         rowsAffected: 0,
       };
@@ -123,7 +123,7 @@ class MemorySqlite implements SqliteExecutor {
       this.records.set(`${recordType}:${recordId}`, {recordType, recordId, payloadJson, updatedAt});
       return {rows: [], rowsAffected: 1};
     }
-    if (normalized === 'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') {
+    if (normalized === 'INSERT INTO money_entries (id, kind, amount_minor, currency, account_id, category_id, payee_id, category, note, occurred_at, created_at, updated_at, split_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') {
       this.moneyEntries.set(String(params[0]), params as Array<string | number | null>);
       return {rows: [], rowsAffected: 1};
     }
@@ -157,7 +157,7 @@ describe('SQLite workspace store', () => {
     const store = new SqliteWorkspaceStore(database);
 
     await expect(store.load()).resolves.toEqual(emptyAppData());
-    expect(database.schemaVersion).toBe('2');
+    expect(database.schemaVersion).toBe('3');
   });
 
   it('round-trips all Phase 3 collections through one transaction', async () => {
@@ -173,6 +173,13 @@ describe('SQLite workspace store', () => {
         isArchived: false,
       },
     ];
+    data.payees.push({
+      id: 'payee_market',
+      name: 'Market',
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.transfers.push({
       id: 'transfer_1',
       fromAccountId: 'account_everyday',
@@ -191,6 +198,7 @@ describe('SQLite workspace store', () => {
       currency: 'USD',
       accountId: 'account_everyday',
       categoryId: null,
+      payeeId: 'payee_market',
       category: 'Split',
       note: 'Trip',
       occurredAt: '2026-07-26T12:00:00.000Z',
@@ -426,6 +434,7 @@ describe('SQLite workspace store', () => {
       currency: 'EUR',
       accountId: 'account_everyday',
       categoryId: 'category_food',
+      payeeId: null,
       category: 'Food',
       note: '',
       occurredAt: '2026-07-26T12:00:00.000Z',
@@ -450,17 +459,17 @@ describe('SQLite workspace store', () => {
 
   it('rejects unsupported repository versions instead of guessing', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '3';
-    database.meta.set('schema_version', '3');
+    database.schemaVersion = '4';
+    database.meta.set('schema_version', '4');
     const store = new SqliteWorkspaceStore(database);
 
-    await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 3.');
+    await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 4.');
   });
 
   it('rejects old SQLite recurrence rows without the current policy', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '2';
-    database.meta.set('schema_version', '2');
+    database.schemaVersion = '3';
+    database.meta.set('schema_version', '3');
     database.meta.set('main_currency', 'EUR');
     database.records.set('recurrence:old_rule', {
       recordType: 'recurrence',
@@ -490,8 +499,8 @@ describe('SQLite workspace store', () => {
 
   it('rejects old SQLite note rows without current fields', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '2';
-    database.meta.set('schema_version', '2');
+    database.schemaVersion = '3';
+    database.meta.set('schema_version', '3');
     database.meta.set('main_currency', 'EUR');
     database.records.set('note:old_note', {
       recordType: 'note',
@@ -513,8 +522,8 @@ describe('SQLite workspace store', () => {
 
   it('rejects old SQLite task rows without current fields', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '2';
-    database.meta.set('schema_version', '2');
+    database.schemaVersion = '3';
+    database.meta.set('schema_version', '3');
     database.meta.set('main_currency', 'EUR');
     database.records.set('task:old_task', {
       recordType: 'task',
@@ -537,8 +546,8 @@ describe('SQLite workspace store', () => {
 
   it('rejects malformed persisted record payloads', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '2';
-    database.meta.set('schema_version', '2');
+    database.schemaVersion = '3';
+    database.meta.set('schema_version', '3');
     database.records.set('money:broken', {
       recordType: 'money',
       recordId: 'broken',

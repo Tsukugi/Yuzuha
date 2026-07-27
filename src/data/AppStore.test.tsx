@@ -53,6 +53,7 @@ describe('AppStore task reminders', () => {
       currency: 'EUR',
       accountId: 'account_everyday',
       categoryId: 'category_food',
+      payeeId: null,
       category: 'Food',
       note: 'Imported',
       occurredAt: '2026-07-28T12:00:00.000Z',
@@ -79,6 +80,26 @@ describe('AppStore task reminders', () => {
       }])).rejects.toThrow(/already exists/i);
     });
     expect(saved.money).toEqual([entry]);
+    await act(async () => {
+      await value!.addMoneyPayee('Market');
+    });
+    const payeeId = saved.payees[0]?.id;
+    expect(payeeId).toBeTruthy();
+    await act(async () => {
+      await value!.addMoney({
+        kind: 'expense',
+        amountMinor: 100,
+        currency: 'EUR',
+        accountId: 'account_everyday',
+        categoryId: 'category_food',
+        payeeId: payeeId!,
+        category: 'Food',
+        note: 'Payee-linked',
+      });
+      await value!.archiveMoneyPayee(payeeId!);
+    });
+    expect(saved.money[0]?.payeeId).toBe(payeeId);
+    expect(saved.payees[0]?.isArchived).toBe(true);
     await act(async () => {
       renderer?.unmount();
     });

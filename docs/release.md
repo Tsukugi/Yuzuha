@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android Money-payee pass:
+
+- Money entries can select an optional local payee by stable ID; payees have trimmed case-insensitively unique names, archive controls, and visible form/list state;
+- payees and entry references persist through current JSON, encrypted backups, SQLite repository schema 3, CSV export/import, and global search; app schema is now 29;
+- old app, SQLite, backup, and CSV versions remain rejected; no migration, account, network request, worker, or background process was added;
+- focused payee tests, full Jest (48 suites, 203 tests), lint, typecheck, bundle validation, release APK build, emulator payee-form smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android Money-filtered-totals pass:
 
 - Money history now derives the visible non-split list and currency-separated count, spending, income, and net totals from one All/Day/Week/Month, type, category, and account filter;

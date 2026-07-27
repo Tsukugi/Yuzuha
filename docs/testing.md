@@ -7,14 +7,20 @@ Status: Current test strategy through the Android Money-filtered-totals pass. Un
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 47 Jest suites and 200 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
-- Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
+- The current suite is 48 Jest suites and 203 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- Fresh SQLite startup seeds current app schema 29 data directly; old local database files are rejected by repository schema checks.
 
 ## Money filter evidence
 
 - Focused Money-filter tests cover combined local period, type, category, and account matching, the unfiltered result, and currency-separated filtered totals.
 - Emulator `emulator-5554`: release Money showed the Entry filters and Filtered totals sections; Month selection changed the selector state and the fresh workspace showed the explicit no-totals state without filtered fatal or ReactNativeJS errors.
 - Phone `42adce68`: release startup completed with the native offline-local decision and no filtered app errors. Both devices were force-stopped afterward.
+
+## Money payee evidence
+
+- Focused payee tests cover trimmed records, blank names, case-insensitive duplicate rejection, and same-record validation.
+- SQLite round-trip coverage stores a payee record and a money-entry `payeeId`; JSON and CSV tests use current schema 29 data and current payee columns.
+- Global-search coverage finds a money entry by its payee name and includes that name in the result title.
 
 ## Native installer evidence
 

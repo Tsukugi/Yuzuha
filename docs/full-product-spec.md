@@ -54,6 +54,8 @@ Current Android portability slice: Data tools can choose one current Yuzuha mone
 
 Current Money list behavior: Money history can be filtered by All/Day/Week/Month, expense or income, category, and account. The visible list and currency-separated filtered totals use the same current local records and filter. These controls do not change the separate report screen, write a preference, add a migration, or start background work.
 
+Current Money payee behavior: An entry may select one active local payee or `No payee`. Payee names are trimmed and case-insensitively unique; archived payees remain valid for existing entries but cannot be selected for new entries. The reference is stable across current JSON, encrypted backup, SQLite, CSV, and global search paths.
+
 ### Review behavior
 
 The user can open a daily, weekly, or monthly review. A review contains:

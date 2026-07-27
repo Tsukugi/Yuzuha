@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android verified-remote-bundle pass.
+Status: Traceability baseline through the Android Money-payee pass.
 
 ## Authoritative source by concern
 
@@ -42,6 +42,8 @@ Current startup evidence: `START-01` through `START-05` map to `MainApplication`
 Current Home evidence: `CROSS-01` maps to `HomeScreen`, shared `period.ts` helpers, period unit tests, emulator selector/range/card smoke, and the 2026-07-27 Home-period release note. The calculation is derived and adds no schema or background behavior.
 
 Current Review evidence: `CROSS-03` maps to `ReviewScreen`, `buildReviewSummary`, `src/shared/review.test.ts`, emulator Today/Week/Month Review smoke, and the 2026-07-27 period-review release note. The screen is source-backed and read-only; persisted reflection and review history remain planned.
+
+Current Money payee evidence: `MONEY-06` maps to `MoneyScreen`, `MoneyPayee`, `moneyPayee.ts`, AppStore payee actions, JSON/CSV/SQLite validation, global-search coverage, the 2026-07-27 Money-payee release note, and emulator Payee-form smoke. Payees use stable IDs; archived records remain valid for existing money entries.
 
 ## Open decision register
 

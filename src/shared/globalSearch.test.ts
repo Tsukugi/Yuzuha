@@ -41,6 +41,13 @@ describe('global search', () => {
       createdAt: '2026-07-27T00:00:00.000Z',
       updatedAt: '2026-07-27T00:00:00.000Z',
     });
+    data.payees.push({
+      id: 'payee_work',
+      name: 'Work Market',
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
     data.money.push({
       id: 'money_work',
       kind: 'expense',
@@ -48,6 +55,7 @@ describe('global search', () => {
       currency: 'EUR',
       accountId: 'account_everyday',
       categoryId: 'category_food',
+      payeeId: 'payee_work',
       category: 'Food',
       note: 'Work lunch',
       occurredAt: '2026-07-27T00:00:00.000Z',
@@ -105,6 +113,7 @@ describe('global search', () => {
 
     const workResults = searchGlobal(data, 'work');
     expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'project', 'app-group', 'saved-search', 'task', 'task-list', 'focus-session']);
+    expect(searchGlobal(data, 'market')).toMatchObject([{kind: 'money', id: 'money_work', title: expect.stringContaining('Work Market')}]);
   });
 
   it('hides archived records and inaccessible app-time data by default', () => {

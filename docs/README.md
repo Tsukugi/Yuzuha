@@ -2,6 +2,8 @@
 
 This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, selected App Time period reports, selected Home dashboard periods, read-only period Reviews, local Money entry filters and filtered totals, and the native verified-remote-bundle startup gate, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
+The latest current-schema pass adds local payees and nullable stable payee IDs on money entries. It uses app schema 29 and repository schema 3; old versions remain intentionally rejected.
+
 ## Read in this order
 
 1. [Product plan](product-plan.md) - why the product exists, full scope, phases, metrics, and review questions.

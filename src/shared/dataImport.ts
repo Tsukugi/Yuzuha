@@ -7,6 +7,7 @@ import type {
   MoneyBudget,
   MoneyCategory,
   MoneyEntry,
+  MoneyPayee,
   MissedOccurrencePolicy,
   MoneyRecurrenceRule,
   MoneySplit,
@@ -43,6 +44,7 @@ export interface JsonImportRecordCounts {
   recurrences: number;
   accounts: number;
   categories: number;
+  payees: number;
   notes: number;
   attachments: number;
   savedSearches: number;
@@ -86,7 +88,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 28) {
+  if (appSchemaVersion !== 29) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -105,7 +107,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 28 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 29 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -119,6 +121,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('recurring rules', data.recurrences);
   validateUniqueIds('accounts', data.accounts);
   validateUniqueIds('categories', data.categories);
+  validateUniqueIds('payees', data.payees);
   validateUniqueIds('notes', data.notes);
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
@@ -135,6 +138,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
 
   const accountIds = new Set(data.accounts.map(account => account.id));
   const categoryIds = new Set(data.categories.map(category => category.id));
+  const payeeIds = new Set(data.payees.map(payee => payee.id));
   const noteIds = new Set(data.notes.map(note => note.id));
   const taskListIds = new Set(data.taskLists.map(taskList => taskList.id));
   const taskRecurrenceIds = new Set(data.taskRecurrences.map(rule => rule.id));
@@ -143,7 +147,16 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
 
   data.accounts.forEach(validateAccount);
   data.categories.forEach(validateCategory);
-  data.money.forEach(entry => validateMoneyEntry(entry, accountIds, categoryIds));
+  const payeeNames = new Set<string>();
+  data.payees.forEach(payee => {
+    validatePayee(payee);
+    const normalizedName = payee.name.toLocaleLowerCase();
+    if (payeeNames.has(normalizedName)) {
+      throw new JsonImportError(`Payee ${payee.id} duplicates another payee name.`);
+    }
+    payeeNames.add(normalizedName);
+  });
+  data.money.forEach(entry => validateMoneyEntry(entry, accountIds, categoryIds, payeeIds));
   data.transfers.forEach(transfer => validateTransfer(transfer, accountIds));
   data.splits.forEach(split => {
     validateSplit(split, moneyById, categoryIds, splitLineIds);
@@ -238,11 +251,20 @@ function validateCategory(category: MoneyCategory): void {
   }
 }
 
-function validateMoneyEntry(entry: MoneyEntry, accountIds: Set<string>, categoryIds: Set<string>): void {
+function validatePayee(payee: MoneyPayee): void {
+  validateId(payee.id, 'payee');
+  if (typeof payee.name !== 'string' || payee.name !== payee.name.trim() || payee.name.length === 0 || payee.name.length > 80 ||
+      typeof payee.isArchived !== 'boolean' || !isIsoDate(payee.createdAt) || !isIsoDate(payee.updatedAt)) {
+    throw new JsonImportError(`Payee ${payee.id} has invalid fields.`);
+  }
+}
+
+function validateMoneyEntry(entry: MoneyEntry, accountIds: Set<string>, categoryIds: Set<string>, payeeIds: Set<string>): void {
   validateId(entry.id, 'money entry');
   validateMoneyFields(entry.amountMinor, entry.currency, entry.kind, entry.occurredAt, entry.createdAt, entry.updatedAt, entry.id);
   validateOptionalReference(entry.accountId, accountIds, `Money entry ${entry.id} account`);
   validateOptionalReference(entry.categoryId, categoryIds, `Money entry ${entry.id} category`);
+  validateOptionalReference(entry.payeeId, payeeIds, `Money entry ${entry.id} payee`);
   if (typeof entry.category !== 'string' || typeof entry.note !== 'string' || (entry.splitId !== undefined && entry.splitId !== null && typeof entry.splitId !== 'string')) {
     throw new JsonImportError(`Money entry ${entry.id} has invalid fields.`);
   }
@@ -580,6 +602,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     recurrences: data.recurrences.length,
     accounts: data.accounts.length,
     categories: data.categories.length,
+    payees: data.payees.length,
     notes: data.notes.length,
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,

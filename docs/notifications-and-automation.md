@@ -34,6 +34,8 @@ Current Android reminders have a task ID and trigger time. Editing the reminder 
 
 The full-product target adds explicit timezone and synced notification state. The current local Task reminders flag, recurring-task reminders flag, quiet-hours pair, recurring-rule reminder time, task parent link, task template fields, task dependency condition, and local snooze-duration policy are in app schema 28; broader category automation and timezone contracts remain planned.
 
+The current overall app schema is 29 after the Money payee pass. Notification data and behavior are unchanged by that pass.
+
 The current Android action contract is `Complete`, `Snooze`, or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once. `Snooze` reads the selected local duration, schedules its projected alarm, and replaces the old schedule before committing the new timestamp. Missing, completed, and paused-category targets are ignored. The full-product target may add recurring notification state and synced notification state later.
 
 ## Recurring work

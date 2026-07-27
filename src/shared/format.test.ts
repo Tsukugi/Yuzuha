@@ -8,6 +8,7 @@ const entry = (kind: MoneyEntry['kind'], amountMinor: number): MoneyEntry => ({
   currency: 'EUR',
   accountId: 'account_everyday',
   categoryId: 'category_food',
+  payeeId: null,
   category: 'test',
   note: '',
   occurredAt: '2026-07-26T00:00:00.000Z',

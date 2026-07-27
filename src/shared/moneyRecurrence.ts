@@ -118,6 +118,7 @@ export function expandDueMoneyRecurrences(
           currency: rule.currency,
           accountId: rule.accountId,
           categoryId: rule.categoryId,
+          payeeId: null,
           category: rule.category,
           note: rule.note,
           occurredAt: localDateToIso(occurrenceLocalDate),

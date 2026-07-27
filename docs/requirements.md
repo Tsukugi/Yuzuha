@@ -349,6 +349,8 @@ Current Review extension: Home opens a read-only Review for Today, This week, or
 
 Current Money filter extension: Money history supports All/Day/Week/Month period, expense/income type, category, and account filters. One derived filter drives the existing non-split list and currency-separated minor-unit totals, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
 
+Current Money payee extension: Money supports optional stable `payeeId` references, local payee creation, case-insensitive unique names, archive controls, and current JSON/CSV/encrypted-backup/SQLite/global-search preservation. App schema 29 and repository schema 3 are current; older versions are rejected rather than migrated.
+
 ## Local recovery-key backup implementation review
 
 Implemented and verified:

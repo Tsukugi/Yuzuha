@@ -40,10 +40,12 @@ import {widgetSummary} from '../platform/widgetSummary';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
+import {createMoneyPayee, validateMoneyPayeeName} from '../shared/moneyPayee';
 import type {
   AppData,
   MoneyAccount,
   MoneyCategory,
+  MoneyPayee,
   MoneyKind,
   MoneyEntry,
   MoneyTransfer,
@@ -64,6 +66,7 @@ interface AppStoreValue {
     currency: string;
     accountId: string | null;
     categoryId: string | null;
+    payeeId: string | null;
     category: string;
     note: string;
   }) => Promise<void>;
@@ -74,6 +77,7 @@ interface AppStoreValue {
     currency: string;
     accountId: string | null;
     categoryId: string | null;
+    payeeId: string | null;
     category: string;
     note: string;
   }) => Promise<void>;
@@ -95,8 +99,10 @@ interface AppStoreValue {
   deleteMoneyTransfer: (transferId: string) => Promise<void>;
   addMoneyAccount: (name: string, currency: string) => Promise<void>;
   addMoneyCategory: (name: string, kind: MoneyKind | 'both') => Promise<void>;
+  addMoneyPayee: (name: string) => Promise<void>;
   archiveMoneyAccount: (accountId: string) => Promise<void>;
   archiveMoneyCategory: (categoryId: string) => Promise<void>;
+  archiveMoneyPayee: (payeeId: string) => Promise<void>;
   addNote: (input: NoteDraft) => Promise<void>;
   addNoteWithAttachment: (input: NoteDraft, source: AttachmentSource) => Promise<void>;
   updateNote: (noteId: string, input: NoteDraft) => Promise<void>;
@@ -233,10 +239,14 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       currency: string;
       accountId: string | null;
       categoryId: string | null;
+      payeeId: string | null;
       category: string;
       note: string;
     }) => {
       const now = new Date().toISOString();
+      if (input.payeeId !== null && !(dataRef.current?.payees ?? []).some(payee => payee.id === input.payeeId)) {
+        throw new Error('Choose a current payee or no payee.');
+      }
       const entry: MoneyEntry = {
         ...input,
         id: createId('money'),
@@ -276,10 +286,14 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       currency: string;
       accountId: string | null;
       categoryId: string | null;
+      payeeId: string | null;
       category: string;
       note: string;
     }) => {
       const updatedAt = new Date().toISOString();
+      if (input.payeeId !== null && !(dataRef.current?.payees ?? []).some(payee => payee.id === input.payeeId)) {
+        throw new Error('Choose a current payee or no payee.');
+      }
       await commit(current => ({
         ...current,
         money: current.money.map(entry => (entry.id === entryId ? {...entry, ...input, updatedAt} : entry)),
@@ -500,6 +514,20 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const addMoneyPayee = useCallback(
+    async (name: string) => {
+      const currentPayees = dataRef.current?.payees ?? [];
+      const validationError = validateMoneyPayeeName(name, currentPayees);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const payee: MoneyPayee = createMoneyPayee(name, createId('payee'), timestamp);
+      await commit(current => ({...current, payees: [...current.payees, payee]}));
+    },
+    [commit],
+  );
+
   const archiveMoneyAccount = useCallback(
     async (accountId: string) => {
       await commit(current => ({
@@ -519,6 +547,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         categories: current.categories.map(category =>
           category.id === categoryId ? {...category, isArchived: true} : category,
         ),
+      }));
+    },
+    [commit],
+  );
+
+  const archiveMoneyPayee = useCallback(
+    async (payeeId: string) => {
+      await commit(current => ({
+        ...current,
+        payees: current.payees.map(payee => payee.id === payeeId ? {...payee, isArchived: true, updatedAt: new Date().toISOString()} : payee),
       }));
     },
     [commit],
@@ -1435,8 +1473,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteMoneyTransfer,
       addMoneyAccount,
       addMoneyCategory,
+      addMoneyPayee,
       archiveMoneyAccount,
       archiveMoneyCategory,
+      archiveMoneyPayee,
       addNote,
       addNoteWithAttachment,
       updateNote,
@@ -1494,8 +1534,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addTimeGoal,
       addMoneyAccount,
       addMoneyCategory,
+      addMoneyPayee,
       archiveMoneyAccount,
       archiveMoneyCategory,
+      archiveMoneyPayee,
       deleteMoney,
       deleteMoneyTransfer,
       addSplitMoney,

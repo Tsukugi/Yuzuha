@@ -10,6 +10,7 @@ function entry(overrides: Partial<MoneyEntry>): MoneyEntry {
     currency: overrides.currency ?? 'EUR',
     accountId: 'account_everyday',
     categoryId: 'category_food',
+    payeeId: null,
     category: overrides.category ?? 'Food',
     note: '',
     occurredAt: overrides.occurredAt ?? '2026-07-26T12:00:00.000Z',

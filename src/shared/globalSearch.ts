@@ -86,6 +86,7 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
   const results: Array<{result: GlobalSearchResult; order: number}> = [];
   const accountNames = new Map(data.accounts.map(account => [account.id, account.name]));
   const categoryNames = new Map(data.categories.map(category => [category.id, category.name]));
+  const payeeNames = new Map(data.payees.map(payee => [payee.id, payee.name]));
   const taskTitles = new Map(data.tasks.map(task => [task.id, task.title]));
   const projectNames = new Map(data.projects.map(project => [project.id, project.name]));
   const noteTitles = new Map(data.notes.map(note => [note.id, note.title]));
@@ -105,10 +106,11 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
   data.money.forEach(entry => {
     const accountName = entry.accountId ? accountNames.get(entry.accountId) : undefined;
     const categoryName = entry.categoryId ? categoryNames.get(entry.categoryId) : entry.category;
-    if (includesQuery(normalizedQuery, [entry.kind, entry.amountMinor, entry.currency, categoryName, accountName, entry.note, entry.occurredAt])) {
+    const payeeName = entry.payeeId ? payeeNames.get(entry.payeeId) : undefined;
+    if (includesQuery(normalizedQuery, [entry.kind, entry.amountMinor, entry.currency, categoryName, accountName, payeeName, entry.note, entry.occurredAt])) {
       add('money', {
         id: entry.id,
-        title: `${entry.kind === 'expense' ? 'Expense' : 'Income'} · ${categoryName ?? 'Uncategorized'}`,
+        title: `${entry.kind === 'expense' ? 'Expense' : 'Income'} · ${categoryName ?? 'Uncategorized'}${payeeName ? ` · ${payeeName}` : ''}`,
         detail: `${entry.amountMinor} ${entry.currency}${entry.note ? ` · ${entry.note}` : ''}`,
       });
     }

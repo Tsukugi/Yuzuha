@@ -22,7 +22,7 @@ describe('data exports', () => {
     };
 
     expect(parsed.exportSchemaVersion).toBe(DATA_EXPORT_SCHEMA_VERSION);
-    expect(parsed.appSchemaVersion).toBe(28);
+    expect(parsed.appSchemaVersion).toBe(29);
     expect(parsed.exportedAt).toBe('2026-07-26T12:00:00.000Z');
     expect(parsed.data).toEqual(data);
     expect(parsed.data).toHaveProperty('money');
@@ -34,6 +34,7 @@ describe('data exports', () => {
     expect(parsed.data).toHaveProperty('appGroups');
     expect(parsed.data).toHaveProperty('focusSessions');
     expect(parsed.data).toHaveProperty('savedSearches');
+    expect(parsed.data).toHaveProperty('payees');
   });
 
   it('builds a CSV with schema and currency fields and quotes unsafe cells', () => {
@@ -45,6 +46,7 @@ describe('data exports', () => {
       currency: 'EUR',
       accountId: 'account_everyday',
       categoryId: 'category_food',
+      payeeId: null,
       category: 'Food, lunch',
       note: 'A "shared" meal\nwith a friend',
       occurredAt: '2026-07-26T12:00:00.000Z',
@@ -57,7 +59,8 @@ describe('data exports', () => {
     expect(lines[0]).toContain('exportSchemaVersion');
     expect(lines[0]).toContain('appSchemaVersion');
     expect(lines[0]).toContain('currency');
-    expect(lines[1]).toContain('1,28,money_1,expense,1099,EUR');
+    expect(lines[0]).toContain('payeeId');
+    expect(lines[1]).toContain('1,29,money_1,expense,1099,EUR');
     expect(csv).toContain('"Food, lunch"');
     expect(csv).toContain('"A ""shared"" meal');
   });

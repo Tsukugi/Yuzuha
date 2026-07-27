@@ -71,6 +71,7 @@ export function createMoneySplit(
       currency: input.currency,
       accountId: input.accountId,
       categoryId: null,
+      payeeId: null,
       category: input.category,
       note: input.note,
       occurredAt: timestamp,

@@ -15,6 +15,14 @@ export interface MoneyCategory {
   isArchived: boolean;
 }
 
+export interface MoneyPayee {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface MoneyEntry {
   id: string;
   kind: MoneyKind;
@@ -22,6 +30,7 @@ export interface MoneyEntry {
   currency: string;
   accountId: string | null;
   categoryId: string | null;
+  payeeId: string | null;
   category: string;
   note: string;
   occurredAt: string;
@@ -270,7 +279,7 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 28;
+  schemaVersion: 29;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -279,6 +288,7 @@ export interface AppData {
   recurrences: MoneyRecurrenceRule[];
   accounts: MoneyAccount[];
   categories: MoneyCategory[];
+  payees: MoneyPayee[];
   notes: Note[];
   attachments: Attachment[];
   savedSearches: SavedSearch[];
@@ -308,7 +318,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 28,
+  schemaVersion: 29,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -325,6 +335,7 @@ export const emptyAppData = (): AppData => ({
     },
   ],
   categories: createDefaultCategories(),
+  payees: [],
   notes: [],
   attachments: [],
   savedSearches: [],

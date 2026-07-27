@@ -1176,16 +1176,21 @@ function MoneyScreen() {
     deleteMoney,
     addMoneyAccount,
     addMoneyCategory,
+    addMoneyPayee,
     archiveMoneyAccount,
     archiveMoneyCategory,
+    archiveMoneyPayee,
   } = useAppStore();
   const [kind, setKind] = useState<MoneyKind>('expense');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
+  const [payeeId, setPayeeId] = useState('');
   const [note, setNote] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newAccount, setNewAccount] = useState('');
+  const [newPayee, setNewPayee] = useState('');
+  const [payeeError, setPayeeError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
@@ -1233,6 +1238,7 @@ function MoneyScreen() {
       currency: selectedAccount?.currency ?? currentData.mainCurrency,
       accountId: selectedAccount?.id ?? null,
       categoryId: selectedCategory?.id ?? null,
+      payeeId: payeeId || null,
       category: selectedCategory?.name ?? 'Uncategorized',
       note: note.trim(),
     };
@@ -1246,6 +1252,7 @@ function MoneyScreen() {
 
   function resetForm() {
     setAmount('');
+    setPayeeId('');
     setNote('');
     setEditingId(null);
     setError(null);
@@ -1257,6 +1264,7 @@ function MoneyScreen() {
     setAmount((entry.amountMinor / 100).toFixed(2));
     setCategoryId(entry.categoryId ?? '');
     setAccountId(entry.accountId ?? '');
+    setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
     setError(null);
   }
@@ -1287,11 +1295,28 @@ function MoneyScreen() {
     setNewAccount('');
   }
 
+  async function savePayee() {
+    const name = newPayee.trim();
+    if (!name) {
+      setPayeeError('Enter a payee name.');
+      return;
+    }
+    try {
+      await addMoneyPayee(name);
+      setNewPayee('');
+      setPayeeError(null);
+    } catch (nextError) {
+      setPayeeError(nextError instanceof Error ? nextError.message : 'The payee could not be saved.');
+    }
+  }
+
   const visibleCategories = data.categories.filter(
     item => !item.isArchived && (item.kind === kind || item.kind === 'both'),
   );
   const activeCategoryId = categoryId || visibleCategories[0]?.id;
   const activeAccountId = accountId || data.accounts.find(account => !account.isArchived)?.id;
+  const visiblePayees = data.payees.filter(payee => !payee.isArchived || payee.id === payeeId);
+  const payeeNames = new Map(data.payees.map(payee => [payee.id, payee.name]));
   const entryFilter = {
     period: entryFilterPeriod,
     kind: entryFilterKind,
@@ -1407,6 +1432,13 @@ function MoneyScreen() {
               />
             ))}
           </View>
+          <Text style={styles.formLabel}>Payee (optional)</Text>
+          <View style={styles.chipWrap}>
+            <ChipButton label="No payee" selected={payeeId === ''} onPress={() => setPayeeId('')} />
+            {visiblePayees.map(payee => (
+              <ChipButton key={payee.id} label={payee.name} selected={payee.id === payeeId} onPress={() => setPayeeId(payee.id)} />
+            ))}
+          </View>
           <Text style={styles.formLabel}>Note (optional)</Text>
           <TextInput
             accessibilityLabel="Money note"
@@ -1449,6 +1481,17 @@ function MoneyScreen() {
             onChangeText={setNewAccount}
           />
           <PrimaryButton label="Add account" onPress={saveAccount} />
+          <Text style={styles.formLabel}>New payee</Text>
+          <TextInput
+            accessibilityLabel="New payee name"
+            placeholder="A shop or person"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={newPayee}
+            onChangeText={setNewPayee}
+          />
+          {payeeError && <Text style={styles.errorText}>{payeeError}</Text>}
+          <PrimaryButton label="Add payee" onPress={savePayee} />
           <Text style={styles.formLabel}>New {kind} category</Text>
           <TextInput
             accessibilityLabel="New category name"
@@ -1477,6 +1520,13 @@ function MoneyScreen() {
               <TextButton label="Archive" onPress={() => archiveMoneyCategory(category.id)} />
             </View>
           ))}
+          <Text style={styles.formLabel}>Active payees</Text>
+          {data.payees.filter(payee => !payee.isArchived).map(payee => (
+            <View key={payee.id} style={styles.manageRow}>
+              <Text style={styles.listTitle}>{payee.name}</Text>
+              <TextButton label="Archive" onPress={() => archiveMoneyPayee(payee.id)} />
+            </View>
+          ))}
         </View>
 
         <SectionTitle title={`Entries (${listEntries.length})`} />
@@ -1494,7 +1544,9 @@ function MoneyScreen() {
               onPress={() => startEdit(entry)}>
               <View style={styles.listBody}>
                 <Text style={styles.listTitle}>{entry.category}</Text>
-                <Text style={styles.listMeta}>{entry.note || formatDate(entry.occurredAt)}</Text>
+                <Text style={styles.listMeta}>
+                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || formatDate(entry.occurredAt)].filter(Boolean).join(' · ')}
+                </Text>
               </View>
               <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
                 {entry.kind === 'income' ? '+' : '-'}
