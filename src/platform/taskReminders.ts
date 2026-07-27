@@ -5,9 +5,16 @@ interface NativeTaskReminders {
   cancelTaskReminder: (taskId: string) => Promise<boolean>;
   syncTaskReminders: (reminders: Array<{taskId: string; triggerAtMillis: number}>) => Promise<boolean>;
   getInitialTaskReminderId?: () => Promise<string | null>;
+  getInitialTaskReminderTarget?: () => Promise<TaskReminderTarget | null>;
 }
 
 const TASK_REMINDER_OPENED_EVENT = 'YuzuhaTaskReminderOpened';
+const TASK_REMINDER_ACTION_EVENT = 'YuzuhaTaskReminderAction';
+
+export type TaskReminderTarget = {
+  taskId: string;
+  action: 'open' | 'complete';
+};
 
 export class TaskReminderError extends Error {
   constructor(message: string) {
@@ -82,10 +89,32 @@ export const taskReminders = {
     }
   },
 
+  async getPendingTarget(): Promise<TaskReminderTarget | null> {
+    if (!this.isSupported() || !nativeTaskReminders) {
+      return null;
+    }
+    if (nativeTaskReminders.getInitialTaskReminderTarget) {
+      try {
+        return await nativeTaskReminders.getInitialTaskReminderTarget();
+      } catch (error) {
+        throw new TaskReminderError(error instanceof Error && error.message ? error.message : 'The task reminder target could not be opened.');
+      }
+    }
+    const taskId = await this.getPendingTaskId();
+    return taskId ? {taskId, action: 'open'} : null;
+  },
+
   onTaskReminderOpened(listener: (taskId: string) => void): {remove: () => void} {
     if (!this.isSupported()) {
       return {remove: () => undefined};
     }
     return DeviceEventEmitter.addListener(TASK_REMINDER_OPENED_EVENT, listener);
+  },
+
+  onTaskReminderAction(listener: (target: TaskReminderTarget) => void): {remove: () => void} {
+    if (!this.isSupported()) {
+      return {remove: () => undefined};
+    }
+    return DeviceEventEmitter.addListener(TASK_REMINDER_ACTION_EVENT, listener);
   },
 };

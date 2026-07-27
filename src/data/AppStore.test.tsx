@@ -151,4 +151,46 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('completes a task from a reminder action once and keeps the logical reminder', async () => {
+    const task = createTaskRecord(
+      {title: 'Complete from reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_action',
+      new Date().toISOString(),
+    );
+    task.reminderAtMillis = Date.now() + 60_000;
+    let saved = {...emptyAppData(), tasks: [task]} as AppData;
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const cancel = taskReminders.cancel as jest.Mock;
+    cancel.mockClear();
+    await act(async () => {
+      await value!.completeTaskFromReminder('task_action');
+      await value!.completeTaskFromReminder('task_action');
+    });
+
+    expect(saved.tasks[0]?.status).toBe('completed');
+    expect(saved.tasks[0]?.reminderAtMillis).toBe(task.reminderAtMillis);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

@@ -51,6 +51,7 @@ import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validat
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
+import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -69,11 +70,12 @@ const colors = {
 };
 
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
-  const {data, isLoading, error} = useAppStore();
+  const {data, isLoading, error, completeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
 
   const openReminderTask = useCallback((taskId: string) => {
     setPendingTaskId(taskId);
@@ -82,23 +84,52 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setTab('tasks');
   }, []);
 
+  const handleReminderTarget = useCallback((target: TaskReminderTarget) => {
+    setDataToolsOpen(false);
+    setGlobalSearchOpen(false);
+    setTab('tasks');
+    if (target.action === 'complete') {
+      setPendingReminderAction(target);
+    } else {
+      openReminderTask(target.taskId);
+    }
+  }, [openReminderTask]);
+
   useEffect(() => {
     let mounted = true;
-    const subscription = taskReminders.onTaskReminderOpened(taskId => {
+    const openSubscription = taskReminders.onTaskReminderOpened(taskId => {
       if (mounted) {
         openReminderTask(taskId);
       }
     });
-    void taskReminders.getPendingTaskId().then(taskId => {
-      if (mounted && taskId) {
-        openReminderTask(taskId);
+    const actionSubscription = taskReminders.onTaskReminderAction(target => {
+      if (mounted) {
+        handleReminderTarget(target);
+      }
+    });
+    void taskReminders.getPendingTarget().then(target => {
+      if (mounted && target) {
+        handleReminderTarget(target);
       }
     });
     return () => {
       mounted = false;
-      subscription.remove();
+      openSubscription.remove();
+      actionSubscription.remove();
     };
-  }, [openReminderTask]);
+  }, [handleReminderTarget, openReminderTask]);
+
+  useEffect(() => {
+    if (!data || !pendingReminderAction) {
+      return;
+    }
+    const target = pendingReminderAction;
+    setPendingReminderAction(null);
+    void completeTaskFromReminder(target.taskId).catch(() => {
+      Alert.alert('Reminder action failed', 'Open the task and complete it manually.');
+      setPendingTaskId(target.taskId);
+    });
+  }, [completeTaskFromReminder, data, pendingReminderAction]);
 
   if (isLoading || !data) {
     return <LoadingScreen message="Opening your local workspace..." />;

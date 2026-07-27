@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 18 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; broader notification automation, normalized report, and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 18 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, Android `Open` and idempotent `Complete` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; broader notification automation, normalized report, and sync tables remain future work.
 
 ## Storage rules
 
@@ -178,7 +178,7 @@ The current task UI supports custom lists. The seeded `Inbox` list cannot be arc
 | `isPaused` | boolean | Paused rules do not expand. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-Rules expand during startup and rule creation. One-off Android task reminders are stored on the task and rebuilt at startup and boot. `notificationSettings` is an optional daily local window: both values are null when disabled, and a reminder inside the window is scheduled at the window end while its logical task timestamp stays unchanged. Broader notifications, background automation, templates, and editing one occurrence versus a series are planned.
+Rules expand during startup and rule creation. One-off Android task reminders are stored on the task and rebuilt at startup and boot. Reminder notification actions use the task ID but add no persisted action state: `Complete` changes only an existing open task to completed and keeps the logical reminder timestamp unchanged. `notificationSettings` is an optional daily local window: both values are null when disabled, and a reminder inside the window is scheduled at the window end while its logical task timestamp stays unchanged. Broader notifications, background automation, templates, and editing one occurrence versus a series are planned.
 
 ### Notification settings
 

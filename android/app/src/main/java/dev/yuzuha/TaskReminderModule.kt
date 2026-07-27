@@ -5,6 +5,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import android.content.Intent
 
@@ -73,6 +74,24 @@ class TaskReminderModule(private val context: ReactApplicationContext) : ReactCo
     promise.resolve(taskId?.takeIf { it.isNotBlank() })
   }
 
+  @ReactMethod
+  fun getInitialTaskReminderTarget(promise: Promise) {
+    val activity = getReactApplicationContext().getCurrentActivity()
+    val taskId = activity?.intent?.getStringExtra(TASK_REMINDER_ID_EXTRA)?.takeIf { it.isNotBlank() }
+    val action = normalizeAction(activity?.intent?.getStringExtra(TASK_REMINDER_ACTION_EXTRA))
+    activity?.intent?.removeExtra(TASK_REMINDER_ID_EXTRA)
+    activity?.intent?.removeExtra(TASK_REMINDER_ACTION_EXTRA)
+    if (taskId == null) {
+      promise.resolve(null)
+      return
+    }
+    TaskReminderReceiver.dismissNotification(context, taskId)
+    promise.resolve(Arguments.createMap().apply {
+      putString("taskId", taskId)
+      putString("action", action)
+    })
+  }
+
   override fun invalidate() {
     if (current === this) {
       current = null
@@ -85,15 +104,37 @@ class TaskReminderModule(private val context: ReactApplicationContext) : ReactCo
       .emit(TASK_REMINDER_OPENED_EVENT, taskId)
   }
 
+  private fun emitTaskReminderAction(taskId: String, action: String) {
+    context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(TASK_REMINDER_ACTION_EVENT, Arguments.createMap().apply {
+        putString("taskId", taskId)
+        putString("action", action)
+      })
+  }
+
   companion object {
     const val TASK_REMINDER_ID_EXTRA = "taskId"
+    const val TASK_REMINDER_ACTION_EXTRA = "taskAction"
+    const val TASK_REMINDER_ACTION_OPEN = "open"
+    const val TASK_REMINDER_ACTION_COMPLETE = "complete"
     const val TASK_REMINDER_OPENED_EVENT = "YuzuhaTaskReminderOpened"
+    const val TASK_REMINDER_ACTION_EVENT = "YuzuhaTaskReminderAction"
     private var current: TaskReminderModule? = null
 
     fun handleActivityIntent(intent: Intent) {
       val taskId = intent.getStringExtra(TASK_REMINDER_ID_EXTRA)?.takeIf { it.isNotBlank() } ?: return
+      val action = normalizeAction(intent.getStringExtra(TASK_REMINDER_ACTION_EXTRA))
       intent.removeExtra(TASK_REMINDER_ID_EXTRA)
-      current?.emitTaskReminderOpened(taskId)
+      intent.removeExtra(TASK_REMINDER_ACTION_EXTRA)
+      current?.let { TaskReminderReceiver.dismissNotification(it.context, taskId) }
+      if (action == TASK_REMINDER_ACTION_COMPLETE) {
+        current?.emitTaskReminderAction(taskId, action)
+      } else {
+        current?.emitTaskReminderOpened(taskId)
+      }
     }
+
+    private fun normalizeAction(action: String?): String =
+      if (action == TASK_REMINDER_ACTION_COMPLETE) TASK_REMINDER_ACTION_COMPLETE else TASK_REMINDER_ACTION_OPEN
   }
 }

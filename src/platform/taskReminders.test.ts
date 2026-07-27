@@ -9,6 +9,7 @@ jest.mock('react-native', () => ({
       cancelTaskReminder: jest.fn(),
       syncTaskReminders: jest.fn(),
       getInitialTaskReminderId: jest.fn(),
+      getInitialTaskReminderTarget: jest.fn(),
     },
   },
   DeviceEventEmitter: {
@@ -28,6 +29,7 @@ const native = NativeModules.YuzuhaTaskReminders as {
   cancelTaskReminder: jest.Mock;
   syncTaskReminders: jest.Mock;
   getInitialTaskReminderId: jest.Mock;
+  getInitialTaskReminderTarget: jest.Mock;
 };
 
 describe('task reminder bridge', () => {
@@ -39,6 +41,7 @@ describe('task reminder bridge', () => {
     native.cancelTaskReminder.mockResolvedValue(true);
     native.syncTaskReminders.mockResolvedValue(true);
     native.getInitialTaskReminderId.mockResolvedValue(null);
+    native.getInitialTaskReminderTarget.mockResolvedValue(null);
   });
 
   it('requests notification permission before scheduling', async () => {
@@ -72,6 +75,17 @@ describe('task reminder bridge', () => {
     const subscription = taskReminders.onTaskReminderOpened(listener);
 
     expect(DeviceEventEmitter.addListener).toHaveBeenCalledWith('YuzuhaTaskReminderOpened', listener);
+    expect(subscription).toHaveProperty('remove');
+  });
+
+  it('reads a pending task action and subscribes to warm-app actions', async () => {
+    native.getInitialTaskReminderTarget.mockResolvedValue({taskId: 'task_4', action: 'complete'});
+    await expect(taskReminders.getPendingTarget()).resolves.toEqual({taskId: 'task_4', action: 'complete'});
+
+    const listener = jest.fn();
+    const subscription = taskReminders.onTaskReminderAction(listener);
+
+    expect(DeviceEventEmitter.addListener).toHaveBeenCalledWith('YuzuhaTaskReminderAction', listener);
     expect(subscription).toHaveProperty('remove');
   });
 });

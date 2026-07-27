@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 Android notification Complete-action pass:
+
+- the Android reminder notification now offers `Open` through its content tap and `Complete` through an explicit action button;
+- `Complete` routes through the stable task ID and the local AppStore, completes an existing open task once, preserves its logical reminder timestamp, and ignores missing or already-completed tasks;
+- the notification is explicitly dismissed after either action; no app-data schema, permission, or minimum-OS change was made;
+- focused bridge and AppStore tests, full unit tests, lint, typecheck, bundle checks, debug/release builds, emulator action/dismissal smoke, and phone launch smoke passed;
+- snooze, recurring-rule notifications, iOS reminders, and sync remain planned.
+
 2026-07-27 local quiet-hours pass:
 
 - app data schema 18 adds nullable `notificationSettings.quietHoursStartLocalTime` and `quietHoursEndLocalTime`;

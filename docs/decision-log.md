@@ -290,3 +290,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add nullable `quietHoursStartLocalTime` and `quietHoursEndLocalTime` to app schema 18. Require both values to be present and different when enabled. For same-day and overnight windows, project an in-window reminder to the applicable local end time before native scheduling. Keep the logical `reminderAtMillis` unchanged and rebuild the projection on startup, restore, setting changes, and reminder edits.
 - Reason: The rule is local, typed, deterministic, and preserves the user's original task time. Storing only a daily `HH:mm` pair avoids timezone and sync state until the broader notification contract exists.
 - Consequence: There is still no snooze, notification action, category policy, recurring-rule notification, iOS reminder, or sync behavior. Schema 17 data migrates with quiet hours disabled.
+
+## DEC-043: Keep Android reminder actions local and idempotent
+
+- Context: A reminder can be useful without opening the full task form, but an action may arrive after the task was edited, deleted, or completed elsewhere.
+- Decision: Android reminder notifications expose `Open` through the content intent and `Complete` through an action intent carrying the stable task ID. The local AppStore completes the task only when the current record exists and is open. Repeated, missing, or already-completed actions are no-ops. The logical reminder timestamp stays on the task record, while the native notification is dismissed after handling.
+- Reason: The rule is deterministic, safe after process death, and does not add notification state or remote coordination to schema 18. The existing stable task ID keeps the payload opaque and reuses the local task lifecycle rules.
+- Consequence: The current pass has Android `Open` and `Complete` only. Snooze, recurring-rule notifications, iOS actions, account recovery, device enrollment, and sync remain separate contracts.

@@ -40,6 +40,10 @@ class TaskReminderReceiver : BroadcastReceiver() {
       preferences.edit().remove(taskId).apply()
     }
 
+    fun dismissNotification(context: Context, taskId: String) {
+      NotificationManagerCompat.from(context).cancel(taskId.hashCode() and Int.MAX_VALUE)
+    }
+
     fun sync(context: Context, entries: List<Pair<String, Long>>) {
       val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
       preferences.all.keys.forEach { cancelAlarm(context, it) }
@@ -102,11 +106,23 @@ class TaskReminderReceiver : BroadcastReceiver() {
       val openIntent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         putExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA, taskId)
+        putExtra(TaskReminderModule.TASK_REMINDER_ACTION_EXTRA, TaskReminderModule.TASK_REMINDER_ACTION_OPEN)
       }
       val openPendingIntent = PendingIntent.getActivity(
         context,
-        taskId.hashCode() and Int.MAX_VALUE,
+        activityRequestCode(taskId, TaskReminderModule.TASK_REMINDER_ACTION_OPEN),
         openIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+      )
+      val completeIntent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        putExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA, taskId)
+        putExtra(TaskReminderModule.TASK_REMINDER_ACTION_EXTRA, TaskReminderModule.TASK_REMINDER_ACTION_COMPLETE)
+      }
+      val completePendingIntent = PendingIntent.getActivity(
+        context,
+        activityRequestCode(taskId, TaskReminderModule.TASK_REMINDER_ACTION_COMPLETE),
+        completeIntent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
       )
       val notification = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -116,6 +132,7 @@ class TaskReminderReceiver : BroadcastReceiver() {
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setAutoCancel(true)
         .setContentIntent(openPendingIntent)
+        .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_save, "Complete", completePendingIntent).build())
         .build()
       try {
         NotificationManagerCompat.from(context).notify(taskId.hashCode() and Int.MAX_VALUE, notification)
@@ -131,5 +148,8 @@ class TaskReminderReceiver : BroadcastReceiver() {
       val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
       manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, "Task reminders", NotificationManager.IMPORTANCE_DEFAULT))
     }
+
+    private fun activityRequestCode(taskId: String, action: String): Int =
+      (taskId.hashCode() xor action.hashCode()) and Int.MAX_VALUE
   }
 }

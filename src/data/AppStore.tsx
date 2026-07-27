@@ -102,6 +102,7 @@ interface AppStoreValue {
   deleteTask: (taskId: string) => Promise<void>;
   setTaskReminder: (taskId: string, triggerAtMillis: number) => Promise<void>;
   deleteTaskReminder: (taskId: string) => Promise<void>;
+  completeTaskFromReminder: (taskId: string) => Promise<void>;
   setNotificationQuietHours: (startLocalTime: string, endLocalTime: string) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
@@ -727,6 +728,32 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const completeTaskFromReminder = useCallback(
+    async (taskId: string) => {
+      const current = dataRef.current;
+      const task = current?.tasks.find(item => item.id === taskId);
+      if (!current || !task || task.status === 'completed') {
+        return;
+      }
+      const reminderAtMillis = task.reminderAtMillis;
+      if (reminderAtMillis !== null) {
+        await taskReminders.cancel(taskId);
+      }
+      try {
+        await commit(workspace => ({
+          ...workspace,
+          tasks: workspace.tasks.map(item => item.id === taskId ? {...item, status: 'completed', updatedAt: new Date().toISOString()} : item),
+        }));
+      } catch (error) {
+        if (reminderAtMillis !== null && reminderAtMillis > Date.now()) {
+          await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(reminderAtMillis, current.notificationSettings));
+        }
+        throw error;
+      }
+    },
+    [commit],
+  );
+
   const addTaskList = useCallback(
     async (input: TaskListDraft) => {
       await commit(current => {
@@ -971,6 +998,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteTask,
       setTaskReminder,
       deleteTaskReminder,
+      completeTaskFromReminder,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,
@@ -1012,6 +1040,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteTask,
       setTaskReminder,
       deleteTaskReminder,
+      completeTaskFromReminder,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,

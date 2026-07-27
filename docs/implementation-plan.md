@@ -1134,3 +1134,35 @@ Known limits:
 - no snooze, notification actions, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
 Next pass: notification actions or account/device recovery design, with remote sync kept behind its service boundary.
+
+## Implementation review: Android notification Complete-action pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- typed `Open` and `Complete` task-reminder targets across the Android bridge and MainApp;
+- Android reminder content tap remains `Open`, and the notification now has a `Complete` action;
+- `Complete` uses the stable task ID and local AppStore state, completes only an existing open task, preserves the logical reminder timestamp, and is idempotent;
+- stale or repeated actions are ignored, and the handled notification is explicitly dismissed;
+- no schema, permission, or minimum-OS change.
+
+Review evidence:
+
+```text
+Focused Jest                PASS - bridge target and AppStore idempotence coverage
+Full Jest                   PASS - 32 suites, 136 tests
+npm run lint                PASS
+npm run typecheck           PASS
+npm run check-bundle        PASS - Android metadata valid
+Android builds              PASS - debug and release APKs with Java 17
+Emulator action smoke       PASS - Complete action completed the task and opened MainActivity
+Emulator dismissal smoke    PASS - handled notification record was removed
+Phone smoke                 PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no snooze, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: notification snooze or account/device recovery design, with remote sync kept behind its service boundary.
