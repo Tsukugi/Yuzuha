@@ -1,4 +1,4 @@
-import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from './period';
+import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey, periodLabel} from './period';
 
 describe('period helpers', () => {
   const now = new Date(2026, 6, 26, 15, 30);
@@ -32,5 +32,12 @@ describe('period helpers', () => {
 
   it('returns each local date in a range', () => {
     expect(getLocalDateKeys(getPeriodRange(now, 'week')).size).toBe(7);
+  });
+
+  it('labels and formats selected periods', () => {
+    expect(periodLabel('day')).toBe('Today');
+    expect(periodLabel('week')).toBe('This week');
+    expect(periodLabel('month')).toBe('This month');
+    expect(formatPeriodRange(getPeriodRange(now, 'week'))).toBe('2026-07-20 to 2026-07-26');
   });
 });

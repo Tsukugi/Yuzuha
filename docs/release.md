@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android Home-period pass:
+
+- Home now selects Today, This week, or This month and shows the exact local date range used by its cards;
+- money totals are restricted to the main currency and selected range, while app time, due-task counts, and recent note updates use the same derived range;
+- no schema, preference record, native refresh, timer, worker, or legacy path was added;
+- focused period tests, full Jest (45 suites, 195 tests), lint, typecheck, bundle validation, release APK build, emulator Day/Week/Month smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android verified-remote-bundle pass:
 
 - the native shell now performs one bounded HTTPS metadata check before creating the React host, verifies canonical Ed25519-signed metadata, downloads only a newer compatible Android bundle, checks the 64 MiB size cap and SHA-256, and atomically activates private files;

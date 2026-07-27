@@ -15,7 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppStore} from '../data/AppStore';
 import {formatDate, formatMoney, sumMoney} from '../shared/format';
 import {formatDuration} from '../shared/duration';
-import {getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey} from '../shared/period';
+import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey, periodLabel} from '../shared/period';
 import type {Period} from '../shared/period';
 import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
 import {buildMoneyReport} from '../shared/moneyReport';
@@ -405,20 +405,23 @@ function HomeScreen({
   onOpenSearch: () => void;
 }) {
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
-  const monthRange = getPeriodRange(new Date(), 'month');
-  const monthMoney = data.money.filter(entry => isInPeriod(entry.occurredAt, monthRange));
-  const expenses = sumMoney(monthMoney, 'expense');
-  const income = sumMoney(monthMoney, 'income');
+  const [homePeriod, setHomePeriod] = useState<Period>('day');
+  const range = getPeriodRange(new Date(), homePeriod);
+  const selectedPeriodLabel = periodLabel(homePeriod);
+  const periodDates = getLocalDateKeys(range);
+  const periodMoney = data.money.filter(entry => entry.currency === data.mainCurrency && isInPeriod(entry.occurredAt, range));
+  const expenses = sumMoney(periodMoney, 'expense');
+  const income = sumMoney(periodMoney, 'income');
   const openTasks = data.tasks.filter(task => task.status === 'open').length;
+  const dueTasks = data.tasks.filter(task => task.status === 'open' && task.dueLocalDate !== null && periodDates.has(task.dueLocalDate)).length;
   const activeNotes = filterNotes(data.notes, '', false);
-  const recentNotes = activeNotes.slice(0, 3);
-  const today = localDateKey(new Date());
-  const appTimeSeconds = sumUsage(data.usageSnapshots, new Set([today]));
+  const recentNotes = activeNotes.filter(note => isInPeriod(note.updatedAt, range)).slice(0, 3);
+  const appTimeSeconds = sumUsage(data.usageSnapshots, periodDates);
   const hasUsagePermission = data.usageRead.permission === 'granted';
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.pageTitle}>Today</Text>
+      <Text style={styles.pageTitle}>{selectedPeriodLabel}</Text>
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
       <TextButton label="Search everything" onPress={onOpenSearch} />
       <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
@@ -431,25 +434,35 @@ function HomeScreen({
         </View>
       )}
 
+      <SectionTitle title="Dashboard period" />
+      <View style={styles.formCard}>
+        <Text style={styles.cardDetail}>Selected range: {formatPeriodRange(range)}. Cards use this local range; no background refresh is added.</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Day" selected={homePeriod === 'day'} onPress={() => setHomePeriod('day')} />
+          <SegmentButton label="Week" selected={homePeriod === 'week'} onPress={() => setHomePeriod('week')} />
+          <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
+        </View>
+      </View>
+
       <View style={styles.cardGrid}>
         <SummaryCard
           title="Money"
           value={formatMoney(expenses, data.mainCurrency)}
-          detail={`${formatMoney(income, data.mainCurrency)} income this month`}
+          detail={`${formatMoney(income, data.mainCurrency)} income ${selectedPeriodLabel.toLowerCase()}`}
           action="Open money"
           onPress={() => onNavigate('money')}
         />
         <SummaryCard
           title="App time"
           value={hasUsagePermission ? formatDuration(appTimeSeconds) : 'Not connected'}
-          detail={hasUsagePermission ? 'Today from Android Usage Access.' : 'Connect Android Usage Access to read today.'}
+          detail={hasUsagePermission ? `${selectedPeriodLabel} from Android Usage Access.` : `Connect Android Usage Access to read ${selectedPeriodLabel.toLowerCase()}.`}
           action={hasUsagePermission ? 'Open app time' : 'Set up access'}
           onPress={() => onNavigate('appTime')}
         />
         <SummaryCard
           title="Tasks"
           value={`${openTasks} open`}
-          detail={openTasks === 0 ? 'All clear for now.' : 'Keep the next action visible.'}
+          detail={openTasks === 0 ? 'All clear for now.' : `${dueTasks} due ${selectedPeriodLabel.toLowerCase()}.`}
           action="Open tasks"
           onPress={() => onNavigate('tasks')}
         />
@@ -462,9 +475,9 @@ function HomeScreen({
         />
       </View>
 
-      <SectionTitle title="Recent notes" />
+      <SectionTitle title={`Recent notes ${selectedPeriodLabel.toLowerCase()}`} />
       {recentNotes.length === 0 ? (
-        <EmptyState text="No notes yet. Use Notes to keep a small record of what matters." />
+        <EmptyState text={`No notes updated ${selectedPeriodLabel.toLowerCase()}. Use Notes to keep a small record of what matters.`} />
       ) : (
         recentNotes.map(note => (
           <View key={note.id} style={styles.listRow}>
@@ -1067,16 +1080,6 @@ function formatMinorTotals(totals: Record<string, number>): string {
   return formatted.length > 0 ? formatted.join(', ') : 'none';
 }
 
-function appTimePeriodLabel(period: Period): string {
-  if (period === 'week') {
-    return 'This week';
-  }
-  if (period === 'month') {
-    return 'This month';
-  }
-  return 'Today';
-}
-
 function appTimeTopAppsLabel(period: Period): string {
   if (period === 'week') {
     return 'Top apps this week';
@@ -1085,11 +1088,6 @@ function appTimeTopAppsLabel(period: Period): string {
     return 'Top apps this month';
   }
   return 'Top apps today';
-}
-
-function formatUsageRange(range: {start: Date; end: Date}): string {
-  const endDate = new Date(range.end.getTime() - 1);
-  return `${localDateKey(range.start)} to ${localDateKey(endDate)}`;
 }
 
 function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): string | null {
@@ -2101,7 +2099,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
     setIsRefreshing(true);
     const range = getPeriodRange(new Date(), usagePeriod);
     const dayRanges = getLocalDayRanges(range);
-    setMessage(`Reading ${appTimePeriodLabel(usagePeriod).toLowerCase()} app time...`);
+    setMessage(`Reading ${periodLabel(usagePeriod).toLowerCase()} app time...`);
     try {
       const sourceReadAt = new Date().toISOString();
       const dailyRecords: Array<{records: UsageRecord[]; rangeStartMillis: number}> = [];
@@ -2116,7 +2114,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
         rangeStartMillis: range.start.getTime(),
         rangeEndMillis: range.end.getTime(),
       });
-      setMessage(`${snapshots.length} app records read for ${appTimePeriodLabel(usagePeriod).toLowerCase()}.`);
+      setMessage(`${snapshots.length} app records read for ${periodLabel(usagePeriod).toLowerCase()}.`);
     } catch {
       setMessage('Android could not provide usage data. Check permission and try again.');
     } finally {
@@ -2126,7 +2124,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 
   const range = getPeriodRange(new Date(), usagePeriod);
   const periodDates = getLocalDateKeys(range);
-  const periodLabel = appTimePeriodLabel(usagePeriod);
+  const selectedPeriodLabel = periodLabel(usagePeriod);
   const allPeriodSnapshots = data.usageSnapshots
     .filter(snapshot => periodDates.has(snapshot.localDate))
     .sort((left, right) => right.durationSeconds - left.durationSeconds);
@@ -2175,7 +2173,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
         <>
           <SectionTitle title="Report period" />
           <View style={styles.formCard}>
-            <Text style={styles.cardDetail}>Selected range: {formatUsageRange(range)}. Refresh reads each local day once and commits the result together.</Text>
+            <Text style={styles.cardDetail}>Selected range: {formatPeriodRange(range)}. Refresh reads each local day once and commits the result together.</Text>
             <View style={styles.segmentRow}>
               <SegmentButton label="Day" selected={usagePeriod === 'day'} onPress={() => setUsagePeriod('day')} />
               <SegmentButton label="Week" selected={usagePeriod === 'week'} onPress={() => setUsagePeriod('week')} />
@@ -2183,9 +2181,9 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
             </View>
           </View>
           <SummaryCard
-            title={periodLabel}
+            title={selectedPeriodLabel}
             value={formatDuration(totalSeconds)}
-            detail={`${formatUsageRange(range)}. ${data.usageRead.lastReadAt ? `Last read ${formatDate(data.usageRead.lastReadAt)}` : 'No read yet'}`}
+            detail={`${formatPeriodRange(range)}. ${data.usageRead.lastReadAt ? `Last read ${formatDate(data.usageRead.lastReadAt)}` : 'No read yet'}`}
             action={isRefreshing ? 'Reading...' : 'Refresh selected period'}
             disabled={isRefreshing}
             onPress={refreshUsage}
@@ -2193,7 +2191,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
           {message && <Text style={styles.successText}>{message}</Text>}
           <SectionTitle title={appTimeTopAppsLabel(usagePeriod)} />
           {allPeriodSnapshots.length === 0 ? (
-            <EmptyState text={`No app-time data has been read for ${periodLabel.toLowerCase()}.`} />
+            <EmptyState text={`No app-time data has been read for ${selectedPeriodLabel.toLowerCase()}.`} />
           ) : (
             allPeriodSnapshots.slice(0, 10).map(snapshot => (
               <View key={snapshot.id} style={styles.listRow}>

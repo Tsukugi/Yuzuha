@@ -2020,3 +2020,36 @@ Known limits:
 - the live `updates.yuzuha.dev` endpoint has no signed release fixture in this workspace, so device smoke proves the offline embedded path, not remote activation;
 - the native implementation intentionally has no retry loop, polling worker, or background update service;
 - Android API 32 and older are no longer supported; future public releases need release-pipeline key custody and endpoint integration tests.
+
+## Implementation review: Android Home-period pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- one shared local Day/Week/Month selector on Home;
+- exact selected-range label above the dashboard cards;
+- main-currency and selected-range money totals;
+- selected-range included app-time totals, open-task due counts, and recent active-note updates;
+- shared period labels/range formatting and a period unit test;
+- no AppData schema, preference record, native usage refresh, timer, worker, or legacy path.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - period helpers; 7 tests
+Full Jest                PASS - 45 suites, 195 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Home Day/Week/Month selector, range, and card-label changes
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- Home period selection is view state and resets on relaunch;
+- money in other currencies remains in Money reports and is intentionally excluded from the main-currency Home total;
+- the selected range does not trigger an App Time native refresh; the user refreshes App Time explicitly.

@@ -7,7 +7,7 @@ Status: Current test strategy through the Android verified-remote-bundle pass. U
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 45 Jest suites and 194 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- The current suite is 45 Jest suites and 195 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Native installer evidence
@@ -17,6 +17,13 @@ Status: Current test strategy through the Android verified-remote-bundle pass. U
 - Emulator startup after install rendered `Bundle 0.1.0` and the Home screen. Phone startup completed without filtered fatal or ReactNativeJS errors; its UI automation bridge remains unavailable by device policy.
 - The default update endpoint was unavailable during smoke, so the deterministic `offline-local`/embedded path was exercised. A live signed remote activation requires the release endpoint and is not claimed by this device smoke.
 - Both devices were force-stopped after the check, and no Gradle, Kotlin compiler, or app worker process remained.
+
+## Home period evidence
+
+- Focused period tests cover the shared Today/This week/This month labels and exact Monday-to-Sunday range formatting.
+- Emulator `emulator-5554`: release Home showed the selected local range; Day, Week, and Month changed the page title and money/app-time card labels to the matching period. No filtered fatal or ReactNativeJS errors appeared.
+- The Home money calculation excludes entries outside the selected range and entries in other currencies; no AppData write or native refresh occurs when changing the selector.
+- Phone `42adce68`: release startup logged the native offline-local bundle decision with no filtered app errors. Both devices were force-stopped afterward.
 
 ## App Time period evidence
 

@@ -343,6 +343,8 @@ Current JSON export file extension: Data tools choose one current Yuzuha JSON ex
 
 Current Android startup extension: the native shell runs one bounded signed metadata check before React host creation. A newer compatible bundle is accepted only after Ed25519 metadata verification, exact size, and SHA-256 checks; activation state and the immutable private bundle are written atomically. Timeout or invalid remote input keeps the newest verified private or embedded bundle. JavaScript reads the native decision and does not download or activate executable code. Android API 33 is the current minimum.
 
+Current Home period extension: Home offers Today, This week, and This month using the shared local period helpers. Main-currency money, included app-time snapshots, open-task due counts, and recent active-note updates all use the selected range. Changing the selector writes no record and starts no native read or background process.
+
 ## Local recovery-key backup implementation review
 
 Implemented and verified:

@@ -113,6 +113,8 @@ The source adapter reports what the platform exposes. Android uses Usage Access 
 
 Current Android behavior: App Time offers Today, This week, and This month. The screen shows the exact local date range, total duration, per-app rows, and last-read time. A refresh reads each local day once in sequence and commits the selected-period snapshots together only after all day reads succeed. The selected report period is not persisted as a new record and does not start background polling.
 
+Current Home behavior: Home offers the same Today, This week, and This month local range. The money card counts only main-currency entries in that range, the app-time card reads included snapshots in the range, the task card reports open tasks due in the range, and recent notes are limited to active notes updated in the range. The range selector is not persisted and does not trigger a native refresh.
+
 ### Goals and groups
 
 The user can create an app group, assign installed packages, choose a daily or weekly target, and set a comparison period. App assignment is local configuration. Unknown or uninstalled apps remain in historical data but are labeled unavailable.

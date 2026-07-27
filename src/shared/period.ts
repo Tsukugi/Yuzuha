@@ -5,6 +5,21 @@ export interface PeriodRange {
   end: Date;
 }
 
+export function periodLabel(period: Period): string {
+  if (period === 'week') {
+    return 'This week';
+  }
+  if (period === 'month') {
+    return 'This month';
+  }
+  return 'Today';
+}
+
+export function formatPeriodRange(range: PeriodRange): string {
+  const endDate = new Date(range.end.getTime() - 1);
+  return `${localDateKey(range.start)} to ${localDateKey(endDate)}`;
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

@@ -148,6 +148,8 @@ Global search is a derived view over `AppData` and adds no entity or migration. 
 
 App Time period reports are also derived views over local usage snapshots. The selected Day/Week/Month range is split into local calendar days for reading, then filtered by the same local-date keys for display. Existing usage-read metadata stores the selected range and source read time; changing the report selector does not add a record or migration.
 
+Home period summaries are derived views over existing money, usage, task, and note records. They reuse local period boundaries and add no dashboard record, preference, migration, or sync field. Money is filtered to the configured main currency before totals are calculated so different currencies are never added together on Home.
+
 ### Task
 
 | Field | Type | Rule |

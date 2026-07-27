@@ -486,3 +486,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Raise the Android minimum API to 33, run one bounded metadata request in the native shell before React host creation, verify the canonical metadata with the pinned Ed25519 public key, download at most 64 MiB, hash bytes as they are written, and atomically store the verified bundle plus activation state under app-private `filesDir/installer`. Pass the selected private path to `DefaultReactHost`; keep the embedded asset as the clean-install/offline baseline. JavaScript only reads the native result.
 - Reason: The shell owns executable code selection. API 33 gives the current Android target a standard Ed25519 verifier without adding a native crypto dependency. One request, fixed timeouts, and no worker keep launch work bounded and avoid useless background resource use.
 - Consequence: Android devices below API 33 are no longer supported. Live release publishing must use the pinned signing key and exact canonical payload. A failed remote check does not replace the newest verified local or embedded bundle; live signed activation still needs endpoint-release testing.
+
+## DEC-071: Use one derived local period for Home cards
+
+- Context: Home mixed monthly money totals with daily app-time totals and all-time task/note counts. That made the dashboard hard to compare and could add different currencies into the main-currency display.
+- Decision: Add a local Today/This week/This month selector to Home. Filter money by the selected local range and configured main currency, usage by included local-date snapshots, tasks by open due date, and recent notes by active updated timestamp. Keep the selector in component state only.
+- Reason: One visible period makes the dashboard explainable and reuses the existing period helpers without adding preferences, schema, native reads, or background work.
+- Consequence: The selected Home period resets on relaunch. Money in other currencies remains available in Money reports but is not added to the Home main-currency card.
