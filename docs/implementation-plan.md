@@ -1447,8 +1447,8 @@ npm run lint           PASS
 npm run typecheck      PASS
 npm run check-bundle   PASS - Android metadata valid
 Android builds         PASS - debug and release APKs with Java 17, max 2 workers and no daemon
-Emulator smoke         PASS - fresh release opened MainActivity, Tasks, List, Agenda, and dated AgendaSmoke task
-Phone smoke            PASS - fresh release opened MainActivity on 42adce68
+Emulator smoke         PASS - rebuilt release APK opened MainActivity, Tasks, List, Agenda, and dated AgendaSmoke task
+Phone smoke            PASS - rebuilt release APK opened MainActivity on 42adce68
 Resource cleanup       PASS - no Gradle/Java build processes or Yuzuha app processes remained
 ```
 
