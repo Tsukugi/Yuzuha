@@ -196,3 +196,5 @@ The App Time screen also has local Focus sessions. The user can start one manual
 Home shows `Not connected` and `Set up access` until the user grants Android Usage Access. The flow opens the system Usage Access screen, returns to Yuzuha, checks permission again, and exposes a report-period selector for Today, This week, or This month. A successful read shows the selected local date range, duration, last-read date, and top app rows. Refresh reads each local day once and commits the result together. A failed or empty read names the source and leaves the rest of the app usable.
 
 Home uses the same selector. It shows the selected local range above the cards. Money is main-currency only, app time uses included snapshots, tasks show the number of open tasks due in the range, and the recent-note list uses active notes updated in the range. Changing the selector changes the view only.
+
+Home's `Review this period` action opens a read-only source-backed Review. Review offers the same Day/Week/Month choices, shows the exact local range, and links each summary card back to Money, App Time, Tasks, or Notes. It does not save a reflection or review history yet.

@@ -150,6 +150,8 @@ App Time period reports are also derived views over local usage snapshots. The s
 
 Home period summaries are derived views over existing money, usage, task, and note records. They reuse local period boundaries and add no dashboard record, preference, migration, or sync field. Money is filtered to the configured main currency before totals are calculated so different currencies are never added together on Home.
 
+Period Review is another derived view over the same records. Its summary is calculated at render time and is not saved as a review record, reflection, baseline, preference, or sync object. Usage freshness comes from the existing `usageRead` metadata.
+
 ### Task
 
 | Field | Type | Rule |

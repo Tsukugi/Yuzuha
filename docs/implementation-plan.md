@@ -2053,3 +2053,35 @@ Known limits:
 - Home period selection is view state and resets on relaunch;
 - money in other currencies remains in Money reports and is intentionally excluded from the main-currency Home total;
 - the selected range does not trigger an App Time native refresh; the user refreshes App Time explicitly.
+
+## Implementation review: Android period-review pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- Home `Review this period` entry point;
+- read-only Today/This week/This month Review screen;
+- `buildReviewSummary` with main-currency money, included app time, due/open tasks, completed tasks, overdue tasks, active note updates, and Usage Access freshness;
+- source links back to Money, App Time, Tasks, and Notes;
+- local-date regression coverage and no review record, reflection field, preference, schema, native refresh, timer, worker, or legacy path.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - review/period tests; 9 focused tests
+Full Jest                PASS - 46 suites, 197 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Home Review Today/Week/Month ranges and source cards
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- Review is derived and cannot be reopened as historical state;
+- reflection text, saved baselines, comparison trends, and review history are not implemented;
+- changing Review periods does not refresh App Time; the source screen owns explicit refresh.

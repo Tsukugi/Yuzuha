@@ -41,6 +41,8 @@ Current startup evidence: `START-01` through `START-05` map to `MainApplication`
 
 Current Home evidence: `CROSS-01` maps to `HomeScreen`, shared `period.ts` helpers, period unit tests, emulator selector/range/card smoke, and the 2026-07-27 Home-period release note. The calculation is derived and adds no schema or background behavior.
 
+Current Review evidence: `CROSS-03` maps to `ReviewScreen`, `buildReviewSummary`, `src/shared/review.test.ts`, emulator Today/Week/Month Review smoke, and the 2026-07-27 period-review release note. The screen is source-backed and read-only; persisted reflection and review history remain planned.
+
 ## Open decision register
 
 Before a phase starts, move its open decisions into `decision-log.md` with an owner, choice, reason, consequence, and validation plan. Do not treat an unresolved decision as an implementation detail when it changes the data model, user promise, privacy boundary, or release process.

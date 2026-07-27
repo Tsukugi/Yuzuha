@@ -345,6 +345,8 @@ Current Android startup extension: the native shell runs one bounded signed meta
 
 Current Home period extension: Home offers Today, This week, and This month using the shared local period helpers. Main-currency money, included app-time snapshots, open-task due counts, and recent active-note updates all use the selected range. Changing the selector writes no record and starts no native read or background process.
 
+Current Review extension: Home opens a read-only Review for Today, This week, or This month. Its summary uses main-currency money, included usage snapshots, open tasks due in the range, completed tasks updated in the range, current overdue open tasks, and active notes updated in the range. Cards link to existing source screens; no review record or reflection persistence is implemented.
+
 ## Local recovery-key backup implementation review
 
 Implemented and verified:

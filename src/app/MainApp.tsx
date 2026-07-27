@@ -22,6 +22,7 @@ import {buildMoneyReport} from '../shared/moneyReport';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsagePeriod, getLocalDayRanges, sumUsage, type UsageRecord} from '../shared/usage';
+import {buildReviewSummary} from '../shared/review';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
 import {
@@ -100,6 +101,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [sharedCapture, setSharedCapture] = useState<SharedCapture | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
@@ -113,6 +115,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     lastSharedCaptureKey.current = key;
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
+    setReviewOpen(false);
     setSharedCapture(capture);
   }, []);
 
@@ -129,6 +132,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setSharedCapture(null);
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
+    setReviewOpen(false);
     setTab(action);
   }, []);
 
@@ -137,6 +141,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setSharedCapture(null);
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
+    setReviewOpen(false);
     setTab(target);
   }, []);
 
@@ -144,12 +149,14 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setPendingTaskId(taskId);
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
+    setReviewOpen(false);
     setTab('tasks');
   }, []);
 
   const handleReminderTarget = useCallback((target: TaskReminderTarget) => {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
+    setReviewOpen(false);
     setTab('tasks');
     if (target.action === 'complete' || target.action === 'snooze') {
       setPendingReminderAction(target);
@@ -287,9 +294,11 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
           <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} />
+        ) : reviewOpen ? (
+          <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen />}
             {tab === 'notes' && <NotesScreen />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} onFocusHandled={() => setPendingTaskId(null)} />}
@@ -398,11 +407,13 @@ function HomeScreen({
   onNavigate,
   onOpenDataTools,
   onOpenSearch,
+  onOpenReview,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
+  onOpenReview: () => void;
 }) {
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [homePeriod, setHomePeriod] = useState<Period>('day');
@@ -425,6 +436,7 @@ function HomeScreen({
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
       <TextButton label="Search everything" onPress={onOpenSearch} />
       <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
+      <TextButton label="Review this period" onPress={onOpenReview} />
       <TextButton label={quickCaptureOpen ? 'Close quick capture' : 'Quick capture'} onPress={() => setQuickCaptureOpen(current => !current)} />
       {quickCaptureOpen && (
         <View style={styles.segmentRow}>
@@ -489,6 +501,58 @@ function HomeScreen({
           </View>
         ))
       )}
+    </ScrollView>
+  );
+}
+
+function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (tab: Tab) => void}) {
+  const [reviewPeriod, setReviewPeriod] = useState<Period>('day');
+  const range = getPeriodRange(new Date(), reviewPeriod);
+  const summary = buildReviewSummary(data, range);
+  const selectedPeriodLabel = periodLabel(reviewPeriod);
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <TextButton label="Back to home" onPress={onBack} />
+      <Text style={styles.pageTitle}>{selectedPeriodLabel} review</Text>
+      <Text style={styles.pageIntro}>Source-backed local totals for {formatPeriodRange(range)}. This review does not write data or refresh Android usage.</Text>
+      <View style={styles.formCard}>
+        <Text style={styles.cardTitle}>Review period</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Day" selected={reviewPeriod === 'day'} onPress={() => setReviewPeriod('day')} />
+          <SegmentButton label="Week" selected={reviewPeriod === 'week'} onPress={() => setReviewPeriod('week')} />
+          <SegmentButton label="Month" selected={reviewPeriod === 'month'} onPress={() => setReviewPeriod('month')} />
+        </View>
+      </View>
+
+      <SummaryCard
+        title="Money"
+        value={formatMoney(summary.expenseMinor, data.mainCurrency)}
+        detail={`${formatMoney(summary.incomeMinor, data.mainCurrency)} income. Main currency only.`}
+        action="Open money"
+        onPress={() => {onBack(); onNavigate('money');}}
+      />
+      <SummaryCard
+        title="App time"
+        value={summary.usagePermission === 'granted' ? formatDuration(summary.appTimeSeconds) : 'Not connected'}
+        detail={summary.usagePermission === 'granted' ? `Android Usage Access. ${summary.usageLastReadAt ? `Last read ${formatDate(summary.usageLastReadAt)}.` : 'No read yet.'}` : 'Allow Android Usage Access to include app time.'}
+        action="Open app time"
+        onPress={() => {onBack(); onNavigate('appTime');}}
+      />
+      <SummaryCard
+        title="Tasks"
+        value={`${summary.openDueTaskCount} due`}
+        detail={`${summary.completedTaskCount} completed in this period. ${summary.overdueOpenTaskCount} overdue now.`}
+        action="Open tasks"
+        onPress={() => {onBack(); onNavigate('tasks');}}
+      />
+      <SummaryCard
+        title="Notes"
+        value={`${summary.updatedNoteCount} updated`}
+        detail={`${summary.activeNoteCount} active notes on this device.`}
+        action="Open notes"
+        onPress={() => {onBack(); onNavigate('notes');}}
+      />
     </ScrollView>
   );
 }

@@ -493,3 +493,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a local Today/This week/This month selector to Home. Filter money by the selected local range and configured main currency, usage by included local-date snapshots, tasks by open due date, and recent notes by active updated timestamp. Keep the selector in component state only.
 - Reason: One visible period makes the dashboard explainable and reuses the existing period helpers without adding preferences, schema, native reads, or background work.
 - Consequence: The selected Home period resets on relaunch. Money in other currencies remains available in Money reports but is not added to the Home main-currency card.
+
+## DEC-072: Keep Period Review derived and read-only
+
+- Context: The product needs a daily/weekly/monthly review across money, app time, tasks, and notes, but review history, reflection storage, and comparison baselines are not yet defined.
+- Decision: Add a Review screen that calculates source-backed totals at render time for the selected local period and links back to existing feature screens. Do not save a review record, reflection, preference, or sync object.
+- Reason: This gives the user one honest cross-feature view without creating a second source of truth or a new schema before review history and reflection rules are defined.
+- Consequence: Review values change when source records change, and no past review can be reopened. Reflection text, saved baselines, comparison trends, and review history remain future contracts.

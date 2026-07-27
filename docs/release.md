@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android period-review pass:
+
+- Home now opens a read-only Review for Today, This week, and This month;
+- the Review shows source-backed main-currency money, included app time and last-read state, due/completed/overdue tasks, and active notes updated in the range, with links to the existing feature screens;
+- no review record, reflection field, schema, native usage refresh, timer, worker, or legacy path was added;
+- focused review tests, full Jest (46 suites, 197 tests), lint, typecheck, bundle validation, release APK build, emulator three-period Review smoke, and phone startup smoke passed.
+
 2026-07-27 Android Home-period pass:
 
 - Home now selects Today, This week, or This month and shows the exact local date range used by its cards;

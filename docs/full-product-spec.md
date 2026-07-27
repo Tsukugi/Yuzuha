@@ -115,6 +115,8 @@ Current Android behavior: App Time offers Today, This week, and This month. The 
 
 Current Home behavior: Home offers the same Today, This week, and This month local range. The money card counts only main-currency entries in that range, the app-time card reads included snapshots in the range, the task card reports open tasks due in the range, and recent notes are limited to active notes updated in the range. The range selector is not persisted and does not trigger a native refresh.
 
+Current Review behavior: Home opens a read-only Review for Today, This week, or This month. It shows main-currency expense/income, included app-time total and last-read state, open tasks due in the range, completed tasks updated in the range, current overdue open tasks, and active notes updated in the range. Each card links to the existing source screen. No reflection record is created yet.
+
 ### Goals and groups
 
 The user can create an app group, assign installed packages, choose a daily or weekly target, and set a comparison period. App assignment is local configuration. Unknown or uninstalled apps remain in historical data but are labeled unavailable.
