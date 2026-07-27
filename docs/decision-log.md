@@ -633,3 +633,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add an app-group edit form in `FocusSessionPanel`. When a Global Search result kind is `app-group`, carry its stable ID through `pendingAppGroupId`, open App Time, and load the group into that form. If the focused group is deleted, clear the editor and selected group deterministically.
 - Reason: This completes the existing local CRUD boundary and gives search a useful exact destination without a new record type, schema field, or remote dependency.
 - Consequence: App-group names and package lists can be edited locally. Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-090: Edit and focus budget results from global search
+
+- Status: Accepted.
+- Context: Budget storage and add/delete actions already existed, but the UI did not edit a saved budget and Global Search only routed budget results to Money without an exact destination.
+- Decision: Add a validated budget update action and editor in `MoneyBudgetScreen`. When a Global Search result kind is `budget`, carry its stable ID through `pendingBudgetId`, open Money, and load the budget into the editor. The update helper copies only editable budget fields so identity and archive state stay unchanged.
+- Reason: This completes the existing local budget lifecycle and gives search a useful exact destination without a schema change, second record form, or remote dependency.
+- Consequence: Budget category, currency, period, rollover, and amount can be edited locally. Exact focus for accounts, categories, transfers, splits, recurring rules, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

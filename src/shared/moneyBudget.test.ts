@@ -1,4 +1,4 @@
-import {buildBudgetProjection, validateMoneyBudget} from './moneyBudget';
+import {buildBudgetProjection, updateMoneyBudgetRecord, validateMoneyBudget} from './moneyBudget';
 import type {MoneyBudget, MoneyCategory, MoneyEntry, MoneySplit} from '../types/domain';
 
 const categories: MoneyCategory[] = [
@@ -41,6 +41,16 @@ describe('money budgets', () => {
     expect(validateMoneyBudget({...budget, amountMinor: 0}, categories)).toContain('positive');
     expect(validateMoneyBudget({...budget, currency: 'eu'}, categories)).toContain('uppercase');
     expect(validateMoneyBudget({...budget, categoryId: 'category_income'}, categories)).toContain('expense category');
+  });
+
+  it('updates budget values while preserving identity and archive state', () => {
+    const archived = {...budget, isArchived: true};
+    expect(updateMoneyBudgetRecord(archived, {...budget, category: 'Food', amountMinor: 3500, rollover: 'carry-forward'}, categories, '2026-07-27T12:00:00.000Z')).toEqual({
+      ...archived,
+      amountMinor: 3500,
+      rollover: 'carry-forward',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    });
   });
 
   it('projects regular and split expenses without counting income or other currencies', () => {

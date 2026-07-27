@@ -113,6 +113,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
   const [pendingListId, setPendingListId] = useState<string | null>(null);
   const [pendingAppGroupId, setPendingAppGroupId] = useState<string | null>(null);
+  const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
@@ -124,6 +125,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setPendingTemplateId(navigation.focusTemplateId);
     setPendingListId(navigation.focusListId);
     setPendingAppGroupId(navigation.focusAppGroupId);
+    setPendingBudgetId(navigation.focusBudgetId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -320,7 +322,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
         ) : (
           <>
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
-            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} onFocusHandled={() => setPendingMoneyId(null)} />}
+            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
             {tab === 'appTime' && <AppTimeScreen focusAppGroupId={pendingAppGroupId} onFocusHandled={() => setPendingAppGroupId(null)} onBack={() => setTab('home')} />}
@@ -1257,7 +1259,7 @@ function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): st
   }
 }
 
-function MoneyScreen({focusMoneyId, onFocusHandled}: {focusMoneyId: string | null; onFocusHandled: () => void}) {
+function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocusHandled}: {focusMoneyId: string | null; focusBudgetId: string | null; onFocusHandled: () => void; onBudgetFocusHandled: () => void}) {
   const {
     data,
     addMoney,
@@ -1309,6 +1311,12 @@ function MoneyScreen({focusMoneyId, onFocusHandled}: {focusMoneyId: string | nul
     onFocusHandled();
   }, [data, focusMoneyId, onFocusHandled]);
 
+  useEffect(() => {
+    if (focusBudgetId) {
+      setView('budget');
+    }
+  }, [focusBudgetId]);
+
   if (!data) {
     return null;
   }
@@ -1324,7 +1332,7 @@ function MoneyScreen({focusMoneyId, onFocusHandled}: {focusMoneyId: string | nul
     return <MoneySplitScreen data={currentData} onBack={() => setView('entry')} />;
   }
   if (view === 'budget') {
-    return <MoneyBudgetScreen data={currentData} onBack={() => setView('entry')} />;
+    return <MoneyBudgetScreen data={currentData} focusBudgetId={focusBudgetId} onFocusHandled={onBudgetFocusHandled} onBack={() => setView('entry')} />;
   }
   if (view === 'recurrence') {
     return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} />;
@@ -1825,16 +1833,43 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
   );
 }
 
-function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {addMoneyBudget, deleteMoneyBudget} = useAppStore();
-  const categories = data.categories.filter(category => !category.isArchived && (category.kind === 'expense' || category.kind === 'both'));
-  const currencies = [...new Set(data.accounts.filter(account => !account.isArchived).map(account => account.currency))];
+function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data: AppData; focusBudgetId: string | null; onFocusHandled: () => void; onBack: () => void}) {
+  const {addMoneyBudget, updateMoneyBudget, deleteMoneyBudget} = useAppStore();
+  const focusedBudget = focusBudgetId ? data.budgets.find(item => item.id === focusBudgetId) ?? null : null;
+  const categories = data.categories.filter(category => (!category.isArchived || category.id === focusedBudget?.categoryId) && (category.kind === 'expense' || category.kind === 'both'));
+  const currencies = [...new Set([...data.accounts.filter(account => !account.isArchived).map(account => account.currency), ...(focusedBudget ? [focusedBudget.currency] : [])])];
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '');
   const [currency, setCurrency] = useState(currencies[0] ?? data.mainCurrency);
   const [period, setPeriod] = useState<BudgetPeriod>('month');
   const [rollover, setRollover] = useState<BudgetRollover>('none');
   const [amount, setAmount] = useState('');
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusBudgetId) {
+      return;
+    }
+    const budget = data.budgets.find(item => item.id === focusBudgetId);
+    if (!budget) {
+      onFocusHandled();
+      return;
+    }
+    setEditingBudgetId(budget.id);
+    setCategoryId(budget.categoryId);
+    setCurrency(budget.currency);
+    setPeriod(budget.period);
+    setRollover(budget.rollover);
+    setAmount((budget.amountMinor / 100).toFixed(2));
+    setError(null);
+    onFocusHandled();
+  }, [data, focusBudgetId, onFocusHandled]);
+
+  function resetForm() {
+    setEditingBudgetId(null);
+    setAmount('');
+    setError(null);
+  }
 
   async function save() {
     const parsed = Number.parseFloat(amount.replace(',', '.'));
@@ -1853,11 +1888,21 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
       return;
     }
     try {
-      await addMoneyBudget(input);
-      setAmount('');
-      setError(null);
+      if (editingBudgetId) {
+        await updateMoneyBudget(editingBudgetId, input);
+      } else {
+        await addMoneyBudget(input);
+      }
+      resetForm();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Budget could not be saved.');
+    }
+  }
+
+  async function removeBudget(budgetId: string) {
+    await deleteMoneyBudget(budgetId);
+    if (editingBudgetId === budgetId) {
+      resetForm();
     }
   }
 
@@ -1882,6 +1927,7 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
         <Text style={styles.pageTitle}>Budgets</Text>
         <Text style={styles.pageIntro}>Budgets count expense entries and split lines in the selected currency and local period.</Text>
         <View style={styles.formCard}>
+          {editingBudgetId && <Text style={styles.formLabel}>Edit budget</Text>}
           <Text style={styles.formLabel}>Category</Text>
           <View style={styles.chipWrap}>
             {categories.map(category => (
@@ -1921,7 +1967,8 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
             onChangeText={setAmount}
           />
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label="Save budget" onPress={save} />
+          <PrimaryButton label={editingBudgetId ? 'Update budget' : 'Save budget'} onPress={save} />
+          {editingBudgetId && <TextButton label="Cancel budget edit" onPress={resetForm} />}
         </View>
         <SectionTitle title="Current budgets" />
         {data.budgets.length === 0 ? (
@@ -1943,7 +1990,18 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
                 <Text style={projection.status === 'over' ? styles.errorText : projection.status === 'near-limit' ? styles.warningText : styles.successText}>
                   {budgetStatusLabel(projection.status)}
                 </Text>
-                <TextButton label="Delete budget" danger onPress={() => deleteMoneyBudget(budget.id)} />
+                <View style={styles.rowActions}>
+                  <TextButton label="Edit" onPress={() => {
+                    setEditingBudgetId(budget.id);
+                    setCategoryId(budget.categoryId);
+                    setCurrency(budget.currency);
+                    setPeriod(budget.period);
+                    setRollover(budget.rollover);
+                    setAmount((budget.amountMinor / 100).toFixed(2));
+                    setError(null);
+                  }} />
+                  <TextButton label="Delete budget" danger onPress={() => void removeBudget(budget.id)} />
+                </View>
               </View>
             );
           })

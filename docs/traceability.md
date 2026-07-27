@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android app-group-search-focus pass.
+Status: Traceability baseline through the Android budget-search-focus pass.
 
 ## Authoritative source by concern
 
@@ -72,6 +72,8 @@ Current template-search-focus evidence: `CROSS-02` also maps to `globalSearchNav
 Current task-list-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingListId`, the existing `TasksScreen` list focus effect, the list-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 task-list-search-focus release note. Task-list results load the current list in the Tasks rename form; other results remain tab-only.
 
 Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingAppGroupId`, `AppTimeScreen`, `FocusSessionPanel`, the app-group editor, the app-group update assertion in `src/shared/focusSessionLifecycle.test.ts`, the app-group focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 app-group-search-focus release note. App-group results load the current group in edit mode; deleting the focused group clears the editor.
+
+Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingBudgetId`, `MoneyScreen`, `MoneyBudgetScreen`, `updateMoneyBudget`, `updateMoneyBudgetRecord`, the budget lifecycle assertion in `src/shared/moneyBudget.test.ts`, the budget focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 budget-search-focus release note. Budget results load the current budget in the Money edit form; deleting the temporary smoke budget leaves no budget record.
 
 ## Open decision register
 

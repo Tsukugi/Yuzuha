@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android budget-search-focus pass:
+
+- budgets now have local edit controls using the existing budget validation and store boundary;
+- Global Search budget results pass their stable ID through the Money budget focus path and open the matching budget in edit mode;
+- updating a budget preserves its stable ID and archive state while replacing only validated editable fields;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused budget lifecycle/navigation tests, full Jest (51 suites, 229 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator budget create/search/edit/delete smoke, and phone cold-start process/activity smoke passed; the phone rejects automated touch input, and both devices were force-stopped.
+
 2026-07-28 Android app-group-search-focus pass:
 
 - app groups now have local edit controls using the existing `updateAppGroup` store action;

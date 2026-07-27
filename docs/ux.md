@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android app-group-search-focus pass.
+Status: Current Android MVP through the Android budget-search-focus pass.
 
 ## Navigation
 
@@ -76,7 +76,7 @@ Each note also has a `Link record` action. The user chooses Task, Project, Money
 
 ### Search the workspace
 
-Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. A note also matches current fields from its linked task, project, money entry, or focus session, and its result shows a `Linked ...` detail label. Archived results are hidden by default; archived project link fields need the same explicit archived-results control. Deleted target content does not become searchable, but a deleted link label remains visible when the note matches another field. Search is case-insensitive, stays in memory, and shows a result kind, title, and detail. Each result row is tappable and opens the owning Money, Notes, Tasks, or App Time tab. Money results load the current entry into the Money edit form, task results load the current task into the Tasks edit form, note results load the current note into the Notes edit form, project results load the current project into the Tasks project edit form, task-template results load the current template into the Tasks template edit form, task-list results load the current list into the Tasks rename form, and app-group results load the current group into the App Time app-group edit form; other kinds do not claim exact-record focus. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`
+Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. A note also matches current fields from its linked task, project, money entry, or focus session, and its result shows a `Linked ...` detail label. Archived results are hidden by default; archived project link fields need the same explicit archived-results control. Deleted target content does not become searchable, but a deleted link label remains visible when the note matches another field. Search is case-insensitive, stays in memory, and shows a result kind, title, and detail. Each result row is tappable and opens the owning Money, Notes, Tasks, or App Time tab. Money results load the current entry into the Money edit form, budget results load the current budget into the Money budget edit form, task results load the current task into the Tasks edit form, note results load the current note into the Notes edit form, project results load the current project into the Tasks project edit form, task-template results load the current template into the Tasks template edit form, task-list results load the current list into the Tasks rename form, and app-group results load the current group into the App Time app-group edit form; other kinds do not claim exact-record focus. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`
 
 ### Add a note attachment
 
@@ -185,7 +185,7 @@ Money has an `Add split entry` flow. The user chooses the parent type and accoun
 
 ## Budget shipped controls
 
-Money opens a Budgets screen. The user chooses an active expense category, currency, day/week/month period, and limit. The screen shows used, remaining, percentage, and `On track`, `Near the budget limit`, `Over budget`, or `No spending yet`. Delete removes the local budget record.
+Money opens a Budgets screen. The user chooses an active expense category, currency, day/week/month period, and limit. The screen shows used, remaining, percentage, and `On track`, `Near the budget limit`, `Over budget`, or `No spending yet`. Existing budgets can be edited with the same validated fields, and Delete removes the local budget record.
 
 ## Phase 3 shipped controls
 

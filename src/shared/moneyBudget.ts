@@ -42,6 +42,23 @@ export function validateMoneyBudget(input: MoneyBudgetInput, categories: MoneyCa
   return null;
 }
 
+export function updateMoneyBudgetRecord(budget: MoneyBudget, input: MoneyBudgetInput, categories: MoneyCategory[], timestamp: string): MoneyBudget {
+  const validationError = validateMoneyBudget(input, categories);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+  return {
+    ...budget,
+    categoryId: input.categoryId,
+    category: input.category,
+    amountMinor: input.amountMinor,
+    currency: input.currency,
+    period: input.period,
+    rollover: input.rollover,
+    updatedAt: timestamp,
+  };
+}
+
 export function buildBudgetProjection(
   budget: MoneyBudget,
   entries: MoneyEntry[],

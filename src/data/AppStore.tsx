@@ -1,7 +1,7 @@
 import type {PropsWithChildren} from 'react';
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {createId} from '../shared/id';
-import {type MoneyBudgetInput, validateMoneyBudget} from '../shared/moneyBudget';
+import {type MoneyBudgetInput, updateMoneyBudgetRecord, validateMoneyBudget} from '../shared/moneyBudget';
 import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../shared/moneySplit';
 import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {
@@ -93,6 +93,7 @@ interface AppStoreValue {
   deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
   addMoneyBudget: (input: MoneyBudgetInput) => Promise<void>;
+  updateMoneyBudget: (budgetId: string, input: MoneyBudgetInput) => Promise<void>;
   deleteMoneyBudget: (budgetId: string) => Promise<void>;
   addMoneyTransfer: (input: {
     fromAccountId: string;
@@ -501,6 +502,24 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       await commit(current => ({...current, budgets: current.budgets.filter(budget => budget.id !== budgetId)}));
     },
     [commit],
+  );
+
+  const updateMoneyBudget = useCallback(
+    async (budgetId: string, input: MoneyBudgetInput) => {
+      const validationError = validateMoneyBudget(input, data?.categories ?? []);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      await commit(current => {
+        const budget = current.budgets.find(item => item.id === budgetId);
+        if (!budget) {
+          throw new Error('The budget no longer exists.');
+        }
+        return {...current, budgets: current.budgets.map(item => item.id === budgetId ? updateMoneyBudgetRecord(budget, input, current.categories, timestamp) : item)};
+      });
+    },
+    [commit, data?.categories],
   );
 
   const addMoneyTransfer = useCallback(
@@ -1546,6 +1565,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteMoneyRecurrence,
       addSplitMoney,
       addMoneyBudget,
+      updateMoneyBudget,
       deleteMoneyBudget,
       addMoneyTransfer,
       deleteMoneyTransfer,
@@ -1623,6 +1643,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteMoneyTransfer,
       addSplitMoney,
       addMoneyBudget,
+      updateMoneyBudget,
       deleteMoneyBudget,
       addNote,
       addNoteWithAttachment,

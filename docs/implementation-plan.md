@@ -2442,6 +2442,41 @@ Known limits:
 
 Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
 
+## Implementation review: Android budget-search-focus pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- budget records now have a validated local update action and editor;
+- budget search results carry their stable budget ID through `globalSearchNavigation`;
+- Search closes and the existing `pendingBudgetId` path opens Money in the budget editor for that budget;
+- the update helper preserves the stable budget ID and archive state while replacing only editable fields;
+- no schema, import/export UI, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - budget update identity/archive test and budget focus mapping test
+Full Jest                PASS - 51 suites, 229 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - temporary EUR 12.34 Food budget searched and opened with `Edit budget`, `Budget limit` `12.34`, and `Update budget`
+Delete cleanup smoke     PASS - temporary budget deleted and `No budgets yet.` returned
+Phone smoke              PASS - cold release startup with resumed `dev.yuzuha/.MainActivity`; automated touch input is rejected by device policy
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- exact focus remains to be added separately for accounts, categories, transfers, splits, recurring rules, focus sessions, and time goals;
+- search does not transfer filters or create ID-bearing deep links;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
+
 ## Implementation review: Android template-search-focus pass
 
 Status: Completed on 2026-07-28.
