@@ -278,7 +278,7 @@ describe('global search', () => {
   });
 
   it('focuses task results while keeping other results tab-only', () => {
-    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus'});
-    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null});
+    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus', focusNoteId: null});
+    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null, focusNoteId: 'note_focus'});
   });
 });

@@ -107,11 +107,13 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [sharedCapture, setSharedCapture] = useState<SharedCapture | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
   const openGlobalSearchResult = useCallback((navigation: GlobalSearchNavigation) => {
     setPendingTaskId(navigation.focusTaskId);
+    setPendingNoteId(navigation.focusNoteId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -309,7 +311,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
           <>
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen />}
-            {tab === 'notes' && <NotesScreen />}
+            {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} onFocusHandled={() => setPendingTaskId(null)} />}
             {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
           </>
@@ -2695,7 +2697,7 @@ function FocusSessionPanel({data}: {data: AppData}) {
   );
 }
 
-function NotesScreen() {
+function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null; onFocusHandled: () => void}) {
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -2712,6 +2714,25 @@ function NotesScreen() {
   const [linkTargetType, setLinkTargetType] = useState<NoteLinkTargetType>('task');
   const [linkTargetId, setLinkTargetId] = useState<string | null>(null);
   const [linkTargetSearch, setLinkTargetSearch] = useState('');
+
+  useEffect(() => {
+    if (!focusNoteId || !data) {
+      return;
+    }
+    const note = data.notes.find(item => item.id === focusNoteId);
+    if (!note) {
+      onFocusHandled();
+      return;
+    }
+    setEditingNoteId(note.id);
+    setTitle(note.title);
+    setBody(note.body);
+    setBodySelection({start: note.body.length, end: note.body.length});
+    setTags(note.tags.join(', '));
+    setShowArchived(note.isArchived);
+    setError(null);
+    onFocusHandled();
+  }, [data, focusNoteId, onFocusHandled]);
 
   if (!data) {
     return null;

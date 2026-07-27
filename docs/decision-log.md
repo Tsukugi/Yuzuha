@@ -585,3 +585,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: When a Global Search result kind is `task`, carry its stable ID into `pendingTaskId`. Close Search, open Tasks, and load the existing task into edit mode. All other kinds keep the owning-tab-only behavior from DEC-082.
 - Reason: This gives task search a useful exact destination without adding a second task form, route table, or data state. The stable ID is resolved against current local data and missing IDs are ignored by the existing task screen.
 - Consequence: Exact focus for notes, money, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-084: Focus note results from global search
+
+- Status: Accepted.
+- Context: The Notes screen already owns a tested edit form and local note state. A note result can use that existing form without adding a second route or changing note storage.
+- Decision: When a Global Search result kind is `note`, carry its stable ID through `pendingNoteId`. Close Search, open Notes, and load the existing note into edit mode. Task results keep the DEC-083 focus path; all other kinds keep the owning-tab-only behavior from DEC-082.
+- Reason: This gives note search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
+- Consequence: Exact focus for money, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

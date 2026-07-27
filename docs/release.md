@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android note-search-focus pass:
+
+- Global Search note results now pass their stable ID through the existing Notes focus path and open the matching note in edit mode;
+- task results keep exact task focus, while money, project, app-group, focus, goal, and other results keep owning-tab-only behavior;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused note-navigation tests, full Jest (51 suites, 227 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator note-focus smoke, and phone cold-start smoke passed; both devices were force-stopped.
+
 2026-07-28 Android task-search-focus pass:
 
 - Global Search task results now pass their stable ID through the existing Tasks focus path and open the matching task in edit mode;

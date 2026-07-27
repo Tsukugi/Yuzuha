@@ -2441,3 +2441,36 @@ Known limits:
 - import/export behavior was not expanded in this pass.
 
 Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
+
+## Implementation review: Android note-search-focus pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- note search results carry their stable note ID through `globalSearchNavigation`;
+- Search closes and the existing `pendingNoteId` path opens Notes in edit mode for that note;
+- task results keep exact task focus, while other result kinds keep the prior owning-tab-only behavior;
+- no schema, import/export UI, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - note focus ID and task/tab-only result mapping tests
+Full Jest                PASS - 51 suites, 227 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - tapping `Open Note LinkNote` opened `Edit note` with title `LinkNote`
+Phone smoke              PASS - cold release startup
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- exact focus remains to be added separately for money, projects, app groups, focus sessions, and time goals;
+- search does not transfer filters or create ID-bearing deep links;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
