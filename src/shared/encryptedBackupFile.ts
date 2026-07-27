@@ -14,6 +14,7 @@ import {
 export const ENCRYPTED_BACKUP_MIME_TYPE = 'application/json';
 export const ENCRYPTED_BACKUP_FILE_PREFIX = 'yuzuha-encrypted-backup';
 export const RECOVERY_BACKUP_FILE_PREFIX = 'yuzuha-recovery-backup';
+export const ENCRYPTED_BACKUP_MAX_FILE_BYTES = 96 * 1024 * 1024;
 
 export interface EncryptedBackupFileResult {
   name: string;
@@ -106,6 +107,9 @@ export async function openEncryptedBackupFile(password: string): Promise<Encrypt
   if (!pickedFile?.uri || pickedFile.error) {
     throw new EncryptedBackupFileError('The selected encrypted backup file is not readable.');
   }
+  if (pickedFile.size !== null && pickedFile.size > ENCRYPTED_BACKUP_MAX_FILE_BYTES) {
+    throw new EncryptedBackupFileError(`The encrypted backup file is larger than ${ENCRYPTED_BACKUP_MAX_FILE_BYTES} bytes.`);
+  }
 
   let localUri: string | null = null;
   try {
@@ -118,6 +122,10 @@ export async function openEncryptedBackupFile(password: string): Promise<Encrypt
       throw new EncryptedBackupFileError('The selected encrypted backup file could not be copied into app storage.');
     }
     localUri = localCopy.localUri;
+    const stat = await FileSystem.stat(localUri);
+    if (stat.type !== 'file' || stat.size > ENCRYPTED_BACKUP_MAX_FILE_BYTES) {
+      throw new EncryptedBackupFileError(`The encrypted backup file is larger than ${ENCRYPTED_BACKUP_MAX_FILE_BYTES} bytes.`);
+    }
     const raw = await FileSystem.readFile(localUri, 'utf8');
     const preview = await decryptEncryptedBackup(raw, password);
     return {

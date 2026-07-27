@@ -17,6 +17,7 @@ const picker = jest.requireMock('@react-native-documents/picker') as {
 const fileAccess = jest.requireMock('react-native-file-access') as {
   FileSystem: {
     readFile: jest.Mock;
+    stat: jest.Mock;
     unlink: jest.Mock;
     writeFile: jest.Mock;
   };
@@ -34,6 +35,7 @@ jest.mock('react-native-file-access', () => ({
   Dirs: {CacheDir: '/cache'},
   FileSystem: {
     readFile: jest.fn(),
+    stat: jest.fn(),
     unlink: jest.fn().mockResolvedValue(undefined),
     writeFile: jest.fn().mockResolvedValue(undefined),
   },
@@ -73,6 +75,7 @@ describe('encrypted backup files', () => {
     const backup = await buildEncryptedBackup(emptyAppData(), password, createdAt, length => new Uint8Array(length).fill(7));
     picker.pick.mockResolvedValue([{uri: 'content://backup', name: 'picked.json', error: null}]);
     picker.keepLocalCopy.mockResolvedValue([{status: 'success', sourceUri: 'content://backup', localUri: 'file:///cache/picked.json'}]);
+    fileAccess.FileSystem.stat.mockResolvedValue({type: 'file', size: 240});
     fileAccess.FileSystem.readFile.mockResolvedValue(backup);
 
     const preview = await openEncryptedBackupFile(password);
@@ -90,6 +93,25 @@ describe('encrypted backup files', () => {
     });
     expect(fileAccess.FileSystem.readFile).toHaveBeenCalledWith('file:///cache/picked.json', 'utf8');
     expect(fileAccess.FileSystem.unlink).toHaveBeenCalledWith('file:///cache/picked.json');
+  });
+
+  it('rejects an oversized selected file before copying it', async () => {
+    resetMocks();
+    picker.pick.mockResolvedValue([{uri: 'content://large-backup', name: 'large.json', error: null, size: 96 * 1024 * 1024 + 1}]);
+
+    await expect(openEncryptedBackupFile(password)).rejects.toThrow(/larger than/i);
+    expect(picker.keepLocalCopy).not.toHaveBeenCalled();
+  });
+
+  it('removes an oversized cache copy before reading it', async () => {
+    resetMocks();
+    picker.pick.mockResolvedValue([{uri: 'content://large-backup', name: 'large.json', error: null, size: null}]);
+    picker.keepLocalCopy.mockResolvedValue([{status: 'success', sourceUri: 'content://large-backup', localUri: 'file:///cache/large.json'}]);
+    fileAccess.FileSystem.stat.mockResolvedValue({type: 'file', size: 96 * 1024 * 1024 + 1});
+
+    await expect(openEncryptedBackupFile(password)).rejects.toThrow(/larger than/i);
+    expect(fileAccess.FileSystem.readFile).not.toHaveBeenCalled();
+    expect(fileAccess.FileSystem.unlink).toHaveBeenCalledWith('file:///cache/large.json');
   });
 
   it('saves a recovery-key backup with the recovery credential marker', async () => {

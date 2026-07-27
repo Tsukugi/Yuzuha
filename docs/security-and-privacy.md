@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android JSON-file-restore pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android encrypted-backup-file-bound pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -100,6 +100,8 @@ Android calendar drafts do not request `READ_CALENDAR` or `WRITE_CALENDAR` and d
 Money CSV import reads one user-selected file into a bounded cache copy, validates it locally, and deletes the cache copy after preview. It sends no file or row content to a service, writes no data before confirmation, and rejects broken references, duplicates, split-linked rows, invalid values, and oversized files. JSON or encrypted backup remains the complete workspace portability path.
 
 JSON export file restore reads one user-selected current export into a bounded cache copy, validates it locally, deletes the cache copy after the read, and writes no workspace data before destructive confirmation. It sends no file content to a service and rejects unsupported, oversized, malformed, old, or incomplete exports.
+
+Encrypted backup file opening rejects files over 96 MiB using picker metadata before copying when available, then checks the cached file stat before reading. An oversized cached file is deleted in the cleanup path. This limits memory and decryption work without changing the current encrypted backup schema or credential flow.
 
 ## Privacy review gates for new features
 

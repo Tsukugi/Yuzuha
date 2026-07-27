@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android encrypted-backup-file-bound pass:
+
+- no app or repository schema change; selected encrypted backup files are now rejected above 96 MiB before cache copy when picker metadata provides a size, and cached files are checked again before read;
+- oversized cached files are removed by the cleanup path, while valid files use the existing password/recovery-key decryption and preview flow; no credential, schema, or restore behavior changed;
+- focused encrypted-backup file tests, full Jest (45 suites, 188 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator valid-file picker/decrypt-preview smoke, and phone clean-launch smoke passed;
+- the bound is a local resource guard only; encrypted backup schema 2, the 64 MiB plaintext limit, attachment checksum validation, and latest-only schema rejection remain unchanged; both devices were force-stopped after testing and the temporary fixture was removed.
+
 2026-07-27 Android JSON-file-restore pass:
 
 - no app or repository schema change; Data tools now choose one current Yuzuha JSON export through the system picker, copy it to cache, bound and validate it, and reuse the existing record-count preview before replacement;

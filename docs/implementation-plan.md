@@ -1921,3 +1921,35 @@ Known limits:
 - the input must be a current Yuzuha JSON export; encrypted backups use their separate password/recovery-key path;
 - plain JSON exports remain metadata-only for attachments, so complete attachment portability still requires an encrypted backup;
 - arbitrary JSON mapping, merge restore, sync restore, and legacy JSON versions remain planned.
+
+## Implementation review: Android encrypted backup file bound pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a deterministic 96 MiB bound at the encrypted-backup document-picker boundary, checked from picker metadata before cache copy when available and from cached-file stat before `readFile`;
+- cleanup of oversized cached files through the existing `finally` path, with valid file opening unchanged after the bound check;
+- focused adapter coverage for valid files, cancellation, picker metadata rejection, cached-file rejection, no-read behavior, and cleanup;
+- updated architecture, integrations, security, sync/backup, UX, testing, release, traceability, and decision documentation.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - encrypted backup core and file adapter bound/cleanup cases
+Full Jest                PASS - 45 suites, 188 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - valid encrypted backup picker, pre-read stat, scrypt/decryption, and validated preview
+Phone smoke              PASS - release MainActivity cold launch with no filtered app errors; UI root unavailable by device policy
+Resource cleanup         PASS - temporary encrypted backup fixture removed and both devices force-stopped
+```
+
+Known limits:
+
+- the 96 MiB bound protects the file-open boundary; encrypted backup schema 2 and its 64 MiB plaintext limit remain the data contract;
+- pasted encrypted text uses the existing decryption path and does not add a second file-picker record;
+- account recovery, device enrollment, sync, and legacy encrypted backup schemas remain planned or intentionally rejected.

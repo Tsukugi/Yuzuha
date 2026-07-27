@@ -465,3 +465,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Accept one `application/json` or `text/json` file through the system picker, copy it to the app cache, enforce a 5 MB bound, read it once, pass it to the existing current-schema parser, remove the cache copy, and reuse the existing preview and confirmed replacement path.
 - Reason: This adds practical local portability with bounded memory and no new data model. The current parser remains the only JSON schema authority, so old or incomplete exports are rejected instead of migrated or guessed.
 - Consequence: Encrypted backups remain on their credential/decryption path. Merge restore, arbitrary JSON mapping, multi-file selection, sync restore, and legacy JSON versions remain separate future contracts.
+
+## DEC-068: Bound encrypted backup file reads before decryption
+
+- Context: Encrypted backup creation limits plaintext to 64 MiB, but the document-picker open path could copy and read an arbitrarily large selected file before the envelope size check ran.
+- Decision: Reject an encrypted backup above 96 MiB from picker metadata when available, check the cached file with `FileSystem.stat` before `readFile`, and always remove an oversized cache copy. Keep the existing schema 2, credential, scrypt, attachment, and restore contracts unchanged.
+- Reason: The bound limits memory and decryption work at the file boundary while leaving room for base64 envelope overhead over the existing 64 MiB plaintext limit. It adds no worker, retry loop, migration, or network path.
+- Consequence: Files above the bound cannot be opened through the file picker. Pasted encrypted text remains on the existing decryption path; account recovery, sync, and legacy encrypted backup schemas remain separate contracts.
