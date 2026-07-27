@@ -28,6 +28,7 @@ import type {
 import {isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {isValidTaskRecurrenceReminderLocalTime} from '../shared/taskRecurrence';
 import {validateCurrentAppData} from '../shared/dataImport';
+import {validateMoneyCsvImportReceipt} from '../shared/moneyCsvImportReceipt';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -257,6 +258,7 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
   const meta = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['usage_read']);
   const currency = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['main_currency']);
   const weekStartsOn = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['week_starts_on']);
+  const lastMoneyCsvImport = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['last_money_csv_import']);
   const notificationSettings = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['notification_settings']);
   const records = await database.execute(
     'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
@@ -268,6 +270,7 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
     readText(meta.rows[0]?.value),
     readText(notificationSettings.rows[0]?.value),
     readText(weekStartsOn.rows[0]?.value),
+    readText(lastMoneyCsvImport.rows[0]?.value),
   );
   try {
     validateCurrentAppData(data);
@@ -382,6 +385,7 @@ export function decodeAppData(
   usageReadJson: string | null,
   notificationSettingsJson: string | null = null,
   weekStartsOnJson: string | null = null,
+  lastMoneyCsvImportJson: string | null = null,
 ): AppData {
   const data = emptyAppData();
   data.mainCurrency = mainCurrency;
@@ -426,6 +430,14 @@ export function decodeAppData(
     throw new SqliteDataCorruptError();
   }
   data.weekStartsOn = parsedWeekStartsOn;
+  if (lastMoneyCsvImportJson === null) {
+    throw new SqliteDataCorruptError();
+  }
+  const parsedLastMoneyCsvImport = parsePayload(lastMoneyCsvImportJson);
+  if (validateMoneyCsvImportReceipt(parsedLastMoneyCsvImport)) {
+    throw new SqliteDataCorruptError();
+  }
+  data.lastMoneyCsvImport = parsedLastMoneyCsvImport as AppData['lastMoneyCsvImport'];
 
   for (const row of rows) {
     const recordType = readText(row.record_type);
@@ -608,6 +620,10 @@ async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Pro
   ]);
   await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['main_currency', data.mainCurrency]);
   await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['week_starts_on', JSON.stringify(data.weekStartsOn)]);
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
+    'last_money_csv_import',
+    JSON.stringify(data.lastMoneyCsvImport),
+  ]);
   await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
     'usage_read',
     JSON.stringify(data.usageRead),

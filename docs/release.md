@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android money CSV latest-import undo pass:
+
+- Data tools now persist only the latest money CSV import receipt: source name, import time, and each imported entry's ID plus creation/update timestamps;
+- `Undo latest money CSV import` removes the batch only when every imported entry still exists unchanged. A missing or edited entry blocks undo with no write, and a later import replaces the receipt;
+- the receipt persists through AppStore, JSON export/restore, encrypted backup, and SQLite metadata; app schema is now 31 and repository schema remains 3;
+- no legacy import path, migration, network request, worker, or background process was added;
+- focused receipt/AppStore/SQLite/data-import/export tests, full Jest (49 suites, 214 tests), lint, typecheck, bundle validation, release APK build, emulator Data tools smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android week-start pass:
 
 - Home now saves Sunday or Monday as the local week start; Home, Review, Money, App Time, and budget projections use the same current setting;

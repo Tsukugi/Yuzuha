@@ -130,7 +130,7 @@ The user chooses category, currency, period, amount, start rule, and rollover po
 
 ### Import money
 
-The current Android flow is choose one current Yuzuha money CSV, validate and preview it, confirm the append, and show the imported-row status. Split-linked rows, duplicate IDs, broken account/category references, invalid values, and oversized files block the append. Canceling or rejecting the preview leaves the database unchanged. Field mapping, arbitrary bank CSVs, import history, and undo remain full-product work.
+The current Android flow is choose one current Yuzuha money CSV, validate and preview it, confirm the append, and show the imported-row status. Data tools show the latest source and import time and offer `Undo latest money CSV import`. Undo removes the batch only while every imported entry still exists unchanged; edited or deleted entries produce a blocked state and leave data unchanged. Split-linked rows, duplicate IDs, broken account/category references, invalid values, and oversized files block the append. Canceling or rejecting the preview leaves the database unchanged. Field mapping, arbitrary bank CSVs, and multi-import history remain full-product work.
 
 ### Create recurring work
 

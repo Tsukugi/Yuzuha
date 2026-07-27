@@ -65,11 +65,30 @@ describe('AppStore task reminders', () => {
       await value!.importMoneyEntries([entry]);
     });
 
-    expect(saved.money).toEqual([entry]);
+    expect(saved.money).toHaveLength(1);
+    expect(saved.money[0]?.id).toBe(entry.id);
+    expect((saved as unknown as {lastMoneyCsvImport?: unknown}).lastMoneyCsvImport).toMatchObject({
+      sourceName: 'money CSV',
+      entries: [{id: entry.id, createdAt: entry.createdAt, updatedAt: entry.updatedAt}],
+    });
+    await act(async () => {
+      await value!.undoMoneyCsvImport();
+    });
+    expect(saved.money).toEqual([]);
+    expect(saved.lastMoneyCsvImport).toBeNull();
+    await act(async () => {
+      await value!.importMoneyEntries([entry]);
+    });
+    saved.money[0] = {...saved.money[0]!, updatedAt: '2026-07-29T12:00:00.000Z'};
     await act(async () => {
       await expect(value!.importMoneyEntries([entry])).rejects.toThrow(/already exists/i);
     });
-    expect(saved.money).toEqual([entry]);
+    expect(saved.money).toHaveLength(1);
+    expect(saved.money[0]?.updatedAt).toBe('2026-07-29T12:00:00.000Z');
+    await act(async () => {
+      await expect(value!.undoMoneyCsvImport()).rejects.toThrow(/edited/i);
+    });
+    expect(saved.money[0]?.updatedAt).toBe('2026-07-29T12:00:00.000Z');
     await act(async () => {
       await expect(value!.importMoneyEntries([{
         ...entry,
@@ -77,9 +96,10 @@ describe('AppStore task reminders', () => {
       }, {
         ...entry,
         id: 'money_batch_duplicate',
-      }])).rejects.toThrow(/already exists/i);
+    }])).rejects.toThrow(/already exists/i);
     });
-    expect(saved.money).toEqual([entry]);
+    expect(saved.money).toHaveLength(1);
+    expect(saved.money[0]?.updatedAt).toBe('2026-07-29T12:00:00.000Z');
     await act(async () => {
       await value!.addMoneyPayee('Market');
     });

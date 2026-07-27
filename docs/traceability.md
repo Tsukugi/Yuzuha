@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android week-start pass.
+Status: Traceability baseline through the Android money CSV latest-import undo pass.
 
 ## Authoritative source by concern
 
@@ -48,6 +48,8 @@ Current Money payee evidence: `MONEY-06` maps to `MoneyScreen`, `MoneyPayee`, `m
 Current Money report evidence: `MONEY-11` maps to `MoneyReportScreen`, `MoneyReportFilter`, `moneyReport.ts`, split-line projection tests, the 2026-07-27 Money-report-filter release note, and emulator report-scope smoke. The filter is derived; transfers and out-of-range entries are excluded and currencies remain separate.
 
 Current week-start evidence: `CORE-04` and `TASK-08` map to `AppData.weekStartsOn`, `getPeriodRange`, Home week-start controls, JSON/SQLite validation, period and Money-filter tests, the 2026-07-27 week-start release note, and emulator weekly-range smoke. Sunday and Monday are the only accepted values.
+
+Current money CSV undo evidence: `INT-02` maps to `MoneyCsvImportReceipt`, `AppStore.importMoneyEntries`, `AppStore.undoMoneyCsvImport`, `DataToolsScreen`, JSON/encrypted-backup/SQLite persistence, `src/shared/moneyCsvImportReceipt.test.ts`, AppStore and SQLite regression tests, and the 2026-07-27 money CSV undo release note. Undo is allowed only for the latest unchanged batch; missing or edited rows block it without a write.
 
 ## Open decision register
 

@@ -537,3 +537,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `AppData.weekStartsOn` with only Sunday (`0`) or Monday (`1`), default Monday, and pass it through the shared period helper and all current week-based projections. Persist it in current JSON, encrypted backups, and SQLite metadata.
 - Reason: One small typed setting keeps every weekly projection aligned without timezone conversion, a worker, a network dependency, or compatibility guessing.
 - Consequence: The current app schema becomes 30; missing or invalid values are rejected. The task Agenda remains device-local, and broader timezone, locale, and sync settings remain future work.
+
+## DEC-078: Keep only the latest money CSV import receipt
+
+- Status: Accepted.
+- Context: The current CSV append flow made one local save but gave the user no bounded way to reverse an accidental import. The app has no external users, so a new strict schema is safer than compatibility code.
+- Decision: Add `AppData.lastMoneyCsvImport` with the source name, import time, and each imported entry's ID, `createdAt`, and `updatedAt`. Persist it in JSON, encrypted backups, and SQLite metadata. Allow undo only for that latest receipt, and only when every recorded entry still exists with matching timestamps. If an entry is missing or edited, reject the entire undo without writing. A later import replaces the receipt.
+- Reason: The rule is small, local, deterministic, and bounded. Timestamp checks stop undo from deleting a user's later edit; missing entries are reported instead of guessed or recreated. One receipt avoids an unbounded import-history store and background cleanup.
+- Consequence: The current app schema becomes 31. Older app, backup, CSV, and SQLite versions remain rejected. Multi-import history, arbitrary bank mapping, and recovery of changed/deleted entries remain future contracts.

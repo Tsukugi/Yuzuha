@@ -206,6 +206,15 @@ describe('SQLite workspace store', () => {
       updatedAt: '2026-07-26T12:00:00.000Z',
       splitId: 'split_1',
     });
+    data.lastMoneyCsvImport = {
+      sourceName: 'round-trip.csv',
+      importedAt: '2026-07-26T13:00:00.000Z',
+      entries: [{
+        id: 'money_split_parent',
+        createdAt: '2026-07-26T12:00:00.000Z',
+        updatedAt: '2026-07-26T12:00:00.000Z',
+      }],
+    };
     data.splits.push({
       id: 'split_1',
       parentEntryId: 'money_split_parent',
@@ -393,6 +402,15 @@ describe('SQLite workspace store', () => {
     const store = new SqliteWorkspaceStore(database);
     await store.save(emptyAppData());
     database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
+
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
+  });
+
+  it('rejects a current SQLite workspace without the latest import receipt', async () => {
+    const database = new MemorySqlite();
+    const store = new SqliteWorkspaceStore(database);
+    await store.save(emptyAppData());
+    database.meta.delete('last_money_csv_import');
 
     await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });

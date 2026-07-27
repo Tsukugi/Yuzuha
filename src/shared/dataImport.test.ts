@@ -83,6 +83,23 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(JSON.stringify(envelope))).toThrow(/app header/i);
   });
 
+  it('rejects an invalid latest money CSV import receipt', () => {
+    const data = emptyAppData();
+    const envelope = JSON.parse(buildJsonExport(data, '2026-07-26T12:00:00.000Z')) as {data: Record<string, unknown>};
+    envelope.data.lastMoneyCsvImport = {
+      sourceName: 'money CSV',
+      importedAt: '2026-07-26T12:00:00.000Z',
+      entries: [{id: 'money_1', createdAt: 'not-a-date', updatedAt: '2026-07-26T12:00:00.000Z'}],
+    };
+
+    expect(() => parseJsonImport(JSON.stringify({
+      ...envelope,
+      exportSchemaVersion: 1,
+      appSchemaVersion: data.schemaVersion,
+      exportedAt: '2026-07-26T12:00:00.000Z',
+    }))).toThrow(/latest money CSV import receipt/i);
+  });
+
   it('imports a valid task dependency and counts it', () => {
     const data = emptyAppData();
     data.tasks.push(

@@ -663,7 +663,7 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
 }
 
 function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {resetWorkspace, restoreWorkspace, importMoneyEntries} = useAppStore();
+  const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
@@ -676,6 +676,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
   const [moneyCsvPreview, setMoneyCsvPreview] = useState<MoneyCsvImportFilePreview | null>(null);
   const [moneyCsvBusy, setMoneyCsvBusy] = useState(false);
+  const [moneyCsvUndoBusy, setMoneyCsvUndoBusy] = useState(false);
   const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
   const [jsonFileBusy, setJsonFileBusy] = useState(false);
 
@@ -738,7 +739,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         {
           text: 'Import',
           onPress: () => {
-            void importMoneyEntries(moneyCsvPreview.entries)
+            void importMoneyEntries(moneyCsvPreview.entries, moneyCsvPreview.name)
               .then(() => {
                 setError(null);
                 setStatus(`${moneyCsvPreview.entries.length} money entries were imported.`);
@@ -748,6 +749,36 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
                 setStatus(null);
                 setError(importError instanceof Error ? importError.message : 'Money CSV import failed.');
               });
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmUndoMoneyCsvImport() {
+    if (!data.lastMoneyCsvImport) {
+      return;
+    }
+    Alert.alert(
+      'Undo latest money CSV import?',
+      `Remove ${data.lastMoneyCsvImport.entries.length} entries from ${data.lastMoneyCsvImport.sourceName}? This works only while those imported entries are unchanged.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Undo import',
+          style: 'destructive',
+          onPress: () => {
+            setMoneyCsvUndoBusy(true);
+            void undoMoneyCsvImport()
+              .then(() => {
+                setError(null);
+                setStatus('The latest money CSV import was undone.');
+              })
+              .catch(undoError => {
+                setStatus(null);
+                setError(undoError instanceof Error ? undoError.message : 'The latest money CSV import could not be undone.');
+              })
+              .finally(() => setMoneyCsvUndoBusy(false));
           },
         },
       ],
@@ -1033,7 +1064,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Import money CSV</Text>
         <Text style={styles.cardDetail}>Choose a current Yuzuha money CSV. Nothing changes until you review the rows and confirm the append. Split-linked rows need a JSON export or encrypted backup.</Text>
-        <PrimaryButton label={moneyCsvBusy ? 'Opening money CSV...' : 'Choose money CSV'} onPress={previewMoneyCsvImport} disabled={moneyCsvBusy || backupBusy} />
+        <PrimaryButton label={moneyCsvBusy ? 'Opening money CSV...' : 'Choose money CSV'} onPress={previewMoneyCsvImport} disabled={moneyCsvBusy || moneyCsvUndoBusy || backupBusy} />
         {moneyCsvPreview && (
           <View style={styles.importPreview}>
             <Text style={styles.cardTitle}>Money CSV preview</Text>
@@ -1042,6 +1073,15 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
               <PrimaryButton label="Import these money entries" onPress={confirmMoneyCsvImport} />
             )}
           </View>
+        )}
+        {data.lastMoneyCsvImport ? (
+          <View style={styles.importPreview}>
+            <Text style={styles.cardTitle}>Latest import</Text>
+            <Text style={styles.cardDetail}>{data.lastMoneyCsvImport.entries.length} entries from {data.lastMoneyCsvImport.sourceName}. Imported {formatDate(data.lastMoneyCsvImport.importedAt)}. Undo is blocked after an imported entry is edited or deleted.</Text>
+            <PrimaryButton label={moneyCsvUndoBusy ? 'Undoing import...' : 'Undo latest money CSV import'} onPress={confirmUndoMoneyCsvImport} disabled={moneyCsvBusy || moneyCsvUndoBusy || backupBusy} />
+          </View>
+        ) : (
+          <Text style={styles.cardDetail}>No money CSV import is available to undo.</Text>
         )}
       </View>
       <View style={styles.formCard}>

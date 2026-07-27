@@ -2241,3 +2241,35 @@ Known limits:
 
 - the setting supports Sunday and Monday only;
 - the task Agenda remains device-local and a user-selected timezone remains future work.
+
+## Implementation review: Android money CSV latest-import undo pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a typed latest-import receipt with source name, import time, and imported entry IDs/timestamps;
+- deterministic undo that removes only the latest unchanged import and blocks when an imported entry is missing or edited;
+- receipt persistence through AppStore, current JSON export/restore, encrypted backup, and SQLite metadata;
+- Data tools status and destructive confirmation UI;
+- app schema 31 with no legacy migration, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - receipt, AppStore, SQLite, import, export, and restore tests
+Full Jest                PASS - 49 suites, 214 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Data tools showed the latest-import undo state
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- only the latest import is undoable; there is no multi-import history;
+- undo does not restore an entry that was deleted or edited after import;
+- arbitrary bank CSV mapping and split-row import remain future work.

@@ -23,6 +23,18 @@ export interface MoneyPayee {
   updatedAt: string;
 }
 
+export interface MoneyCsvImportReceiptEntry {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MoneyCsvImportReceipt {
+  sourceName: string;
+  importedAt: string;
+  entries: MoneyCsvImportReceiptEntry[];
+}
+
 export interface MoneyEntry {
   id: string;
   kind: MoneyKind;
@@ -280,9 +292,10 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 30;
+  schemaVersion: 31;
   mainCurrency: string;
   weekStartsOn: WeekStartDay;
+  lastMoneyCsvImport: MoneyCsvImportReceipt | null;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
   splits: MoneySplit[];
@@ -320,9 +333,10 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 30,
+  schemaVersion: 31,
   mainCurrency: 'EUR',
   weekStartsOn: 1,
+  lastMoneyCsvImport: null,
   money: [],
   transfers: [],
   splits: [],

@@ -103,11 +103,13 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 
 ## Developer note: local data starts after bundle verification
 
-Current data boundary: the week-start pass raises the accepted app schema to 30 while repository schema remains 3. A fresh database seeds current payees and the Monday week-start default directly; old versions are rejected rather than upgraded.
+Current data boundary: the money CSV undo pass raises the accepted app schema to 31 while repository schema remains 3. A fresh database seeds current payees, the Monday week-start default, and an empty latest-import receipt directly; old versions are rejected rather than upgraded.
 
-The current report-filter and week-start passes use accepted app schema 30/repository schema 3 data. Week-start is local persisted data and changes no installer metadata, bundle gate, cache rule, or startup work.
+The current money CSV undo pass uses accepted app schema 31/repository schema 3 data. The receipt is local persisted data and changes no installer metadata, bundle gate, cache rule, or startup work.
 
-The next detailed provider description retains the prior pass wording for history; the current provider requires app schema 30 and repository schema 3 and rejects older data.
+The next detailed provider description retains the prior pass wording for history; the current provider requires app schema 31 and repository schema 3 and rejects older data.
+
+The provider inventory paragraph below is historical implementation wording. The current provider opens repository schema 3 and validates app schema 31 before `MainApp` is shown.
 
 The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, requires repository schema 2 and app schema 28, expands due money and task rules, copies any recurring-rule local reminder times into generated tasks, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. It also validates project references, task template fields and references, app-group records, focus-session states, task parent references, same-list parent links, parent cycles, task dependency references, cycles, and per-list task sort order before the workspace is shown. That synchronization is empty when the global `taskRemindersEnabled` flag is off. When the global flag is on, tasks linked to a recurring rule are also filtered by `recurringTaskRemindersEnabled`; one-off task reminders remain active when only the recurring flag is off. Both flags pause native alarms without deleting logical reminder timestamps, and turning them back on rebuilds future schedules. A current-schema validation, recurrence-expansion, project, template, app-group, focus-session, subtask, dependency, sort-order, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; old schemas are rejected and are not guessed or upgraded. Restore also synchronizes the incoming projected reminder set before committing it, subject to both restored category flags.
 

@@ -35,6 +35,7 @@ import {TASK_PROJECT_MAX_NAME_LENGTH} from './projectLifecycle';
 import {validateAppGroupDraft} from './appGroupLifecycle';
 import {validateTaskParentLink} from './taskSubtask';
 import {validateTaskTemplateDraft} from './taskTemplateLifecycle';
+import {validateMoneyCsvImportReceipt} from './moneyCsvImportReceipt';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -88,7 +89,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 30) {
+  if (appSchemaVersion !== 31) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -107,12 +108,16 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 30 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 31 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
   }
   const data = value as unknown as AppData;
+  const receiptError = validateMoneyCsvImportReceipt(data.lastMoneyCsvImport);
+  if (receiptError) {
+    throw new JsonImportError(receiptError);
+  }
 
   validateUniqueIds('money entries', data.money);
   validateUniqueIds('transfers', data.transfers);

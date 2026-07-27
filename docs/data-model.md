@@ -2,15 +2,17 @@
 
 The Android summary widget is a live non-database projection over the current task and note collections. It adds no app or repository schema field.
 
-Current schema boundary: app schema 30 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. Older schemas are rejected without migration.
+Current schema boundary: app schema 31 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. `lastMoneyCsvImport` stores only the latest money CSV receipt with its source, import time, and imported entry timestamps. Older schemas are rejected without migration.
 
 The detailed status paragraph below retains earlier schema numbers as historical implementation notes. The current data boundary above is authoritative.
+
+The current implementation uses app schema 31 and repository schema 3. The older schema numbers in the next status paragraph are retained only to explain the sequence of completed passes.
 
 Status: The local SQLite repository boundary is implemented with app data schema 28 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, optional local reminder times on recurring task rules, task projects and optional task-to-project links, task templates with archive controls and direct task creation, task parent links with cycle rejection and child promotion, app groups and manual focus sessions with optional record links, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a derived device-local 14-day task agenda, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, separate global and recurring-task reminder category pauses, Android `Open`, idempotent `Complete`, and configurable `Snooze` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, validated JSON restore, and ephemeral Android text-share capture are live; selected timezone/week-start settings, broader notification automation, file/URI share records, app blocking, normalized report, and sync tables remain future work.
 
 Android task calendar drafts are external editor input only. A dated task supplies title, details, and a local all-day date to the system calendar editor; no calendar row, event ID, permission grant, schema field, export field, or background state is stored.
 
-Money CSV import is also external file input only. It preserves current money entry IDs and timestamps, requires current account/category references, rejects split-linked rows, and appends validated rows to the existing `money` collection only after confirmation. It adds no import session, schema field, export field, or legacy format.
+Money CSV import is also external file input only. It preserves current money entry IDs and timestamps, requires current account/category references, rejects split-linked rows, and appends validated rows to the existing `money` collection only after confirmation. The latest receipt is part of current app data and is exported, encrypted, and stored in SQLite metadata. Undo is allowed only while every receipt entry exists with the same `createdAt` and `updatedAt`; a missing or edited entry blocks the whole undo with no write. A second import replaces the receipt, so only the latest import is undoable. There is no legacy format or import history.
 
 JSON export file restore is external file input only. It preserves the validated current export data, adds no import session or schema field, and replaces the workspace only after the existing destructive confirmation. The file is bounded and copied to cache only for validation, then removed.
 
@@ -43,6 +45,18 @@ JSON export file restore is external file input only. It preserves the validated
 | `accountLabel` | string | Optional local label, not a bank account connection. |
 | `note` | string | Optional, user-entered. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+### Latest money CSV import receipt
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `sourceName` | string | Trimmed display name, bounded to 200 characters. |
+| `importedAt` | UTC datetime | Time the confirmed import was saved. |
+| `entries` | array | One record per imported entry, bounded to the current CSV row limit. |
+| `entries[].id` | UUID/string | Imported money entry ID. |
+| `entries[].createdAt` / `updatedAt` | UTC datetime | Exact timestamps captured at import time for undo checks. |
+
+Only one receipt is stored. A later import replaces it. Undo requires every receipt ID to exist with matching timestamps; otherwise the operation fails without changing the workspace.
 
 ### Money transfer
 
@@ -317,11 +331,13 @@ The current build does not persist these preference records through AsyncStorage
 ## Schema policy
 
 1. The unreleased build has one current app schema and one current SQLite repository schema.
-2. App schema 30 and repository schema 3 are accepted. Older and unknown schemas are rejected clearly.
+2. App schema 31 and repository schema 3 are accepted. Older and unknown schemas are rejected clearly.
 3. A future public release may add a forward migration only after a product decision, fixture test, and rollback plan.
 4. A fresh install creates the current empty workspace directly; it does not import old product data.
 
 ## Current local storage
+
+Current storage summary: `SqliteWorkspaceStore` writes repository schema 3, app schema 31, `week_starts_on`, `last_money_csv_import`, and the existing normalized/JSON record boundaries. JSON and encrypted backup restore use the same current app-data validator. The older inventory paragraph below is retained as historical pass wording.
 
 The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 28 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, projects, task templates, app groups, focus sessions, notification settings, task lists, task recurrence rules, tasks, task parent links, task dependencies, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. The repository seeds a fresh database with current empty data and rejects old or unknown repository schemas. JSON restore accepts export schema 1 only when its app data is schema 28, validates project names and fields, template names and fields, template list/project links, app-group packages, focus-session states, task-project links, parent-task list membership and cycles, current task-list links, task recurrence links, task priority, task dates, reminder timestamps, per-list task sort order, both notification category settings, recurrence reminder times, dependency references, duplicate links, and cycles, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary. Old app data, old SQLite rows, and old encrypted backup schemas are not upgraded in this unreleased build.
 

@@ -41,6 +41,7 @@ import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
 import {createMoneyPayee, validateMoneyPayeeName} from '../shared/moneyPayee';
+import {createMoneyCsvImportReceipt} from '../shared/moneyCsvImportReceipt';
 import type {
   AppData,
   MoneyAccount,
@@ -71,7 +72,8 @@ interface AppStoreValue {
     category: string;
     note: string;
   }) => Promise<void>;
-  importMoneyEntries: (entries: MoneyEntry[]) => Promise<void>;
+  importMoneyEntries: (entries: MoneyEntry[], sourceName?: string) => Promise<void>;
+  undoMoneyCsvImport: () => Promise<void>;
   updateMoney: (entryId: string, input: {
     kind: MoneyKind;
     amountMinor: number;
@@ -262,10 +264,11 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const importMoneyEntries = useCallback(
-    async (entries: MoneyEntry[]) => {
+    async (entries: MoneyEntry[], sourceName = 'money CSV') => {
       if (entries.length === 0) {
         throw new Error('The money CSV contains no valid rows to import.');
       }
+      const receipt = createMoneyCsvImportReceipt(entries, sourceName, new Date().toISOString());
       await commit(current => {
         const currentIds = new Set(current.money.map(entry => entry.id));
         const incomingIds = new Set<string>();
@@ -275,7 +278,37 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
           }
           incomingIds.add(entry.id);
         }
-        return {...current, money: [...entries, ...current.money]};
+        return {...current, money: [...entries, ...current.money], lastMoneyCsvImport: receipt};
+      });
+    },
+    [commit],
+  );
+
+  const undoMoneyCsvImport = useCallback(
+    async () => {
+      await commit(current => {
+        const receipt = current.lastMoneyCsvImport;
+        if (!receipt) {
+          throw new Error('There is no money CSV import to undo.');
+        }
+        const currentEntries = new Map(current.money.map(entry => [entry.id, entry]));
+        const missing = receipt.entries.some(imported => !currentEntries.has(imported.id));
+        if (missing) {
+          throw new Error('The latest money CSV import cannot be undone because an imported entry is missing.');
+        }
+        const changed = receipt.entries.some(imported => {
+          const currentEntry = currentEntries.get(imported.id);
+          return !currentEntry || currentEntry.createdAt !== imported.createdAt || currentEntry.updatedAt !== imported.updatedAt;
+        });
+        if (changed) {
+          throw new Error('The latest money CSV import cannot be undone because an imported entry was edited.');
+        }
+        const importedIds = new Set(receipt.entries.map(imported => imported.id));
+        return {
+          ...current,
+          money: current.money.filter(entry => !importedIds.has(entry.id)),
+          lastMoneyCsvImport: null,
+        };
       });
     },
     [commit],
@@ -1472,6 +1505,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       error,
       addMoney,
       importMoneyEntries,
+      undoMoneyCsvImport,
       updateMoney,
       deleteMoney,
       resetWorkspace,
@@ -1544,6 +1578,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [
       addMoney,
       importMoneyEntries,
+      undoMoneyCsvImport,
       addTimeGoal,
       addMoneyAccount,
       addMoneyCategory,
