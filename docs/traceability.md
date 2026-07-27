@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android task-list-search-focus pass.
+Status: Traceability baseline through the Android app-group-search-focus pass.
 
 ## Authoritative source by concern
 
@@ -70,6 +70,8 @@ Current project-search-focus evidence: `CROSS-02` also maps to `globalSearchNavi
 Current template-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingTemplateId`, the existing `TasksScreen` template focus effect, the template-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 template-search-focus release note. Task-template results load the current template in the Tasks edit form; other results remain tab-only.
 
 Current task-list-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingListId`, the existing `TasksScreen` list focus effect, the list-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 task-list-search-focus release note. Task-list results load the current list in the Tasks rename form; other results remain tab-only.
+
+Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingAppGroupId`, `AppTimeScreen`, `FocusSessionPanel`, the app-group editor, the app-group update assertion in `src/shared/focusSessionLifecycle.test.ts`, the app-group focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 app-group-search-focus release note. App-group results load the current group in edit mode; deleting the focused group clears the editor.
 
 ## Open decision register
 

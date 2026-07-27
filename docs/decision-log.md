@@ -625,3 +625,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: When a Global Search result kind is `task-list`, carry its stable ID through `pendingListId`. Close Search, open Tasks, and load the existing list into the rename form. Money, note, task, project, and task-template results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
 - Reason: This gives list search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
 - Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-089: Edit and focus app-group results from global search
+
+- Status: Accepted.
+- Context: App-group storage and the `updateAppGroup` store action already existed, but the UI only added, archived, and deleted groups. Global Search routed app-group results to App Time without an exact destination.
+- Decision: Add an app-group edit form in `FocusSessionPanel`. When a Global Search result kind is `app-group`, carry its stable ID through `pendingAppGroupId`, open App Time, and load the group into that form. If the focused group is deleted, clear the editor and selected group deterministically.
+- Reason: This completes the existing local CRUD boundary and gives search a useful exact destination without a new record type, schema field, or remote dependency.
+- Consequence: App-group names and package lists can be edited locally. Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

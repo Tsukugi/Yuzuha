@@ -2508,6 +2508,41 @@ Known limits:
 
 Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
 
+## Implementation review: Android app-group-search-focus pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- app groups now have local edit controls backed by the existing `updateAppGroup` store action;
+- app-group search results carry their stable ID through `globalSearchNavigation`;
+- Search closes and the existing `pendingAppGroupId` path opens App Time with the group in edit mode;
+- deleting the focused group clears the editor and selected group;
+- no schema, import/export UI, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - exact focus mapping plus app-group update lifecycle test
+Full Jest                PASS - 51 suites, 228 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - temporary `SearchGroup` searched and opened with `Edit app group`, name `SearchGroup`, package `com.example.searchapp`, and `Update app group`
+Delete regression smoke  PASS - deleting the focused group cleared the editor to `App group name` and `Add app group`
+Phone smoke              PASS - cold release startup with resumed `dev.yuzuha/.MainActivity`; automated touch input is rejected by device policy
+Resource cleanup         PASS - temporary group deleted, both devices force-stopped, and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- exact focus remains to be added separately for accounts, categories, transfers, splits, budgets, recurring rules, focus sessions, and time goals;
+- search does not transfer filters or create ID-bearing deep links;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
+
 ## Implementation review: Android project-search-focus pass
 
 Status: Completed on 2026-07-28.

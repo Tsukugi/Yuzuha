@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android app-group-search-focus pass:
+
+- app groups now have local edit controls using the existing `updateAppGroup` store action;
+- Global Search app-group results pass their stable ID through the App Time focus path and open the matching group in edit mode;
+- deleting the currently focused group clears the editor and selected group instead of retaining deleted values;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused navigation and app-group lifecycle tests, full Jest (51 suites, 228 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator app-group-focus/delete smoke, and phone cold-start process/activity smoke passed; the phone rejects automated touch input, and both devices were force-stopped.
+
 2026-07-28 Android task-list-search-focus pass:
 
 - Global Search task-list results now pass their stable ID through the existing Tasks rename focus path and open the matching list in rename mode;

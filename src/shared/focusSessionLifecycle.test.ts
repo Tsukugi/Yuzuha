@@ -1,4 +1,4 @@
-import {createAppGroupRecord, validateAppGroupDraft} from './appGroupLifecycle';
+import {createAppGroupRecord, updateAppGroupRecord, validateAppGroupDraft} from './appGroupLifecycle';
 import {createFocusSessionRecord, finishFocusSession, focusSessionDurationSeconds, validateFocusSessionDraft} from './focusSessionLifecycle';
 
 describe('focus session lifecycle rules', () => {
@@ -67,6 +67,18 @@ describe('app group lifecycle rules', () => {
       isArchived: false,
       createdAt: '2026-07-27T09:00:00.000Z',
       updatedAt: '2026-07-27T09:00:00.000Z',
+    });
+  });
+
+  it('updates a group without changing its identity or archive state', () => {
+    const original = {...createAppGroupRecord({name: 'Writing', packageNames: ['com.editor']}, 'app_group_3', '2026-07-27T09:00:00.000Z'), isArchived: true};
+    expect(updateAppGroupRecord(original, {name: 'Research', packageNames: [' com.browser ', 'com.reader']}, '2026-07-27T10:00:00.000Z')).toEqual({
+      id: 'app_group_3',
+      name: 'Research',
+      packageNames: ['com.browser', 'com.reader'],
+      isArchived: true,
+      createdAt: '2026-07-27T09:00:00.000Z',
+      updatedAt: '2026-07-27T10:00:00.000Z',
     });
   });
 });

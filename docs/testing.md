@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the Android task-list-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android app-group-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -31,7 +31,7 @@ Status: Current test strategy through the Android task-list-search-focus pass. U
 - Global-search tests verify active linked-target matching, readable note-result labels, archived-project gating, and exclusion of deleted target content from search.
 - Rich-note tests verify supported inline/line markers, plain-text fallback, selection-based formatting, multi-line bullets, and heading toggling. Emulator smoke verifies the toolbar created `# Smoke` and the saved card displayed `Smoke` rather than raw markers.
 - Search-navigation tests cover every supported result kind. Emulator smoke verifies `Open Note LinkNote` and `Open Task LinkTask` actions, then taps the note result and reaches Notes.
-- Money-, task-, note-, project-, template-, and list-focus tests verify money, task, note, project, task-template, and task-list results carry stable focus IDs. Emulator smoke creates a temporary `SearchList`, searches it, taps `Open Task list SearchList`, and shows `Rename task list`, name `SearchList`, and `Rename list`; the money, note, task, project, and template paths remain covered by their existing smoke evidence.
+- Money-, task-, note-, project-, template-, list-, and app-group-focus tests verify all current exact-search IDs. The app-group lifecycle unit test verifies update identity/archive behavior. Emulator smoke creates a temporary `SearchGroup`, searches it, taps `Open App group SearchGroup`, and shows `Edit app group`, name `SearchGroup`, package `com.example.searchapp`, and `Update app group`; deleting the focused group returns to `App group name` and `Add app group`. The money, note, task, project, template, and list paths remain covered by their existing smoke evidence.
 
 ## Week-start preference evidence
 

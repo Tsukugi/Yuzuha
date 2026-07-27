@@ -112,6 +112,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
   const [pendingListId, setPendingListId] = useState<string | null>(null);
+  const [pendingAppGroupId, setPendingAppGroupId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
@@ -122,6 +123,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setPendingProjectId(navigation.focusProjectId);
     setPendingTemplateId(navigation.focusTemplateId);
     setPendingListId(navigation.focusListId);
+    setPendingAppGroupId(navigation.focusAppGroupId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -321,7 +323,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} onFocusHandled={() => setPendingMoneyId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
-            {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
+            {tab === 'appTime' && <AppTimeScreen focusAppGroupId={pendingAppGroupId} onFocusHandled={() => setPendingAppGroupId(null)} onBack={() => setTab('home')} />}
           </>
         )}
       </View>
@@ -2379,7 +2381,7 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   );
 }
 
-function AppTimeScreen({onBack}: {onBack: () => void}) {
+function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroupId: string | null; onFocusHandled: () => void; onBack: () => void}) {
   const {data, setUsagePermission, replaceUsageSnapshots, toggleUsageExclusion, addTimeGoal} = useAppStore();
   const [permission, setPermission] = useState(data?.usageRead.permission ?? 'unknown');
   const [isChecking, setIsChecking] = useState(true);
@@ -2478,7 +2480,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
       </Pressable>
       <Text style={styles.pageTitle}>App time</Text>
       <Text style={styles.pageIntro}>Read-only totals from Android Usage Access. Nothing leaves this device.</Text>
-      <FocusSessionPanel data={data} />
+      <FocusSessionPanel data={data} focusAppGroupId={focusAppGroupId} onFocusHandled={onFocusHandled} />
 
       {!usageAccess.isSupported() ? (
         <EmptyState text="App-time data is not available on this platform." />
@@ -2567,14 +2569,15 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
   );
 }
 
-function FocusSessionPanel({data}: {data: AppData}) {
-  const {startFocusSession, finishFocusSession, deleteFocusSession, addAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
+function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppData; focusAppGroupId: string | null; onFocusHandled: () => void}) {
+  const {startFocusSession, finishFocusSession, deleteFocusSession, addAppGroup, updateAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
   const [taskId, setTaskId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
   const [appGroupId, setAppGroupId] = useState<string | null>(null);
   const [appGroupName, setAppGroupName] = useState('');
   const [appGroupPackages, setAppGroupPackages] = useState('');
+  const [editingAppGroupId, setEditingAppGroupId] = useState<string | null>(null);
   const [clockMillis, setClockMillis] = useState(() => Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2589,6 +2592,23 @@ function FocusSessionPanel({data}: {data: AppData}) {
     const interval = globalThis.setInterval(updateClock, 1000);
     return () => globalThis.clearInterval(interval);
   }, [activeSession?.id]);
+
+  useEffect(() => {
+    if (!focusAppGroupId) {
+      return;
+    }
+    const group = data.appGroups.find(item => item.id === focusAppGroupId);
+    if (!group) {
+      onFocusHandled();
+      return;
+    }
+    setEditingAppGroupId(group.id);
+    setAppGroupName(group.name);
+    setAppGroupPackages(group.packageNames.join(', '));
+    setError(null);
+    setMessage(null);
+    onFocusHandled();
+  }, [data, focusAppGroupId, onFocusHandled]);
 
   async function start() {
     setMessage(null);
@@ -2615,6 +2635,20 @@ function FocusSessionPanel({data}: {data: AppData}) {
     }
   }
 
+  function resetGroupForm() {
+    setEditingAppGroupId(null);
+    setAppGroupName('');
+    setAppGroupPackages('');
+  }
+
+  function startEditingGroup(group: AppData['appGroups'][number]) {
+    setEditingAppGroupId(group.id);
+    setAppGroupName(group.name);
+    setAppGroupPackages(group.packageNames.join(', '));
+    setError(null);
+    setMessage(null);
+  }
+
   async function addGroup() {
     const draft = {name: appGroupName, packageNames: appGroupPackages.split(',')};
     const validationError = validateAppGroupDraft(draft);
@@ -2625,11 +2659,15 @@ function FocusSessionPanel({data}: {data: AppData}) {
     setMessage(null);
     setError(null);
     try {
-      const createdId = await addAppGroup(draft);
-      setAppGroupId(createdId);
-      setAppGroupName('');
-      setAppGroupPackages('');
-      setMessage('App group saved.');
+      const isEditing = editingAppGroupId !== null;
+      if (editingAppGroupId) {
+        await updateAppGroup(editingAppGroupId, draft);
+      } else {
+        const createdId = await addAppGroup(draft);
+        setAppGroupId(createdId);
+      }
+      resetGroupForm();
+      setMessage(isEditing ? 'App group updated.' : 'App group saved.');
     } catch (groupError) {
       setError(groupError instanceof Error ? groupError.message : 'The app group could not be saved.');
     }
@@ -2638,8 +2676,22 @@ function FocusSessionPanel({data}: {data: AppData}) {
   function confirmDeleteGroup(groupId: string, name: string) {
     Alert.alert('Delete app group?', `Delete "${name}"?`, [
       {text: 'Cancel', style: 'cancel'},
-      {text: 'Delete', style: 'destructive', onPress: () => void deleteAppGroup(groupId).catch(deleteError => setError(deleteError instanceof Error ? deleteError.message : 'The app group could not be deleted.'))},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeGroup(groupId)},
     ]);
+  }
+
+  async function removeGroup(groupId: string) {
+    try {
+      await deleteAppGroup(groupId);
+      if (editingAppGroupId === groupId) {
+        resetGroupForm();
+      }
+      if (appGroupId === groupId) {
+        setAppGroupId(null);
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'The app group could not be deleted.');
+    }
   }
 
   function sessionDetail(session: AppData['focusSessions'][number]): string {
@@ -2707,9 +2759,11 @@ function FocusSessionPanel({data}: {data: AppData}) {
         </>
       )}
       <SectionTitle title="App groups" />
+      {editingAppGroupId && <Text style={styles.formLabel}>Edit app group</Text>}
       <TextInput accessibilityLabel="App group name" placeholder="App group name" placeholderTextColor={colors.muted} style={styles.input} value={appGroupName} onChangeText={setAppGroupName} />
       <TextInput accessibilityLabel="App group packages" placeholder="com.editor, com.browser" placeholderTextColor={colors.muted} style={styles.input} value={appGroupPackages} onChangeText={setAppGroupPackages} />
-      <PrimaryButton label="Add app group" onPress={() => void addGroup()} />
+      <PrimaryButton label={editingAppGroupId ? 'Update app group' : 'Add app group'} onPress={() => void addGroup()} />
+      {editingAppGroupId && <TextButton label="Cancel app group edit" onPress={resetGroupForm} />}
       {data.appGroups.length === 0 ? <Text style={styles.emptyState}>No app groups yet.</Text> : data.appGroups.map(group => (
         <View key={group.id} style={styles.listRow}>
           <View style={styles.listBody}>
@@ -2717,6 +2771,7 @@ function FocusSessionPanel({data}: {data: AppData}) {
             <Text style={styles.listMeta}>{group.packageNames.join(', ')} · {group.isArchived ? 'Archived' : 'Active'}</Text>
           </View>
           <View style={styles.rowActions}>
+            <TextButton label="Edit" onPress={() => startEditingGroup(group)} />
             <TextButton label={group.isArchived ? 'Restore' : 'Archive'} onPress={() => void setAppGroupArchived(group.id, !group.isArchived)} />
             <TextButton label="Delete" danger onPress={() => confirmDeleteGroup(group.id, group.name)} />
           </View>

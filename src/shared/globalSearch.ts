@@ -67,6 +67,7 @@ export interface GlobalSearchNavigation {
   focusProjectId: string | null;
   focusTemplateId: string | null;
   focusListId: string | null;
+  focusAppGroupId: string | null;
 }
 
 export function globalSearchNavigation(result: Pick<GlobalSearchResult, 'kind' | 'id'>): GlobalSearchNavigation {
@@ -78,6 +79,7 @@ export function globalSearchNavigation(result: Pick<GlobalSearchResult, 'kind' |
     focusProjectId: result.kind === 'project' ? result.id : null,
     focusTemplateId: result.kind === 'task-template' ? result.id : null,
     focusListId: result.kind === 'task-list' ? result.id : null,
+    focusAppGroupId: result.kind === 'app-group' ? result.id : null,
   };
 }
 
