@@ -1,5 +1,6 @@
 import type {AppData, MissedOccurrencePolicy, RecurrenceCadence, Task, TaskPriority, TaskRecurrenceRule} from '../types/domain';
 import {addRecurrenceDate, isValidLocalDate} from './moneyRecurrence';
+import {parseTaskReminderLocalDateTime} from './taskReminder';
 
 export interface TaskRecurrenceDraft {
   title: string;
@@ -10,11 +11,21 @@ export interface TaskRecurrenceDraft {
   interval: number;
   nextOccurrenceLocalDate: string;
   missedOccurrencePolicy: MissedOccurrencePolicy;
+  reminderLocalTime: string | null;
 }
 
 export interface TaskRecurrenceExpansion {
   data: AppData;
   generatedCount: number;
+}
+
+export function isValidTaskRecurrenceReminderLocalTime(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{2}:\d{2}$/.test(value)) {
+    return false;
+  }
+  const hour = Number(value.slice(0, 2));
+  const minute = Number(value.slice(3, 5));
+  return hour <= 23 && minute <= 59;
 }
 
 export function validateTaskRecurrenceDraft(input: TaskRecurrenceDraft, listIds: ReadonlySet<string>): string | null {
@@ -39,6 +50,10 @@ export function validateTaskRecurrenceDraft(input: TaskRecurrenceDraft, listIds:
   if (!isValidLocalDate(input.nextOccurrenceLocalDate)) {
     return 'Enter a valid recurring task date as YYYY-MM-DD.';
   }
+  if (input.reminderLocalTime !== null &&
+      (!isValidTaskRecurrenceReminderLocalTime(input.reminderLocalTime) || input.reminderLocalTime !== input.reminderLocalTime.trim())) {
+    return 'Use HH:mm for the recurring reminder time.';
+  }
   if (input.missedOccurrencePolicy !== 'all' && input.missedOccurrencePolicy !== 'one' && input.missedOccurrencePolicy !== 'skip') {
     return 'Choose a valid missed-occurrence policy for the recurring task.';
   }
@@ -60,6 +75,7 @@ export function createTaskRecurrenceRecord(input: TaskRecurrenceDraft, id: strin
     interval: input.interval,
     nextOccurrenceLocalDate: input.nextOccurrenceLocalDate,
     missedOccurrencePolicy: input.missedOccurrencePolicy,
+    reminderLocalTime: input.reminderLocalTime,
     isPaused: false,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -91,6 +107,9 @@ export function expandDueTaskRecurrences(data: AppData, todayLocalDate: string, 
     occurrenceDates.forEach(occurrenceLocalDate => {
       const taskId = `task_${rule.id}_${occurrenceLocalDate}`;
       if (!data.tasks.some(task => task.id === taskId) && !generatedTasks.some(task => task.id === taskId)) {
+        const reminderAtMillis = rule.reminderLocalTime === null
+          ? null
+          : parseTaskReminderLocalDateTime(`${occurrenceLocalDate}T${rule.reminderLocalTime}`);
         generatedTasks.push({
           id: taskId,
           title: rule.title,
@@ -101,7 +120,7 @@ export function expandDueTaskRecurrences(data: AppData, todayLocalDate: string, 
           listId: rule.listId,
           sourceNoteId: null,
           recurrenceRuleId: rule.id,
-          reminderAtMillis: null,
+          reminderAtMillis,
           createdAt: generatedAt,
           updatedAt: generatedAt,
         });

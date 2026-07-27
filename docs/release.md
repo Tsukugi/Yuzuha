@@ -4,6 +4,15 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 recurring task-reminder pass:
+
+- app data schema 21 adds nullable `taskRecurrenceRule.reminderLocalTime` with strict local `HH:mm` validation; schema 20 rules migrate to no automatic reminder time;
+- generated task occurrences copy the rule time into `reminderAtMillis`, and future generated reminders synchronize immediately through the existing Task reminders category and quiet-hours projection;
+- past generated reminder timestamps are retained as logical task values but are not added to native schedules;
+- JSON, encrypted backup, SQLite, and legacy AsyncStorage paths validate or default the new rule field;
+- recurring-rule reminder tests, full unit tests, lint, typecheck, bundle checks, Android debug/release builds, emulator UI/scheduling smoke, and phone launch smoke passed;
+- rule-level notifications, recurring notification summaries, iOS reminders, and sync remain planned.
+
 2026-07-27 Android task-reminder category-pause pass:
 
 - app data schema 20 adds required `notificationSettings.taskRemindersEnabled`, defaulting existing schema 19 data and legacy SQLite settings to `true`;

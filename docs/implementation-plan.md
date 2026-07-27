@@ -1263,3 +1263,36 @@ Known limits:
 - no per-category automation, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
 Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.
+
+## Implementation review: recurring task-reminder pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 21 adds nullable `taskRecurrenceRule.reminderLocalTime` with strict `HH:mm` validation;
+- schema 20 rules migrate to `reminderLocalTime: null`, while existing generated tasks keep their current reminder values;
+- each generated occurrence copies the rule time into its local task reminder timestamp;
+- future generated reminders synchronize immediately after rule creation and during startup/boot through the existing category and quiet-hours projection;
+- past generated timestamps are retained as logical values but are not scheduled; rule-level notification summaries, sync, and iOS behavior remain planned.
+
+Review evidence:
+
+```text
+Failing tests first         PASS - schema 20 migration, rule creation, invalid HH:mm, and generated timestamp failures reproduced
+Focused Jest                PASS - 5 suites, 52 tests for recurrence, migration, SQLite, import/export, and AppStore behavior
+Full Jest                   PASS - 32 suites, 148 tests
+npm run lint                PASS
+npm run typecheck           PASS
+npm run check-bundle        PASS - Android metadata valid
+Android builds              PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator form smoke        PASS - recurring form showed optional HH:mm, saved RecurringSmoke3, and showed generated task reminder 23:59
+Emulator alarm smoke       PASS - native TASK_REMINDER alarm remained at 2026-07-27 23:59 after relaunch
+Phone smoke                 PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no rule-level notification summaries, recurring notification automation, iOS reminders, account recovery, or sync.
+
+Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.

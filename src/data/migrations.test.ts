@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
@@ -325,7 +325,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.taskRecurrences).toEqual([]);
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
   });
@@ -351,7 +351,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.tasks[0].reminderAtMillis).toBeNull();
   });
 
@@ -361,7 +361,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null, snoozeDurationMinutes: 60, taskRemindersEnabled: true});
   });
 
@@ -372,7 +372,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.notificationSettings.snoozeDurationMinutes).toBe(60);
   });
 
@@ -383,7 +383,30 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(20);
+    expect(data?.schemaVersion).toBe(21);
     expect(data?.notificationSettings.taskRemindersEnabled).toBe(true);
+  });
+
+  it('adds an empty recurring reminder time when opening schema 20 data', () => {
+    const legacy = {...emptyAppData(), schemaVersion: 20 as const} as Record<string, unknown>;
+    legacy.taskRecurrences = [{
+      id: 'rule_legacy',
+      title: 'Legacy recurring task',
+      details: '',
+      priority: 'normal',
+      listId: 'task_list_inbox',
+      cadence: 'week',
+      interval: 1,
+      nextOccurrenceLocalDate: '2026-07-27',
+      missedOccurrencePolicy: 'all',
+      isPaused: false,
+      createdAt: '2026-07-27T08:00:00.000Z',
+      updatedAt: '2026-07-27T08:00:00.000Z',
+    }];
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(21);
+    expect(data?.taskRecurrences[0]?.reminderLocalTime).toBeNull();
   });
 });

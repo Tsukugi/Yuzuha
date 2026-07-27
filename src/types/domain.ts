@@ -161,6 +161,7 @@ export interface TaskRecurrenceRule {
   interval: number;
   nextOccurrenceLocalDate: string;
   missedOccurrencePolicy: MissedOccurrencePolicy;
+  reminderLocalTime: string | null;
   isPaused: boolean;
   createdAt: string;
   updatedAt: string;
@@ -204,7 +205,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 20;
+  schemaVersion: 21;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -237,7 +238,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 20,
+  schemaVersion: 21,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

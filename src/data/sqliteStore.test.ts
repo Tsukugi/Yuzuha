@@ -308,6 +308,7 @@ describe('SQLite workspace store', () => {
       interval: 1,
       nextOccurrenceLocalDate: '2026-08-02',
       missedOccurrencePolicy: 'all',
+      reminderLocalTime: null,
       isPaused: false,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
@@ -343,13 +344,42 @@ describe('SQLite workspace store', () => {
     database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
 
     await expect(store.load()).resolves.toMatchObject({
-      schemaVersion: 20,
+      schemaVersion: 21,
       notificationSettings: {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 60,
         taskRemindersEnabled: true,
       },
+    });
+  });
+
+  it('defaults a recurring reminder time when reading a legacy SQLite rule', async () => {
+    const database = new MemorySqlite();
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    await store.save(emptyAppData());
+    database.records.set('task_recurrence:rule_legacy', {
+      recordType: 'task_recurrence',
+      recordId: 'rule_legacy',
+      payloadJson: JSON.stringify({
+        id: 'rule_legacy',
+        title: 'Legacy rule',
+        details: '',
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        cadence: 'week',
+        interval: 1,
+        nextOccurrenceLocalDate: '2026-07-27',
+        missedOccurrencePolicy: 'all',
+        isPaused: false,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }),
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    await expect(store.load()).resolves.toMatchObject({
+      taskRecurrences: [{id: 'rule_legacy', reminderLocalTime: null}],
     });
   });
 

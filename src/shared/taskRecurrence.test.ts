@@ -15,6 +15,7 @@ describe('task recurrence rules', () => {
     interval: 1,
     nextOccurrenceLocalDate: '2026-07-20',
     missedOccurrencePolicy: 'all' as const,
+    reminderLocalTime: null,
   };
 
   it('validates and creates a date-based rule', () => {
@@ -29,6 +30,7 @@ describe('task recurrence rules', () => {
       interval: 1,
       nextOccurrenceLocalDate: '2026-07-20',
       missedOccurrencePolicy: 'all',
+      reminderLocalTime: null,
       isPaused: false,
       createdAt: '2026-07-27T12:00:00.000Z',
       updatedAt: '2026-07-27T12:00:00.000Z',
@@ -42,6 +44,20 @@ describe('task recurrence rules', () => {
     expect(validateTaskRecurrenceDraft({...valid, missedOccurrencePolicy: 'later' as never}, new Set(['task_list_inbox']))).toMatch(/missed/i);
     expect(validateTaskRecurrenceDraft({...valid, priority: 'urgent' as never}, new Set(['task_list_inbox']))).toMatch(/priority/i);
     expect(validateTaskRecurrenceDraft({...valid, listId: 'missing'}, new Set(['task_list_inbox']))).toMatch(/list/i);
+    expect(validateTaskRecurrenceDraft({...valid, reminderLocalTime: '25:00'}, new Set(['task_list_inbox']))).toMatch(/HH:mm/i);
+  });
+
+  it('creates generated reminders at the rule local time', () => {
+    const data = emptyAppData();
+    data.taskRecurrences = [createTaskRecurrenceRecord({
+      ...valid,
+      nextOccurrenceLocalDate: '2026-07-27',
+      reminderLocalTime: '09:30',
+    }, 'rule_reminder', '2026-07-27T08:00:00.000Z')];
+
+    const expanded = expandDueTaskRecurrences(data, '2026-07-27', '2026-07-27T08:00:00.000Z');
+
+    expect(expanded.data.tasks[0]?.reminderAtMillis).toBe(new Date(2026, 6, 27, 9, 30, 0, 0).getTime());
   });
 
   it('expands all, one, and skip missed occurrences once', () => {

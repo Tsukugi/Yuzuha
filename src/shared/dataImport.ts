@@ -24,6 +24,7 @@ import {validateNoteTags} from './noteSearch';
 import {validateSavedSearchDraft} from './savedSearch';
 import {TASK_LIST_MAX_NAME_LENGTH} from './taskListLifecycle';
 import {isValidTaskReminderSnoozeDuration} from './notificationSettings';
+import {isValidTaskRecurrenceReminderLocalTime} from './taskRecurrence';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -71,7 +72,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 20) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 21) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -93,7 +94,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 20 || !isCurrency(data.mainCurrency) || !isValidTaskReminderSnoozeDuration(data.notificationSettings.snoozeDurationMinutes) || typeof data.notificationSettings.taskRemindersEnabled !== 'boolean') {
+  if (data.schemaVersion !== 21 || !isCurrency(data.mainCurrency) || !isValidTaskReminderSnoozeDuration(data.notificationSettings.snoozeDurationMinutes) || typeof data.notificationSettings.taskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -295,7 +296,9 @@ function validateTaskRecurrence(rule: TaskRecurrenceRule, taskListIds: Set<strin
       (rule.priority !== 'low' && rule.priority !== 'normal' && rule.priority !== 'high') ||
       !taskListIds.has(rule.listId) || !isRecurrenceCadence(rule.cadence) || !Number.isSafeInteger(rule.interval) ||
       rule.interval < 1 || rule.interval > 365 || !isValidLocalDate(rule.nextOccurrenceLocalDate) ||
-      !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) || typeof rule.isPaused !== 'boolean' ||
+      !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) ||
+      (rule.reminderLocalTime !== null && !isValidTaskRecurrenceReminderLocalTime(rule.reminderLocalTime)) ||
+      typeof rule.isPaused !== 'boolean' ||
       !isIsoDate(rule.createdAt) || !isIsoDate(rule.updatedAt)) {
     throw new JsonImportError(`Task recurrence rule ${rule.id} has invalid fields.`);
   }

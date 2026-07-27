@@ -2252,6 +2252,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [ruleCadence, setRuleCadence] = useState<RecurrenceCadence>('week');
   const [ruleInterval, setRuleInterval] = useState('1');
   const [ruleNextDate, setRuleNextDate] = useState(localDateKey(new Date()));
+  const [ruleReminderLocalTime, setRuleReminderLocalTime] = useState('');
   const [rulePolicy, setRulePolicy] = useState<MissedOccurrencePolicy>('all');
   const [taskRecurrenceError, setTaskRecurrenceError] = useState<string | null>(null);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
@@ -2410,6 +2411,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setRuleCadence('week');
     setRuleInterval('1');
     setRuleNextDate(localDateKey(new Date()));
+    setRuleReminderLocalTime('');
     setRulePolicy('all');
   }
 
@@ -2423,6 +2425,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
       interval: Number(ruleInterval.trim()),
       nextOccurrenceLocalDate: ruleNextDate.trim(),
       missedOccurrencePolicy: rulePolicy,
+      reminderLocalTime: ruleReminderLocalTime.trim() || null,
     };
     const validationError = validateTaskRecurrenceDraft(draft, taskListIds);
     if (validationError) {
@@ -2630,6 +2633,8 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <TextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
           <Text style={styles.formLabel}>First due date</Text>
           <TextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} autoCapitalize="none" />
+          <Text style={styles.formLabel}>Reminder time (optional)</Text>
+          <TextInput accessibilityLabel="Recurring task reminder time" placeholder="HH:mm" placeholderTextColor={colors.muted} style={styles.input} value={ruleReminderLocalTime} onChangeText={setRuleReminderLocalTime} autoCapitalize="none" />
           <Text style={styles.formLabel}>Repeat every</Text>
           <View style={styles.segmentRow}>
             <TextInput accessibilityLabel="Recurring task interval" placeholder="1" placeholderTextColor={colors.muted} style={[styles.input, styles.smallInput]} value={ruleInterval} onChangeText={setRuleInterval} keyboardType="number-pad" />
@@ -2661,7 +2666,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
             <View key={rule.id} style={styles.taskListRow}>
               <View style={styles.listBody}>
                 <Text style={styles.listTitle}>{rule.title}</Text>
-                <Text style={styles.listMeta}>{rule.cadence} every {rule.interval} · next {rule.nextOccurrenceLocalDate} · missed {rule.missedOccurrencePolicy}{rule.isPaused ? ' · Paused' : ''}</Text>
+                <Text style={styles.listMeta}>{rule.cadence} every {rule.interval} · next {rule.nextOccurrenceLocalDate} · missed {rule.missedOccurrencePolicy}{rule.reminderLocalTime ? ` · reminder ${rule.reminderLocalTime}` : ''}{rule.isPaused ? ' · Paused' : ''}</Text>
               </View>
               <View style={styles.taskListActions}>
                 <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} onPress={() => void toggleRule(rule)} disabled={busyRuleId !== null} />

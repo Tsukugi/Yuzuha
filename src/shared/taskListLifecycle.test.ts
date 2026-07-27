@@ -67,6 +67,7 @@ describe('task list lifecycle rules', () => {
       interval: 1,
       nextOccurrenceLocalDate: '2026-07-27',
       missedOccurrencePolicy: 'all',
+      reminderLocalTime: null,
       isPaused: false,
       createdAt: '2026-07-27T12:00:00.000Z',
       updatedAt: '2026-07-27T12:00:00.000Z',

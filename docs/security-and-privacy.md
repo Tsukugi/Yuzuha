@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android task-reminder category-pause pass. This document is not a legal privacy policy.
+Status: Security baseline through the recurring task-reminder pass. This document is not a legal privacy policy.
 
 ## Data collected
 

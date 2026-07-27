@@ -1,8 +1,9 @@
 import {emptyAppData} from '../types/domain';
-import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, TaskReminderSnoozeDurationMinutes, UsageRead, UsageSnapshot} from '../types/domain';
+import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, TaskRecurrenceRule, TaskReminderSnoozeDurationMinutes, UsageRead, UsageSnapshot} from '../types/domain';
 import {validateNoteTags} from '../shared/noteSearch';
 import {validateSavedSearchDraft} from '../shared/savedSearch';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
+import {isValidTaskRecurrenceReminderLocalTime} from '../shared/taskRecurrence';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -156,29 +157,46 @@ interface StoredV15 extends Omit<AppData, 'schemaVersion' | 'notificationSetting
 
 type StoredTaskV16 = Omit<AppData['tasks'][number], 'reminderAtMillis'>;
 
-interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'tasks'> {
+type StoredTaskRecurrenceRule = Omit<TaskRecurrenceRule, 'reminderLocalTime'>;
+
+interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'tasks' | 'taskRecurrences'> {
   schemaVersion: 16;
+  taskRecurrences: StoredTaskRecurrenceRule[];
   tasks: StoredTaskV16[];
 }
 
-interface StoredV17 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
+interface StoredV17 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'taskRecurrences'> {
   schemaVersion: 17;
+  taskRecurrences: StoredTaskRecurrenceRule[];
 }
 
-interface StoredV18 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
+interface StoredV18 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'taskRecurrences'> {
   schemaVersion: 18;
+  taskRecurrences: StoredTaskRecurrenceRule[];
   notificationSettings: {
     quietHoursStartLocalTime: string | null;
     quietHoursEndLocalTime: string | null;
   };
 }
 
-interface StoredV19 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
+interface StoredV19 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'taskRecurrences'> {
   schemaVersion: 19;
+  taskRecurrences: StoredTaskRecurrenceRule[];
   notificationSettings: {
     quietHoursStartLocalTime: string | null;
     quietHoursEndLocalTime: string | null;
     snoozeDurationMinutes: TaskReminderSnoozeDurationMinutes;
+  };
+}
+
+interface StoredV20 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'taskRecurrences'> {
+  schemaVersion: 20;
+  taskRecurrences: StoredTaskRecurrenceRule[];
+  notificationSettings: {
+    quietHoursStartLocalTime: string | null;
+    quietHoursEndLocalTime: string | null;
+    snoozeDurationMinutes: TaskReminderSnoozeDurationMinutes;
+    taskRemindersEnabled: boolean;
   };
 }
 
@@ -420,7 +438,7 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20, requireTaskSourceNoteId: boolean): boolean {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
     value.schemaVersion === schemaVersion &&
@@ -569,7 +587,7 @@ export function isStoredV19(value: unknown): value is StoredV19 {
       (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
 }
 
-export function isStoredV20(value: unknown): value is AppData {
+export function isStoredV20(value: unknown): value is StoredV20 {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
   if (!isStoredV13Shape(value, 20, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
       !Array.isArray(value.taskRecurrences) || !isNotificationSettings(notificationSettings) ||
@@ -585,6 +603,28 @@ export function isStoredV20(value: unknown): value is AppData {
       (rule.cadence === 'day' || rule.cadence === 'week' || rule.cadence === 'month') && Number.isSafeInteger(rule.interval) &&
       typeof rule.nextOccurrenceLocalDate === 'string' &&
       (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
+      typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
+    tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
+      (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
+}
+
+export function isStoredV21(value: unknown): value is AppData {
+  const notificationSettings = isRecord(value) ? value.notificationSettings : null;
+  if (!isStoredV13Shape(value, 21, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
+      !Array.isArray(value.taskRecurrences) || !isNotificationSettings(notificationSettings) ||
+      !isValidTaskReminderSnoozeDuration((notificationSettings as Record<string, unknown>).snoozeDurationMinutes) ||
+      typeof (notificationSettings as Record<string, unknown>).taskRemindersEnabled !== 'boolean') {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  const taskRecurrences = record.taskRecurrences as unknown[];
+  const tasks = record.tasks as unknown[];
+  return taskRecurrences.every(rule => isRecord(rule) && typeof rule.id === 'string' && typeof rule.title === 'string' &&
+      typeof rule.details === 'string' && typeof rule.priority === 'string' && typeof rule.listId === 'string' &&
+      (rule.cadence === 'day' || rule.cadence === 'week' || rule.cadence === 'month') && Number.isSafeInteger(rule.interval) &&
+      typeof rule.nextOccurrenceLocalDate === 'string' &&
+      (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
+      (rule.reminderLocalTime === null || isValidTaskRecurrenceReminderLocalTime(rule.reminderLocalTime)) &&
       typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
     tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
       (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
@@ -762,14 +802,14 @@ export function migrateV16ToV17(value: StoredV16): StoredV17 {
 }
 
 export function migrateV17ToV18(value: StoredV17): AppData {
-  return migrateV19ToV20(migrateV18ToV19({
+  return migrateV20ToV21(migrateV19ToV20(migrateV18ToV19({
     ...value,
     schemaVersion: 18,
     notificationSettings: {
       quietHoursStartLocalTime: null,
       quietHoursEndLocalTime: null,
     },
-  }));
+  })));
 }
 
 export function migrateV18ToV19(value: StoredV18): StoredV19 {
@@ -783,7 +823,7 @@ export function migrateV18ToV19(value: StoredV18): StoredV19 {
   };
 }
 
-export function migrateV19ToV20(value: StoredV19): AppData {
+export function migrateV19ToV20(value: StoredV19): StoredV20 {
   return {
     ...value,
     schemaVersion: 20,
@@ -791,6 +831,14 @@ export function migrateV19ToV20(value: StoredV19): AppData {
       ...value.notificationSettings,
       taskRemindersEnabled: true,
     },
+  };
+}
+
+export function migrateV20ToV21(value: StoredV20): AppData {
+  return {
+    ...value,
+    schemaVersion: 21,
+    taskRecurrences: value.taskRecurrences.map(rule => ({...rule, reminderLocalTime: null})),
   };
 }
 
@@ -815,14 +863,17 @@ function migrateV12ToV18(value: StoredV12): AppData {
 }
 
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV20(value)) {
+  if (isStoredV21(value)) {
     return value;
   }
+  if (isStoredV20(value)) {
+    return migrateV20ToV21(value);
+  }
   if (isStoredV19(value)) {
-    return migrateV19ToV20(value);
+    return migrateV20ToV21(migrateV19ToV20(value));
   }
   if (isStoredV18(value)) {
-    return migrateV19ToV20(migrateV18ToV19(value));
+    return migrateV20ToV21(migrateV19ToV20(migrateV18ToV19(value)));
   }
   if (isStoredV17(value)) {
     return migrateV17ToV18(value);

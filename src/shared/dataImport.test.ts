@@ -107,6 +107,27 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
   });
 
+  it('rejects recurring task reminder times that are not strict HH:mm', () => {
+    const data = emptyAppData();
+    data.taskRecurrences.push({
+      id: 'rule_1',
+      title: 'Review',
+      details: '',
+      priority: 'normal',
+      listId: 'task_list_inbox',
+      cadence: 'week',
+      interval: 1,
+      nextOccurrenceLocalDate: '2026-07-27',
+      missedOccurrencePolicy: 'all',
+      reminderLocalTime: '9:30' as never,
+      isPaused: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
+  });
+
   it('migrates a supported schema 7 export before validation', () => {
     const data = emptyAppData();
     const legacy: Record<string, unknown> = {...data, schemaVersion: 7};
@@ -119,7 +140,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(20);
+    expect(preview.data.schemaVersion).toBe(21);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -130,7 +151,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(20);
+    expect(migrated?.schemaVersion).toBe(21);
     expect(migrated?.attachments).toEqual([]);
   });
 

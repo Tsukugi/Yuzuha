@@ -849,20 +849,29 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const addTaskRecurrence = useCallback(
     async (input: TaskRecurrenceDraft) => {
-      await commit(current => {
-        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
-        const validationError = validateTaskRecurrenceDraft(input, listIds);
-        if (validationError) {
-          throw new Error(validationError);
-        }
-        const timestamp = new Date().toISOString();
-        const rule = createTaskRecurrenceRecord(input, createId('task_recurrence'), timestamp);
-        return expandDueTaskRecurrences(
-          {...current, taskRecurrences: [rule, ...current.taskRecurrences]},
-          localDateKey(new Date()),
-          timestamp,
-        ).data;
-      });
+      const current = dataRef.current;
+      if (!current) {
+        throw new Error('App data is not ready.');
+      }
+      const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+      const validationError = validateTaskRecurrenceDraft(input, listIds);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const rule = createTaskRecurrenceRecord(input, createId('task_recurrence'), timestamp);
+      const next = expandDueTaskRecurrences(
+        {...current, taskRecurrences: [rule, ...current.taskRecurrences]},
+        localDateKey(new Date()),
+        timestamp,
+      ).data;
+      await taskReminders.sync(activeTaskReminderEntries(next));
+      try {
+        await commit(() => next);
+      } catch (error) {
+        await taskReminders.sync(activeTaskReminderEntries(current));
+        throw error;
+      }
     },
     [commit],
   );

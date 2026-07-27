@@ -20,6 +20,7 @@ import type {
   UsageSnapshot,
 } from '../types/domain';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
+import {isValidTaskRecurrenceReminderLocalTime} from '../shared/taskRecurrence';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -460,9 +461,18 @@ export function decodeAppData(
       case 'task_list':
         data.taskLists.push(payload as TaskList);
         break;
-      case 'task_recurrence':
-        data.taskRecurrences.push(payload as TaskRecurrenceRule);
+      case 'task_recurrence': {
+        if (typeof payload !== 'object' || payload === null) {
+          throw new SqliteDataCorruptError();
+        }
+        const recurrencePayload = payload as Record<string, unknown>;
+        if (recurrencePayload.reminderLocalTime !== undefined && recurrencePayload.reminderLocalTime !== null &&
+            !isValidTaskRecurrenceReminderLocalTime(recurrencePayload.reminderLocalTime)) {
+          throw new SqliteDataCorruptError();
+        }
+        data.taskRecurrences.push({...recurrencePayload, reminderLocalTime: recurrencePayload.reminderLocalTime ?? null} as TaskRecurrenceRule);
         break;
+      }
       case 'task': {
         const taskPayload = payload as Task;
         data.tasks.push({

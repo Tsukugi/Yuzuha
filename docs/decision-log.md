@@ -318,3 +318,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add required `notificationSettings.taskRemindersEnabled` to app schema 20, default old schema 19 and legacy SQLite data to `true`, and expose an On/Off setting in Tasks. When disabled, AppStore sync clears all native task-reminder alarms, reminder creation stores only the logical timestamp, and stale `Snooze` actions are no-ops. Re-enabling rebuilds future alarms through the existing quiet-hours projection.
 - Reason: The logical task timestamp remains the source of truth while the native schedule becomes an explicit projection controlled by one local category flag. This avoids deleting user data and prevents a stale notification action from silently re-enabling reminders.
 - Consequence: The current category pause is local and Android-focused. Per-category automation, global pause, timezone rules, recurring-rule notifications, iOS reminders, and sync remain separate contracts.
+
+## DEC-047: Copy an optional local reminder time from recurring task rules in schema 21
+
+- Context: Recurring rules create tasks, but users currently have to edit every generated task to add the same reminder.
+- Decision: Add nullable `reminderLocalTime` to task recurrence rules in app schema 21. Accept only strict `HH:mm`, copy it to each generated task's local reminder timestamp, and synchronize future generated reminders immediately and during startup/boot. Existing schema 20 rules migrate to `null`; existing tasks are not changed when a rule is later edited or deleted.
+- Reason: The rule remains the single source for future occurrences while each task keeps its own timestamp for completion, snooze, and deletion behavior. The existing category pause and quiet-hours projection continue to control native scheduling.
+- Consequence: A rule can create local task reminders but does not create a separate rule notification. Past occurrence timestamps are not scheduled, invalid date/time combinations such as a local DST gap produce no native schedule, and recurring summaries, sync, and iOS behavior remain separate contracts.
