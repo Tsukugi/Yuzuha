@@ -2085,3 +2085,36 @@ Known limits:
 - Review is derived and cannot be reopened as historical state;
 - reflection text, saved baselines, comparison trends, and review history are not implemented;
 - changing Review periods does not refresh App Time; the source screen owns explicit refresh.
+
+## Implementation review: Android Money-filter pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a typed derived filter for the Money entry list;
+- All/Day/Week/Month period choices;
+- expense/income, category, and account choices;
+- matching-entry count and explicit no-match state;
+- archived selected categories or accounts remain selectable;
+- no schema, migration, report change, network request, background process, or legacy path.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - money-filter tests; 2 focused tests
+Full Jest                PASS - 47 suites, 199 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Money filter controls rendered and selector state changed
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- filter state resets on relaunch;
+- filters apply to the Money history list only and do not change reports;
+- the list keeps the existing rule that split parents and split lines are not shown as ordinary entries.

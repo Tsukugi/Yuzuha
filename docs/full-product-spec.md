@@ -52,6 +52,8 @@ Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral re
 
 Current Android portability slice: Data tools can choose one current Yuzuha money CSV, validate its rows against the current app schema and workspace references, show row errors and currency totals, and append the validated entries only after confirmation. They can also choose one current Yuzuha JSON export file, validate it, show record counts, and replace the workspace only after destructive confirmation. Both file paths are bounded and local; split-linked money rows still require JSON or encrypted backup for complete representation.
 
+Current Money list behavior: Money history can be filtered by All/Day/Week/Month, expense or income, category, and account. These controls filter current local records only; they do not change reports, write a preference, add a migration, or start background work.
+
 ### Review behavior
 
 The user can open a daily, weekly, or monthly review. A review contains:

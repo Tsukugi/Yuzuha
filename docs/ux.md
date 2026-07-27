@@ -198,3 +198,5 @@ Home shows `Not connected` and `Set up access` until the user grants Android Usa
 Home uses the same selector. It shows the selected local range above the cards. Money is main-currency only, app time uses included snapshots, tasks show the number of open tasks due in the range, and the recent-note list uses active notes updated in the range. Changing the selector changes the view only.
 
 Home's `Review this period` action opens a read-only source-backed Review. Review offers the same Day/Week/Month choices, shows the exact local range, and links each summary card back to Money, App Time, Tasks, or Notes. It does not save a reflection or review history yet.
+
+Money entry history has a compact filter card with Period, Type, Category, and Account controls. The list title shows the matching count; an empty result says that no entries match. Filters affect only the current history list, and the existing split-entry display rules stay unchanged.

@@ -500,3 +500,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a Review screen that calculates source-backed totals at render time for the selected local period and links back to existing feature screens. Do not save a review record, reflection, preference, or sync object.
 - Reason: This gives the user one honest cross-feature view without creating a second source of truth or a new schema before review history and reflection rules are defined.
 - Consequence: Review values change when source records change, and no past review can be reopened. Reflection text, saved baselines, comparison trends, and review history remain future contracts.
+
+## DEC-073: Keep Money entry filters local and derived
+
+- Context: Money history needs practical narrowing, but persisting filter preferences would add a new contract before the list and preference model need it.
+- Decision: Add one typed screen-state filter for local All/Day/Week/Month period, expense/income type, category, and account. Apply it to the existing non-split entry list and keep an archived selected reference visible.
+- Reason: The user gets predictable list narrowing without changing money records, reports, schema, migrations, or startup work. The existing split-entry display boundary remains the single list rule.
+- Consequence: Filter state resets on relaunch and does not affect Money reports. Saved filters, cross-screen filter state, sync, and legacy filter formats remain separate future contracts.

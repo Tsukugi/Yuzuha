@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android Money-filter pass:
+
+- Money history now filters the existing non-split entry list by local All/Day/Week/Month period, expense/income type, category, and account;
+- the list shows the matching count and an explicit empty result; archived selected categories or accounts remain available while filtering;
+- no schema, migration, report change, network request, background process, or legacy path was added;
+- focused Money-filter tests, full Jest (47 suites, 199 tests), lint, typecheck, bundle validation, release APK build, emulator control smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android period-review pass:
 
 - Home now opens a read-only Review for Today, This week, and This month;

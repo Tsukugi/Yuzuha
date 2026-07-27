@@ -19,6 +19,7 @@ import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDa
 import type {Period} from '../shared/period';
 import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
 import {buildMoneyReport} from '../shared/moneyReport';
+import {emptyMoneyEntryFilter, filterMoneyEntries, type MoneyFilterPeriod} from '../shared/moneyFilter';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsagePeriod, getLocalDayRanges, sumUsage, type UsageRecord} from '../shared/usage';
@@ -1188,6 +1189,10 @@ function MoneyScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
+  const [entryFilterPeriod, setEntryFilterPeriod] = useState<MoneyFilterPeriod>(emptyMoneyEntryFilter.period);
+  const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
+  const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
+  const [entryFilterAccountId, setEntryFilterAccountId] = useState<string | 'all'>(emptyMoneyEntryFilter.accountId);
 
   if (!data) {
     return null;
@@ -1287,6 +1292,18 @@ function MoneyScreen() {
   );
   const activeCategoryId = categoryId || visibleCategories[0]?.id;
   const activeAccountId = accountId || data.accounts.find(account => !account.isArchived)?.id;
+  const entryFilter = {
+    period: entryFilterPeriod,
+    kind: entryFilterKind,
+    categoryId: entryFilterCategoryId,
+    accountId: entryFilterAccountId,
+  } as const;
+  const listEntries = filterMoneyEntries(
+    data.money.filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id)),
+    entryFilter,
+  );
+  const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
+  const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -1298,6 +1315,36 @@ function MoneyScreen() {
         <TextButton label="Add transfer" onPress={() => setView('transfer')} />
         <TextButton label="Add recurring rule" onPress={() => setView('recurrence')} />
         <TextButton label="Open money report" onPress={() => setView('report')} />
+        <SectionTitle title="Entry filters" />
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Period</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="All" selected={entryFilterPeriod === 'all'} onPress={() => setEntryFilterPeriod('all')} />
+            <SegmentButton label="Day" selected={entryFilterPeriod === 'day'} onPress={() => setEntryFilterPeriod('day')} />
+            <SegmentButton label="Week" selected={entryFilterPeriod === 'week'} onPress={() => setEntryFilterPeriod('week')} />
+            <SegmentButton label="Month" selected={entryFilterPeriod === 'month'} onPress={() => setEntryFilterPeriod('month')} />
+          </View>
+          <Text style={styles.formLabel}>Type</Text>
+          <View style={styles.chipWrap}>
+            <ChipButton label="All" selected={entryFilterKind === 'all'} onPress={() => setEntryFilterKind('all')} />
+            <ChipButton label="Expense" selected={entryFilterKind === 'expense'} onPress={() => setEntryFilterKind('expense')} />
+            <ChipButton label="Income" selected={entryFilterKind === 'income'} onPress={() => setEntryFilterKind('income')} />
+          </View>
+          <Text style={styles.formLabel}>Category</Text>
+          <View style={styles.chipWrap}>
+            <ChipButton label="All" selected={entryFilterCategoryId === 'all'} onPress={() => setEntryFilterCategoryId('all')} />
+            {filterCategories.map(category => (
+              <ChipButton key={category.id} label={category.name} selected={entryFilterCategoryId === category.id} onPress={() => setEntryFilterCategoryId(category.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Account</Text>
+          <View style={styles.chipWrap}>
+            <ChipButton label="All" selected={entryFilterAccountId === 'all'} onPress={() => setEntryFilterAccountId('all')} />
+            {filterAccounts.map(account => (
+              <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
+            ))}
+          </View>
+        </View>
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>
@@ -1414,12 +1461,11 @@ function MoneyScreen() {
           ))}
         </View>
 
-        <SectionTitle title="Recent entries" />
-        {data.money.filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id)).length === 0 ? (
-          <EmptyState text="No money entries for this workspace." />
+        <SectionTitle title={`Entries (${listEntries.length})`} />
+        {listEntries.length === 0 ? (
+          <EmptyState text="No money entries match these filters." />
         ) : (
-          data.money
-            .filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id))
+          listEntries
             .slice(0, 20)
             .map(entry => (
             <Pressable
