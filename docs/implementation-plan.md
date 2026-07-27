@@ -868,3 +868,36 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: global search design or account/device recovery, with remote sync kept behind the local-first boundary.
+
+## Implementation review: global-search pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a local derived search model over supported money, notes, tasks, saved searches, accounts/categories, transfers/splits/budgets, recurring rules, time goals, and app-time metadata;
+- deterministic case-insensitive matching and result ordering;
+- explicit archived-result filtering for archived notes, accounts, categories, budgets, and time goals;
+- the existing Usage Access and `included` rules applied to app-time results;
+- a Search screen opened from Home with empty, no-match, archived-results, and local-only states;
+- unit tests and device smoke evidence for the new search behavior.
+
+Known limits:
+
+- no persistent full-text index, date filters, command actions, synced search, synced notes, account recovery, or remote sync yet.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 1 suite, 2 tests
+Full Jest          PASS - 24 suites, 102 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - Search opened from Home, `work` returned two note results, and archived visibility toggled
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: account/device recovery design or the next Phase 3 capture contract, with remote sync kept behind the local-first boundary.

@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the saved-search pass.
+Status: Current Android MVP through the global-search pass.
 
 ## Navigation
 
@@ -45,6 +45,10 @@ Notes has a local search field. It matches title, body, normalized tags, and att
 Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default. Show archived notes reveals them for review or restore, and pinned notes appear first. Deleting a note also removes its attachment metadata and private files.
 
 When a note query is non-empty, Notes can save it under a local name. Saving also records whether archived notes are included. The saved-search list shows the name and query, Apply restores both values, and Delete requires confirmation. Saved searches stay on the device and are included in local exports and encrypted backups; they are not global or synced searches.
+
+### Search the workspace
+
+Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. Search is case-insensitive and shows a result kind, title, and detail. Archived results are hidden by default and can be included with one explicit control. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`
 
 ### Add a note attachment
 

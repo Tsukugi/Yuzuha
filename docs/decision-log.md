@@ -234,3 +234,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Store a trimmed saved-search name, trimmed note query, archived-note visibility flag, and created/updated timestamps in typed `saved_search` rows. Limit names to 80 characters and queries to 200 characters. Migrate schema 12 data to schema 13 with an empty collection. Include saved searches in JSON exports, encrypted backups, SQLite persistence, and validated restore.
 - Reason: The record is small, local, portable, and deterministic. Apply restores the query and archived visibility together; Delete requires confirmation.
 - Consequence: This is local Notes search only. Global search, synced saved searches, and remote sync remain separate work.
+
+## DEC-035: Keep global search as a local derived projection
+
+- Context: Yuzuha now has useful records in several local collections, but a first cross-feature search does not need a new persistent index or a sync protocol.
+- Decision: Search the loaded `AppData` in memory. Match supported money, notes, tasks, saved searches, accounts/categories, transfers/splits/budgets, recurrence rules, time goals, and app-time metadata case-insensitively. Hide archived records unless the user enables archived results. Require granted Usage Access and `included: true` for app-time matches.
+- Reason: The rule is small, inspectable, and follows the existing local-first privacy boundary. Deleted records are absent from the source collections, and no attachment bytes are read.
+- Consequence: Search has no persistent index, date filters, command actions, or synced results yet. Those remain separate product work.

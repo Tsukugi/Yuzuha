@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 global-search pass:
+
+- Home opens a local Search screen that searches supported money, notes, tasks, saved searches, account/category, transfer/split/budget, recurrence, time-goal, and app-time metadata records;
+- archived records stay hidden unless the user enables archived results;
+- app-time results require granted Usage Access and an included snapshot;
+- no schema, permission, or minimum-OS change;
+- known limits remain synced search, command actions, and account/device recovery.
+
 2026-07-27 saved-search pass:
 
 - app data schema 13 adds local saved-search records and migrates schema 12 with an empty saved-search collection;

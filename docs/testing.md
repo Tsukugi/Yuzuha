@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the saved-search pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the global-search pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -13,6 +13,7 @@ Use Jest for pure logic:
 - task state transitions and overdue rules;
 - note search normalization and attachment filename matching;
 - saved-search validation, schema migration, persistence, export/restore, backup round trips, and lifecycle actions;
+- global-search matching, stable result ordering, archived-record filtering, and Usage Access visibility rules;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -30,10 +31,10 @@ Use an in-memory or temporary database adapter to test:
 
 ### Android device tests
 
-Current evidence for the saved-search pass:
+Current evidence for the global-search pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
-- emulator smoke saved `Work` for the `work` query, confirmed it after process restart, applied it, and deleted it after the confirmation dialog;
+- emulator smoke opened Search from Home, searched `work`, showed two local note results, and toggled archived-result visibility;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;
 - phone touch input remains blocked by the device policy, so phone validation is launch-only.

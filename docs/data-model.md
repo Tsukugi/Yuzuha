@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 13 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 13 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -130,7 +130,9 @@ Attachment bytes are stored in app-private document storage under a path derived
 | `showArchived` | boolean | Restored with the query and controls whether archived notes are included. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-Saved searches are local records. JSON exports and encrypted backups include them. Global search, synced indexes, and synced saved-search state remain planned.
+Saved searches are local records. JSON exports and encrypted backups include them. Synced indexes and synced saved-search state remain planned.
+
+Global search is a derived view over `AppData` and adds no entity or migration. It searches record fields already stored locally; archived visibility and Usage Access are query-time rules.
 
 ### Task
 

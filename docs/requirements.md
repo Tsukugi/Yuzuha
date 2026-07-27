@@ -354,7 +354,14 @@ Saved-search controls are implemented and verified:
 - names are limited to 80 characters and queries to 200 characters;
 - saved searches persist locally and are included in JSON and encrypted backup data.
 
-Not yet complete: global search, synced notes, and remote sync.
+Local global-search controls are implemented and verified:
+
+- Home opens Search and the screen searches supported local money, notes, tasks, saved searches, account/category, transfer/split/budget, recurrence, time-goal, and app-time metadata records;
+- matching is case-insensitive and result order is deterministic;
+- archived notes, accounts, categories, budgets, and time goals stay hidden unless archived results are enabled;
+- app-time results require granted Usage Access and an included snapshot.
+
+Not yet complete: synced search, synced notes, and remote sync.
 
 ## Portable encrypted attachment implementation review
 

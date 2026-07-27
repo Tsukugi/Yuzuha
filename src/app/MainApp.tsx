@@ -42,6 +42,7 @@ import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {normalizeNoteTags} from '../shared/noteSearch';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
+import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch} from '../types/domain';
@@ -65,6 +66,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const {data, isLoading, error} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
 
   if (isLoading || !data) {
     return <LoadingScreen message="Opening your local workspace..." />;
@@ -87,9 +89,11 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
       <View style={styles.content}>
         {dataToolsOpen ? (
           <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
+        ) : globalSearchOpen ? (
+          <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} />}
             {tab === 'money' && <MoneyScreen />}
             {tab === 'notes' && <NotesScreen />}
             {tab === 'tasks' && <TasksScreen />}
@@ -121,10 +125,12 @@ function HomeScreen({
   data,
   onNavigate,
   onOpenDataTools,
+  onOpenSearch,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
   onOpenDataTools: () => void;
+  onOpenSearch: () => void;
 }) {
   const monthRange = getPeriodRange(new Date(), 'month');
   const monthMoney = data.money.filter(entry => isInPeriod(entry.occurredAt, monthRange));
@@ -141,6 +147,7 @@ function HomeScreen({
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.pageTitle}>Today</Text>
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
+      <TextButton label="Search everything" onPress={onOpenSearch} />
       <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
 
       <View style={styles.cardGrid}>
@@ -190,6 +197,80 @@ function HomeScreen({
       )}
     </ScrollView>
   );
+}
+
+function GlobalSearchScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const [query, setQuery] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const results = searchGlobal(data, query, {includeArchived});
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <TextButton label="Back to home" onPress={onBack} />
+        <Text style={styles.pageTitle}>Search</Text>
+        <Text style={styles.pageIntro}>Search local notes, tasks, money, and other workspace records. Search stays on this device.</Text>
+        <TextInput
+          accessibilityLabel="Global search"
+          placeholder="Search your workspace"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={query}
+          onChangeText={setQuery}
+        />
+        <TextButton
+          label={includeArchived ? 'Hide archived results' : 'Include archived results'}
+          onPress={() => setIncludeArchived(current => !current)}
+        />
+        <Text style={styles.searchAccessNote}>App-time results appear only when Usage Access is granted and the snapshot is included.</Text>
+        {!query.trim() ? (
+          <EmptyState text="Type a word to search your local workspace." />
+        ) : results.length === 0 ? (
+          <EmptyState text="No matches in the selected records." />
+        ) : (
+          <View>
+            <SectionTitle title={`${results.length} result${results.length === 1 ? '' : 's'}`} />
+            {results.map(result => (
+              <View key={`${result.kind}:${result.id}`} style={styles.searchResultRow}>
+                <Text style={styles.searchResultKind}>{globalSearchKindLabel(result.kind)}</Text>
+                <Text style={styles.listTitle}>{result.title}</Text>
+                <Text style={styles.listMeta}>{result.detail}{result.isArchived ? ' · archived' : ''}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function globalSearchKindLabel(kind: GlobalSearchKind): string {
+  switch (kind) {
+    case 'saved-search':
+      return 'Saved search';
+    case 'time-goal':
+      return 'Time goal';
+    case 'usage':
+      return 'App time';
+    case 'money':
+      return 'Money';
+    case 'note':
+      return 'Note';
+    case 'task':
+      return 'Task';
+    case 'account':
+      return 'Account';
+    case 'category':
+      return 'Category';
+    case 'transfer':
+      return 'Transfer';
+    case 'split':
+      return 'Split entry';
+    case 'budget':
+      return 'Budget';
+    case 'recurrence':
+      return 'Recurring money';
+  }
 }
 
 function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
@@ -2288,6 +2369,9 @@ const styles = StyleSheet.create({
   listMeta: {color: colors.muted, fontSize: 13, marginTop: 5},
   chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
   formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 16},
+  searchAccessNote: {color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10},
+  searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: 14},
+  searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase'},
   importPreview: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
