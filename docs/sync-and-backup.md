@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage and portable encrypted attachment bytes are implemented. Account sync, device enrollment, and remote backup remain planned.
+Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage, Android attachment opening, and portable encrypted attachment bytes are implemented. Account sync, device enrollment, remote backup, and iOS attachment preview remain planned.
 
 ## Goals
 
@@ -85,7 +85,7 @@ Android and iOS backup behavior is platform-specific. The app must state whether
 
 ### Restore flow
 
-Encrypted restore can use pasted text or a selected JSON file. It derives the key from the entered password, authenticates and decrypts the complete export and attachment bytes, validates every attachment against its stored size and SHA-256 checksum, stages private files, previews record counts, and commits only after confirmation. A plain JSON restore containing attachments is rejected because it has no file bytes. If the picker is canceled, the app keeps the current screen; if authentication, validation, or staging fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
+Encrypted restore can use pasted text or a selected JSON file. It derives the key from the entered password, authenticates and decrypts the complete export and attachment bytes, validates every attachment against its stored size and SHA-256 checksum, stages private files, previews record counts, and commits only after confirmation. A plain JSON restore containing attachments is rejected because it has no file bytes. On Android, the restored private files can be opened from Notes through the FileProvider bridge; this is local viewing, not upload or sync. If the picker is canceled, the app keeps the current screen; if authentication, validation, or staging fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
 
 ## API surface
 

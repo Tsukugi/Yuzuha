@@ -8,6 +8,7 @@ import {
   deleteAttachmentFile,
   deleteAttachmentFiles,
   importAttachmentFile,
+  openAttachmentFile,
   readAttachmentBackupFiles,
   stageAttachmentBackupFiles,
 } from './attachmentFiles';
@@ -35,6 +36,10 @@ jest.mock('react-native-file-access', () => ({
   },
 }));
 
+jest.mock('../platform/attachmentPreview', () => ({
+  openAttachmentPreview: jest.fn(),
+}));
+
 const pickMock = pick as jest.MockedFunction<typeof pick>;
 const keepLocalCopyMock = keepLocalCopy as jest.MockedFunction<typeof keepLocalCopy>;
 const fileSystemMock = FileSystem as unknown as {
@@ -48,6 +53,7 @@ const fileSystemMock = FileSystem as unknown as {
   unlink: jest.Mock;
   writeFile: jest.Mock;
 };
+const openAttachmentPreviewMock = jest.requireMock('../platform/attachmentPreview').openAttachmentPreview as jest.Mock;
 
 describe('attachment files', () => {
   beforeEach(() => {
@@ -153,6 +159,23 @@ describe('attachment files', () => {
       ['/documents/attachments/attachment_1'],
       ['/documents/attachments/attachment_2'],
     ]);
+  });
+
+  it('opens an attachment through the platform preview boundary', async () => {
+    const attachment = {
+      id: 'attachment_1',
+      noteId: 'note_1',
+      name: 'document.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 1,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-07-27T12:00:00.000Z',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    };
+
+    await openAttachmentFile(attachment);
+
+    expect(openAttachmentPreviewMock).toHaveBeenCalledWith('/documents/attachments/attachment_1', 'application/pdf');
   });
 
   it('reads a local attachment and verifies it before backup', async () => {

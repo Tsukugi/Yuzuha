@@ -118,7 +118,7 @@ The implementation must choose one source-of-truth rule for `included` before co
 | `sha256` | lowercase hex | 64-character checksum of the stored file. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. Plain JSON exports contain attachment metadata only. New encrypted backup schema 2 payloads include verified attachment bytes, with a 32 MiB total attachment limit.
+Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. Plain JSON exports contain attachment metadata only. New encrypted backup schema 2 payloads include verified attachment bytes, with a 32 MiB total attachment limit. Android preview does not add data fields: it validates this private path and exposes one file at a time through a read-only FileProvider URI.
 
 ### Task
 

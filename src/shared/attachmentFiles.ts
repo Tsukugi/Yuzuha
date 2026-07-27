@@ -13,6 +13,7 @@ import {
   type AttachmentRestoreStage,
   validateAttachmentBackupFiles,
 } from './attachmentBackup';
+import {openAttachmentPreview} from '../platform/attachmentPreview';
 
 export const ATTACHMENT_DIRECTORY_NAME = 'attachments';
 
@@ -113,6 +114,10 @@ export async function deleteAttachmentFiles(attachments: Attachment[]): Promise<
   for (const attachment of attachments) {
     await deleteAttachmentFile(attachment.id);
   }
+}
+
+export async function openAttachmentFile(attachment: Attachment): Promise<void> {
+  await openAttachmentPreview(attachmentFilePath(attachment.id), attachment.mimeType);
 }
 
 export async function readAttachmentBackupFiles(attachments: Attachment[]): Promise<AttachmentBackupFile[]> {

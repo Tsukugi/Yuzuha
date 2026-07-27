@@ -199,3 +199,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Encrypted backup schema 2 stores each attachment's ID, byte size, SHA-256, and base64 bytes inside the authenticated ciphertext. The total attachment bytes per backup are limited to 32 MiB. Backup creation reads and verifies private files; restore validates all bytes, stages them in app-private storage, and then replaces the workspace. Schema 1 encrypted backups remain readable. Plain JSON export and restore stay metadata-only; a JSON restore with attachments is rejected.
 - Reason: The existing XChaCha20-Poly1305 envelope already authenticates its ciphertext and header. Keeping file bytes inside that boundary avoids a second unauthenticated sidecar format.
 - Consequence: Large attachment sets need a later bundle or sync contract. Attachment previews, synced files, platform backup policy, and password recovery remain separate contracts.
+
+## DEC-030: Open local attachments through an Android FileProvider
+
+- Context: Notes stores attachment bytes in app-private storage, but the first implementation had no way to open a saved file. An in-app renderer would add a second file parser and a wider test surface.
+- Decision: On Android, expose only the selected attachment through an `androidx.core.content.FileProvider` URI. The native bridge checks the canonical file is directly under `filesDir/attachments`, accepts only the supported image, PDF, and plain-text MIME set, and starts the system chooser with read permission. Other platforms return an explicit unavailable error until they have their own tested adapter.
+- Reason: The system viewer handles rendering while the private storage boundary stays narrow. The app does not grant directory access or upload the file.
+- Consequence: Viewer availability depends on installed Android apps. Yuzuha does not yet provide an in-app renderer, iOS preview, attachment search, or synced attachment viewer.

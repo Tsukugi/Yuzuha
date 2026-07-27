@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the local note attachment storage pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android attachment preview pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -25,6 +25,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Recovery-key backups use 32 secure random bytes, require in-session re-entry confirmation, and never store the recovery key on the device.
 - File backup save uses an app-cache temporary file and deletes it after the system picker operation. Opened document content remains encrypted until authenticated decryption and validation succeed; file names and provider metadata are not treated as secret storage.
 - Encrypted backup schema 2 keeps attachment IDs, sizes, checksums, and bytes inside authenticated ciphertext. Backup creation verifies private files before encryption, and restore verifies the decoded bytes before staging them. Plain JSON exports do not contain attachment bytes.
+- Android attachment preview validates the canonical file path under the app-private `attachments` directory, supports only the declared image/PDF/plain-text MIME set, and shares a single read-only `FileProvider` URI with the selected external viewer. It does not expose the attachment directory or broad storage access.
 
 ## Android Usage Access
 

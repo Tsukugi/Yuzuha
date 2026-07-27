@@ -37,10 +37,9 @@ import {
   saveRecoveryEncryptedBackupFile,
   saveEncryptedBackupFile,
 } from '../shared/encryptedBackupFile';
-import {readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
+import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
-import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile} from '../shared/attachmentFiles';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
@@ -1776,6 +1775,18 @@ function NotesScreen() {
     }
   }
 
+  async function openNoteAttachment(attachment: Attachment) {
+    setError(null);
+    setAttachmentBusyNoteId(attachment.noteId);
+    try {
+      await openAttachmentFile(attachment);
+    } catch (attachmentError) {
+      setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be opened.');
+    } finally {
+      setAttachmentBusyNoteId(null);
+    }
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -1825,6 +1836,11 @@ function NotesScreen() {
                           <Text style={styles.attachmentName} numberOfLines={1}>{attachment.name}</Text>
                           <Text style={styles.listMeta}>{formatBytes(attachment.byteSize)}</Text>
                         </View>
+                        <TextButton
+                          label="Open attachment"
+                          disabled={isAttachmentBusy}
+                          onPress={() => void openNoteAttachment(attachment)}
+                        />
                         <TextButton
                           label="Remove attachment"
                           danger

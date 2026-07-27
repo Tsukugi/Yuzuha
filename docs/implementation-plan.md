@@ -698,3 +698,37 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: account/device recovery design or attachment preview, with remote sync kept behind the local-first boundary.
+
+## Implementation review: Android attachment preview pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a typed React Native adapter that reports unsupported platforms and native open failures as explicit errors;
+- an Android `YuzuhaAttachmentPreview` module that accepts only a canonical file directly under app-private `filesDir/attachments`;
+- a `FileProvider` path rule that grants a single read-only URI to the Android system chooser;
+- supported preview MIME types for JPEG, PNG, GIF, WebP, PDF, and plain text;
+- an `Open attachment` action in Notes with busy and error states;
+- focused regression coverage for the adapter, native bridge boundary, and file-path/MIME handoff.
+
+Known limits:
+
+- this is an Android-only local viewer handoff;
+- Yuzuha does not provide an in-app renderer, upload, attachment search, synced attachments, platform backup policy, or iOS preview yet.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 2 suites, 11 tests
+Full Jest          PASS - 20 suites, 85 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - imported a PNG from DocumentsUI, opened the Android Photos viewer, and returned to Yuzuha
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: account/device recovery design or attachment search/sync, with remote sync kept behind the local-first boundary.

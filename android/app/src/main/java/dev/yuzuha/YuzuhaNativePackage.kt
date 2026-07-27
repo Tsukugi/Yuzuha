@@ -7,11 +7,13 @@ import com.facebook.react.uimanager.ViewManager
 
 class YuzuhaNativePackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    return listOf(UsageAccessModule(reactContext))
+    return listOf(
+      UsageAccessModule(reactContext),
+      AttachmentPreviewModule(reactContext),
+    )
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
     return emptyList()
   }
 }
-

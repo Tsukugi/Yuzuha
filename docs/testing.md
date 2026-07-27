@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the portable encrypted attachment backup pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the Android attachment preview pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -233,6 +233,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - New encrypted backups read private attachment files before encryption. Restore validates the authenticated bytes before staging them; plain JSON restore with attachments is rejected.
 - Emulator `emulator-5554`: release APK saved an encrypted backup through DocumentsUI, reopened it with the password, showed an 11-record preview with 1 attachment, restored it after confirmation, and showed `yuzuha-attachment.txt` at `3.2 KB` in Notes.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
+
+## Android attachment preview evidence
+
+- Focused Jest: 2 suites and 11 tests pass for the typed preview adapter, native-module handoff, attachment path, MIME type, and native error conversion.
+- The Android bridge accepts only a canonical file directly under app-private `filesDir/attachments`, supports JPEG, PNG, GIF, WebP, PDF, and plain text, and grants a read-only `FileProvider` URI to the system chooser.
+- Full Jest: 20 suites and 85 tests pass. Lint, strict TypeScript, bundle metadata, Android bundle generation, and debug/release APK builds also pass.
+- Emulator `emulator-5554`: imported the controlled PNG fixture through DocumentsUI, opened the Android Photos viewer from Notes, and returned to Yuzuha with the Back action.
+- Phone `42adce68`: the release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
 
 ## Recurring money evidence
 

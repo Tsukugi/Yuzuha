@@ -329,7 +329,7 @@ Implemented and verified:
 - attachment metadata is stored in SQLite-backed app records, included in JSON/encrypted-backup metadata, and validated against its parent note on restore;
 - Notes shows file names and sizes and removes the private file before removing the metadata.
 
-Not yet complete: synced attachments, previews, and attachment search.
+Android preview is implemented: Notes can open a supported private image, PDF, or plain-text attachment through a validated FileProvider URI and the system chooser. iOS preview, synced attachments, and attachment search are not yet complete.
 
 ## Portable encrypted attachment implementation review
 
@@ -340,4 +340,4 @@ Implemented and verified:
 - restore validates the complete attachment set, stages private files, and only then replaces the workspace after user confirmation;
 - schema 1 password and recovery-key backups remain readable, while plain JSON restore rejects attachments because it has no file bytes.
 
-Not yet complete: platform backup policy, synced attachments, previews, remote encrypted sync, and password recovery.
+Not yet complete: platform backup policy, synced attachments, iOS preview, remote encrypted sync, and password recovery.

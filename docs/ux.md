@@ -44,7 +44,7 @@ Search is available from the Notes header. Results show title, a short body prev
 
 ### Add a note attachment
 
-Each saved note has an `Add attachment` action. The system picker allows images, PDFs, and plain-text files. Yuzuha copies the selected file into private app storage, checks its name, size, type, and SHA-256 checksum, then saves the metadata under the note. The note shows the file name and size. Removing an attachment deletes the private file before removing its metadata. A note can have at most 10 attachments and each file can be at most 10 MiB. Canceling the picker leaves the note unchanged.
+Each saved note has an `Add attachment` action. The system picker allows images, PDFs, and plain-text files. Yuzuha copies the selected file into private app storage, checks its name, size, type, and SHA-256 checksum, then saves the metadata under the note. Android shows an `Open attachment` action for supported files and hands one read-only FileProvider URI to the system chooser. If no Android viewer can open the file, the note shows the native error. iOS preview remains planned. The note shows the file name and size. Removing an attachment deletes the private file before removing its metadata. A note can have at most 10 attachments and each file can be at most 10 MiB. Canceling the picker leaves the note unchanged.
 
 ### Export and delete local data
 
