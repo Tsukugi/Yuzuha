@@ -4,13 +4,22 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 local quiet-hours pass:
+
+- app data schema 18 adds nullable `notificationSettings.quietHoursStartLocalTime` and `quietHoursEndLocalTime`;
+- Tasks can save or disable a daily local quiet-hours window using strict `HH:mm` validation;
+- reminders inside same-day or overnight quiet hours are projected to the window end for Android scheduling, while the logical task timestamp remains unchanged;
+- SQLite repository metadata, JSON import/export, encrypted backups, and legacy schema 17 migration persist or validate the settings;
+- full unit, lint, typecheck, bundle, debug/release build, emulator UI/alarm, and phone launch checks passed;
+- snooze, notification actions, recurring-rule notifications, iOS reminders, and sync remain planned.
+
 2026-07-27 task-reminder deep-link pass:
 
 - notification content intents carry the stable task ID;
 - cold starts read and consume the initial task ID, while warm Android launches emit the task ID to JavaScript;
 - tapping a task reminder opens the matching task in the Tasks edit form;
 - no schema, permission, or minimum-OS change;
-- iOS notification intents, quiet hours, snooze, action buttons, recurring-rule notifications, and sync remain planned.
+- iOS notification intents, snooze, action buttons, recurring-rule notifications, and sync remain planned.
 
 2026-07-27 task-reminder pass:
 
@@ -20,7 +29,7 @@ Status: Planned release process.
 - startup and confirmed restore synchronize future open-task reminders; completing, deleting, clearing, or replacing a reminder cancels the old schedule;
 - JSON, encrypted backup, SQLite, and legacy AsyncStorage paths validate and persist the new field;
 - native release metadata now includes `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED`; minimum OS is unchanged;
-- quiet hours, snooze, notification actions, recurring-rule notifications, and sync remain planned.
+- snooze, notification actions, recurring-rule notifications, and sync remain planned.
 
 2026-07-27 recurring-task pass:
 

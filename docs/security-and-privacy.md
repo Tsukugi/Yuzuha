@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android task-reminder deep-link pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android quiet-hours pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -33,6 +33,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Note-to-task conversion copies note title/body into a local task and stores only the stable local source-note ID. It does not send the note or task to a service.
 - Task due dates, priorities, list links, status, and details remain local workspace data. Task delete is confirmed in the UI and removes the local task record only.
 - Task reminders use generic locked-screen text. The Android content intent carries only the opaque local task ID, and the app resolves it locally after the user taps the notification.
+- Quiet hours store only a daily local start/end time. They change local alarm scheduling and do not add task details, notification text, or network state.
 - Task-list names and archive state are local workspace data. Deleting a list is confirmed and is rejected when tasks still reference it.
 
 ## Android Usage Access

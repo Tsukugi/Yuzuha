@@ -186,6 +186,11 @@ export interface UsageRead {
   errorCode: string | null;
 }
 
+export interface NotificationSettings {
+  quietHoursStartLocalTime: string | null;
+  quietHoursEndLocalTime: string | null;
+}
+
 export interface TimeGoal {
   id: string;
   name: string;
@@ -195,7 +200,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 17;
+  schemaVersion: 18;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -214,6 +219,7 @@ export interface AppData {
   usageRead: UsageRead;
   usageExcludedPackages: string[];
   timeGoals: TimeGoal[];
+  notificationSettings: NotificationSettings;
 }
 
 export const createDefaultCategories = (): MoneyCategory[] => [
@@ -227,7 +233,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 17,
+  schemaVersion: 18,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -268,4 +274,8 @@ export const emptyAppData = (): AppData => ({
   },
   usageExcludedPackages: [],
   timeGoals: [],
+  notificationSettings: {
+    quietHoursStartLocalTime: null,
+    quietHoursEndLocalTime: null,
+  },
 });

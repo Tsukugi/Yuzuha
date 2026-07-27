@@ -70,7 +70,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 17) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 18) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -92,7 +92,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 17 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 18 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 

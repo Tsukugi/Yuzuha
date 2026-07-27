@@ -1101,3 +1101,36 @@ Known limits:
 - iOS notification intents, quiet hours, snooze, notification actions, recurring-rule notifications, account recovery, and sync remain planned.
 
 Next pass: account/device recovery design or the next local notification contract, with remote sync kept behind its service boundary.
+
+## Implementation review: local quiet-hours pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 18 with nullable daily local `quietHoursStartLocalTime` and `quietHoursEndLocalTime`;
+- strict `HH:mm` validation with disabled, same-day, and overnight window rules;
+- Tasks UI to save or disable quiet hours with explicit success and validation messages;
+- deterministic schedule projection that keeps the logical task reminder time unchanged and moves in-window Android alarms to the local quiet-hours end;
+- AppStore resynchronization on settings changes, startup, restore, reminder edits, completion, deletion, and rollback paths;
+- SQLite repository metadata, JSON import/export, encrypted backup, and legacy schema 17 migration support;
+- unit and persistence tests for validation, projection, schema migration, SQLite round trips, and failed-save rollback behavior.
+
+Review evidence:
+
+```text
+Full Jest                PASS - 32 suites, 134 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator UI smoke        PASS - saved 22:00-07:00 and showed Quiet hours saved.
+Emulator alarm smoke     PASS - 06:15 in-window 06:30 reminder was scheduled at 07:00
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no snooze, notification actions, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: notification actions or account/device recovery design, with remote sync kept behind its service boundary.

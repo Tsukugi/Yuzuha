@@ -2194,7 +2194,7 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
-  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
+  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2220,6 +2220,11 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [rulePolicy, setRulePolicy] = useState<MissedOccurrencePolicy>('all');
   const [taskRecurrenceError, setTaskRecurrenceError] = useState<string | null>(null);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
+  const [quietHoursStartLocalTime, setQuietHoursStartLocalTime] = useState('');
+  const [quietHoursEndLocalTime, setQuietHoursEndLocalTime] = useState('');
+  const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
+  const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
+  const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
 
   useEffect(() => {
     if (!focusTaskId || !data) {
@@ -2241,6 +2246,14 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setError(null);
     onFocusHandled();
   }, [data, focusTaskId, onFocusHandled]);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    setQuietHoursStartLocalTime(data.notificationSettings.quietHoursStartLocalTime ?? '');
+    setQuietHoursEndLocalTime(data.notificationSettings.quietHoursEndLocalTime ?? '');
+  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime]);
 
   if (!data) {
     return null;
@@ -2386,6 +2399,20 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
   }
 
+  async function saveNotificationSettings() {
+    setSavingNotificationSettings(true);
+    setNotificationSettingsError(null);
+    setNotificationSettingsMessage(null);
+    try {
+      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime);
+      setNotificationSettingsMessage(quietHoursStartLocalTime.trim() ? 'Quiet hours saved.' : 'Quiet hours disabled.');
+    } catch (settingsError) {
+      setNotificationSettingsError(settingsError instanceof Error ? settingsError.message : 'Notification settings could not be saved.');
+    } finally {
+      setSavingNotificationSettings(false);
+    }
+  }
+
   async function toggleRule(rule: typeof currentData.taskRecurrences[number]) {
     setBusyRuleId(rule.id);
     setTaskRecurrenceError(null);
@@ -2506,6 +2533,17 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
           {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
+        </View>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Notification settings</Text>
+          <Text style={styles.searchAccessNote}>Reminders that fall inside quiet hours are delivered at the quiet-hours end.</Text>
+          <View style={styles.segmentRow}>
+            <TextInput accessibilityLabel="Quiet hours start" placeholder="Start HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} autoCapitalize="none" />
+            <TextInput accessibilityLabel="Quiet hours end" placeholder="End HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} autoCapitalize="none" />
+          </View>
+          {notificationSettingsError && <Text style={styles.errorText}>{notificationSettingsError}</Text>}
+          {notificationSettingsMessage && <Text style={styles.successText}>{notificationSettingsMessage}</Text>}
+          <PrimaryButton label={savingNotificationSettings ? 'Saving...' : 'Save notification settings'} onPress={() => void saveNotificationSettings()} disabled={savingNotificationSettings} />
         </View>
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>
@@ -2863,6 +2901,7 @@ const styles = StyleSheet.create({
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
   input: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
+  quietHoursInput: {flex: 1, minWidth: 0},
   smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
   primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 10, marginTop: 16, paddingVertical: 13},

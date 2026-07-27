@@ -282,4 +282,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Context: A native reminder can outlive the React Native process, and opening only the Home screen would make the reminder hard to act on.
 - Decision: Put the task ID in the Android notification content intent. The native module consumes it once on cold start and emits it on warm `MainActivity` intents. MainApp switches to Tasks and loads the matching task into edit mode; a missing ID is ignored without changing workspace data.
 - Reason: The existing task ID is already the schedule identity, so no new schema field or sensitive notification text is needed. The rule works after process death and keeps the notification payload privacy-safe.
-- Consequence: Android task deep links are local-only. iOS intents, notification actions, snooze, quiet hours, and synced notification state remain separate contracts.
+- Consequence: Android task deep links are local-only. iOS intents, notification actions, snooze, and synced notification state remain separate contracts.
+
+## DEC-042: Project Android reminders through local quiet hours in schema 18
+
+- Context: One-off Android reminders are useful, but users need a local way to avoid delivery during a daily quiet window without changing the task's intended time.
+- Decision: Add nullable `quietHoursStartLocalTime` and `quietHoursEndLocalTime` to app schema 18. Require both values to be present and different when enabled. For same-day and overnight windows, project an in-window reminder to the applicable local end time before native scheduling. Keep the logical `reminderAtMillis` unchanged and rebuild the projection on startup, restore, setting changes, and reminder edits.
+- Reason: The rule is local, typed, deterministic, and preserves the user's original task time. Storing only a daily `HH:mm` pair avoids timezone and sync state until the broader notification contract exists.
+- Consequence: There is still no snooze, notification action, category policy, recurring-rule notification, iOS reminder, or sync behavior. Schema 17 data migrates with quiet hours disabled.

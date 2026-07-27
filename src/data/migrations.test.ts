@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(17);
+    expect(data?.schemaVersion).toBe(18);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(17);
+    expect(data?.schemaVersion).toBe(18);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(17);
+    expect(data?.schemaVersion).toBe(18);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
@@ -325,7 +325,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(17);
+    expect(data?.schemaVersion).toBe(18);
     expect(data?.taskRecurrences).toEqual([]);
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
   });
@@ -351,7 +351,17 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(17);
+    expect(data?.schemaVersion).toBe(18);
     expect(data?.tasks[0].reminderAtMillis).toBeNull();
+  });
+
+  it('adds disabled quiet hours when opening schema 17 data', () => {
+    const legacy = {...emptyAppData(), schemaVersion: 17 as const} as Record<string, unknown>;
+    delete legacy.notificationSettings;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(18);
+    expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null});
   });
 });

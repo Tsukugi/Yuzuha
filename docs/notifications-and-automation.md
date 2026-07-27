@@ -1,10 +1,10 @@
 # Notifications and automation
 
-Status: Android task reminders are implemented; broader notification and automation capability remains planned.
+Status: Android task reminders and local daily quiet hours are implemented; broader notification and automation capability remains planned.
 
 ## Current Android scope
 
-The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe, and tapping it opens the matching task in edit mode on Android. Quiet hours, snooze, action buttons, recurring-rule notifications, and sync are not implemented.
+The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe, and tapping it opens the matching task in edit mode on Android. The user can set an optional daily `HH:mm` quiet-hours window; a reminder inside that window is scheduled for its end while the logical reminder time remains unchanged. Snooze, action buttons, recurring-rule notifications, and sync are not implemented.
 
 ## Principles
 
@@ -32,7 +32,7 @@ The current release supports one optional local reminder on each open task. The 
 
 Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data. The notification content intent carries the stable task ID; cold starts use the initial-intent getter, and warm app launches use a native event before the Tasks form loads that task.
 
-The full-product target adds explicit timezone, notification category, snooze policy, quiet hours, and action buttons. Those fields are not in schema 17.
+The full-product target adds explicit timezone, notification category, snooze policy, and action buttons. The current quiet-hours pair is in app schema 18, but the broader category and timezone contracts remain planned.
 
 The full-product target actions are `Complete`, `Snooze`, and `Open`. Actions must verify the task still exists and is in the expected state before applying; the current Android pass ships only the notification tap-to-open path.
 
@@ -71,4 +71,4 @@ Android and iOS background limits can delay work. The product must show `Schedul
 
 ## Notification testing
 
-Test timezone changes, daylight-saving changes, reboot, process death, permission denial, duplicate scheduling, edit/delete races, quiet hours, locale changes, and stale source data.
+Test timezone changes, daylight-saving changes, reboot, process death, permission denial, duplicate scheduling, edit/delete races, same-day and overnight quiet hours, locale changes, and stale source data.

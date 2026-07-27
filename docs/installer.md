@@ -103,7 +103,7 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 
 ## Developer note: local data starts after bundle verification
 
-The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, imports legacy AsyncStorage data on first use, expands due money and task rules, and synchronizes future open-task reminders before `MainApp` receives the workspace. A database migration, recurrence-expansion, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records. Restore also synchronizes the incoming reminder set before committing it.
+The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, imports legacy AsyncStorage data on first use, expands due money and task rules, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. A database migration, recurrence-expansion, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records. Restore also synchronizes the incoming projected reminder set before committing it.
 
 ## Developer note
 

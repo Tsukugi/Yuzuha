@@ -11,6 +11,7 @@ import type {
   MoneySplitLine,
   MoneyTransfer,
   Note,
+  NotificationSettings,
   SavedSearch,
   Task,
   TaskList,
@@ -18,6 +19,7 @@ import type {
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
+import {validateQuietHoursDraft} from '../shared/notificationSettings';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -248,6 +250,7 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
 async function readAppData(database: SqliteExecutor): Promise<AppData> {
   const meta = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['usage_read']);
   const currency = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['main_currency']);
+  const notificationSettings = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['notification_settings']);
   const records = await database.execute(
     'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
   );
@@ -256,6 +259,7 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
     [...records.rows, ...normalizedRecords],
     readText(currency.rows[0]?.value) ?? 'EUR',
     readText(meta.rows[0]?.value),
+    readText(notificationSettings.rows[0]?.value),
   );
 }
 
@@ -361,6 +365,7 @@ export function decodeAppData(
   rows: Array<Record<string, unknown>>,
   mainCurrency: string,
   usageReadJson: string | null,
+  notificationSettingsJson: string | null = null,
 ): AppData {
   const data = emptyAppData();
   data.mainCurrency = mainCurrency;
@@ -382,6 +387,13 @@ export function decodeAppData(
   data.timeGoals = [];
   if (usageReadJson !== null) {
     data.usageRead = parsePayload(usageReadJson) as AppData['usageRead'];
+  }
+  if (notificationSettingsJson !== null) {
+    const parsedSettings = parsePayload(notificationSettingsJson);
+    if (!isNotificationSettingsPayload(parsedSettings)) {
+      throw new SqliteDataCorruptError();
+    }
+    data.notificationSettings = parsedSettings;
   }
 
   for (const row of rows) {
@@ -502,6 +514,10 @@ async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Pro
     'usage_read',
     JSON.stringify(data.usageRead),
   ]);
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
+    'notification_settings',
+    JSON.stringify(data.notificationSettings),
+  ]);
   for (const record of records) {
     await tx.execute(
       'INSERT INTO app_records (record_type, record_id, payload_json, updated_at) VALUES (?, ?, ?, ?)',
@@ -615,6 +631,21 @@ function parsePayload(value: string): unknown {
   } catch {
     throw new SqliteDataCorruptError();
   }
+}
+
+function isNotificationSettingsPayload(value: unknown): value is NotificationSettings {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const settings = value as Partial<NotificationSettings>;
+  const start = settings.quietHoursStartLocalTime;
+  const end = settings.quietHoursEndLocalTime;
+  if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string')) {
+    return false;
+  }
+  const startInput = typeof start === 'string' ? start : '';
+  const endInput = typeof end === 'string' ? end : '';
+  return validateQuietHoursDraft(startInput, endInput) === null;
 }
 
 function readText(value: unknown): string | null {

@@ -2,6 +2,7 @@ import {emptyAppData} from '../types/domain';
 import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, UsageRead, UsageSnapshot} from '../types/domain';
 import {validateNoteTags} from '../shared/noteSearch';
 import {validateSavedSearchDraft} from '../shared/savedSearch';
+import {validateQuietHoursDraft} from '../shared/notificationSettings';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -101,32 +102,32 @@ interface StoredV7 {
   timeGoals: AppData['timeGoals'];
 }
 
-interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'attachments' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
+interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'recurrences' | 'attachments' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 8;
   recurrences: Array<Omit<MoneyRecurrenceRule, 'missedOccurrencePolicy'>>;
   tasks: StoredLegacyTask[];
 }
 
-interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
+interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'attachments' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 9;
   tasks: StoredLegacyTask[];
 }
 
 type StoredNoteV11 = Omit<AppData['notes'][number], 'isArchived'>;
 
-interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
+interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'notes' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 10;
   notes: StoredNoteV11[];
   tasks: StoredLegacyTask[];
 }
 
-interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
+interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'notes' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 11;
   notes: StoredNoteV11[];
   tasks: StoredLegacyTask[];
 }
 
-interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
+interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'savedSearches' | 'taskLists' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 12;
   tasks: StoredLegacyTask[];
 }
@@ -134,30 +135,34 @@ interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches' | 't
 type StoredLegacyTask = Omit<AppData['tasks'][number], 'sourceNoteId' | 'priority' | 'listId' | 'recurrenceRuleId' | 'reminderAtMillis'>;
 type StoredTaskV13 = StoredLegacyTask;
 
-interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
+interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
   schemaVersion: 13;
   tasks: StoredTaskV13[];
 }
 
 type StoredTaskV14 = Omit<AppData['tasks'][number], 'priority' | 'listId' | 'recurrenceRuleId' | 'reminderAtMillis'>;
 
-interface StoredV14 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
+interface StoredV14 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
   schemaVersion: 14;
   tasks: StoredTaskV14[];
 }
 
 type StoredTaskV15 = Omit<AppData['tasks'][number], 'recurrenceRuleId' | 'reminderAtMillis'>;
 
-interface StoredV15 extends Omit<AppData, 'schemaVersion' | 'taskRecurrences' | 'tasks'> {
+interface StoredV15 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 15;
   tasks: StoredTaskV15[];
 }
 
 type StoredTaskV16 = Omit<AppData['tasks'][number], 'reminderAtMillis'>;
 
-interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'tasks'> {
+interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'notificationSettings' | 'tasks'> {
   schemaVersion: 16;
   tasks: StoredTaskV16[];
+}
+
+interface StoredV17 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
+  schemaVersion: 17;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -398,7 +403,7 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17, requireTaskSourceNoteId: boolean): boolean {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17 | 18, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
     value.schemaVersion === schemaVersion &&
@@ -474,9 +479,39 @@ export function isStoredV16(value: unknown): value is StoredV16 {
     value.tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null))
 }
 
-export function isStoredV17(value: unknown): value is AppData {
+export function isStoredV17(value: unknown): value is StoredV17 {
   if (!isStoredV13Shape(value, 17, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
       !Array.isArray(value.taskRecurrences) || !Array.isArray(value.tasks)) {
+    return false;
+  }
+  return value.taskRecurrences.every(rule => isRecord(rule) && typeof rule.id === 'string' && typeof rule.title === 'string' &&
+      typeof rule.details === 'string' && typeof rule.priority === 'string' && typeof rule.listId === 'string' &&
+      (rule.cadence === 'day' || rule.cadence === 'week' || rule.cadence === 'month') && Number.isSafeInteger(rule.interval) &&
+      typeof rule.nextOccurrenceLocalDate === 'string' &&
+      (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
+      typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
+    value.tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
+      (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
+}
+
+function isNotificationSettings(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const start = value.quietHoursStartLocalTime;
+  const end = value.quietHoursEndLocalTime;
+  if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string')) {
+    return false;
+  }
+  const normalizedStart = typeof start === 'string' ? start : '';
+  const normalizedEnd = typeof end === 'string' ? end : '';
+  return normalizedStart === normalizedStart.trim() && normalizedEnd === normalizedEnd.trim() &&
+    validateQuietHoursDraft(normalizedStart, normalizedEnd) === null;
+}
+
+export function isStoredV18(value: unknown): value is AppData {
+  if (!isStoredV13Shape(value, 18, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
+      !Array.isArray(value.taskRecurrences) || !Array.isArray(value.tasks) || !isNotificationSettings(value.notificationSettings)) {
     return false;
   }
   return value.taskRecurrences.every(rule => isRecord(rule) && typeof rule.id === 'string' && typeof rule.title === 'string' &&
@@ -652,11 +687,22 @@ export function migrateV15ToV16(value: StoredV15): StoredV16 {
   };
 }
 
-export function migrateV16ToV17(value: StoredV16): AppData {
+export function migrateV16ToV17(value: StoredV16): StoredV17 {
   return {
     ...value,
     schemaVersion: 17,
     tasks: value.tasks.map(task => ({...task, reminderAtMillis: null})),
+  };
+}
+
+export function migrateV17ToV18(value: StoredV17): AppData {
+  return {
+    ...value,
+    schemaVersion: 18,
+    notificationSettings: {
+      quietHoursStartLocalTime: null,
+      quietHoursEndLocalTime: null,
+    },
   };
 }
 
@@ -673,33 +719,40 @@ function migrateV12ToV16(value: StoredV12): StoredV16 {
 }
 
 function migrateV12ToV17(value: StoredV12): AppData {
-  return migrateV16ToV17(migrateV12ToV16(value));
+  return migrateV17ToV18(migrateV16ToV17(migrateV12ToV16(value)));
+}
+
+function migrateV12ToV18(value: StoredV12): AppData {
+  return migrateV12ToV17(value);
 }
 
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV17(value)) {
+  if (isStoredV18(value)) {
     return value;
   }
+  if (isStoredV17(value)) {
+    return migrateV17ToV18(value);
+  }
   if (isStoredV16(value)) {
-    return migrateV16ToV17(value);
+    return migrateV17ToV18(migrateV16ToV17(value));
   }
   if (isStoredV15(value)) {
-    return migrateV16ToV17(migrateV15ToV16(value));
+    return migrateV17ToV18(migrateV16ToV17(migrateV15ToV16(value)));
   }
   if (isStoredV14(value)) {
-    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(value)));
+    return migrateV17ToV18(migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(value))));
   }
   if (isStoredV13(value)) {
-    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV13ToV14(value))));
+    return migrateV17ToV18(migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV13ToV14(value)))));
   }
   if (isStoredV12(value)) {
-    return migrateV12ToV17(value);
+    return migrateV12ToV18(value);
   }
   if (isStoredV11(value)) {
-    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(value)))));
+    return migrateV17ToV18(migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(value))))));
   }
   if (isStoredV10(value)) {
-    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(value))))));
+    return migrateV17ToV18(migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(value)))))));
   }
   if (isStoredV9(value)) {
     return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));

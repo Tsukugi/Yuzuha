@@ -327,6 +327,7 @@ describe('SQLite workspace store', () => {
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
+    data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'};
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
 
