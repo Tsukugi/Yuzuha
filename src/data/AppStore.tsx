@@ -67,6 +67,7 @@ interface AppStoreValue {
     category: string;
     note: string;
   }) => Promise<void>;
+  importMoneyEntries: (entries: MoneyEntry[]) => Promise<void>;
   updateMoney: (entryId: string, input: {
     kind: MoneyKind;
     amountMinor: number;
@@ -244,6 +245,26 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         updatedAt: now,
       };
       await commit(current => ({...current, money: [entry, ...current.money]}));
+    },
+    [commit],
+  );
+
+  const importMoneyEntries = useCallback(
+    async (entries: MoneyEntry[]) => {
+      if (entries.length === 0) {
+        throw new Error('The money CSV contains no valid rows to import.');
+      }
+      await commit(current => {
+        const currentIds = new Set(current.money.map(entry => entry.id));
+        const incomingIds = new Set<string>();
+        for (const entry of entries) {
+          if (currentIds.has(entry.id) || incomingIds.has(entry.id)) {
+            throw new Error('A money entry ID already exists in the import or workspace.');
+          }
+          incomingIds.add(entry.id);
+        }
+        return {...current, money: [...entries, ...current.money]};
+      });
     },
     [commit],
   );
@@ -1400,6 +1421,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       isLoading,
       error,
       addMoney,
+      importMoneyEntries,
       updateMoney,
       deleteMoney,
       resetWorkspace,
@@ -1468,6 +1490,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     }),
     [
       addMoney,
+      importMoneyEntries,
       addTimeGoal,
       addMoneyAccount,
       addMoneyCategory,

@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, and one-way task calendar drafts are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, one-way task calendar drafts, and current-format money CSV import are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -18,7 +18,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Deep links | Open one of four existing Android tabs through a strict local `yuzuha://open/...` route. | Current Android slice. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Open a dated task in the Android system calendar editor as a user-confirmed draft; no read, event ID, or calendar permission. | Current Android slice; two-way read/write remains full product, optional. |
-| File picker | Import/export backups and attachments. | MVP export; full import/backup. |
+| File picker | Import/export backups and attachments; import current Yuzuha money CSV with preview and confirmation. | Current Android money import; broader full import remains planned. |
 
 ## Share capture
 
@@ -46,7 +46,9 @@ Two-way calendar reads, event reconciliation, focus-session export, selected cal
 
 ## Import formats
 
-Supported import formats should be versioned:
+Current Android import accepts one strict format: the current Yuzuha money CSV export. It is copied to cache, bounded, validated, previewed, and appended only after confirmation. It requires current account/category references and rejects split-linked rows; JSON or encrypted backup is required to restore the whole workspace.
+
+Later supported import formats should be versioned:
 
 - Yuzuha encrypted backup;
 - Yuzuha JSON export;

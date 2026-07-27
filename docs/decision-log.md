@@ -451,3 +451,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Clear the activity intent only after `LaunchActionsModule` recognizes one of its fixed launcher actions. Leave unknown intents unchanged for the next typed adapter.
 - Reason: Each adapter owns only its own accepted input. The rule is deterministic and preserves independent entry-point contracts without adding retries or recovery behavior.
 - Consequence: A cold deep link reaches its adapter; unknown intents remain available for later adapters and are otherwise ignored. The release smoke test covers the regression.
+
+## DEC-066: Keep money CSV import strict and append-only
+
+- Context: Money CSV export already provides a portable entry list, but arbitrary bank mappings, split payloads, duplicate policy, and import history are not defined. Silent coercion would change the meaning of money records.
+- Decision: Accept only the current Yuzuha money CSV header and app schema. Bound the file to 5 MB and 5,000 rows, parse quoted fields, preserve IDs/timestamps, require current account/category references and matching account currency, reject split-linked rows and duplicates, preview errors/totals, and append only after confirmation in one local save.
+- Reason: The contract gives current users a useful local merge path while keeping JSON/encrypted backup as the complete workspace format. Bounded parsing keeps memory and UI work predictable.
+- Consequence: Arbitrary bank CSV mapping, missing-reference repair, split-row import, import history/undo, multi-file import, sync restore, and legacy CSV versions remain separate future contracts.

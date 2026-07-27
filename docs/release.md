@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android money-CSV-import pass:
+
+- no app or repository schema change; Data tools now choose one current Yuzuha money CSV through the system picker, copy it to cache, validate it, and preview row errors and currency totals;
+- duplicate IDs, broken account/category references, split-linked rows, invalid values, unsupported current schema/header values, and files over 5 MB block the append; confirmation adds valid rows in one local store save and removes the cache copy;
+- focused CSV parser/picker/store coverage, full Jest (44 suites, 182 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator picker/preview/confirm/relaunch smoke, and phone clean-launch smoke passed;
+- arbitrary bank CSV mapping, import history/undo, split-row import, sync restore, and legacy CSV versions remain out of scope; both devices were force-stopped after testing and the temporary smoke file was removed.
+
 2026-07-27 Android task-calendar-draft pass:
 
 - no app or repository schema change; dated task rows validate title/details/date and open the Android system calendar editor with an all-day local draft;

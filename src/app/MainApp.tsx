@@ -37,6 +37,11 @@ import {
   saveRecoveryEncryptedBackupFile,
   saveEncryptedBackupFile,
 } from '../shared/encryptedBackupFile';
+import {
+  MoneyCsvImportFileCanceled,
+  openMoneyCsvImportFile,
+  type MoneyCsvImportFilePreview,
+} from '../shared/moneyCsvImportFile';
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
@@ -555,7 +560,7 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
 }
 
 function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {resetWorkspace, restoreWorkspace} = useAppStore();
+  const {resetWorkspace, restoreWorkspace, importMoneyEntries} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importText, setImportText] = useState('');
@@ -566,6 +571,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [backupBusy, setBackupBusy] = useState(false);
   const [recoveryKey, setRecoveryKey] = useState('');
   const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
+  const [moneyCsvPreview, setMoneyCsvPreview] = useState<MoneyCsvImportFilePreview | null>(null);
+  const [moneyCsvBusy, setMoneyCsvBusy] = useState(false);
 
   async function shareJson() {
     try {
@@ -593,6 +600,53 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       setStatus(null);
       setError('Money CSV export could not be opened for sharing.');
     }
+  }
+
+  async function previewMoneyCsvImport() {
+    setStatus(null);
+    setError(null);
+    setMoneyCsvPreview(null);
+    setMoneyCsvBusy(true);
+    try {
+      const preview = await openMoneyCsvImportFile(data);
+      setMoneyCsvPreview(preview);
+      setStatus(`${preview.name} is validated. Review the rows before importing.`);
+    } catch (importError) {
+      if (!(importError instanceof MoneyCsvImportFileCanceled)) {
+        setMoneyCsvPreview(null);
+        setError(importError instanceof Error ? importError.message : 'Money CSV import could not be opened.');
+      }
+    } finally {
+      setMoneyCsvBusy(false);
+    }
+  }
+
+  function confirmMoneyCsvImport() {
+    if (!moneyCsvPreview || moneyCsvPreview.errors.length > 0 || moneyCsvPreview.entries.length === 0) {
+      return;
+    }
+    Alert.alert(
+      'Import money entries?',
+      `Add ${moneyCsvPreview.entries.length} entries from ${moneyCsvPreview.name} to this workspace. Existing records will stay unchanged.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Import',
+          onPress: () => {
+            void importMoneyEntries(moneyCsvPreview.entries)
+              .then(() => {
+                setError(null);
+                setStatus(`${moneyCsvPreview.entries.length} money entries were imported.`);
+                setMoneyCsvPreview(null);
+              })
+              .catch(importError => {
+                setStatus(null);
+                setError(importError instanceof Error ? importError.message : 'Money CSV import failed.');
+              });
+          },
+        },
+      ],
+    );
   }
 
   async function shareEncryptedBackup() {
@@ -850,6 +904,20 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
       <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Import money CSV</Text>
+        <Text style={styles.cardDetail}>Choose a current Yuzuha money CSV. Nothing changes until you review the rows and confirm the append. Split-linked rows need a JSON export or encrypted backup.</Text>
+        <PrimaryButton label={moneyCsvBusy ? 'Opening money CSV...' : 'Choose money CSV'} onPress={previewMoneyCsvImport} disabled={moneyCsvBusy || backupBusy} />
+        {moneyCsvPreview && (
+          <View style={styles.importPreview}>
+            <Text style={styles.cardTitle}>Money CSV preview</Text>
+            <Text style={styles.cardDetail}>{formatMoneyCsvImportPreview(moneyCsvPreview)}</Text>
+            {moneyCsvPreview.errors.length === 0 && moneyCsvPreview.entries.length > 0 && (
+              <PrimaryButton label="Import these money entries" onPress={confirmMoneyCsvImport} />
+            )}
+          </View>
+        )}
+      </View>
+      <View style={styles.formCard}>
         <Text style={styles.formLabel}>Restore JSON export</Text>
         <Text style={styles.cardDetail}>Paste a Yuzuha JSON export here. Nothing changes until you review the count and confirm the replacement.</Text>
         <TextInput
@@ -951,6 +1019,21 @@ function formatImportPreview(preview: JsonImportPreview): string {
     .filter(([key]) => preview.recordCounts[key] > 0)
     .map(([key, label]) => `${preview.recordCounts[key]} ${label}`);
   return `${preview.totalRecords} total records${summary.length > 0 ? `: ${summary.join(', ')}` : '.'}`;
+}
+
+function formatMoneyCsvImportPreview(preview: MoneyCsvImportFilePreview): string {
+  const income = formatMinorTotals(preview.incomeMinorByCurrency);
+  const expense = formatMinorTotals(preview.expenseMinorByCurrency);
+  const rowLabel = preview.entries.length === 1 ? 'row' : 'rows';
+  if (preview.errors.length > 0) {
+    return `${preview.rowCount} rows found. ${preview.entries.length} valid ${rowLabel}; import is blocked until you choose a corrected file.\n\n${preview.errors.join('\n')}`;
+  }
+  return `${preview.entries.length} new ${rowLabel}. Income: ${income}. Expenses: ${expense}. Existing workspace records stay unchanged.`;
+}
+
+function formatMinorTotals(totals: Record<string, number>): string {
+  const formatted = Object.entries(totals).map(([currency, amountMinor]) => formatMoney(amountMinor, currency));
+  return formatted.length > 0 ? formatted.join(', ') : 'none';
 }
 
 function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): string | null {

@@ -6,6 +6,8 @@ Status: The local SQLite repository boundary is implemented with app data schema
 
 Android task calendar drafts are external editor input only. A dated task supplies title, details, and a local all-day date to the system calendar editor; no calendar row, event ID, permission grant, schema field, export field, or background state is stored.
 
+Money CSV import is also external file input only. It preserves current money entry IDs and timestamps, requires current account/category references, rejects split-linked rows, and appends validated rows to the existing `money` collection only after confirmation. It adds no import session, schema field, export field, or legacy format.
+
 ## Storage rules
 
 - Product records use SQLite with the current schema check. The unreleased build does not migrate old product data.

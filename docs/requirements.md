@@ -146,7 +146,7 @@ Current implementation extension: the user can create, pause/resume, and delete 
 | AUTO-01 | 3 | User automation rules have one trigger, conditions, and one action. | A rule has enable/disable, preview, and run history. |
 | AUTO-02 | 3 | Automation cannot commit money or delete data silently. | Such actions require a user-confirmed draft or confirmation screen. |
 | INT-01 | 3 | The user can capture through supported share actions, shortcuts, and widgets. | Current Android text shares show a preview and require note/task confirmation; supported image/PDF/plain-text file shares show a preview and save as a note attachment; static Money/Notes/Tasks/App Time shortcuts open existing screens; the Android widget shows open-task and active-note counts and opens Yuzuha on tap. Unsupported-file, permission, offline, revoke, dynamic-shortcut, and iOS contracts remain planned. |
-| INT-02 | 3 | The user can import and export supported formats. | Unsupported fields are visible instead of silently dropped. |
+| INT-02 | 3 | The user can import and export supported formats. | Current Android money CSV import shows row errors and totals before confirmation; unsupported or incomplete fields are rejected instead of silently dropped. |
 | INT-03 | 3 | Calendar integration is opt-in. | Revoking permission stops new reads/writes without deleting existing Yuzuha records. |
 | INT-04 | 3 | The user can open supported local tabs from a deep link. | Exact Android `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time` routes open existing tabs; unknown paths, query data, IDs, remote URLs, and malformed links are rejected without a record or network request. |
 | INT-05 | 3 | The user can send a dated task to the Android system calendar editor. | A valid task title, details, and `YYYY-MM-DD` due date open an all-day system draft; missing/invalid dates are rejected, no calendar permission is requested, and Yuzuha stores no external event ID. |
@@ -277,7 +277,7 @@ Implemented and verified:
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
-Not yet complete: CSV import, merge behavior, sync restore, and account recovery.
+At that historical pass, CSV import and merge behavior were not yet complete. The current strict Yuzuha money CSV append path is recorded in the latest-only extension below; arbitrary bank mapping, sync restore, and account recovery remain planned.
 
 ## Encrypted backup implementation review
 
@@ -336,6 +336,8 @@ Current Android widget extension: the summary widget projects the count of open 
 Current Android deep-link extension: `ACTION_VIEW` accepts only the four exact `yuzuha://open/...` routes and passes them through a cold-start getter or warm-app event. The bridge clears the consumed URI, shared validation maps it to an existing tab, and query strings, fragments, IDs, extra paths, and remote URLs are rejected. No AppData/schema field, permission, network request, or background process is added.
 
 Current Android calendar-draft extension: a dated task row validates its title, details, and local due date, then opens the system `ACTION_INSERT` calendar editor with an all-day interval. The bridge does not read calendar data, request calendar permissions, store an external event ID, or start background work. A release regression smoke also confirms that an unknown launcher action is not cleared before the deep-link adapter receives a cold-start intent.
+
+Current money CSV import extension: Data tools choose one current Yuzuha CSV through the system picker, copy it to cache, enforce bounded size/row limits, parse quoted fields, validate current schema values and workspace references, show errors and currency totals, and append only after confirmation. Duplicate IDs, split-linked rows, invalid values, and broken references leave the workspace unchanged. No import record, migration, network request, or background job is added.
 
 ## Local recovery-key backup implementation review
 

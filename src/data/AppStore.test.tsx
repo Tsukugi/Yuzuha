@@ -1,6 +1,6 @@
 import {createElement} from 'react';
 import TestRenderer, {act} from 'react-test-renderer';
-import {emptyAppData, type AppData} from '../types/domain';
+import {emptyAppData, type AppData, type MoneyEntry} from '../types/domain';
 import {adjustTaskReminderForQuietHours} from '../shared/notificationSettings';
 import {createTaskRecord} from '../shared/taskLifecycle';
 import {localDateKey} from '../shared/period';
@@ -26,6 +26,64 @@ jest.mock('../platform/taskReminders', () => ({
 }));
 
 describe('AppStore task reminders', () => {
+  it('appends imported money entries in one save and rejects duplicate IDs', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const entry: MoneyEntry = {
+      id: 'money_imported',
+      kind: 'expense',
+      amountMinor: 1250,
+      currency: 'EUR',
+      accountId: 'account_everyday',
+      categoryId: 'category_food',
+      category: 'Food',
+      note: 'Imported',
+      occurredAt: '2026-07-28T12:00:00.000Z',
+      createdAt: '2026-07-28T12:00:00.000Z',
+      updatedAt: '2026-07-28T12:00:00.000Z',
+      splitId: null,
+    };
+    await act(async () => {
+      await value!.importMoneyEntries([entry]);
+    });
+
+    expect(saved.money).toEqual([entry]);
+    await act(async () => {
+      await expect(value!.importMoneyEntries([entry])).rejects.toThrow(/already exists/i);
+    });
+    expect(saved.money).toEqual([entry]);
+    await act(async () => {
+      await expect(value!.importMoneyEntries([{
+        ...entry,
+        id: 'money_batch_duplicate',
+      }, {
+        ...entry,
+        id: 'money_batch_duplicate',
+      }])).rejects.toThrow(/already exists/i);
+    });
+    expect(saved.money).toEqual([entry]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
   it('saves a shared attachment with its note in one workspace commit', async () => {
     const attachmentFiles = jest.requireMock('../shared/attachmentFiles') as {importAttachmentFileFromSource: jest.Mock};
     const attachment = {

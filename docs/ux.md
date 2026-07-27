@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android calendar-draft pass.
+Status: Current Android MVP through the Android money-CSV-import pass.
 
 ## Navigation
 
@@ -80,7 +80,7 @@ Each saved note has a comma-separated optional tag field and an `Add attachment`
 
 ### Export and delete local data
 
-The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The screen states what each format contains and reports when the share action returns. Delete uses a destructive confirmation with a clear list of affected local records; after confirmation, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
+The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The user can also choose a current Yuzuha money CSV for import. The screen previews row count, currency totals, duplicate/reference/format errors, and the append action before any write. A confirmation adds valid rows to the existing workspace; delete uses a destructive confirmation with a clear list of affected local records. After deletion, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
 
 ### Create a recurring money rule
 
@@ -130,7 +130,7 @@ The user chooses category, currency, period, amount, start rule, and rollover po
 
 ### Import money
 
-The flow is choose file, map fields, review duplicates, preview totals/errors, commit, and show import history. Cancel leaves the database unchanged. The import report can open the affected records.
+The current Android flow is choose one current Yuzuha money CSV, validate and preview it, confirm the append, and show the imported-row status. Split-linked rows, duplicate IDs, broken account/category references, invalid values, and oversized files block the append. Canceling or rejecting the preview leaves the database unchanged. Field mapping, arbitrary bank CSVs, import history, and undo remain full-product work.
 
 ### Create recurring work
 

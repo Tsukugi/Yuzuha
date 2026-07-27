@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android calendar-draft pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android money-CSV-import pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -96,6 +96,8 @@ The Android summary widget contains only two aggregate counts: open tasks and ac
 Android deep links accept only the fixed local `yuzuha://open/...` routes. The native bridge rejects query strings, fragments, IDs, extra paths, unknown targets, and remote schemes before JavaScript routing. No note text, task text, money value, token, or network URL is accepted from a link.
 
 Android calendar drafts do not request `READ_CALENDAR` or `WRITE_CALENDAR` and do not read calendar content. The bridge sends only the selected task title, details, and local due date to the system editor through `ACTION_INSERT`; it stores no external event ID and starts no worker. The user confirms or cancels the draft in the calendar app, and canceling cannot change the Yuzuha task.
+
+Money CSV import reads one user-selected file into a bounded cache copy, validates it locally, and deletes the cache copy after preview. It sends no file or row content to a service, writes no data before confirmation, and rejects broken references, duplicates, split-linked rows, invalid values, and oversized files. JSON or encrypted backup remains the complete workspace portability path.
 
 ## Privacy review gates for new features
 

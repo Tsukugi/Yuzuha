@@ -50,6 +50,8 @@ Cards are reorderable and hideable. A reset action restores the default layout. 
 
 Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral review screen, and supported image/PDF/plain-text file shares open the same screen with attachment metadata. Text can save as a note or Inbox task; a file can save as a note attachment after checksum verification. Static launcher shortcuts open Money, Notes, Tasks, or App Time. The current Android widget shows only open-task and active-note counts and opens Yuzuha on tap. Four strict local deep links open the same existing tabs. A dated task can open an Android system calendar editor as an all-day draft without calendar permissions, event-ID storage, or background work. The full product may add unsupported file types, dynamic shortcuts, user-selected widget cards, remote app links, two-way calendar reads, and other entry points after their privacy and platform contracts are defined.
 
+Current Android portability slice: Data tools can choose one current Yuzuha money CSV, validate its rows against the current app schema and workspace references, show row errors and currency totals, and append the validated entries only after confirmation. The import is bounded and does not restore split-linked entries; JSON or encrypted backup remains the complete workspace format.
+
 ### Review behavior
 
 The user can open a daily, weekly, or monthly review. A review contains:

@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage, Android attachment opening, and portable encrypted attachment bytes are implemented. Account sync, device enrollment, remote backup, and iOS attachment preview remain planned.
+Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage, Android attachment opening, portable encrypted attachment bytes, and current-format local money CSV import are implemented. Account sync, device enrollment, remote backup, arbitrary bank imports, and iOS attachment preview remain planned.
 
 ## Goals
 

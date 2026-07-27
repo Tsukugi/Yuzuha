@@ -29,6 +29,8 @@ Android also accepts four strict local deep links: `yuzuha://open/money`, `yuzuh
 
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
+Data tools can import a current Yuzuha money CSV through the system document picker. The file is previewed first; duplicate IDs, broken references, split-linked rows, invalid values, and oversized files block the import. Confirmation appends the entries in one local save. JSON or encrypted backup is required for complete workspace portability.
+
 ## Technology baseline
 
 The current encrypted backup flow can also save and open the current authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes, local saved-search records, app groups, focus sessions, task projects and links, task parent links, task templates, task dependencies, and task manual-order fields. The unreleased build uses current app schema 28 and rejects old app schemas, old SQLite repository schemas, and old encrypted backup schemas because there are no external users to upgrade. Plain JSON exports still carry attachment metadata only. Android opens supported private attachment files through a read-only FileProvider URI and the system chooser. Account recovery, device enrollment, sync, and iOS attachment preview remain planned.

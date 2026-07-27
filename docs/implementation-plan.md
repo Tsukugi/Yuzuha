@@ -1856,3 +1856,36 @@ Known limits:
 - the user must confirm the event in the external calendar editor; Yuzuha does not know whether it was saved;
 - only dated tasks can be drafted, and the draft is all-day in the device's current timezone;
 - calendar reads, event reconciliation, selected calendar/timezone settings, focus-session export, iOS parity, and sync remain planned.
+
+## Implementation review: Android money CSV import pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- strict current Yuzuha money CSV parser with quoted-field support, current export/app schema checks, bounded 5 MB/5,000-row limits, and row-level errors;
+- reference validation against the current workspace, account-currency checks, duplicate ID rejection, split-linked row rejection, and currency-separated preview totals;
+- Android document-picker adapter that copies the selected file into cache, reads it once, removes the cache copy, and maps cancellation/errors to typed messages;
+- Data tools preview and confirmation flow that appends validated entries through one AppStore commit without adding an import record, schema field, network request, or worker;
+- updated product, architecture, data, UX, security, integration, requirements, testing, release, traceability, and decision documentation.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - parser, picker, AppStore append, duplicate/reference/split/error cases
+Full Jest                PASS - 44 suites, 182 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - picker, preview, confirmed append, money row after relaunch, and no filtered app errors
+Phone smoke              PASS - release MainActivity cold launch with no filtered app errors; UI root unavailable by device policy
+Resource cleanup         PASS - temporary CSV removed and both devices force-stopped
+```
+
+Known limits:
+
+- the input must be a current Yuzuha money CSV; arbitrary bank CSV mapping is not implemented;
+- split-linked money rows require JSON export or encrypted backup because CSV has no split-line payload;
+- import history, undo, multi-file import, sync restore, and legacy CSV versions remain planned.
