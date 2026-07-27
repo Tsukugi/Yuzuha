@@ -582,7 +582,7 @@ Delivered:
 
 Known limits:
 
-- File backups remain password-based JSON envelopes. Recovery keys, attachments, platform backup policy, password recovery, and remote sync remain planned.
+- File backups remain JSON envelopes. Account recovery, device enrollment, native secure key storage, attachments, platform backup policy, password recovery, and remote sync remain planned.
 
 Review evidence:
 
@@ -598,4 +598,37 @@ Emulator smoke       PASS - release APK saved, reopened, decrypted, and previewe
 Phone smoke          PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
 ```
 
-Next pass: recovery-key design or attachment portability, with remote sync kept behind the local-first boundary.
+Next pass: attachment portability or account/device recovery design, with remote sync kept behind the local-first boundary.
+
+## Implementation review: local recovery-key backup pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- secure 32-byte recovery-key generation with canonical grouped-hex formatting and input normalization;
+- separate `recovery-key` credential marker in the authenticated backup header while preserving old password envelopes;
+- recovery-key backup save through the system document picker with a distinct file name;
+- in-session key re-entry confirmation and no local recovery-key storage;
+- restore compatibility for grouped, ungrouped, and lowercase recovery-key input;
+- regression coverage for malformed keys, credential markers, normalized restore input, and file naming.
+
+Known limits:
+
+- This pass covers local backup portability only. Account recovery, device enrollment, native secure key storage, attachments, platform backup policy, password recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 11 recovery/encrypted-file tests
+npm test            PASS - 17 suites, 66 tests
+npm run lint        PASS
+npm run typecheck   PASS
+Bundle check        PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - recovery-key file saved, reopened, decrypted, and previewed as recovery key with 8 records
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: attachment portability or account/device recovery design, with remote sync kept behind the local-first boundary.

@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the encrypted-backup pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the local recovery-key pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -209,6 +209,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Full verification: Jest 17 suites and 63 tests, lint, strict TypeScript, bundle metadata check, Android bundle generation, debug APK build, and release APK build all pass.
 - Release emulator `emulator-5554`: saved `yuzuha-encrypted-backup-2026-07-26.json` through DocumentsUI, selected it again, decrypted it on-device, and showed the validated preview with 8 records. This also covers the strict UTF-8 decoder used when Android does not provide `TextDecoder`.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered Yuzuha app errors. Touch automation remains blocked by device policy, so file-picker interaction was run on the emulator.
+
+## Local recovery-key backup evidence
+
+- Focused Jest coverage includes key format and entropy-shape validation, grouped/ungrouped/lowercase normalization, credential markers, wrong-key rejection, recovery file naming, and system-picker save behavior.
+- Full Jest verification: 17 suites and 66 tests pass, with lint, strict TypeScript, bundle metadata, Android bundle generation, and debug/release APK builds passing.
+- The emulator release APK generated a recovery key, accepted a 64-character key through Android key events, saved `yuzuha-recovery-backup-2026-07-27.json`, reopened it, and showed `Credential: recovery key` with the validated 8-record preview.
+- The same emulator run reproduced the pre-fix failure for unnormalized recovery input; the regression test failed before the normalization fix and passed after it.
+- Phone `42adce68`: the current release APK installed and `MainActivity` resumed with no filtered Yuzuha app errors. Touch automation remains blocked by device policy.
 
 ## Recurring money evidence
 

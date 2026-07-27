@@ -3,7 +3,9 @@ import {buildEncryptedBackup} from './encryptedBackup';
 import {
   EncryptedBackupFileCanceled,
   buildBackupFileName,
+  buildRecoveryBackupFileName,
   openEncryptedBackupFile,
+  saveRecoveryEncryptedBackupFile,
   saveEncryptedBackupFile,
 } from './encryptedBackupFile';
 
@@ -88,6 +90,18 @@ describe('encrypted backup files', () => {
     });
     expect(fileAccess.FileSystem.readFile).toHaveBeenCalledWith('file:///cache/picked.json', 'utf8');
     expect(fileAccess.FileSystem.unlink).toHaveBeenCalledWith('file:///cache/picked.json');
+  });
+
+  it('saves a recovery-key backup with the recovery credential marker', async () => {
+    resetMocks();
+    picker.saveDocuments.mockResolvedValue([{uri: 'content://saved', name: 'recovery-backup.json', error: null}]);
+    const recoveryKey = 'ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB';
+
+    await expect(saveRecoveryEncryptedBackupFile(emptyAppData(), recoveryKey, createdAt)).resolves.toEqual({name: 'recovery-backup.json'});
+
+    const writtenBackup = JSON.parse(fileAccess.FileSystem.writeFile.mock.calls[0][1]) as {header: {credential: string}};
+    expect(writtenBackup.header.credential).toBe('recovery-key');
+    expect(picker.saveDocuments).toHaveBeenCalledWith(expect.objectContaining({fileName: buildRecoveryBackupFileName(createdAt)}));
   });
 
   it('reports cancellation without converting it to a file error', async () => {

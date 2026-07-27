@@ -56,7 +56,7 @@ Data tools accepts a pasted Yuzuha JSON export. Preview shows the total and reco
 
 ### Create or restore an encrypted backup
 
-Data tools asks for a password of at least 12 characters before sharing or saving an encrypted backup. Save opens the system document picker with a suggested JSON file name. Restore can use pasted text or the system document picker; it asks for the password, decrypts and validates the contents, shows the creation date and record count, and requires a destructive confirmation before replacing local data. Canceling a picker leaves the workspace unchanged. Wrong passwords and tampered backups do not change the workspace.
+Data tools asks for a password of at least 12 characters before sharing or saving a password backup. It can also generate a separate high-entropy recovery key, requires the user to re-enter it, and saves a recovery-key backup without storing the key. Save opens the system document picker with a suggested JSON file name. Restore can use pasted text or the system document picker; it accepts the backup password or recovery key, decrypts and validates the contents, shows the creation date, credential type, and record count, and requires a destructive confirmation before replacing local data. Canceling a picker leaves the workspace unchanged. Wrong credentials and tampered backups do not change the workspace.
 
 ## Accessibility
 

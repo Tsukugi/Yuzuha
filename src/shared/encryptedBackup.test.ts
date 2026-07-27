@@ -3,7 +3,9 @@ import {
   BACKUP_MIN_PASSWORD_LENGTH,
   EncryptedBackupError,
   buildEncryptedBackup,
+  buildRecoveryEncryptedBackup,
   decryptEncryptedBackup,
+  generateRecoveryKey,
 } from './encryptedBackup';
 
 const password = 'correct horse battery staple';
@@ -52,6 +54,34 @@ describe('encrypted backups', () => {
     );
 
     await expect(decryptEncryptedBackup('{"header":{},"ciphertextBase64":""}', password)).rejects.toBeInstanceOf(EncryptedBackupError);
+  });
+
+  it('generates a recovery key and uses it for a separately labeled encrypted backup', async () => {
+    const recoveryKey = generateRecoveryKey(length => new Uint8Array(length).fill(0xab));
+    expect(recoveryKey).toBe('ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB-ABABABAB');
+
+    const backup = await buildRecoveryEncryptedBackup(emptyAppData(), recoveryKey, createdAt, deterministicRandomBytes);
+    const envelope = JSON.parse(backup) as {header: {credential: string}};
+    const preview = await decryptEncryptedBackup(backup, recoveryKey.replaceAll('-', '').toLowerCase());
+
+    expect(envelope.header.credential).toBe('recovery-key');
+    expect(backup).not.toContain(recoveryKey);
+    expect(preview.credential).toBe('recovery-key');
+    expect(preview.createdAt).toBe(createdAt);
+
+    const wrongRecoveryKey = generateRecoveryKey(length => new Uint8Array(length).fill(0xcd));
+    await expect(decryptEncryptedBackup(backup, wrongRecoveryKey)).rejects.toThrow(/password|damaged/i);
+
+    const tampered = JSON.parse(backup) as {header: {credential: string}};
+    tampered.header.credential = 'password';
+    await expect(decryptEncryptedBackup(JSON.stringify(tampered), recoveryKey)).rejects.toThrow(/password|damaged/i);
+  });
+
+  it('normalizes recovery key input and rejects malformed keys', async () => {
+    const recoveryKey = generateRecoveryKey(length => new Uint8Array(length).fill(0x01));
+    const ungroupedLowercase = recoveryKey.replaceAll('-', '').toLowerCase();
+    await expect(buildRecoveryEncryptedBackup(emptyAppData(), ungroupedLowercase, createdAt, deterministicRandomBytes)).resolves.toBeDefined();
+    await expect(buildRecoveryEncryptedBackup(emptyAppData(), 'not-a-recovery-key', createdAt, deterministicRandomBytes)).rejects.toThrow(/64 hexadecimal/);
   });
 
   it('decrypts on devices without a built-in TextDecoder', async () => {

@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Local password-encrypted backup and restore are implemented for text and document files. Account sync, recovery keys, device enrollment, attachments, and remote backup remain planned.
+Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Account sync, device enrollment, attachments, and remote backup remain planned.
 
 ## Goals
 
@@ -74,6 +74,10 @@ The outbox is encrypted at rest and bounded. When full, the app stops adding new
 ### Export backup
 
 The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. The password is not stored and the backup is never uploaded automatically. The saved file is a portable JSON envelope with the same authenticated header and ciphertext as the text flow.
+
+### Local recovery-key backup
+
+The user can generate a separate recovery-key backup from Data tools. The key is 32 secure random bytes shown as eight uppercase hexadecimal groups. The user must re-enter it before the backup can be saved. The key is not stored locally, logged, or uploaded. The recovery backup uses the same authenticated envelope and scrypt parameters, with a `recovery-key` credential marker and a distinct file name. Restore accepts the grouped or ungrouped form and normalizes it before key derivation. This is local backup portability only; it does not enroll a device, recover a sync account, or provide support-assisted password recovery.
 
 ### Platform backup
 

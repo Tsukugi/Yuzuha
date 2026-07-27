@@ -178,3 +178,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Decode the authenticated plaintext with a small strict UTF-8 decoder owned by the backup module. Reject malformed, overlong, surrogate, and out-of-range sequences.
 - Reason: The backup format stays unchanged and device behavior does not depend on an old text-encoding polyfill.
 - Consequence: The decoder needs regression tests for normal Unicode content and malformed byte sequences as the backup format evolves.
+
+## DEC-027: Use a separate local recovery-key backup credential
+
+- Context: A password is easy to forget, while the local-first app still needs a user-controlled backup path that does not store a secret on the device.
+- Decision: Generate 32 secure random bytes, display them as eight uppercase hexadecimal groups, require in-session re-entry, and use the normalized key as the credential for a separate authenticated backup envelope. Mark the envelope with `credential: recovery-key` and use a distinct recovery-backup file name. Restore normalizes grouped, ungrouped, and lowercase input only for that marker.
+- Reason: The existing audited XChaCha20-Poly1305 and scrypt boundary remains the only crypto path. The key is never stored, logged, or uploaded, and the marker makes normalization deterministic without changing old password backups.
+- Consequence: This is local backup portability, not account recovery or device enrollment. Attachments, sync recovery, password recovery, and native secure key storage remain separate contracts.

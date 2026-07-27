@@ -3,6 +3,7 @@ import {Dirs, FileSystem} from 'react-native-file-access';
 import type {AppData} from '../types/domain';
 import {
   buildEncryptedBackup,
+  buildRecoveryEncryptedBackup,
   decryptEncryptedBackup,
   EncryptedBackupError,
   type EncryptedBackupPreview,
@@ -10,6 +11,7 @@ import {
 
 export const ENCRYPTED_BACKUP_MIME_TYPE = 'application/json';
 export const ENCRYPTED_BACKUP_FILE_PREFIX = 'yuzuha-encrypted-backup';
+export const RECOVERY_BACKUP_FILE_PREFIX = 'yuzuha-recovery-backup';
 
 export interface EncryptedBackupFileResult {
   name: string;
@@ -34,13 +36,27 @@ export class EncryptedBackupFileCanceled extends EncryptedBackupFileError {
 }
 
 export async function saveEncryptedBackupFile(data: AppData, password: string, createdAt: string): Promise<EncryptedBackupFileResult> {
-  const fileName = buildBackupFileName(createdAt);
+  return saveEncryptedBackupFileWithBuilder(data, password, createdAt, buildBackupFileName, buildEncryptedBackup);
+}
+
+export async function saveRecoveryEncryptedBackupFile(data: AppData, recoveryKey: string, createdAt: string): Promise<EncryptedBackupFileResult> {
+  return saveEncryptedBackupFileWithBuilder(data, recoveryKey, createdAt, buildRecoveryBackupFileName, buildRecoveryEncryptedBackup);
+}
+
+async function saveEncryptedBackupFileWithBuilder(
+  data: AppData,
+  credential: string,
+  createdAt: string,
+  fileNameBuilder: (createdAt: string) => string,
+  buildBackup: (data: AppData, credential: string, createdAt: string) => Promise<string>,
+): Promise<EncryptedBackupFileResult> {
+  const fileName = fileNameBuilder(createdAt);
   const temporaryPath = `${Dirs.CacheDir}/${fileName}`;
   const temporaryUri = toFileUri(temporaryPath);
   let temporaryFileCreated = false;
 
   try {
-    const backup = await buildEncryptedBackup(data, password, createdAt);
+    const backup = await buildBackup(data, credential, createdAt);
     await FileSystem.writeFile(temporaryPath, backup, 'utf8');
     temporaryFileCreated = true;
     const savedFiles = await saveDocuments({
@@ -118,8 +134,16 @@ export async function openEncryptedBackupFile(password: string): Promise<Encrypt
 }
 
 export function buildBackupFileName(createdAt: string): string {
+  return buildDatedBackupFileName(ENCRYPTED_BACKUP_FILE_PREFIX, createdAt);
+}
+
+export function buildRecoveryBackupFileName(createdAt: string): string {
+  return buildDatedBackupFileName(RECOVERY_BACKUP_FILE_PREFIX, createdAt);
+}
+
+function buildDatedBackupFileName(prefix: string, createdAt: string): string {
   const date = createdAt.slice(0, 10);
-  return `${ENCRYPTED_BACKUP_FILE_PREFIX}-${date}.json`;
+  return `${prefix}-${date}.json`;
 }
 
 function toFileUri(path: string): string {

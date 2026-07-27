@@ -272,7 +272,7 @@ Implemented and verified:
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
-Not yet complete: CSV import, merge behavior, sync restore, and recovery-key handling.
+Not yet complete: CSV import, merge behavior, sync restore, and account recovery.
 
 ## Encrypted backup implementation review
 
@@ -283,7 +283,7 @@ Implemented and verified:
 - the user can decrypt a backup with the password, preview its creation date and record counts, and confirm replacement only after validation;
 - wrong passwords, tampering, weak passwords, unsupported parameters, and plaintext leakage are covered by tests.
 
-Not yet complete: recovery-key backups, attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: attachments, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Encrypted backup file portability review
 
@@ -294,7 +294,7 @@ Implemented and verified:
 - temporary app-cache files are removed after a successful or failed save operation, and a canceled picker leaves the workspace unchanged;
 - file operations preserve the existing password, crypto, and restore validation rules.
 
-Not yet complete: recovery-key backups, attachments, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: attachments, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Recurring policy implementation review
 
@@ -306,4 +306,16 @@ Implemented and verified:
 - schema 8 rules migrate to schema 9 with `all` as the explicit default;
 - the recurrence form shows the policy and the rule list shows the stored choice.
 
-Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, sync, and recovery-key handling.
+Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, sync, and account recovery.
+
+## Local recovery-key backup implementation review
+
+Implemented and verified:
+
+- the user can generate a 32-byte secure recovery key in Data tools;
+- the key is shown in eight uppercase hexadecimal groups and must be re-entered before saving;
+- a separate recovery-key encrypted JSON file is saved through the system document picker without storing the key;
+- restore accepts the grouped or ungrouped key, normalizes it from the authenticated envelope marker, and previews the same validated workspace records;
+- malformed recovery keys, wrong keys, and tampered envelopes fail before any workspace write.
+
+Not yet complete: account recovery, device enrollment, attachments, platform backup policy, remote encrypted sync, and password recovery.

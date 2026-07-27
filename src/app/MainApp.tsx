@@ -24,10 +24,17 @@ import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTra
 import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
-import {buildEncryptedBackup, decryptEncryptedBackup, type EncryptedBackupPreview} from '../shared/encryptedBackup';
+import {
+  buildEncryptedBackup,
+  decryptEncryptedBackup,
+  generateRecoveryKey,
+  normalizeRecoveryKey,
+  type EncryptedBackupPreview,
+} from '../shared/encryptedBackup';
 import {
   EncryptedBackupFileCanceled,
   openEncryptedBackupFile,
+  saveRecoveryEncryptedBackupFile,
   saveEncryptedBackupFile,
 } from '../shared/encryptedBackupFile';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
@@ -189,6 +196,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [backupText, setBackupText] = useState('');
   const [backupPreview, setBackupPreview] = useState<EncryptedBackupPreview | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
 
   async function shareJson() {
     try {
@@ -246,6 +255,39 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     } catch (backupError) {
       if (!(backupError instanceof EncryptedBackupFileCanceled)) {
         setError(backupError instanceof Error ? backupError.message : 'Encrypted backup file could not be saved.');
+      }
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  function createRecoveryKey() {
+    setStatus(null);
+    setError(null);
+    try {
+      setRecoveryKey(generateRecoveryKey());
+      setRecoveryKeyConfirmation('');
+      setStatus('Recovery key generated. Write it down before continuing; it is not stored on this device.');
+    } catch (recoveryError) {
+      setError(recoveryError instanceof Error ? recoveryError.message : 'A recovery key could not be generated.');
+    }
+  }
+
+  async function saveRecoveryBackupFileToDevice() {
+    setStatus(null);
+    setError(null);
+    const confirmedKey = getConfirmedRecoveryKey(recoveryKey, recoveryKeyConfirmation);
+    if (!confirmedKey) {
+      setError('Enter the recovery key again before saving this backup.');
+      return;
+    }
+    setBackupBusy(true);
+    try {
+      const savedFile = await saveRecoveryEncryptedBackupFile(data, confirmedKey, new Date().toISOString());
+      setStatus(`Recovery-key backup saved as ${savedFile.name}. The recovery key is not stored on this device.`);
+    } catch (backupError) {
+      if (!(backupError instanceof EncryptedBackupFileCanceled)) {
+        setError(backupError instanceof Error ? backupError.message : 'Recovery-key backup could not be saved.');
       }
     } finally {
       setBackupBusy(false);
@@ -405,6 +447,29 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         />
         <PrimaryButton label="Share encrypted backup" onPress={shareEncryptedBackup} disabled={backupBusy} />
         <PrimaryButton label="Save encrypted backup file" onPress={saveEncryptedBackupFileToDevice} disabled={backupBusy} />
+        <Text style={styles.formLabel}>Recovery-key backup</Text>
+        <Text style={styles.cardDetail}>Create a separate encrypted backup that uses a high-entropy recovery key. Write the key down and confirm it before saving; Yuzuha does not store it.</Text>
+        <PrimaryButton label={recoveryKey ? 'Generate a new recovery key' : 'Generate recovery key'} onPress={createRecoveryKey} disabled={backupBusy} />
+        {!!recoveryKey && (
+          <>
+            <Text accessibilityLabel="Generated recovery key" style={styles.recoveryKey}>{recoveryKey}</Text>
+            <TextInput
+              accessibilityLabel="Recovery key confirmation"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="Enter the recovery key again"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={recoveryKeyConfirmation}
+              onChangeText={setRecoveryKeyConfirmation}
+            />
+            <PrimaryButton
+              label="Save recovery-key backup file"
+              onPress={saveRecoveryBackupFileToDevice}
+              disabled={backupBusy}
+            />
+          </>
+        )}
         {status && <Text style={styles.successText}>{status}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
@@ -437,7 +502,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       </View>
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Restore encrypted backup</Text>
-        <Text style={styles.cardDetail}>Paste the encrypted backup and enter the same password. The backup is decrypted and validated before any local data changes.</Text>
+        <Text style={styles.cardDetail}>Paste the encrypted backup and enter its password or recovery key. The backup is decrypted and validated before any local data changes.</Text>
         <PrimaryButton label="Open encrypted backup file" onPress={openEncryptedBackupFileFromDevice} disabled={backupBusy} />
         <TextInput
           accessibilityLabel="Encrypted backup text"
@@ -455,11 +520,11 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           value={backupText}
         />
         <TextInput
-          accessibilityLabel="Encrypted restore password"
+          accessibilityLabel="Encrypted restore password or recovery key"
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
-          placeholder="Backup password"
+          placeholder="Password or recovery key"
           placeholderTextColor={colors.muted}
           style={styles.input}
           value={backupPassword}
@@ -472,7 +537,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         {backupPreview && (
           <View style={styles.importPreview}>
             <Text style={styles.cardTitle}>Validated encrypted preview</Text>
-            <Text style={styles.cardDetail}>Created: {backupPreview.createdAt}. Encrypted bytes: {backupPreview.encryptedBytes}.</Text>
+            <Text style={styles.cardDetail}>Created: {backupPreview.createdAt}. Credential: {backupPreview.credential === 'recovery-key' ? 'recovery key' : 'password'}. Encrypted bytes: {backupPreview.encryptedBytes}.</Text>
             <Text style={styles.cardDetail}>{formatImportPreview(backupPreview)}</Text>
             <PrimaryButton label="Restore encrypted workspace" onPress={confirmEncryptedRestore} />
           </View>
@@ -505,6 +570,19 @@ function formatImportPreview(preview: JsonImportPreview): string {
     .filter(([key]) => preview.recordCounts[key] > 0)
     .map(([key, label]) => `${preview.recordCounts[key]} ${label}`);
   return `${preview.totalRecords} total records${summary.length > 0 ? `: ${summary.join(', ')}` : '.'}`;
+}
+
+function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): string | null {
+  if (!generatedKey || !confirmation) {
+    return null;
+  }
+  try {
+    const normalizedGeneratedKey = normalizeRecoveryKey(generatedKey);
+    const normalizedConfirmation = normalizeRecoveryKey(confirmation);
+    return normalizedGeneratedKey === normalizedConfirmation ? normalizedGeneratedKey : null;
+  } catch {
+    return null;
+  }
 }
 
 function MoneyScreen() {
@@ -1905,6 +1983,7 @@ const styles = StyleSheet.create({
   cardTitle: {color: colors.muted, fontSize: 14, fontWeight: '700', textTransform: 'uppercase'},
   cardValue: {color: colors.text, fontSize: 23, fontWeight: '800', marginTop: 9},
   cardDetail: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 5, minHeight: 40},
+  recoveryKey: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 15, letterSpacing: 1.2, lineHeight: 25, marginTop: 12, padding: 13},
   cardAction: {alignSelf: 'flex-start', marginTop: 12},
   disabledAction: {opacity: 0.6},
   cardActionText: {color: colors.accent, fontSize: 14, fontWeight: '800'},

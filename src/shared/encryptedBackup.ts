@@ -16,6 +16,8 @@ export const BACKUP_SALT_BYTES = 16;
 export const BACKUP_NONCE_BYTES = 24;
 export const BACKUP_MIN_PASSWORD_LENGTH = 12;
 export const BACKUP_MAX_PLAINTEXT_BYTES = 16 * 1024 * 1024;
+export const RECOVERY_KEY_BYTES = 32;
+export const RECOVERY_KEY_HEX_LENGTH = RECOVERY_KEY_BYTES * 2;
 
 const BACKUP_SCRYPT_MAX_MEMORY = 64 * 1024 * 1024;
 
@@ -38,9 +40,12 @@ interface EncryptedBackupHeader {
   backupSchemaVersion: typeof ENCRYPTED_BACKUP_SCHEMA_VERSION;
   appSchemaVersion: AppData['schemaVersion'];
   createdAt: string;
+  credential: EncryptedBackupCredential;
   kdf: EncryptedBackupKdf;
   cipher: EncryptedBackupCipher;
 }
+
+export type EncryptedBackupCredential = 'password' | 'recovery-key';
 
 export interface EncryptedBackupEnvelope {
   header: EncryptedBackupHeader;
@@ -50,6 +55,7 @@ export interface EncryptedBackupEnvelope {
 export interface EncryptedBackupPreview extends JsonImportPreview {
   createdAt: string;
   encryptedBytes: number;
+  credential: EncryptedBackupCredential;
 }
 
 export class EncryptedBackupError extends Error {
@@ -67,7 +73,28 @@ export async function buildEncryptedBackup(
   createdAt: string,
   randomBytes: BackupRandomBytes = secureRandomBytes,
 ): Promise<string> {
-  validatePassword(password);
+  return buildEncryptedBackupWithCredential(data, password, createdAt, 'password', randomBytes);
+}
+
+export async function buildRecoveryEncryptedBackup(
+  data: AppData,
+  recoveryKey: string,
+  createdAt: string,
+  randomBytes: BackupRandomBytes = secureRandomBytes,
+): Promise<string> {
+  return buildEncryptedBackupWithCredential(data, normalizeRecoveryKey(recoveryKey), createdAt, 'recovery-key', randomBytes);
+}
+
+async function buildEncryptedBackupWithCredential(
+  data: AppData,
+  credential: string,
+  createdAt: string,
+  credentialType: EncryptedBackupCredential,
+  randomBytes: BackupRandomBytes,
+): Promise<string> {
+  if (credentialType === 'password') {
+    validatePassword(credential);
+  }
   if (!isIsoDate(createdAt)) {
     throw new EncryptedBackupError('Backup timestamp is invalid.');
   }
@@ -78,6 +105,7 @@ export async function buildEncryptedBackup(
     backupSchemaVersion: ENCRYPTED_BACKUP_SCHEMA_VERSION,
     appSchemaVersion: data.schemaVersion,
     createdAt,
+    credential: credentialType,
     kdf: {
       name: BACKUP_KDF_NAME,
       N: BACKUP_SCRYPT_N,
@@ -97,7 +125,7 @@ export async function buildEncryptedBackup(
   if (plaintext.length > BACKUP_MAX_PLAINTEXT_BYTES) {
     throw new EncryptedBackupError('This workspace is too large for a local encrypted backup.');
   }
-  const key = await deriveKey(password, salt, header.kdf);
+  const key = await deriveKey(credential, salt, header.kdf);
   const ciphertext = xchacha20poly1305(key, nonce, utf8ToBytes(headerJson)).encrypt(plaintext);
   return JSON.stringify({header, ciphertextBase64: bytesToBase64(ciphertext)} satisfies EncryptedBackupEnvelope);
 }
@@ -113,7 +141,8 @@ export async function decryptEncryptedBackup(raw: string, password: string): Pro
   }
 
   try {
-    const key = await deriveKey(password, salt, envelope.header.kdf);
+    const credential = envelope.header.credential === 'recovery-key' ? normalizeRecoveryKey(password) : password;
+    const key = await deriveKey(credential, salt, envelope.header.kdf);
     const plaintext = xchacha20poly1305(key, nonce, utf8ToBytes(JSON.stringify(envelope.header))).decrypt(ciphertext);
     const preview = parseJsonImport(decodeUtf8(plaintext));
     if (preview.data.schemaVersion !== envelope.header.appSchemaVersion) {
@@ -123,6 +152,7 @@ export async function decryptEncryptedBackup(raw: string, password: string): Pro
       ...preview,
       createdAt: envelope.header.createdAt,
       encryptedBytes: ciphertext.length,
+      credential: envelope.header.credential,
     };
   } catch (error) {
     if (error instanceof EncryptedBackupError) {
@@ -145,6 +175,7 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   const header = parsed.header;
   const kdf = header.kdf;
   const cipher = header.cipher;
+  const credential = header.credential;
   if (
     header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION ||
     typeof header.appSchemaVersion !== 'number' ||
@@ -152,6 +183,7 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
     header.appSchemaVersion < 1 ||
     header.appSchemaVersion > 9 ||
     !isIsoDate(header.createdAt) ||
+    (credential !== undefined && credential !== 'password' && credential !== 'recovery-key') ||
     !isRecord(kdf) ||
     !isRecord(cipher) ||
     kdf.name !== BACKUP_KDF_NAME ||
@@ -166,7 +198,10 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   ) {
     throw new EncryptedBackupError('Encrypted backup parameters are not supported.');
   }
-  return parsed as unknown as EncryptedBackupEnvelope;
+  return {
+    ...parsed,
+    header: {...header, credential: credential ?? 'password'},
+  } as unknown as EncryptedBackupEnvelope;
 }
 
 async function deriveKey(password: string, salt: Uint8Array, kdf: EncryptedBackupKdf): Promise<Uint8Array> {
@@ -186,6 +221,31 @@ function validatePassword(password: string): void {
   }
 }
 
+export function generateRecoveryKey(randomBytes: BackupRandomBytes = secureRandomBytes): string {
+  return formatRecoveryKey(getRandomBytes(randomBytes, RECOVERY_KEY_BYTES));
+}
+
+export function normalizeRecoveryKey(value: string): string {
+  const compact = value.replace(/[\s-]/g, '').toUpperCase();
+  if (!new RegExp(`^[0-9A-F]{${RECOVERY_KEY_HEX_LENGTH}}$`).test(compact)) {
+    throw new EncryptedBackupError('Recovery key must contain 64 hexadecimal characters.');
+  }
+  const groups: string[] = [];
+  for (let index = 0; index < compact.length; index += 8) {
+    groups.push(compact.slice(index, index + 8));
+  }
+  return groups.join('-');
+}
+
+export function isRecoveryKey(value: string): boolean {
+  try {
+    normalizeRecoveryKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function secureRandomBytes(length: number): Uint8Array {
   const cryptoProvider = (globalThis as typeof globalThis & {crypto?: {getRandomValues: (array: Uint8Array) => Uint8Array}}).crypto;
   if (!cryptoProvider || typeof cryptoProvider.getRandomValues !== 'function') {
@@ -200,6 +260,15 @@ function getRandomBytes(randomBytes: BackupRandomBytes, length: number): Uint8Ar
     throw new EncryptedBackupError('The backup random source returned an invalid length.');
   }
   return bytes;
+}
+
+function formatRecoveryKey(bytes: Uint8Array): string {
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+  const groups: string[] = [];
+  for (let index = 0; index < hex.length; index += 8) {
+    groups.push(hex.slice(index, index + 8));
+  }
+  return groups.join('-');
 }
 
 function decodeUtf8(bytes: Uint8Array): string {
