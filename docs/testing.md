@@ -1,19 +1,19 @@
 # Testing strategy
 
-Status: Current test strategy through the Android verified-remote-bundle pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android Money-filtered-totals pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 47 Jest suites and 199 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- The current suite is 47 Jest suites and 200 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Money filter evidence
 
-- Focused Money-filter tests cover combined local period, type, category, and account matching plus the unfiltered result.
-- Emulator `emulator-5554`: release Money showed the Entry filters card with Period, Type, Category, and Account controls; Month selection changed the selector state without filtered fatal or ReactNativeJS errors.
+- Focused Money-filter tests cover combined local period, type, category, and account matching, the unfiltered result, and currency-separated filtered totals.
+- Emulator `emulator-5554`: release Money showed the Entry filters and Filtered totals sections; Month selection changed the selector state and the fresh workspace showed the explicit no-totals state without filtered fatal or ReactNativeJS errors.
 - Phone `42adce68`: release startup completed with the native offline-local decision and no filtered app errors. Both devices were force-stopped afterward.
 
 ## Native installer evidence

@@ -152,7 +152,7 @@ Home period summaries are derived views over existing money, usage, task, and no
 
 Period Review is another derived view over the same records. Its summary is calculated at render time and is not saved as a review record, reflection, baseline, preference, or sync object. Usage freshness comes from the existing `usageRead` metadata.
 
-Money entry filters are another derived view over current money records. The selected period, type, category, and account live in screen state, filter only the existing non-split entry list, and are not saved as fields, preferences, migrations, or sync objects.
+Money entry filters and totals are another derived view over current money records. The selected period, type, category, and account live in screen state; one filtered non-split entry set drives both the list and currency-separated minor-unit totals. They are not saved as fields, preferences, migrations, or sync objects.
 
 ### Task
 

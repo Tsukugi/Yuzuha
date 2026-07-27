@@ -19,7 +19,7 @@ import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDa
 import type {Period} from '../shared/period';
 import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
 import {buildMoneyReport} from '../shared/moneyReport';
-import {emptyMoneyEntryFilter, filterMoneyEntries, type MoneyFilterPeriod} from '../shared/moneyFilter';
+import {emptyMoneyEntryFilter, filterMoneyEntries, summarizeMoneyEntries, type MoneyFilterPeriod} from '../shared/moneyFilter';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
 import {aggregateUsagePeriod, getLocalDayRanges, sumUsage, type UsageRecord} from '../shared/usage';
@@ -1298,10 +1298,11 @@ function MoneyScreen() {
     categoryId: entryFilterCategoryId,
     accountId: entryFilterAccountId,
   } as const;
-  const listEntries = filterMoneyEntries(
-    data.money.filter(entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id)),
-    entryFilter,
+  const listSourceEntries = data.money.filter(
+    entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id),
   );
+  const listEntries = filterMoneyEntries(listSourceEntries, entryFilter);
+  const filteredTotals = summarizeMoneyEntries(listEntries);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
 
@@ -1345,6 +1346,23 @@ function MoneyScreen() {
             ))}
           </View>
         </View>
+        <SectionTitle title="Filtered totals" />
+        {filteredTotals.length === 0 ? (
+          <EmptyState text="No totals for these filters." />
+        ) : (
+          filteredTotals.map(total => (
+            <View key={total.currency} style={styles.formCard}>
+              <Text style={styles.cardTitle}>{total.currency}</Text>
+              <Text style={styles.cardDetail}>{total.count} matching {total.count === 1 ? 'entry' : 'entries'}</Text>
+              <Text style={styles.amount}>
+                {formatMoney(total.expenseMinor, total.currency)} spent · {formatMoney(total.incomeMinor, total.currency)} income
+              </Text>
+              <Text style={styles.cardDetail}>
+                {formatMoney(total.incomeMinor - total.expenseMinor, total.currency)} net
+              </Text>
+            </View>
+          ))
+        )}
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>

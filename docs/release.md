@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android Money-filtered-totals pass:
+
+- Money history now derives the visible non-split list and currency-separated count, spending, income, and net totals from one All/Day/Week/Month, type, category, and account filter;
+- integer minor-unit totals remain separate by currency, while split parents and lines keep the existing list boundary;
+- no schema, migration, separate-report change, network request, background process, or legacy path was added;
+- focused Money-filter tests, full Jest (47 suites, 200 tests), lint, typecheck, bundle validation, release APK build, emulator UI smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android Money-filter pass:
 
 - Money history now filters the existing non-split entry list by local All/Day/Week/Month period, expense/income type, category, and account;

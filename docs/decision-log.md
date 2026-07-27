@@ -507,3 +507,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add one typed screen-state filter for local All/Day/Week/Month period, expense/income type, category, and account. Apply it to the existing non-split entry list and keep an archived selected reference visible.
 - Reason: The user gets predictable list narrowing without changing money records, reports, schema, migrations, or startup work. The existing split-entry display boundary remains the single list rule.
 - Consequence: Filter state resets on relaunch and does not affect Money reports. Saved filters, cross-screen filter state, sync, and legacy filter formats remain separate future contracts.
+
+## DEC-074: Derive Money filtered totals from the filtered list set
+
+- Context: `MONEY-04` requires filter results and totals to agree, but the first filter pass only narrowed the history list while the separate report screen kept its own period-only state.
+- Decision: Run one typed period/type/category/account filter over the existing non-split history source, use that result for the list, and group its integer minor-unit count, spending, income, and net totals by currency. Keep the separate split-aware report unchanged.
+- Reason: The list and totals cannot drift, currencies cannot be mixed, and the pass adds no persisted filter preference, schema, migration, report rewrite, or background work.
+- Consequence: Totals follow the non-split history boundary and filter state resets on relaunch. Split-line category totals remain in the existing report, while saved filters and cross-screen filter state remain future contracts.

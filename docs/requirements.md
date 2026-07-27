@@ -347,7 +347,7 @@ Current Home period extension: Home offers Today, This week, and This month usin
 
 Current Review extension: Home opens a read-only Review for Today, This week, or This month. Its summary uses main-currency money, included usage snapshots, open tasks due in the range, completed tasks updated in the range, current overdue open tasks, and active notes updated in the range. Cards link to existing source screens; no review record or reflection persistence is implemented.
 
-Current Money filter extension: Money history supports All/Day/Week/Month period, expense/income type, category, and account filters. It filters the existing non-split list in screen state, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
+Current Money filter extension: Money history supports All/Day/Week/Month period, expense/income type, category, and account filters. One derived filter drives the existing non-split list and currency-separated minor-unit totals, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
 
 ## Local recovery-key backup implementation review
 

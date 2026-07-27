@@ -31,7 +31,7 @@ App Time offers Today, This week, and This month reports. Refresh reads each loc
 
 Home now uses the same local Day/Week/Month selector. Money totals use only the main currency in that range; app time, due-task counts, and recent note updates state the selected range. The selector is view state only and adds no schema or background work.
 
-Money entry history now has local Period, Type, Category, and Account filters. They filter the existing current records in memory, preserve the split-entry list rules, and add no schema, migration, or background work.
+Money entry history now has local Period, Type, Category, and Account filters. The visible list and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
 
 Home can open a read-only period Review. It combines main-currency money, included app time, due and overdue tasks, completed tasks, and active notes updated in the selected local range. Review changes no records and does not refresh Android usage.
 

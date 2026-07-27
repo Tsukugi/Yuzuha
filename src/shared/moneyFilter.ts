@@ -10,6 +10,13 @@ export interface MoneyEntryFilter {
   accountId: string | 'all';
 }
 
+export interface MoneyEntryTotal {
+  currency: string;
+  count: number;
+  expenseMinor: number;
+  incomeMinor: number;
+}
+
 export const emptyMoneyEntryFilter: MoneyEntryFilter = {
   period: 'all',
   kind: 'all',
@@ -25,4 +32,28 @@ export function filterMoneyEntries(entries: MoneyEntry[], filter: MoneyEntryFilt
     (filter.categoryId === 'all' || entry.categoryId === filter.categoryId) &&
     (filter.accountId === 'all' || entry.accountId === filter.accountId)
   ));
+}
+
+export function summarizeFilteredMoneyEntries(
+  entries: MoneyEntry[],
+  filter: MoneyEntryFilter,
+  now = new Date(),
+): MoneyEntryTotal[] {
+  return summarizeMoneyEntries(filterMoneyEntries(entries, filter, now));
+}
+
+export function summarizeMoneyEntries(entries: MoneyEntry[]): MoneyEntryTotal[] {
+  const totals = new Map<string, MoneyEntryTotal>();
+  for (const entry of entries) {
+    const total = totals.get(entry.currency) ?? {
+      currency: entry.currency,
+      count: 0,
+      expenseMinor: 0,
+      incomeMinor: 0,
+    };
+    total.count += 1;
+    total[entry.kind === 'income' ? 'incomeMinor' : 'expenseMinor'] += entry.amountMinor;
+    totals.set(entry.currency, total);
+  }
+  return [...totals.values()];
 }

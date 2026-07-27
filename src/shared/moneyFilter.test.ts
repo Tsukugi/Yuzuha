@@ -1,4 +1,4 @@
-import {filterMoneyEntries, type MoneyEntryFilter} from './moneyFilter';
+import {filterMoneyEntries, summarizeFilteredMoneyEntries, type MoneyEntryFilter} from './moneyFilter';
 import type {MoneyEntry} from '../types/domain';
 
 function entry(overrides: Partial<MoneyEntry>): MoneyEntry {
@@ -33,5 +33,19 @@ describe('money entry filters', () => {
 
   it('returns every entry when all filters are open', () => {
     expect(filterMoneyEntries(entries, {period: 'all', kind: 'all', categoryId: 'all', accountId: 'all'})).toHaveLength(5);
+  });
+
+  it('uses the same filter for count and currency-separated totals', () => {
+    const filter: MoneyEntryFilter = {period: 'month', kind: 'expense', categoryId: 'category_food', accountId: 'account_everyday'};
+    const summary = summarizeFilteredMoneyEntries(
+      [...entries, entry({id: 'matching-usd', currency: 'USD', amountMinor: 250})],
+      filter,
+      new Date(2026, 6, 26),
+    );
+
+    expect(summary).toEqual([
+      {currency: 'EUR', count: 1, expenseMinor: 100, incomeMinor: 0},
+      {currency: 'USD', count: 1, expenseMinor: 250, incomeMinor: 0},
+    ]);
   });
 });

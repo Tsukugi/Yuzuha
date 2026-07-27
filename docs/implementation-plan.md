@@ -2118,3 +2118,34 @@ Known limits:
 - filter state resets on relaunch;
 - filters apply to the Money history list only and do not change reports;
 - the list keeps the existing rule that split parents and split lines are not shown as ordinary entries.
+
+## Implementation review: Android Money-filtered-totals pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a shared typed filter result used by the Money history list and filtered totals;
+- currency-separated count, spending, income, and net totals using integer minor units;
+- explicit empty totals state;
+- no schema, migration, separate-report change, network request, background process, or legacy path.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - money-filter tests; 3 focused tests
+Full Jest                PASS - 47 suites, 200 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Filtered totals rendered, Month selected, and empty state shown
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Gradle/Kotlin process remained
+```
+
+Known limits:
+
+- filter state resets on relaunch;
+- totals follow the existing non-split history list and do not alter the separate report screen;
+- split-line category totals remain available through the existing Money report boundary.
