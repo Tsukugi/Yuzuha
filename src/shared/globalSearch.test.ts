@@ -69,6 +69,27 @@ describe('global search', () => {
       createdAt: '2026-07-27T00:00:00.000Z',
       updatedAt: '2026-07-27T00:00:00.000Z',
     });
+    data.appGroups.push({
+      id: 'app_group_work',
+      name: 'Work apps',
+      packageNames: ['com.editor'],
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
+    data.focusSessions.push({
+      id: 'focus_work',
+      startedAt: '2026-07-27T09:00:00.000Z',
+      endedAt: '2026-07-27T09:30:00.000Z',
+      status: 'completed',
+      stopReason: 'completed',
+      taskId: 'task_work',
+      projectId: 'project_work',
+      noteId: 'note_work',
+      appGroupId: 'app_group_work',
+      createdAt: '2026-07-27T09:00:00.000Z',
+      updatedAt: '2026-07-27T09:30:00.000Z',
+    });
     data.taskLists.push({
       id: 'task_list_project',
       name: 'Project work',
@@ -82,7 +103,7 @@ describe('global search', () => {
     expect(results[0]).toMatchObject({id: 'note_work', title: 'Planning'});
 
     const workResults = searchGlobal(data, 'work');
-    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'project', 'saved-search', 'task', 'task-list']);
+    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'project', 'app-group', 'saved-search', 'task', 'task-list', 'focus-session']);
   });
 
   it('hides archived records and inaccessible app-time data by default', () => {

@@ -192,6 +192,38 @@ describe('JSON restore validation', () => {
     expect(preview.recordCounts.projects).toBe(1);
   });
 
+  it('imports app groups and a completed focus session with links', () => {
+    const data = emptyAppData();
+    data.appGroups.push({
+      id: 'app_group_1',
+      name: 'Deep work',
+      packageNames: ['com.editor'],
+      isArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    data.focusSessions.push({
+      id: 'focus_1',
+      startedAt: '2026-07-26T10:00:00.000Z',
+      endedAt: '2026-07-26T10:30:00.000Z',
+      status: 'completed',
+      stopReason: 'completed',
+      taskId: null,
+      projectId: null,
+      noteId: null,
+      appGroupId: 'app_group_1',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      updatedAt: '2026-07-26T10:30:00.000Z',
+    });
+
+    const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
+
+    expect(preview.data.appGroups).toEqual(data.appGroups);
+    expect(preview.data.focusSessions).toEqual(data.focusSessions);
+    expect(preview.recordCounts.appGroups).toBe(1);
+    expect(preview.recordCounts.focusSessions).toBe(1);
+  });
+
   it('rejects task reminders that are not positive safe integers', () => {
     const data = emptyAppData();
     data.tasks.push({

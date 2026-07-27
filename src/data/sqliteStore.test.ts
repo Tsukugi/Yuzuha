@@ -280,6 +280,14 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.appGroups.push({
+      id: 'app_group_work',
+      name: 'Work apps',
+      packageNames: ['com.editor', 'com.browser'],
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.taskRecurrences.push({
       id: 'task_recurrence_work',
       title: 'Weekly review',
@@ -334,6 +342,19 @@ describe('SQLite workspace store', () => {
       dependencyType: 'completed',
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
+    });
+    data.focusSessions.push({
+      id: 'focus_1',
+      startedAt: '2026-07-26T10:00:00.000Z',
+      endedAt: '2026-07-26T10:45:00.000Z',
+      status: 'completed',
+      stopReason: 'completed',
+      taskId: 'task_from_note',
+      projectId: 'project_work',
+      noteId: 'note_1',
+      appGroupId: 'app_group_work',
+      createdAt: '2026-07-26T10:00:00.000Z',
+      updatedAt: '2026-07-26T10:45:00.000Z',
     });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true, recurringTaskRemindersEnabled: true};

@@ -656,4 +656,50 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('starts one linked focus session, finishes it, and protects linked app groups', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    let groupId = '';
+    let taskId = '';
+    await act(async () => {
+      groupId = await value!.addAppGroup({name: 'Deep work', packageNames: ['com.editor']});
+      taskId = await value!.addTask({title: 'Write', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'});
+    });
+    let sessionId = '';
+    await act(async () => {
+      sessionId = await value!.startFocusSession({taskId, projectId: null, noteId: null, appGroupId: groupId});
+      await expect(value!.startFocusSession({taskId: null, projectId: null, noteId: null, appGroupId: groupId})).rejects.toThrow(/active/i);
+    });
+    expect(saved.focusSessions.find(session => session.id === sessionId)).toMatchObject({status: 'active', taskId, appGroupId: groupId});
+    await act(async () => {
+      await value!.finishFocusSession(sessionId, 'completed');
+      await expect(value!.deleteAppGroup(groupId)).rejects.toThrow(/focus sessions/i);
+      await value!.deleteFocusSession(sessionId);
+      await value!.deleteAppGroup(groupId);
+    });
+    expect(saved.focusSessions).toEqual([]);
+    expect(saved.appGroups).toEqual([]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

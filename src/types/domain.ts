@@ -229,8 +229,34 @@ export interface TimeGoal {
   isArchived: boolean;
 }
 
+export interface AppGroup {
+  id: string;
+  name: string;
+  packageNames: string[];
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type FocusSessionStatus = 'active' | 'completed' | 'stopped';
+export type FocusSessionStopReason = 'completed' | 'manual' | 'interrupted' | null;
+
+export interface FocusSession {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  status: FocusSessionStatus;
+  stopReason: FocusSessionStopReason;
+  taskId: string | null;
+  projectId: string | null;
+  noteId: string | null;
+  appGroupId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
-  schemaVersion: 25;
+  schemaVersion: 26;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -251,6 +277,8 @@ export interface AppData {
   usageRead: UsageRead;
   usageExcludedPackages: string[];
   timeGoals: TimeGoal[];
+  appGroups: AppGroup[];
+  focusSessions: FocusSession[];
   notificationSettings: NotificationSettings;
 }
 
@@ -265,7 +293,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 25,
+  schemaVersion: 26,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -308,6 +336,8 @@ export const emptyAppData = (): AppData => ({
   },
   usageExcludedPackages: [],
   timeGoals: [],
+  appGroups: [],
+  focusSessions: [],
   notificationSettings: {
     quietHoursStartLocalTime: null,
     quietHoursEndLocalTime: null,

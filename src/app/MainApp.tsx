@@ -49,6 +49,8 @@ import {validateProjectDraft, type ProjectDraft} from '../shared/projectLifecycl
 import {getBlockingTaskIds} from '../shared/taskDependency';
 import {buildTaskAgenda} from '../shared/taskAgenda';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
+import {validateAppGroupDraft} from '../shared/appGroupLifecycle';
+import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
@@ -316,6 +318,8 @@ function GlobalSearchScreen({data, onBack}: {data: AppData; onBack: () => void})
 
 function globalSearchKindLabel(kind: GlobalSearchKind): string {
   switch (kind) {
+    case 'app-group':
+      return 'App group';
     case 'saved-search':
       return 'Saved search';
     case 'time-goal':
@@ -326,6 +330,8 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
       return 'Money';
     case 'note':
       return 'Note';
+    case 'focus-session':
+      return 'Focus session';
     case 'project':
       return 'Project';
     case 'task':
@@ -734,7 +740,9 @@ function formatImportPreview(preview: JsonImportPreview): string {
     ['attachments', 'attachments'],
     ['savedSearches', 'saved searches'],
     ['projects', 'projects'],
+    ['appGroups', 'app groups'],
     ['tasks', 'tasks'],
+    ['focusSessions', 'focus sessions'],
     ['usageSnapshots', 'app-time records'],
     ['timeGoals', 'time goals'],
   ];
@@ -1800,6 +1808,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
       </Pressable>
       <Text style={styles.pageTitle}>App time</Text>
       <Text style={styles.pageIntro}>Read-only totals from Android Usage Access. Nothing leaves this device.</Text>
+      <FocusSessionPanel data={data} />
 
       {!usageAccess.isSupported() ? (
         <EmptyState text="App-time data is not available on this platform." />
@@ -1876,6 +1885,165 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
         </>
       )}
     </ScrollView>
+  );
+}
+
+function FocusSessionPanel({data}: {data: AppData}) {
+  const {startFocusSession, finishFocusSession, deleteFocusSession, addAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [noteId, setNoteId] = useState<string | null>(null);
+  const [appGroupId, setAppGroupId] = useState<string | null>(null);
+  const [appGroupName, setAppGroupName] = useState('');
+  const [appGroupPackages, setAppGroupPackages] = useState('');
+  const [clockMillis, setClockMillis] = useState(() => Date.now());
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const activeSession = data.focusSessions.find(session => session.status === 'active') ?? null;
+
+  useEffect(() => {
+    if (!activeSession) {
+      return;
+    }
+    const updateClock = () => setClockMillis(Date.now());
+    updateClock();
+    const interval = globalThis.setInterval(updateClock, 1000);
+    return () => globalThis.clearInterval(interval);
+  }, [activeSession?.id]);
+
+  async function start() {
+    setMessage(null);
+    setError(null);
+    try {
+      await startFocusSession({taskId, projectId, noteId, appGroupId});
+      setMessage('Focus session started.');
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : 'The focus session could not start.');
+    }
+  }
+
+  async function finish(action: 'completed' | 'manual') {
+    if (!activeSession) {
+      return;
+    }
+    setMessage(null);
+    setError(null);
+    try {
+      await finishFocusSession(activeSession.id, action);
+      setMessage(action === 'completed' ? 'Focus session completed.' : 'Focus session stopped.');
+    } catch (finishError) {
+      setError(finishError instanceof Error ? finishError.message : 'The focus session could not finish.');
+    }
+  }
+
+  async function addGroup() {
+    const draft = {name: appGroupName, packageNames: appGroupPackages.split(',')};
+    const validationError = validateAppGroupDraft(draft);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setMessage(null);
+    setError(null);
+    try {
+      const createdId = await addAppGroup(draft);
+      setAppGroupId(createdId);
+      setAppGroupName('');
+      setAppGroupPackages('');
+      setMessage('App group saved.');
+    } catch (groupError) {
+      setError(groupError instanceof Error ? groupError.message : 'The app group could not be saved.');
+    }
+  }
+
+  function confirmDeleteGroup(groupId: string, name: string) {
+    Alert.alert('Delete app group?', `Delete "${name}"?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void deleteAppGroup(groupId).catch(deleteError => setError(deleteError instanceof Error ? deleteError.message : 'The app group could not be deleted.'))},
+    ]);
+  }
+
+  function sessionDetail(session: AppData['focusSessions'][number]): string {
+    const task = session.taskId ? data.tasks.find(item => item.id === session.taskId)?.title ?? 'Deleted task' : null;
+    const project = session.projectId ? data.projects.find(item => item.id === session.projectId)?.name ?? 'Deleted project' : null;
+    const note = session.noteId ? data.notes.find(item => item.id === session.noteId)?.title ?? 'Deleted note' : null;
+    const group = session.appGroupId ? data.appGroups.find(item => item.id === session.appGroupId)?.name ?? 'Deleted app group' : null;
+    return [task, project, note, group].filter(Boolean).join(' · ') || 'No linked records';
+  }
+
+  return (
+    <View style={styles.formCard}>
+      <Text style={styles.cardTitle}>Focus sessions</Text>
+      <Text style={styles.cardDetail}>Track one manual focus block locally. It does not block apps.</Text>
+      {activeSession ? (
+        <>
+          <Text style={styles.cardValue}>{formatDuration(focusSessionDurationSeconds(activeSession, new Date(clockMillis).toISOString()))}</Text>
+          <Text style={styles.cardDetail}>{sessionDetail(activeSession)}</Text>
+          <View style={styles.rowActions}>
+            <PrimaryButton label="Complete focus" onPress={() => void finish('completed')} />
+            <TextButton label="Stop focus" onPress={() => void finish('manual')} />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.formLabel}>Task (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No task" selected={taskId === null} onPress={() => setTaskId(null)} />
+            {data.tasks.slice(0, 12).map(task => <SegmentButton key={task.id} label={task.title} selected={taskId === task.id} onPress={() => setTaskId(task.id)} />)}
+          </View>
+          <Text style={styles.formLabel}>Project (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+            {data.projects.filter(project => !project.isArchived).map(project => <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />)}
+          </View>
+          <Text style={styles.formLabel}>Note (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No note" selected={noteId === null} onPress={() => setNoteId(null)} />
+            {data.notes.filter(note => !note.isArchived).slice(0, 12).map(note => <SegmentButton key={note.id} label={note.title} selected={noteId === note.id} onPress={() => setNoteId(note.id)} />)}
+          </View>
+          <Text style={styles.formLabel}>App group (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No app group" selected={appGroupId === null} onPress={() => setAppGroupId(null)} />
+            {data.appGroups.filter(group => !group.isArchived).map(group => <SegmentButton key={group.id} label={group.name} selected={appGroupId === group.id} onPress={() => setAppGroupId(group.id)} />)}
+          </View>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          {message && <Text style={styles.successText}>{message}</Text>}
+          <PrimaryButton label="Start focus session" onPress={() => void start()} />
+        </>
+      )}
+      {!activeSession && data.focusSessions.length === 0 && <Text style={styles.emptyState}>No focus sessions yet.</Text>}
+      {data.focusSessions.length > 0 && (
+        <>
+          <SectionTitle title="Recent sessions" />
+          {data.focusSessions.slice(0, 10).map(session => (
+            <View key={session.id} style={styles.listRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{session.status === 'completed' ? 'Completed focus' : session.status === 'stopped' ? 'Stopped focus' : 'Active focus'}</Text>
+                <Text style={styles.listMeta}>{formatDate(session.startedAt)} · {formatDuration(focusSessionDurationSeconds(session, new Date(clockMillis).toISOString()))}</Text>
+                <Text style={styles.listMeta}>{sessionDetail(session)}</Text>
+              </View>
+              <TextButton label="Delete" danger onPress={() => void deleteFocusSession(session.id)} />
+            </View>
+          ))}
+        </>
+      )}
+      <SectionTitle title="App groups" />
+      <TextInput accessibilityLabel="App group name" placeholder="App group name" placeholderTextColor={colors.muted} style={styles.input} value={appGroupName} onChangeText={setAppGroupName} />
+      <TextInput accessibilityLabel="App group packages" placeholder="com.editor, com.browser" placeholderTextColor={colors.muted} style={styles.input} value={appGroupPackages} onChangeText={setAppGroupPackages} />
+      <PrimaryButton label="Add app group" onPress={() => void addGroup()} />
+      {data.appGroups.length === 0 ? <Text style={styles.emptyState}>No app groups yet.</Text> : data.appGroups.map(group => (
+        <View key={group.id} style={styles.listRow}>
+          <View style={styles.listBody}>
+            <Text style={styles.listTitle}>{group.name}</Text>
+            <Text style={styles.listMeta}>{group.packageNames.join(', ')} · {group.isArchived ? 'Archived' : 'Active'}</Text>
+          </View>
+          <View style={styles.rowActions}>
+            <TextButton label={group.isArchived ? 'Restore' : 'Archive'} onPress={() => void setAppGroupArchived(group.id, !group.isArchived)} />
+            <TextButton label="Delete" danger onPress={() => confirmDeleteGroup(group.id, group.name)} />
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }
 

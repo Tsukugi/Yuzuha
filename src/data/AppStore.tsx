@@ -18,6 +18,8 @@ import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/not
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createTaskRecord, deleteTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createProjectRecord, deleteProjectRecord, setProjectArchived, updateProjectRecord, validateProjectDraft, validateProjectName, type ProjectDraft} from '../shared/projectLifecycle';
+import {createAppGroupRecord, deleteAppGroupRecord, setAppGroupArchived, updateAppGroupRecord, validateAppGroupDraft, validateAppGroupName, type AppGroupDraft} from '../shared/appGroupLifecycle';
+import {createFocusSessionRecord, finishFocusSession as finishFocusSessionRecord, validateFocusSessionDraft, type FocusSessionDraft, type FocusSessionFinishAction} from '../shared/focusSessionLifecycle';
 import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
 import {
   createTaskRecurrenceRecord,
@@ -103,6 +105,13 @@ interface AppStoreValue {
   updateProject: (projectId: string, input: ProjectDraft) => Promise<void>;
   setProjectArchived: (projectId: string, isArchived: boolean) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  addAppGroup: (input: AppGroupDraft) => Promise<string>;
+  updateAppGroup: (groupId: string, input: AppGroupDraft) => Promise<void>;
+  setAppGroupArchived: (groupId: string, isArchived: boolean) => Promise<void>;
+  deleteAppGroup: (groupId: string) => Promise<void>;
+  startFocusSession: (input: FocusSessionDraft) => Promise<string>;
+  finishFocusSession: (sessionId: string, action: FocusSessionFinishAction) => Promise<void>;
+  deleteFocusSession: (sessionId: string) => Promise<void>;
   addTask: (input: TaskDraft) => Promise<string>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
   moveTask: (taskId: string, direction: 'up' | 'down') => Promise<void>;
@@ -682,6 +691,104 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const addAppGroup = useCallback(
+    async (input: AppGroupDraft): Promise<string> => {
+      const groupId = createId('app_group');
+      await commit(current => {
+        const validationError = validateAppGroupDraft(input) ?? validateAppGroupName(current.appGroups, input);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const appGroup = createAppGroupRecord(input, groupId, new Date().toISOString());
+        return {...current, appGroups: [appGroup, ...current.appGroups]};
+      });
+      return groupId;
+    },
+    [commit],
+  );
+
+  const updateAppGroup = useCallback(
+    async (groupId: string, input: AppGroupDraft) => {
+      await commit(current => {
+        const appGroup = current.appGroups.find(item => item.id === groupId);
+        if (!appGroup) {
+          throw new Error('The app group no longer exists.');
+        }
+        const validationError = validateAppGroupDraft(input) ?? validateAppGroupName(current.appGroups, input, groupId);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        return {...current, appGroups: current.appGroups.map(item => item.id === groupId ? updateAppGroupRecord(appGroup, input, new Date().toISOString()) : item)};
+      });
+    },
+    [commit],
+  );
+
+  const setAppGroupArchivedAction = useCallback(
+    async (groupId: string, isArchived: boolean) => {
+      await commit(current => ({...current, appGroups: setAppGroupArchived(current.appGroups, groupId, isArchived)}));
+    },
+    [commit],
+  );
+
+  const deleteAppGroup = useCallback(
+    async (groupId: string) => {
+      await commit(current => ({...current, appGroups: deleteAppGroupRecord(current.appGroups, current.focusSessions, groupId)}));
+    },
+    [commit],
+  );
+
+  const startFocusSession = useCallback(
+    async (input: FocusSessionDraft): Promise<string> => {
+      const sessionId = createId('focus_session');
+      await commit(current => {
+        if (current.focusSessions.some(session => session.status === 'active')) {
+          throw new Error('Finish the active focus session before starting another.');
+        }
+        const validationError = validateFocusSessionDraft(input, {
+          taskIds: new Set(current.tasks.map(task => task.id)),
+          projectIds: new Set(current.projects.map(project => project.id)),
+          noteIds: new Set(current.notes.map(note => note.id)),
+          appGroupIds: new Set(current.appGroups.map(appGroup => appGroup.id)),
+        });
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const now = new Date().toISOString();
+        return {...current, focusSessions: [createFocusSessionRecord(input, sessionId, now), ...current.focusSessions]};
+      });
+      return sessionId;
+    },
+    [commit],
+  );
+
+  const finishFocusSession = useCallback(
+    async (sessionId: string, action: FocusSessionFinishAction) => {
+      await commit(current => {
+        const session = current.focusSessions.find(item => item.id === sessionId);
+        if (!session) {
+          throw new Error('The focus session no longer exists.');
+        }
+        const now = new Date().toISOString();
+        const finished = finishFocusSessionRecord(session, action, now);
+        return {...current, focusSessions: current.focusSessions.map(item => item.id === sessionId ? finished : item)};
+      });
+    },
+    [commit],
+  );
+
+  const deleteFocusSession = useCallback(
+    async (sessionId: string) => {
+      await commit(current => {
+        if (!current.focusSessions.some(session => session.id === sessionId)) {
+          throw new Error('The focus session no longer exists.');
+        }
+        return {...current, focusSessions: current.focusSessions.filter(session => session.id !== sessionId)};
+      });
+    },
+    [commit],
+  );
+
   const addTask = useCallback(
     async (input: TaskDraft): Promise<string> => {
       const taskId = createId('task');
@@ -1180,6 +1287,13 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateProject,
       setProjectArchived: setProjectArchivedAction,
       deleteProject,
+      addAppGroup,
+      updateAppGroup,
+      setAppGroupArchived: setAppGroupArchivedAction,
+      deleteAppGroup,
+      startFocusSession,
+      finishFocusSession,
+      deleteFocusSession,
       addTask,
       updateTask,
       moveTask,
@@ -1230,6 +1344,13 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateProject,
       setProjectArchivedAction,
       deleteProject,
+      addAppGroup,
+      updateAppGroup,
+      setAppGroupArchivedAction,
+      deleteAppGroup,
+      startFocusSession,
+      finishFocusSession,
+      deleteFocusSession,
       addTask,
       updateTask,
       moveTask,

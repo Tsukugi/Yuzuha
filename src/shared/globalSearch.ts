@@ -1,11 +1,13 @@
 import type {AppData} from '../types/domain';
 
 export type GlobalSearchKind =
+  | 'app-group'
   | 'account'
   | 'budget'
   | 'category'
   | 'money'
   | 'note'
+  | 'focus-session'
   | 'project'
   | 'recurrence'
   | 'saved-search'
@@ -32,17 +34,19 @@ const KIND_ORDER: Record<GlobalSearchKind, number> = {
   money: 0,
   note: 1,
   project: 2,
-  'saved-search': 3,
-  task: 4,
-  'task-list': 5,
-  account: 6,
-  category: 7,
-  transfer: 8,
-  split: 9,
-  budget: 10,
-  recurrence: 11,
-  'time-goal': 12,
-  usage: 13,
+  'app-group': 3,
+  'saved-search': 4,
+  task: 5,
+  'task-list': 6,
+  'focus-session': 7,
+  account: 8,
+  category: 9,
+  transfer: 10,
+  split: 11,
+  budget: 12,
+  recurrence: 13,
+  'time-goal': 14,
+  usage: 15,
 };
 
 function includesQuery(query: string, values: Array<string | number | null | undefined>): boolean {
@@ -80,6 +84,10 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
   const results: Array<{result: GlobalSearchResult; order: number}> = [];
   const accountNames = new Map(data.accounts.map(account => [account.id, account.name]));
   const categoryNames = new Map(data.categories.map(category => [category.id, category.name]));
+  const taskTitles = new Map(data.tasks.map(task => [task.id, task.title]));
+  const projectNames = new Map(data.projects.map(project => [project.id, project.name]));
+  const noteTitles = new Map(data.notes.map(note => [note.id, note.title]));
+  const appGroupNames = new Map(data.appGroups.map(appGroup => [appGroup.id, appGroup.name]));
   const attachmentNames = new Map<string, string[]>();
 
   data.attachments.forEach(attachment => {
@@ -136,6 +144,17 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         title: project.name,
         detail: `${project.status === 'completed' ? 'Completed' : 'Active'} project`,
         isArchived: project.isArchived,
+      });
+    }
+  });
+
+  data.appGroups.forEach(appGroup => {
+    if (isVisible(appGroup.isArchived, includeArchived) && includesQuery(normalizedQuery, [appGroup.name, ...appGroup.packageNames, appGroup.isArchived ? 'archived' : 'active'])) {
+      add('app-group', {
+        id: appGroup.id,
+        title: appGroup.name,
+        detail: `${appGroup.isArchived ? 'Archived' : 'Active'} app group Â· ${appGroup.packageNames.length} apps`,
+        isArchived: appGroup.isArchived,
       });
     }
   });
@@ -235,6 +254,20 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         title: goal.name,
         detail: `${goal.period} goal · ${goal.targetSeconds} seconds`,
         isArchived: goal.isArchived,
+      });
+    }
+  });
+
+  data.focusSessions.forEach(session => {
+    const taskTitle = session.taskId ? taskTitles.get(session.taskId) ?? 'Deleted task' : null;
+    const projectName = session.projectId ? projectNames.get(session.projectId) ?? 'Deleted project' : null;
+    const noteTitle = session.noteId ? noteTitles.get(session.noteId) ?? 'Deleted note' : null;
+    const appGroupName = session.appGroupId ? appGroupNames.get(session.appGroupId) ?? 'Deleted app group' : null;
+    if (includesQuery(normalizedQuery, [session.status, session.stopReason, session.startedAt, session.endedAt, taskTitle, projectName, noteTitle, appGroupName])) {
+      add('focus-session', {
+        id: session.id,
+        title: `Focus session Â· ${session.startedAt.slice(0, 10)}`,
+        detail: [session.status, taskTitle, projectName, noteTitle, appGroupName].filter(Boolean).join(' Â· '),
       });
     }
   });

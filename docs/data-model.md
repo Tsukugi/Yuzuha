@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 25 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, optional local reminder times on recurring task rules, task projects and optional task-to-project links, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a derived device-local 14-day task agenda, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, separate global and recurring-task reminder category pauses, Android `Open`, idempotent `Complete`, and configurable `Snooze` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; selected timezone/week-start settings, broader notification automation, normalized report, and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 26 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, optional local reminder times on recurring task rules, task projects and optional task-to-project links, app groups and manual focus sessions with optional record links, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a derived device-local 14-day task agenda, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, separate global and recurring-task reminder category pauses, Android `Open`, idempotent `Complete`, and configurable `Snooze` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; selected timezone/week-start settings, broader notification automation, app blocking, normalized report, and sync tables remain future work.
 
 ## Storage rules
 
@@ -206,6 +206,32 @@ The source and dependent tasks must exist and must be different. Duplicate links
 
 Rules expand during startup and rule creation. An optional rule `HH:mm` is combined with each generated occurrence's local date and copied to `reminderAtMillis`; future values are synchronized immediately and on startup/boot, while past values are not scheduled. One-off Android task reminders are stored on the task and rebuilt at startup and boot. Task dependencies store a prerequisite task, a dependent task, and the `completed` condition; self-links, duplicates, and cycles are rejected, and an incomplete prerequisite blocks completion while leaving the dependent task open. Reminder notification actions use the task ID but add no persisted action state: `Complete` changes only an existing open, unblocked task to completed, and `Snooze` replaces the logical reminder using the selected duration. `notificationSettings` stores the required global and recurring-task reminder flags, an optional daily local window, and a 15/30/60/120-minute snooze duration; both quiet-hour values are null when disabled, and a reminder inside the window is scheduled at the window end while its logical task timestamp stays unchanged. When either relevant category is disabled, native reminder alarms are cleared but logical task timestamps remain. Broader notifications, background automation, templates, and editing one occurrence versus a series are planned.
 
+### App group
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `name` | string | Required after trim; maximum 80 characters; unique in the local workspace. |
+| `packageNames` | string[] | At least one trimmed Android package name; no duplicates. |
+| `isArchived` | boolean | Archived groups are not offered for new focus sessions. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+App groups are local labels for installed-app packages. They do not read app content and do not block or control apps.
+
+### Focus session
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `startedAt` | UTC datetime | Required. |
+| `endedAt` | UTC datetime nullable | Required for completed or stopped sessions; must be after `startedAt`. |
+| `status` | enum | `active`, `completed`, or `stopped`. Only one active session is allowed. |
+| `stopReason` | enum nullable | `completed`, `manual`, or `interrupted`; null only while active. |
+| `taskId` / `projectId` / `noteId` / `appGroupId` | UUID nullable | Optional links. Missing linked records remain visible as deleted-link labels. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+The timer is derived from the stored start/end timestamps. A manual stop records `manual`; completing a session records `completed`. No background timer or app-blocking behavior is implied.
+
 ### Notification settings
 
 | Field | Type | Rule |
@@ -241,13 +267,13 @@ The current build does not persist these preference records through AsyncStorage
 ## Schema policy
 
 1. The unreleased build has one current app schema and one current SQLite repository schema.
-2. App schema 25 and repository schema 2 are accepted. Older and unknown schemas are rejected clearly.
+2. App schema 26 and repository schema 2 are accepted. Older and unknown schemas are rejected clearly.
 3. A future public release may add a forward migration only after a product decision, fixture test, and rollback plan.
 4. A fresh install creates the current empty workspace directly; it does not import old product data.
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 25 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, projects, notification settings, task lists, task recurrence rules, tasks, task dependencies, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. The repository seeds a fresh database with current empty data and rejects old or unknown repository schemas. JSON restore accepts export schema 1 only when its app data is schema 25, validates project names and fields, task-project links, current task-list links, task recurrence links, task priority, task dates, reminder timestamps, per-list task sort order, both notification category settings, recurrence reminder times, dependency references, duplicate links, and cycles, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary. Old app data, old SQLite rows, and old encrypted backup schemas are not upgraded in this unreleased build.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 26 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, projects, app groups, focus sessions, notification settings, task lists, task recurrence rules, tasks, task dependencies, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. The repository seeds a fresh database with current empty data and rejects old or unknown repository schemas. JSON restore accepts export schema 1 only when its app data is schema 26, validates project names and fields, app-group packages, focus-session states, task-project links, current task-list links, task recurrence links, task priority, task dates, reminder timestamps, per-list task sort order, both notification category settings, recurrence reminder times, dependency references, duplicate links, and cycles, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary. Old app data, old SQLite rows, and old encrypted backup schemas are not upgraded in this unreleased build.
 
 ## Export and deletion
 

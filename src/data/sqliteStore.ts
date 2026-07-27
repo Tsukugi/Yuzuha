@@ -1,7 +1,9 @@
 import {emptyAppData} from '../types/domain';
 import type {
   AppData,
+  AppGroup,
   Attachment,
+  FocusSession,
   MoneyAccount,
   MoneyBudget,
   MoneyCategory,
@@ -181,6 +183,8 @@ type RecordType =
   | 'task_dependency'
   | 'usage_snapshot'
   | 'time_goal'
+  | 'app_group'
+  | 'focus_session'
   | 'usage_exclusion';
 
 interface PersistedRecord extends Record<string, unknown> {
@@ -390,6 +394,8 @@ export function decodeAppData(
   data.usageSnapshots = [];
   data.usageExcludedPackages = [];
   data.timeGoals = [];
+  data.appGroups = [];
+  data.focusSessions = [];
   if (usageReadJson !== null) {
     data.usageRead = parsePayload(usageReadJson) as AppData['usageRead'];
   }
@@ -512,6 +518,30 @@ export function decodeAppData(
       case 'time_goal':
         data.timeGoals.push(payload as TimeGoal);
         break;
+      case 'app_group': {
+        const appGroupPayload = payload as AppGroup;
+        if (typeof appGroupPayload.name !== 'string' || !Array.isArray(appGroupPayload.packageNames) ||
+            appGroupPayload.packageNames.some(packageName => typeof packageName !== 'string') ||
+            typeof appGroupPayload.isArchived !== 'boolean') {
+          throw new SqliteDataCorruptError();
+        }
+        data.appGroups.push(appGroupPayload);
+        break;
+      }
+      case 'focus_session': {
+        const focusSessionPayload = payload as FocusSession;
+        if ((focusSessionPayload.status !== 'active' && focusSessionPayload.status !== 'completed' && focusSessionPayload.status !== 'stopped') ||
+            (focusSessionPayload.stopReason !== null && focusSessionPayload.stopReason !== 'completed' && focusSessionPayload.stopReason !== 'manual' && focusSessionPayload.stopReason !== 'interrupted') ||
+            (focusSessionPayload.taskId !== null && typeof focusSessionPayload.taskId !== 'string') ||
+            (focusSessionPayload.projectId !== null && typeof focusSessionPayload.projectId !== 'string') ||
+            (focusSessionPayload.noteId !== null && typeof focusSessionPayload.noteId !== 'string') ||
+            (focusSessionPayload.appGroupId !== null && typeof focusSessionPayload.appGroupId !== 'string') ||
+            (focusSessionPayload.endedAt !== null && typeof focusSessionPayload.endedAt !== 'string')) {
+          throw new SqliteDataCorruptError();
+        }
+        data.focusSessions.push(focusSessionPayload);
+        break;
+      }
       case 'usage_exclusion':
         data.usageExcludedPackages.push(recordId);
         break;
@@ -636,6 +666,8 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.taskDependencies.map(dependency => record('task_dependency', dependency.id, dependency, dependency.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),
+    ...data.appGroups.map(appGroup => record('app_group', appGroup.id, appGroup, appGroup.updatedAt)),
+    ...data.focusSessions.map(session => record('focus_session', session.id, session, session.updatedAt)),
     ...data.recurrences.map(rule => record('recurrence', rule.id, rule, rule.updatedAt)),
     ...data.usageExcludedPackages.map(packageName => record('usage_exclusion', packageName, {packageName})),
   ];

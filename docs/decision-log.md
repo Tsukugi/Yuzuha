@@ -374,3 +374,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add schema 25 `projects` with a unique local name, active/completed status, and archive state. Give each task one optional `projectId`. Offer project controls in Tasks, keep archived links readable, and reject project deletion while any task references it.
 - Reason: This gives task grouping useful now without inventing cross-feature ownership or a sync conflict model. A single optional link is small, typed, and easy to validate across SQLite, JSON, encrypted backup, and search.
 - Consequence: Schema 24 data is rejected rather than upgraded. Notes, money, app-time, focus, subtasks, templates, cross-device projects, and sync links remain separate future contracts.
+
+## DEC-055: Keep focus sessions manual and local
+
+- Context: The full-product time layer defines focus sessions with optional links, but Yuzuha does not yet have a platform app-blocking adapter or a background timing service.
+- Decision: Add schema 26 `appGroups` and `focusSessions`. Allow one active manual session, derive elapsed time from stored timestamps, and record `completed`, `manual`, or `interrupted` outcomes. App groups store trimmed package-name labels and can be linked to a session.
+- Reason: The user gets an auditable focus history without a background worker, hidden monitoring, or a false promise that the app can block other apps. Timestamp-derived duration survives restart and is easy to validate.
+- Consequence: App blocking, background/notification focus automation, app-group assignment from a full installed-app catalog, cross-device sessions, and sync remain separate contracts. Schema 25 data is rejected rather than upgraded.

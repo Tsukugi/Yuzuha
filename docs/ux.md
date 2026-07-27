@@ -175,6 +175,8 @@ Money rows open in edit mode. The user can update or delete the entry, and the s
 
 App Time shows an Include/Exclude action for each package. Excluding a package updates the total immediately and keeps the permission/read state visible. The weekly goal form accepts a name, daily or weekly period, and minutes, then shows current progress.
 
+The App Time screen also has local Focus sessions. The user can start one manual session with optional task, project, note, and app-group links, see a live elapsed value while the screen is open, then Complete or Stop it. Recent sessions show their duration and links. App groups are named package lists; they can be archived or deleted when unused. This flow does not block apps or run a background timer.
+
 ## Phase 2 shipped flow: App Time
 
 Home shows `Not connected` and `Set up access` until the user grants Android Usage Access. The flow opens the system Usage Access screen, returns to Yuzuha, checks permission again, and exposes `Refresh usage`. A successful read shows today’s duration, the last-read date, and top app rows. A failed or empty read names the source and leaves the rest of the app usable.

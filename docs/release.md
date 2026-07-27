@@ -6,6 +6,15 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 focus-session pass:
+
+- app data schema 26 adds local `appGroups` and `focusSessions`; schema 25 data remains rejected because the app has no external users;
+- App Time can start one manual session, link it to an optional task, project, note, and app group, then Complete or Stop it; elapsed time comes from stored timestamps;
+- app groups store trimmed package-name labels and can be archived or deleted when unused; the feature does not inspect app content or block apps;
+- JSON import, encrypted backups, SQLite persistence, current-record validation, and global search include the new collections;
+- focused lifecycle/store/boundary tests, full Jest (34 suites, 151 tests), lint, typecheck, bundle validation, Android debug/release builds, clean emulator UI smoke, emulator relaunch persistence, and phone launch smoke passed;
+- the first release smoke exposed a stale-clock duration crash; a regression test now defines pre-start active duration as zero, and the corrected release smoke passed.
+
 2026-07-27 local task-project pass:
 
 - app data schema 25 adds local task projects with unique names, active/completed status, archive state, and optional `Task.projectId`; app schema 24 data remains rejected because the app has no external users;

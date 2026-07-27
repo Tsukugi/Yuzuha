@@ -1520,3 +1520,36 @@ Known limits:
 
 - projects are local task grouping only; notes, money, app-time, focus, subtasks, templates, cross-device projects, and sync remain separate future contracts;
 - project deletion is reference-safe and therefore requires linked tasks to be moved or deleted first.
+
+## Implementation review: focus-session pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 26 adds `appGroups` and `focusSessions`; no schema 25 upgrade path was added;
+- app groups validate a trimmed unique package list and archive state;
+- focus sessions validate optional task/project/note/app-group links, enforce one active session, derive elapsed seconds from timestamps, and record completed/manual/interrupted outcomes;
+- App Time has a local manual timer with Complete/Stop controls, recent-session history, app-group controls, and an explicit no-app-blocking boundary;
+- JSON import, encrypted backup, SQLite persistence, global search, UX, architecture, requirements, decision, release, and testing docs include the current focus contract.
+
+Review evidence:
+
+```text
+Failing test first       PASS - missing app-group/focus lifecycle modules were reproduced before implementation
+Focused Jest             PASS - boundary/store suites passed; final regression coverage includes 18 focus/store tests
+Full Jest                PASS - 34 suites, 151 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds          PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release opened App Time, started and completed a focus session, and stayed in MainActivity
+Emulator relaunch        PASS - completed focus session remained visible after force-stop/relaunch
+Phone smoke              PASS - clean release opened MainActivity on 42adce68
+Resource cleanup         PASS - no Yuzuha app, Java, or Gradle processes remained
+```
+
+Known limits:
+
+- focus timing is manual and local; there is no background timer, notification automation, app blocking, installed-app catalog, or sync;
+- app-group links are package labels only and do not grant access to app content.

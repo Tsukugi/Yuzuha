@@ -66,6 +66,14 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.appGroups.push({
+      id: 'app_group_secret',
+      name: 'Private apps',
+      packageNames: ['com.editor'],
+      isArchived: false,
+      createdAt,
+      updatedAt: createdAt,
+    });
     data.tasks.push({
       id: 'task_secret',
       title: 'Review private note',
@@ -81,6 +89,19 @@ describe('encrypted backups', () => {
       reminderAtMillis: null,
       createdAt,
       updatedAt: createdAt,
+    });
+    data.focusSessions.push({
+      id: 'focus_secret',
+      startedAt: '2026-07-26T11:00:00.000Z',
+      endedAt: '2026-07-26T11:30:00.000Z',
+      status: 'completed',
+      stopReason: 'completed',
+      taskId: 'task_secret',
+      projectId: 'project_secret',
+      noteId: 'note_secret',
+      appGroupId: 'app_group_secret',
+      createdAt: '2026-07-26T11:00:00.000Z',
+      updatedAt: '2026-07-26T11:30:00.000Z',
     });
 
     const attachmentFiles = [{
@@ -171,7 +192,7 @@ describe('encrypted backups', () => {
   });
 
   it('rejects old app data when building a backup', async () => {
-    const oldData = {...emptyAppData(), schemaVersion: 24 as never};
+    const oldData = {...emptyAppData(), schemaVersion: 25 as never};
 
     await expect(buildEncryptedBackup(oldData, password, createdAt, deterministicRandomBytes)).rejects.toThrow(/app data version/i);
   });

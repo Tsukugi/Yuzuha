@@ -1,6 +1,8 @@
 import type {
   AppData,
   Attachment,
+  AppGroup,
+  FocusSession,
   MoneyAccount,
   MoneyBudget,
   MoneyCategory,
@@ -28,6 +30,7 @@ import {isValidTaskReminderSnoozeDuration} from './notificationSettings';
 import {isValidTaskRecurrenceReminderLocalTime} from './taskRecurrence';
 import {validateTaskDependencyDraft} from './taskDependency';
 import {TASK_PROJECT_MAX_NAME_LENGTH} from './projectLifecycle';
+import {validateAppGroupDraft} from './appGroupLifecycle';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -47,6 +50,8 @@ export interface JsonImportRecordCounts {
   taskDependencies: number;
   usageSnapshots: number;
   timeGoals: number;
+  appGroups: number;
+  focusSessions: number;
 }
 
 export interface JsonImportPreview {
@@ -77,7 +82,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 25) {
+  if (appSchemaVersion !== 26) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -96,7 +101,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 25 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 26 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -120,6 +125,8 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('task dependencies', data.taskDependencies);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
+  validateUniqueIds('app groups', data.appGroups);
+  validateUniqueIds('focus sessions', data.focusSessions);
 
   const accountIds = new Set(data.accounts.map(account => account.id));
   const categoryIds = new Set(data.categories.map(category => category.id));
@@ -183,6 +190,11 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
   data.timeGoals.forEach(validateTimeGoal);
+  data.appGroups.forEach(validateAppGroup);
+  data.focusSessions.forEach(validateFocusSession);
+  if (data.focusSessions.filter(session => session.status === 'active').length > 1) {
+    throw new JsonImportError('The export has more than one active focus session.');
+  }
 
   if (!Array.isArray(data.usageExcludedPackages) || data.usageExcludedPackages.some(item => typeof item !== 'string')) {
     throw new JsonImportError('The export has invalid app-time exclusions.');
@@ -406,6 +418,40 @@ function validateTimeGoal(goal: TimeGoal): void {
   }
 }
 
+function validateAppGroup(group: AppGroup): void {
+  validateId(group.id, 'app group');
+  const validationError = validateAppGroupDraft({name: group.name, packageNames: group.packageNames});
+  if (validationError || group.name.trim() !== group.name || group.packageNames.some(packageName => packageName.trim() !== packageName) ||
+      typeof group.isArchived !== 'boolean' || !isIsoDate(group.createdAt) || !isIsoDate(group.updatedAt)) {
+    throw new JsonImportError(`App group ${group.id} has invalid fields.`);
+  }
+}
+
+function validateFocusSession(session: FocusSession): void {
+  validateId(session.id, 'focus session');
+  const links = [session.taskId, session.projectId, session.noteId, session.appGroupId];
+  if (links.some(link => link !== null && typeof link !== 'string') ||
+      !isIsoDate(session.startedAt) ||
+      (session.endedAt !== null && !isIsoDate(session.endedAt)) ||
+      (session.status !== 'active' && session.status !== 'completed' && session.status !== 'stopped') ||
+      (session.stopReason !== null && session.stopReason !== 'completed' && session.stopReason !== 'manual' && session.stopReason !== 'interrupted') ||
+      !isIsoDate(session.createdAt) || !isIsoDate(session.updatedAt)) {
+    throw new JsonImportError(`Focus session ${session.id} has invalid fields.`);
+  }
+  if (session.status === 'active' && (session.endedAt !== null || session.stopReason !== null)) {
+    throw new JsonImportError(`Focus session ${session.id} has an invalid active state.`);
+  }
+  if (session.status === 'completed' && (session.endedAt === null || session.stopReason !== 'completed')) {
+    throw new JsonImportError(`Focus session ${session.id} has an invalid completed state.`);
+  }
+  if (session.status === 'stopped' && (session.endedAt === null || (session.stopReason !== 'manual' && session.stopReason !== 'interrupted'))) {
+    throw new JsonImportError(`Focus session ${session.id} has an invalid stopped state.`);
+  }
+  if (session.endedAt !== null && Date.parse(session.endedAt) <= Date.parse(session.startedAt)) {
+    throw new JsonImportError(`Focus session ${session.id} must end after start.`);
+  }
+}
+
 function validateMoneyFields(
   amountMinor: number,
   currency: string,
@@ -507,5 +553,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     taskDependencies: data.taskDependencies.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,
+    appGroups: data.appGroups.length,
+    focusSessions: data.focusSessions.length,
   };
 }
