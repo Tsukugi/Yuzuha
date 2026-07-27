@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android Money-report-filter pass.
+Status: Current Android MVP through the Android week-start pass.
 
 ## Navigation
 
@@ -52,7 +52,7 @@ The Tasks screen also manages local task templates. A template has a unique name
 
 The recurring-task form asks for a title, details, first due date, optional local reminder time in `HH:mm`, interval, day/week/month cadence, priority, list, and missed-occurrence policy. Saving stores a local rule. On startup, due rules create open tasks with deterministic rule/date IDs, copy the optional reminder time into each generated task, then advance the next date. All creates every due task, One creates the first due task, and Skip creates none. Rules can be paused/resumed or deleted; deleting a rule keeps existing tasks and clears their rule link. A generated reminder whose local date/time is already past is not scheduled.
 
-The Task view has List and Agenda modes. Agenda shows dated tasks grouped for the next 14 device-local calendar days and keeps completed tasks in their date group. Undated tasks stay in List mode. List mode can sort by Manual, Due date, or Priority. Manual order is stored per task list; the All list view exposes Up and Down controls when Manual sorting is selected, while Due date puts undated tasks last and Priority puts High before Normal before Low. The current agenda does not expose a timezone or week-start preference; those settings are a later product contract.
+The Task view has List and Agenda modes. Agenda shows dated tasks grouped for the next 14 device-local calendar days and keeps completed tasks in their date group. Undated tasks stay in List mode. List mode can sort by Manual, Due date, or Priority. Manual order is stored per task list; the All list view exposes Up and Down controls when Manual sorting is selected, while Due date puts undated tasks last and Priority puts High before Normal before Low. The current agenda remains device-local and does not expose a timezone preference; week-based Home, Money, App Time, Review, and budget views now use the saved Sunday/Monday setting.
 
 The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder. The Notification settings card has a Task reminders On/Off switch. Off clears native reminder alarms but keeps logical reminder times; On rebuilds future alarms. It also accepts an optional daily `HH:mm` start and end; both fields are required when enabled, equal values are rejected, and clearing both disables quiet hours. It lets the user choose a snooze duration of 15m, 30m, 1h, or 2h; the default is 1h. A reminder inside the same-day or overnight window is delivered at the local window end. The notification uses generic text rather than task details; tapping it opens the matching task in edit mode, `Complete` marks the existing open task complete without reopening it, and `Snooze` sets a new reminder using the selected duration when the category is enabled.
 

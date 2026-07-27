@@ -101,4 +101,20 @@ describe('money budgets', () => {
       'over',
     );
   });
+
+  it('uses the configured week start for weekly budgets', () => {
+    const projection = buildBudgetProjection(
+      {...budget, period: 'week'},
+      [
+        entry({id: 'sunday', amountMinor: 500, occurredAt: '2026-07-26T12:00:00.000Z'}),
+        entry({id: 'monday', amountMinor: 700, occurredAt: '2026-07-27T12:00:00.000Z'}),
+      ],
+      [],
+      new Date(2026, 6, 28),
+      0,
+    );
+
+    expect(projection.start).toEqual(new Date(2026, 6, 26));
+    expect(projection.usedMinor).toBe(1200);
+  });
 });

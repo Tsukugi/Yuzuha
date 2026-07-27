@@ -2,7 +2,7 @@
 
 The Android summary widget is a live non-database projection over the current task and note collections. It adds no app or repository schema field.
 
-Current schema boundary: app schema 29 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. Older schemas are rejected without migration.
+Current schema boundary: app schema 30 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. Older schemas are rejected without migration.
 
 The detailed status paragraph below retains earlier schema numbers as historical implementation notes. The current data boundary above is authoritative.
 
@@ -162,6 +162,8 @@ Payees are current local source records with `id`, trimmed unique `name`, archiv
 
 Money report scope is a derived projection over money entries and split lines. Its local period, kind, category ID, and account ID filters are not persisted; transfers are not report inputs, out-of-range entries are skipped, split lines match their own category IDs, and currencies are grouped separately. No schema field or migration is added.
 
+`AppData.weekStartsOn` is a current source setting with value `0` (Sunday) or `1` (Monday). It is persisted in JSON, encrypted backup payloads, and the SQLite `repository_meta` table. Period projections read it at render time; it is not a task due-date timezone or a background scheduling rule.
+
 ### Task
 
 | Field | Type | Rule |
@@ -315,7 +317,7 @@ The current build does not persist these preference records through AsyncStorage
 ## Schema policy
 
 1. The unreleased build has one current app schema and one current SQLite repository schema.
-2. App schema 29 and repository schema 3 are accepted. Older and unknown schemas are rejected clearly.
+2. App schema 30 and repository schema 3 are accepted. Older and unknown schemas are rejected clearly.
 3. A future public release may add a forward migration only after a product decision, fixture test, and rollback plan.
 4. A fresh install creates the current empty workspace directly; it does not import old product data.
 

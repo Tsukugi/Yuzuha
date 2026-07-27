@@ -243,6 +243,7 @@ export interface NotificationSettings {
 }
 
 export type TaskReminderSnoozeDurationMinutes = 15 | 30 | 60 | 120;
+export type WeekStartDay = 0 | 1;
 
 export interface TimeGoal {
   id: string;
@@ -279,8 +280,9 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 29;
+  schemaVersion: 30;
   mainCurrency: string;
+  weekStartsOn: WeekStartDay;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
   splits: MoneySplit[];
@@ -318,8 +320,9 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 29,
+  schemaVersion: 30,
   mainCurrency: 'EUR',
+  weekStartsOn: 1,
   money: [],
   transfers: [],
   splits: [],

@@ -256,6 +256,7 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
 async function readAppData(database: SqliteExecutor): Promise<AppData> {
   const meta = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['usage_read']);
   const currency = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['main_currency']);
+  const weekStartsOn = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['week_starts_on']);
   const notificationSettings = await database.execute('SELECT value FROM repository_meta WHERE key = ?', ['notification_settings']);
   const records = await database.execute(
     'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
@@ -266,6 +267,7 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
     readText(currency.rows[0]?.value) ?? 'EUR',
     readText(meta.rows[0]?.value),
     readText(notificationSettings.rows[0]?.value),
+    readText(weekStartsOn.rows[0]?.value),
   );
   try {
     validateCurrentAppData(data);
@@ -379,6 +381,7 @@ export function decodeAppData(
   mainCurrency: string,
   usageReadJson: string | null,
   notificationSettingsJson: string | null = null,
+  weekStartsOnJson: string | null = null,
 ): AppData {
   const data = emptyAppData();
   data.mainCurrency = mainCurrency;
@@ -415,6 +418,14 @@ export function decodeAppData(
     throw new SqliteDataCorruptError();
   }
   data.notificationSettings = parsedSettings;
+  if (weekStartsOnJson === null) {
+    throw new SqliteDataCorruptError();
+  }
+  const parsedWeekStartsOn = parsePayload(weekStartsOnJson);
+  if (!isWeekStartDayPayload(parsedWeekStartsOn)) {
+    throw new SqliteDataCorruptError();
+  }
+  data.weekStartsOn = parsedWeekStartsOn;
 
   for (const row of rows) {
     const recordType = readText(row.record_type);
@@ -596,6 +607,7 @@ async function writeAppDataInTransaction(tx: SqliteExecutor, data: AppData): Pro
     String(REPOSITORY_SCHEMA_VERSION),
   ]);
   await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['main_currency', data.mainCurrency]);
+  await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', ['week_starts_on', JSON.stringify(data.weekStartsOn)]);
   await tx.execute('INSERT INTO repository_meta (key, value) VALUES (?, ?)', [
     'usage_read',
     JSON.stringify(data.usageRead),
@@ -744,6 +756,10 @@ function isNotificationSettingsPayload(value: unknown): value is NotificationSet
   const startInput = typeof start === 'string' ? start : '';
   const endInput = typeof end === 'string' ? end : '';
   return validateQuietHoursDraft(startInput, endInput) === null;
+}
+
+function isWeekStartDayPayload(value: unknown): value is 0 | 1 {
+  return value === 0 || value === 1;
 }
 
 function readText(value: unknown): string | null {

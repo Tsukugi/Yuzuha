@@ -80,7 +80,7 @@ import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -416,9 +416,11 @@ function HomeScreen({
   onOpenSearch: () => void;
   onOpenReview: () => void;
 }) {
+  const {setWeekStartsOn} = useAppStore();
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [homePeriod, setHomePeriod] = useState<Period>('day');
-  const range = getPeriodRange(new Date(), homePeriod);
+  const [weekStartError, setWeekStartError] = useState<string | null>(null);
+  const range = getPeriodRange(new Date(), homePeriod, data.weekStartsOn);
   const selectedPeriodLabel = periodLabel(homePeriod);
   const periodDates = getLocalDateKeys(range);
   const periodMoney = data.money.filter(entry => entry.currency === data.mainCurrency && isInPeriod(entry.occurredAt, range));
@@ -430,6 +432,15 @@ function HomeScreen({
   const recentNotes = activeNotes.filter(note => isInPeriod(note.updatedAt, range)).slice(0, 3);
   const appTimeSeconds = sumUsage(data.usageSnapshots, periodDates);
   const hasUsagePermission = data.usageRead.permission === 'granted';
+
+  async function saveWeekStart(weekStartsOn: WeekStartDay) {
+    setWeekStartError(null);
+    try {
+      await setWeekStartsOn(weekStartsOn);
+    } catch (error) {
+      setWeekStartError(error instanceof Error ? error.message : 'The week start could not be saved.');
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -455,6 +466,15 @@ function HomeScreen({
           <SegmentButton label="Week" selected={homePeriod === 'week'} onPress={() => setHomePeriod('week')} />
           <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
         </View>
+      </View>
+      <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Week starts on</Text>
+        <Text style={styles.cardDetail}>Week-based Home, Money, App Time, Review, and budget views use this local setting.</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
+          <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
+        </View>
+        {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
       </View>
 
       <View style={styles.cardGrid}>
@@ -508,7 +528,7 @@ function HomeScreen({
 
 function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (tab: Tab) => void}) {
   const [reviewPeriod, setReviewPeriod] = useState<Period>('day');
-  const range = getPeriodRange(new Date(), reviewPeriod);
+  const range = getPeriodRange(new Date(), reviewPeriod, data.weekStartsOn);
   const summary = buildReviewSummary(data, range);
   const selectedPeriodLabel = periodLabel(reviewPeriod);
 
@@ -1326,7 +1346,7 @@ function MoneyScreen() {
   const listSourceEntries = data.money.filter(
     entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id),
   );
-  const listEntries = filterMoneyEntries(listSourceEntries, entryFilter);
+  const listEntries = filterMoneyEntries(listSourceEntries, entryFilter, new Date(), data.weekStartsOn);
   const filteredTotals = summarizeMoneyEntries(listEntries);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
@@ -1818,7 +1838,7 @@ function MoneyBudgetScreen({data, onBack}: {data: AppData; onBack: () => void}) 
           <EmptyState text="No budgets yet." />
         ) : (
           data.budgets.filter(budget => !budget.isArchived).map(budget => {
-            const projection = buildBudgetProjection(budget, data.money, data.splits, new Date());
+            const projection = buildBudgetProjection(budget, data.money, data.splits, new Date(), data.weekStartsOn);
             return (
               <View key={budget.id} style={styles.formCard}>
                 <Text style={styles.cardTitle}>{budget.category}</Text>
@@ -2196,7 +2216,7 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const [kind, setKind] = useState<MoneyReportFilter['kind']>(emptyMoneyReportFilter.kind);
   const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
   const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
-  const range = getPeriodRange(new Date(), period);
+  const range = getPeriodRange(new Date(), period, data.weekStartsOn);
   const filter: MoneyReportFilter = {kind, categoryId, accountId};
   const report = buildMoneyReport(data.money, range, data.splits, filter);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === categoryId);
@@ -2289,6 +2309,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
   if (!data) {
     return null;
   }
+  const currentData = data;
 
   async function checkPermission() {
     if (!usageAccess.isSupported()) {
@@ -2312,7 +2333,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 
   async function refreshUsage() {
     setIsRefreshing(true);
-    const range = getPeriodRange(new Date(), usagePeriod);
+    const range = getPeriodRange(new Date(), usagePeriod, currentData.weekStartsOn);
     const dayRanges = getLocalDayRanges(range);
     setMessage(`Reading ${periodLabel(usagePeriod).toLowerCase()} app time...`);
     try {
@@ -2337,7 +2358,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
     }
   }
 
-  const range = getPeriodRange(new Date(), usagePeriod);
+  const range = getPeriodRange(new Date(), usagePeriod, currentData.weekStartsOn);
   const periodDates = getLocalDateKeys(range);
   const selectedPeriodLabel = periodLabel(usagePeriod);
   const allPeriodSnapshots = data.usageSnapshots
@@ -2345,7 +2366,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
     .sort((left, right) => right.durationSeconds - left.durationSeconds);
   const totalSeconds = sumUsage(data.usageSnapshots, periodDates);
   const todaySeconds = sumUsage(data.usageSnapshots, new Set([localDateKey(new Date())]));
-  const weekRange = getPeriodRange(new Date(), 'week');
+  const weekRange = getPeriodRange(new Date(), 'week', data.weekStartsOn);
   const weekDates = getLocalDateKeys(weekRange);
   const weeklySeconds = sumUsage(data.usageSnapshots, weekDates);
   const activeGoal = data.timeGoals.find(goal => !goal.isArchived && goal.period === goalPeriod);

@@ -1,4 +1,4 @@
-import {getPeriodRange, isInPeriod, type Period} from './period';
+import {getPeriodRange, isInPeriod, type Period, type WeekStartDay} from './period';
 import type {MoneyEntry} from '../types/domain';
 
 export type MoneyFilterPeriod = 'all' | Period;
@@ -24,8 +24,8 @@ export const emptyMoneyEntryFilter: MoneyEntryFilter = {
   accountId: 'all',
 };
 
-export function filterMoneyEntries(entries: MoneyEntry[], filter: MoneyEntryFilter, now = new Date()): MoneyEntry[] {
-  const range = filter.period === 'all' ? null : getPeriodRange(now, filter.period);
+export function filterMoneyEntries(entries: MoneyEntry[], filter: MoneyEntryFilter, now = new Date(), weekStartsOn: WeekStartDay = 1): MoneyEntry[] {
+  const range = filter.period === 'all' ? null : getPeriodRange(now, filter.period, weekStartsOn);
   return entries.filter(entry => (
     (range === null || isInPeriod(entry.occurredAt, range)) &&
     (filter.kind === 'all' || entry.kind === filter.kind) &&
@@ -38,8 +38,9 @@ export function summarizeFilteredMoneyEntries(
   entries: MoneyEntry[],
   filter: MoneyEntryFilter,
   now = new Date(),
+  weekStartsOn: WeekStartDay = 1,
 ): MoneyEntryTotal[] {
-  return summarizeMoneyEntries(filterMoneyEntries(entries, filter, now));
+  return summarizeMoneyEntries(filterMoneyEntries(entries, filter, now, weekStartsOn));
 }
 
 export function summarizeMoneyEntries(entries: MoneyEntry[]): MoneyEntryTotal[] {

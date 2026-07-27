@@ -22,7 +22,7 @@ describe('data exports', () => {
     };
 
     expect(parsed.exportSchemaVersion).toBe(DATA_EXPORT_SCHEMA_VERSION);
-    expect(parsed.appSchemaVersion).toBe(29);
+    expect(parsed.appSchemaVersion).toBe(30);
     expect(parsed.exportedAt).toBe('2026-07-26T12:00:00.000Z');
     expect(parsed.data).toEqual(data);
     expect(parsed.data).toHaveProperty('money');
@@ -60,7 +60,7 @@ describe('data exports', () => {
     expect(lines[0]).toContain('appSchemaVersion');
     expect(lines[0]).toContain('currency');
     expect(lines[0]).toContain('payeeId');
-    expect(lines[1]).toContain('1,29,money_1,expense,1099,EUR');
+    expect(lines[1]).toContain('1,30,money_1,expense,1099,EUR');
     expect(csv).toContain('"Food, lunch"');
     expect(csv).toContain('"A ""shared"" meal');
   });

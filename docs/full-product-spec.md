@@ -58,6 +58,8 @@ Current Money payee behavior: An entry may select one active local payee or `No 
 
 Current Money report behavior: The report screen offers Day, Week, and Month local ranges plus All/Expense/Income, category, and account filters. It shows the exact range and active filters, says that transfers and out-of-range entries are excluded, keeps currencies in separate cards, and applies category filters to split lines by stable line category ID. Filter state is local screen state only.
 
+Current date behavior: Home offers a `Week starts on` control with Sunday and Monday choices. The selected value is saved locally and drives every current week-based Home, Review, Money, App Time, and budget range. It does not change task due dates or start background work.
+
 ### Review behavior
 
 The user can open a daily, weekly, or monthly review. A review contains:

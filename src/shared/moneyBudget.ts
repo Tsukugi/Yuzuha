@@ -1,6 +1,6 @@
 import {getPeriodRange, isInPeriod} from './period';
 import type {PeriodRange} from './period';
-import type {BudgetPeriod, BudgetRollover, MoneyBudget, MoneyCategory, MoneyEntry, MoneySplit} from '../types/domain';
+import type {BudgetPeriod, BudgetRollover, MoneyBudget, MoneyCategory, MoneyEntry, MoneySplit, WeekStartDay} from '../types/domain';
 
 export interface MoneyBudgetInput {
   categoryId: string;
@@ -47,10 +47,11 @@ export function buildBudgetProjection(
   entries: MoneyEntry[],
   splits: MoneySplit[],
   now: Date,
+  weekStartsOn: WeekStartDay = 1,
 ): BudgetProjection {
-  const range = getPeriodRange(now, budget.period);
+  const range = getPeriodRange(now, budget.period, weekStartsOn);
   const rolloverMinor = budget.rollover === 'carry-forward'
-    ? Math.max(0, budget.amountMinor - usedForRange(budget, entries, splits, previousPeriodRange(now, budget.period)))
+    ? Math.max(0, budget.amountMinor - usedForRange(budget, entries, splits, previousPeriodRange(now, budget.period, weekStartsOn)))
     : 0;
   const effectiveLimitMinor = budget.amountMinor + rolloverMinor;
   const usedMinor = usedForRange(budget, entries, splits, range);
@@ -88,15 +89,15 @@ function usedForRange(budget: MoneyBudget, entries: MoneyEntry[], splits: MoneyS
   return usedMinor;
 }
 
-function previousPeriodRange(now: Date, period: BudgetPeriod): PeriodRange {
+function previousPeriodRange(now: Date, period: BudgetPeriod, weekStartsOn: WeekStartDay): PeriodRange {
   if (period === 'month') {
-    return getPeriodRange(new Date(now.getFullYear(), now.getMonth() - 1, 1), period);
+    return getPeriodRange(new Date(now.getFullYear(), now.getMonth() - 1, 1), period, weekStartsOn);
   }
   const previous = new Date(now);
   previous.setDate(previous.getDate() - (period === 'week' ? 7 : 1));
-  return getPeriodRange(previous, period);
+  return getPeriodRange(previous, period, weekStartsOn);
 }
 
-export function budgetRange(budget: MoneyBudget, now: Date): PeriodRange {
-  return getPeriodRange(now, budget.period);
+export function budgetRange(budget: MoneyBudget, now: Date, weekStartsOn: WeekStartDay = 1): PeriodRange {
+  return getPeriodRange(now, budget.period, weekStartsOn);
 }

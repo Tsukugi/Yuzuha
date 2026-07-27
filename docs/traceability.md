@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android Money-report-filter pass.
+Status: Traceability baseline through the Android week-start pass.
 
 ## Authoritative source by concern
 
@@ -46,6 +46,8 @@ Current Review evidence: `CROSS-03` maps to `ReviewScreen`, `buildReviewSummary`
 Current Money payee evidence: `MONEY-06` maps to `MoneyScreen`, `MoneyPayee`, `moneyPayee.ts`, AppStore payee actions, JSON/CSV/SQLite validation, global-search coverage, the 2026-07-27 Money-payee release note, and emulator Payee-form smoke. Payees use stable IDs; archived records remain valid for existing money entries.
 
 Current Money report evidence: `MONEY-11` maps to `MoneyReportScreen`, `MoneyReportFilter`, `moneyReport.ts`, split-line projection tests, the 2026-07-27 Money-report-filter release note, and emulator report-scope smoke. The filter is derived; transfers and out-of-range entries are excluded and currencies remain separate.
+
+Current week-start evidence: `CORE-04` and `TASK-08` map to `AppData.weekStartsOn`, `getPeriodRange`, Home week-start controls, JSON/SQLite validation, period and Money-filter tests, the 2026-07-27 week-start release note, and emulator weekly-range smoke. Sunday and Monday are the only accepted values.
 
 ## Open decision register
 

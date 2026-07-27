@@ -88,7 +88,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 29) {
+  if (appSchemaVersion !== 30) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -107,7 +107,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 29 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 30 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -567,6 +567,10 @@ function isIsoDate(value: unknown): value is string {
 
 function isCurrency(value: unknown): value is string {
   return typeof value === 'string' && /^[A-Z]{3}$/.test(value);
+}
+
+function isWeekStartDay(value: unknown): value is 0 | 1 {
+  return value === 0 || value === 1;
 }
 
 function isValidKind(value: string): value is 'income' | 'expense' {

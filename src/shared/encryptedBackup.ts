@@ -101,7 +101,7 @@ async function buildEncryptedBackupWithCredential(
   if (credentialType === 'password') {
     validatePassword(credential);
   }
-  if (data.schemaVersion !== 29) {
+  if (data.schemaVersion !== 30) {
     throw new EncryptedBackupError('Encrypted backup app data version is not supported.');
   }
   if (!isIsoDate(createdAt)) {
@@ -208,7 +208,7 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   if (header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION) {
     throw new EncryptedBackupError('Encrypted backup schema is not supported.');
   }
-  if (header.appSchemaVersion !== 29) {
+  if (header.appSchemaVersion !== 30) {
     throw new EncryptedBackupError('Encrypted backup app data version is not supported.');
   }
   if (

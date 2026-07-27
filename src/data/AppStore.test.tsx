@@ -101,6 +101,10 @@ describe('AppStore task reminders', () => {
     expect(saved.money[0]?.payeeId).toBe(payeeId);
     expect(saved.payees[0]?.isArchived).toBe(true);
     await act(async () => {
+      await value!.setWeekStartsOn(0);
+    });
+    expect(saved.weekStartsOn).toBe(0);
+    await act(async () => {
       renderer?.unmount();
     });
   });

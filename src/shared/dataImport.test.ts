@@ -74,6 +74,15 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(JSON.stringify(envelope))).toThrow(/app header/i);
   });
 
+  it('rejects current data without the week-start setting', () => {
+    const data = emptyAppData();
+    const envelope = JSON.parse(buildJsonExport(data, '2026-07-26T12:00:00.000Z')) as Record<string, unknown>;
+    const currentData = envelope.data as Record<string, unknown>;
+    delete currentData.weekStartsOn;
+
+    expect(() => parseJsonImport(JSON.stringify(envelope))).toThrow(/app header/i);
+  });
+
   it('imports a valid task dependency and counts it', () => {
     const data = emptyAppData();
     data.tasks.push(

@@ -2211,3 +2211,33 @@ Known limits:
 
 - report filters are screen state and reset when the report screen is left;
 - payee filtering, saved report views, cross-screen filter state, and sync remain future work.
+
+## Implementation review: Android week-start pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- persisted Sunday/Monday `AppData.weekStartsOn` setting with current app schema 30;
+- shared local-period support across Home, Review, Money filters/reports, App Time, and budget projections;
+- current JSON, encrypted-backup, and SQLite persistence with strict missing/invalid setting rejection;
+- no legacy migration, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - period, Money-filter, restore, store, and CSV tests
+Full Jest                PASS - 48 suites, 208 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Home Sunday/Monday controls and weekly range rendered
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped after smoke
+```
+
+Known limits:
+
+- the setting supports Sunday and Monday only;
+- the task Agenda remains device-local and a user-selected timezone remains future work.

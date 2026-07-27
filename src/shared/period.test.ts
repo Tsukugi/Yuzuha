@@ -20,6 +20,11 @@ describe('period helpers', () => {
     expect(range.start).toEqual(new Date(2026, 6, 20));
   });
 
+  it('starts weeks on the configured day', () => {
+    const range = getPeriodRange(now, 'week', 0);
+    expect(range.start).toEqual(new Date(2026, 6, 26));
+  });
+
   it('filters a timestamp using an inclusive start and exclusive end', () => {
     const range = getPeriodRange(now, 'month');
     expect(isInPeriod(new Date(2026, 6, 1, 0, 0).toISOString(), range)).toBe(true);

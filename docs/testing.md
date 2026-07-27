@@ -1,14 +1,14 @@
 # Testing strategy
 
-Status: Current test strategy through the Android Money-report-filter pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android week-start pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 48 Jest suites and 204 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
-- Fresh SQLite startup seeds current app schema 29 data directly; old local database files are rejected by repository schema checks.
+- The current suite is 48 Jest suites and 208 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- Fresh SQLite startup seeds current app schema 30 data directly; old local database files and missing current metadata are rejected by repository validation.
 
 ## Money filter evidence
 
@@ -19,8 +19,14 @@ Status: Current test strategy through the Android Money-report-filter pass. Unit
 ## Money payee evidence
 
 - Focused payee tests cover trimmed records, blank names, case-insensitive duplicate rejection, and same-record validation.
-- SQLite round-trip coverage stores a payee record and a money-entry `payeeId`; JSON and CSV tests use current schema 29 data and current payee columns.
+- SQLite round-trip coverage stores a payee record, a money-entry `payeeId`, and `weekStartsOn`; JSON and CSV tests use current schema 30 data and current payee columns.
 - Global-search coverage finds a money entry by its payee name and includes that name in the result title.
+
+## Week-start preference evidence
+
+- Focused period and budget tests cover Sunday and Monday week boundaries; Money filter tests confirm the same setting changes weekly entry scope.
+- JSON restore rejects a missing current week-start field, SQLite round-trip preserves it, and AppStore tests verify the Sunday setting is saved.
+- The release emulator smoke checks the Home week-start controls and updated weekly range; phone startup completes with no filtered app errors.
 
 ## Money report evidence
 

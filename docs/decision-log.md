@@ -529,3 +529,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Apply one local period/type/category/account filter to report source entries. Apply the category part to split lines by stable `categoryId`, exclude transfers and out-of-range entries, and group results into separate currency cards. Keep filter state in the screen only.
 - Reason: A single deterministic projection keeps the scope card, totals, and split categories aligned without adding persisted preferences, schema, migration, network work, or a background process.
 - Consequence: Filter state resets when the report screen is left. Payee filters, saved report views, cross-screen filter state, and sync remain future work.
+
+## DEC-077: Persist one local week-start setting
+
+- Status: Accepted.
+- Context: Weekly Home, Money, App Time, Review, and budget views used a fixed Monday boundary, while the product contract requires date views to state and use a selected local week rule.
+- Decision: Add `AppData.weekStartsOn` with only Sunday (`0`) or Monday (`1`), default Monday, and pass it through the shared period helper and all current week-based projections. Persist it in current JSON, encrypted backups, and SQLite metadata.
+- Reason: One small typed setting keeps every weekly projection aligned without timezone conversion, a worker, a network dependency, or compatibility guessing.
+- Consequence: The current app schema becomes 30; missing or invalid values are rejected. The task Agenda remains device-local, and broader timezone, locale, and sync settings remain future work.

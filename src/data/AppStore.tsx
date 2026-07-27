@@ -53,6 +53,7 @@ import type {
   Attachment,
   UsagePermissionState,
   UsageSnapshot,
+  WeekStartDay,
 } from '../types/domain';
 import {buildWidgetSummary} from '../shared/widgetSummary';
 
@@ -84,6 +85,7 @@ interface AppStoreValue {
   deleteMoney: (entryId: string) => Promise<void>;
   resetWorkspace: () => Promise<void>;
   restoreWorkspace: (next: AppData, attachmentStage?: AttachmentRestoreStage) => Promise<void>;
+  setWeekStartsOn: (weekStartsOn: WeekStartDay) => Promise<void>;
   addMoneyRecurrence: (input: MoneyRecurrenceInput) => Promise<void>;
   deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
@@ -334,6 +336,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       throw error;
     }
   }, [commit, data]);
+
+  const setWeekStartsOn = useCallback(
+    async (weekStartsOn: WeekStartDay) => {
+      if (weekStartsOn !== 0 && weekStartsOn !== 1) {
+        throw new Error('Choose Sunday or Monday as the week start.');
+      }
+      await commit(current => ({...current, weekStartsOn}));
+    },
+    [commit],
+  );
 
   const setNotificationQuietHours = useCallback(
     async (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number, taskRemindersEnabled?: boolean, recurringTaskRemindersEnabled?: boolean) => {
@@ -1464,6 +1476,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteMoney,
       resetWorkspace,
       restoreWorkspace,
+      setWeekStartsOn,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
       addSplitMoney,
@@ -1594,6 +1607,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       replaceUsageSnapshots,
       resetWorkspace,
       restoreWorkspace,
+      setWeekStartsOn,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
       setUsagePermission,

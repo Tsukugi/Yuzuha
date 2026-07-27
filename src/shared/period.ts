@@ -1,4 +1,5 @@
 export type Period = 'day' | 'week' | 'month';
+export type WeekStartDay = 0 | 1;
 
 export interface PeriodRange {
   start: Date;
@@ -24,7 +25,7 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function getPeriodRange(now: Date, period: Period): PeriodRange {
+export function getPeriodRange(now: Date, period: Period, weekStartsOn: WeekStartDay = 1): PeriodRange {
   const start = startOfDay(now);
   if (period === 'day') {
     return {start, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)};
@@ -36,9 +37,9 @@ export function getPeriodRange(now: Date, period: Period): PeriodRange {
     };
   }
 
-  const mondayOffset = (start.getDay() + 6) % 7;
+  const weekStartOffset = (start.getDay() - weekStartsOn + 7) % 7;
   const weekStart = new Date(start);
-  weekStart.setDate(start.getDate() - mondayOffset);
+  weekStart.setDate(start.getDate() - weekStartOffset);
   return {
     start: weekStart,
     end: new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7),

@@ -49,4 +49,15 @@ describe('money entry filters', () => {
       {currency: 'USD', count: 1, expenseMinor: 250, incomeMinor: 0},
     ]);
   });
+
+  it('uses the configured week start for period filtering', () => {
+    const weekEntries = [
+      entry({id: 'sunday', occurredAt: '2026-07-26T12:00:00.000Z'}),
+      entry({id: 'monday', occurredAt: '2026-07-27T12:00:00.000Z'}),
+    ];
+    const filter: MoneyEntryFilter = {period: 'week', kind: 'all', categoryId: 'all', accountId: 'all'};
+
+    expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['sunday', 'monday']);
+    expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 1).map(item => item.id)).toEqual(['monday']);
+  });
 });

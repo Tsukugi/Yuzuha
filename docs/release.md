@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android week-start pass:
+
+- Home now saves Sunday or Monday as the local week start; Home, Review, Money, App Time, and budget projections use the same current setting;
+- JSON, encrypted backups, and SQLite preserve and require `weekStartsOn`; app schema is now 30 and repository schema remains 3;
+- old app, backup, CSV, and SQLite data remain rejected; no migration, network request, worker, or background process was added;
+- focused period/filter/budget/store tests, full Jest (48 suites, 208 tests), lint, typecheck, bundle validation, release APK build, emulator week-start smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android Money-report-filter pass:
 
 - Money reports now filter by local Day/Week/Month range, type, category, and account in one derived scope;
