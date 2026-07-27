@@ -1,10 +1,10 @@
 # Notifications and automation
 
-Status: Android task reminders, local daily quiet hours, and `Open`/`Complete` reminder actions are implemented; broader notification and automation capability remains planned.
+Status: Android task reminders, local daily quiet hours, and `Open`/`Complete`/`Snooze 1h` reminder actions are implemented; broader notification and automation capability remains planned.
 
 ## Current Android scope
 
-The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe. Its content opens the matching task in edit mode, while `Complete` completes an existing open task once, dismisses the notification, and does nothing for a missing or already-completed task. The user can set an optional daily `HH:mm` quiet-hours window; a reminder inside that window is scheduled for its end while the logical reminder time remains unchanged. Snooze, recurring-rule notifications, and sync are not implemented.
+The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe. Its content opens the matching task in edit mode, `Complete` completes an existing open task once, and `Snooze 1h` replaces the logical reminder with exactly one hour after the action time. Both actions dismiss the notification; missing and completed targets do nothing. A snoozed alarm is projected through the optional daily `HH:mm` quiet-hours window. Recurring-rule notifications and sync are not implemented.
 
 ## Principles
 
@@ -34,7 +34,7 @@ Current Android reminders have a task ID and trigger time. Editing the reminder 
 
 The full-product target adds explicit timezone, notification category, snooze policy, and action buttons. The current quiet-hours pair is in app schema 18, but the broader category and timezone contracts remain planned.
 
-The current Android action contract is `Complete` or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once; repeated actions and stale targets are ignored. The full-product target may add `Snooze`, category policy, and synced notification state later.
+The current Android action contract is `Complete`, `Snooze`, or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once. `Snooze` stores `Date.now() + 1 hour` for an existing task, schedules its projected alarm, and replaces the old schedule before committing the new timestamp. Missing and completed targets are ignored. The full-product target may add user-selected snooze durations, category policy, and synced notification state later.
 
 ## Recurring work
 

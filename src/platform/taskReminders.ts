@@ -13,7 +13,7 @@ const TASK_REMINDER_ACTION_EVENT = 'YuzuhaTaskReminderAction';
 
 export type TaskReminderTarget = {
   taskId: string;
-  action: 'open' | 'complete';
+  action: 'open' | 'complete' | 'snooze';
 };
 
 export class TaskReminderError extends Error {

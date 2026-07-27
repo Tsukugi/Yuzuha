@@ -16,7 +16,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Widgets | Show selected cards and quick capture. | Full product. |
 | Shortcuts/app actions | Open a feature or start a focus session. | Full product. |
 | Deep links | Open a safe local object or settings page. | Full product. |
-| Notification actions | Complete, snooze, open, or review. | Full product. |
+| Notification actions | Android MVP: `Open`, `Complete`, and `Snooze 1h`; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Read or create user-approved task events. | Full product, optional. |
 | File picker | Import/export backups and attachments. | MVP export; full import/backup. |
 
@@ -64,4 +64,3 @@ Every integration must support:
 5. error and retry state;
 6. data deletion or disconnect behavior;
 7. platform capability differences.
-

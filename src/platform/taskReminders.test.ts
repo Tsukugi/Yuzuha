@@ -79,8 +79,8 @@ describe('task reminder bridge', () => {
   });
 
   it('reads a pending task action and subscribes to warm-app actions', async () => {
-    native.getInitialTaskReminderTarget.mockResolvedValue({taskId: 'task_4', action: 'complete'});
-    await expect(taskReminders.getPendingTarget()).resolves.toEqual({taskId: 'task_4', action: 'complete'});
+    native.getInitialTaskReminderTarget.mockResolvedValue({taskId: 'task_4', action: 'snooze'});
+    await expect(taskReminders.getPendingTarget()).resolves.toEqual({taskId: 'task_4', action: 'snooze'});
 
     const listener = jest.fn();
     const subscription = taskReminders.onTaskReminderAction(listener);

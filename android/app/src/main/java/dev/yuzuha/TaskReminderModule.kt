@@ -117,6 +117,7 @@ class TaskReminderModule(private val context: ReactApplicationContext) : ReactCo
     const val TASK_REMINDER_ACTION_EXTRA = "taskAction"
     const val TASK_REMINDER_ACTION_OPEN = "open"
     const val TASK_REMINDER_ACTION_COMPLETE = "complete"
+    const val TASK_REMINDER_ACTION_SNOOZE = "snooze"
     const val TASK_REMINDER_OPENED_EVENT = "YuzuhaTaskReminderOpened"
     const val TASK_REMINDER_ACTION_EVENT = "YuzuhaTaskReminderAction"
     private var current: TaskReminderModule? = null
@@ -127,14 +128,17 @@ class TaskReminderModule(private val context: ReactApplicationContext) : ReactCo
       intent.removeExtra(TASK_REMINDER_ID_EXTRA)
       intent.removeExtra(TASK_REMINDER_ACTION_EXTRA)
       current?.let { TaskReminderReceiver.dismissNotification(it.context, taskId) }
-      if (action == TASK_REMINDER_ACTION_COMPLETE) {
+      if (action == TASK_REMINDER_ACTION_COMPLETE || action == TASK_REMINDER_ACTION_SNOOZE) {
         current?.emitTaskReminderAction(taskId, action)
       } else {
         current?.emitTaskReminderOpened(taskId)
       }
     }
 
-    private fun normalizeAction(action: String?): String =
-      if (action == TASK_REMINDER_ACTION_COMPLETE) TASK_REMINDER_ACTION_COMPLETE else TASK_REMINDER_ACTION_OPEN
+    private fun normalizeAction(action: String?): String = when (action) {
+      TASK_REMINDER_ACTION_COMPLETE -> TASK_REMINDER_ACTION_COMPLETE
+      TASK_REMINDER_ACTION_SNOOZE -> TASK_REMINDER_ACTION_SNOOZE
+      else -> TASK_REMINDER_ACTION_OPEN
+    }
   }
 }

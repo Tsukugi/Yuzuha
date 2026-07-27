@@ -70,7 +70,7 @@ const colors = {
 };
 
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
-  const {data, isLoading, error, completeTaskFromReminder} = useAppStore();
+  const {data, isLoading, error, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
@@ -88,7 +88,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setTab('tasks');
-    if (target.action === 'complete') {
+    if (target.action === 'complete' || target.action === 'snooze') {
       setPendingReminderAction(target);
     } else {
       openReminderTask(target.taskId);
@@ -125,11 +125,14 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     }
     const target = pendingReminderAction;
     setPendingReminderAction(null);
-    void completeTaskFromReminder(target.taskId).catch(() => {
-      Alert.alert('Reminder action failed', 'Open the task and complete it manually.');
+    const applyAction = target.action === 'complete'
+      ? completeTaskFromReminder(target.taskId)
+      : snoozeTaskFromReminder(target.taskId);
+    void applyAction.catch(() => {
+      Alert.alert('Reminder action failed', target.action === 'complete' ? 'Open the task and complete it manually.' : 'Open the task and set its reminder manually.');
       setPendingTaskId(target.taskId);
     });
-  }, [completeTaskFromReminder, data, pendingReminderAction]);
+  }, [completeTaskFromReminder, data, pendingReminderAction, snoozeTaskFromReminder]);
 
   if (isLoading || !data) {
     return <LoadingScreen message="Opening your local workspace..." />;

@@ -3,6 +3,7 @@ import TestRenderer, {act} from 'react-test-renderer';
 import {emptyAppData, type AppData} from '../types/domain';
 import {adjustTaskReminderForQuietHours} from '../shared/notificationSettings';
 import {createTaskRecord} from '../shared/taskLifecycle';
+import {TASK_REMINDER_SNOOZE_DELAY_MILLIS} from '../shared/taskReminder';
 import {taskReminders} from '../platform/taskReminders';
 import {AppStoreProvider, useAppStore} from './AppStore';
 
@@ -189,6 +190,109 @@ describe('AppStore task reminders', () => {
     expect(saved.tasks[0]?.status).toBe('completed');
     expect(saved.tasks[0]?.reminderAtMillis).toBe(task.reminderAtMillis);
     expect(cancel).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
+  it('snoozes an open reminder for one hour using the quiet-hours projection', async () => {
+    const nowMillis = 1_700_000_000_000;
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(nowMillis);
+    const task = createTaskRecord(
+      {title: 'Snooze from reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_snooze',
+      new Date(nowMillis).toISOString(),
+    );
+    task.reminderAtMillis = nowMillis - 60_000;
+    let saved = {
+      ...emptyAppData(),
+      notificationSettings: {
+        quietHoursStartLocalTime: '22:00',
+        quietHoursEndLocalTime: '07:00',
+      },
+      tasks: [task],
+    } as AppData;
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    try {
+      await act(async () => {
+        renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const schedule = taskReminders.schedule as jest.Mock;
+      const cancel = taskReminders.cancel as jest.Mock;
+      schedule.mockClear();
+      cancel.mockClear();
+      await act(async () => {
+        await value!.snoozeTaskFromReminder('task_snooze');
+      });
+
+      const snoozedAtMillis = nowMillis + TASK_REMINDER_SNOOZE_DELAY_MILLIS;
+      expect(saved.tasks[0]?.reminderAtMillis).toBe(snoozedAtMillis);
+      expect(cancel).toHaveBeenCalledWith('task_snooze');
+      expect(schedule).toHaveBeenCalledWith('task_snooze', adjustTaskReminderForQuietHours(snoozedAtMillis, saved.notificationSettings));
+    } finally {
+      nowSpy.mockRestore();
+      await act(async () => {
+        renderer?.unmount();
+      });
+    }
+  });
+
+  it('ignores snooze actions for missing and completed tasks', async () => {
+    const completedTask = createTaskRecord(
+      {title: 'Already done', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_completed_snooze',
+      new Date().toISOString(),
+    );
+    completedTask.status = 'completed';
+    completedTask.reminderAtMillis = Date.now() - 60_000;
+    let saved = {...emptyAppData(), tasks: [completedTask]} as AppData;
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const schedule = taskReminders.schedule as jest.Mock;
+    const cancel = taskReminders.cancel as jest.Mock;
+    schedule.mockClear();
+    cancel.mockClear();
+    await act(async () => {
+      await value!.snoozeTaskFromReminder('missing_task');
+      await value!.snoozeTaskFromReminder('task_completed_snooze');
+    });
+
+    expect(saved.tasks[0]?.status).toBe('completed');
+    expect(saved.tasks[0]?.reminderAtMillis).toBe(completedTask.reminderAtMillis);
+    expect(schedule).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
     await act(async () => {
       renderer?.unmount();
     });

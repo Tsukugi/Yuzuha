@@ -27,7 +27,7 @@ import {
   type TaskRecurrenceDraft,
 } from '../shared/taskRecurrence';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
-import {validateTaskReminderTimestamp} from '../shared/taskReminder';
+import {TASK_REMINDER_SNOOZE_DELAY_MILLIS, validateTaskReminderTimestamp} from '../shared/taskReminder';
 import {adjustTaskReminderForQuietHours, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {taskReminders} from '../platform/taskReminders';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
@@ -103,6 +103,7 @@ interface AppStoreValue {
   setTaskReminder: (taskId: string, triggerAtMillis: number) => Promise<void>;
   deleteTaskReminder: (taskId: string) => Promise<void>;
   completeTaskFromReminder: (taskId: string) => Promise<void>;
+  snoozeTaskFromReminder: (taskId: string) => Promise<void>;
   setNotificationQuietHours: (startLocalTime: string, endLocalTime: string) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
@@ -754,6 +755,36 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const snoozeTaskFromReminder = useCallback(
+    async (taskId: string) => {
+      const current = dataRef.current;
+      const task = current?.tasks.find(item => item.id === taskId);
+      if (!current || !task || task.status === 'completed') {
+        return;
+      }
+      const previousReminderAtMillis = task.reminderAtMillis;
+      const snoozedReminderAtMillis = Date.now() + TASK_REMINDER_SNOOZE_DELAY_MILLIS;
+      if (previousReminderAtMillis !== null) {
+        await taskReminders.cancel(taskId);
+      }
+      try {
+        await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(snoozedReminderAtMillis, current.notificationSettings));
+        await commit(workspace => ({
+          ...workspace,
+          tasks: workspace.tasks.map(item => item.id === taskId ? {...item, reminderAtMillis: snoozedReminderAtMillis, updatedAt: new Date().toISOString()} : item),
+        }));
+      } catch (error) {
+        if (previousReminderAtMillis !== null && previousReminderAtMillis > Date.now()) {
+          await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(previousReminderAtMillis, current.notificationSettings));
+        } else {
+          await taskReminders.cancel(taskId);
+        }
+        throw error;
+      }
+    },
+    [commit],
+  );
+
   const addTaskList = useCallback(
     async (input: TaskListDraft) => {
       await commit(current => {
@@ -999,6 +1030,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       setTaskReminder,
       deleteTaskReminder,
       completeTaskFromReminder,
+      snoozeTaskFromReminder,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,
@@ -1041,6 +1073,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       setTaskReminder,
       deleteTaskReminder,
       completeTaskFromReminder,
+      snoozeTaskFromReminder,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,

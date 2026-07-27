@@ -1,18 +1,19 @@
 # Testing strategy
 
-Status: Current test strategy through the Android notification-action pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the Android reminder-snooze pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
 ## Task reminder evidence
 
-- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, schema 17 to 18 migration, invalid import rejection, SQLite round trips, and the create-then-remind, quiet-hours rollback, and idempotent Complete-action AppStore regressions.
-- Full Jest: 32 suites and 136 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
+- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, schema 17 to 18 migration, invalid import rejection, SQLite round trips, and the create-then-remind, quiet-hours rollback, idempotent Complete-action, snooze projection, and stale-target AppStore regressions.
+- Full Jest: 32 suites and 138 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
 - Emulator `emulator-5554`: a fresh release install created `SmokeReminder`; the task row showed `Reminder 2026-07-28T09:30`, and `dumpsys alarm` showed the stable `dev.yuzuha.TASK_REMINDER` alarm after force-stop/relaunch.
 - Emulator delivery: a near-term reminder delivered after Android's alarm window on channel `task_reminders`; `dumpsys notification` showed `Yuzuha task reminder`, and the alarm was removed after delivery.
 - Emulator deep link: tapping the delivered notification reopened Tasks with `DeepLinkSmoke` and its saved reminder in edit mode; cold-start and warm-app intent paths produced no filtered app errors.
 - Emulator quiet-hours smoke: the Tasks form saved `22:00`–`07:00` and showed `Quiet hours saved.`; at 06:15 local time, `QuietSmoke` kept its logical `Reminder 2026-07-27T06:30` while `dumpsys alarm` showed the native alarm projected to `07:00`.
 - Emulator notification-action smoke: a delivered reminder showed the `Complete` action; tapping it completed `ActionDismiss`, opened `MainActivity`, and removed the handled notification record while the logical reminder remained unchanged.
+- Emulator snooze smoke: a delivered reminder showed `Snooze 1h` beside `Complete`; tapping it opened `MainActivity`, removed the delivered notification, and scheduled a new native alarm at action time plus one hour.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
@@ -29,7 +30,7 @@ Use Jest for pure logic:
 - task draft validation, task identity-preserving edits, task deletion rules, date filters, schema 15 migration, JSON/backup validation, and SQLite round trips;
 - task-list name validation, identity-preserving rename, archive protection, reference-safe deletion for tasks and recurring rules, and import validation;
 - recurring task draft validation, deterministic all/one/skip expansion, pause/delete behavior, schema 15 to 16 migration, JSON validation, and SQLite round trips;
-- task reminder local date-time validation, future timestamp rules, quiet-hours validation and projection, schema 16 to 17 and 17 to 18 migrations, JSON validation, SQLite round trips, Android permission handling, native schedule/cancel forwarding, cold-start target and warm-app action routing, idempotent Complete handling, and restore synchronization;
+- task reminder local date-time validation, future timestamp rules, quiet-hours validation and projection, schema 16 to 17 and 17 to 18 migrations, JSON validation, SQLite round trips, Android permission handling, native schedule/cancel forwarding, cold-start target and warm-app action routing, idempotent Complete handling, Snooze 1h projection, stale-target no-ops, and restore synchronization;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -47,7 +48,7 @@ Use an in-memory or temporary database adapter to test:
 
 ### Android device tests
 
-Current evidence for the Android notification-action pass:
+Current evidence for the Android reminder-snooze pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;

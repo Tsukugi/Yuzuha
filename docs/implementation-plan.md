@@ -1166,3 +1166,36 @@ Known limits:
 - no snooze, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
 Next pass: notification snooze or account/device recovery design, with remote sync kept behind its service boundary.
+
+## Implementation review: Android notification Snooze 1h pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- typed `Open`, `Complete`, and `Snooze` task-reminder targets across the Android bridge and MainApp;
+- Android reminder notifications now show `Snooze 1h`, `Complete`, and the existing content-tap `Open` behavior;
+- `Snooze 1h` replaces the logical reminder with exactly one hour after the action time and schedules its quiet-hours projection;
+- missing and completed targets are ignored, the old native schedule is replaced before the new timestamp is committed, and the handled notification is dismissed;
+- no schema, permission, or minimum-OS change.
+
+Review evidence:
+
+```text
+Focused Jest                PASS - snooze projection and stale-target coverage
+Full Jest                   PASS - 32 suites, 138 tests
+npm run lint                PASS
+npm run typecheck           PASS
+npm run check-bundle        PASS - Android metadata valid
+Android builds              PASS - debug and release APKs with Java 17
+Emulator action smoke       PASS - Snooze 1h showed beside Complete and opened MainActivity
+Emulator alarm smoke        PASS - new dev.yuzuha.TASK_REMINDER was scheduled at action time + 1 hour
+Emulator dismissal smoke    PASS - handled notification record was removed
+Phone smoke                 PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no user-selected snooze durations, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: user-selected snooze policy or account/device recovery design, with remote sync kept behind its service boundary.

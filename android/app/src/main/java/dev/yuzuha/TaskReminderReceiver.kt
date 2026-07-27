@@ -125,6 +125,17 @@ class TaskReminderReceiver : BroadcastReceiver() {
         completeIntent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
       )
+      val snoozeIntent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        putExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA, taskId)
+        putExtra(TaskReminderModule.TASK_REMINDER_ACTION_EXTRA, TaskReminderModule.TASK_REMINDER_ACTION_SNOOZE)
+      }
+      val snoozePendingIntent = PendingIntent.getActivity(
+        context,
+        activityRequestCode(taskId, TaskReminderModule.TASK_REMINDER_ACTION_SNOOZE),
+        snoozeIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+      )
       val notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle("Yuzuha task reminder")
@@ -132,6 +143,7 @@ class TaskReminderReceiver : BroadcastReceiver() {
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setAutoCancel(true)
         .setContentIntent(openPendingIntent)
+        .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_recent_history, "Snooze 1h", snoozePendingIntent).build())
         .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_save, "Complete", completePendingIntent).build())
         .build()
       try {

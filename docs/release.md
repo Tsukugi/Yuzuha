@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 Android notification Snooze 1h pass:
+
+- the Android reminder notification now offers `Snooze 1h` alongside `Open` and `Complete`;
+- the action stores exactly one hour after the action time as the task's logical reminder, applies the existing quiet-hours projection to the native alarm, and replaces the old native schedule before committing;
+- missing and completed task targets are ignored; the notification is dismissed after handling; no app-data schema, permission, or minimum-OS change was made;
+- focused snooze/bridge tests, full unit tests, lint, typecheck, bundle checks, debug/release builds, emulator action/alarm smoke, and phone launch smoke passed;
+- user-selected snooze durations, recurring-rule notifications, iOS reminders, and sync remain planned.
+
 2026-07-27 Android notification Complete-action pass:
 
 - the Android reminder notification now offers `Open` through its content tap and `Complete` through an explicit action button;

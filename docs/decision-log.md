@@ -297,3 +297,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Android reminder notifications expose `Open` through the content intent and `Complete` through an action intent carrying the stable task ID. The local AppStore completes the task only when the current record exists and is open. Repeated, missing, or already-completed actions are no-ops. The logical reminder timestamp stays on the task record, while the native notification is dismissed after handling.
 - Reason: The rule is deterministic, safe after process death, and does not add notification state or remote coordination to schema 18. The existing stable task ID keeps the payload opaque and reuses the local task lifecycle rules.
 - Consequence: The current pass has Android `Open` and `Complete` only. Snooze, recurring-rule notifications, iOS actions, account recovery, device enrollment, and sync remain separate contracts.
+
+## DEC-044: Make Android reminder snooze fixed and local
+
+- Context: A delivered reminder needs a quick deferral, but user-selected durations, recurring notification state, and synced schedules need a larger contract.
+- Decision: Android reminder notifications expose `Snooze 1h`. The action uses the local action time plus exactly 3,600,000 milliseconds as the new logical task reminder, removes the prior native schedule, schedules the quiet-hours projection, and commits the new timestamp. Missing or completed tasks are no-ops. The notification is dismissed after handling.
+- Reason: One fixed duration is easy to explain, test, and keep consistent across process death without adding schema or preference state. The existing reminder field and projection path remain the single source of truth.
+- Consequence: Current Android actions are `Open`, `Complete`, and `Snooze 1h`. User-selected durations, recurring-rule notifications, iOS actions, account recovery, device enrollment, and sync remain separate contracts.
