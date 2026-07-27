@@ -277,8 +277,9 @@ describe('global search', () => {
     ]);
   });
 
-  it('focuses task results while keeping other results tab-only', () => {
-    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus', focusNoteId: null});
-    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null, focusNoteId: 'note_focus'});
+  it('focuses money, task, and note results while keeping other results tab-only', () => {
+    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus', focusNoteId: null, focusMoneyId: null});
+    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null, focusNoteId: 'note_focus', focusMoneyId: null});
+    expect(globalSearchNavigation({kind: 'money', id: 'money_focus'})).toEqual({destination: 'money', focusTaskId: null, focusNoteId: null, focusMoneyId: 'money_focus'});
   });
 });

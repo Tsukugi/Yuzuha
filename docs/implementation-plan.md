@@ -2442,6 +2442,39 @@ Known limits:
 
 Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
 
+## Implementation review: Android money-search-focus pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- money search results carry their stable money-entry ID through `globalSearchNavigation`;
+- Search closes and the existing `pendingMoneyId` path opens Money in edit mode for that entry;
+- note and task results keep exact focus, while other result kinds keep the prior owning-tab-only behavior;
+- no schema, import/export UI, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - money, task, and note focus ID mapping tests
+Full Jest                PASS - 51 suites, 227 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - temporary EUR 12.34 entry searched and opened with `Editing an entry`, amount `12.34`, and `Update entry`
+Phone smoke              PASS - cold release startup with resumed `dev.yuzuha/.MainActivity`; automated touch input is rejected by device policy
+Resource cleanup         PASS - temporary entry deleted, both devices force-stopped, and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- exact focus remains to be added separately for accounts, categories, transfers, splits, budgets, recurring rules, projects, app groups, focus sessions, and time goals;
+- search does not transfer filters or create ID-bearing deep links;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.
+
 ## Implementation review: Android note-search-focus pass
 
 Status: Completed on 2026-07-28.

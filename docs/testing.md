@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the Android note-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android money-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -31,7 +31,7 @@ Status: Current test strategy through the Android note-search-focus pass. Unit t
 - Global-search tests verify active linked-target matching, readable note-result labels, archived-project gating, and exclusion of deleted target content from search.
 - Rich-note tests verify supported inline/line markers, plain-text fallback, selection-based formatting, multi-line bullets, and heading toggling. Emulator smoke verifies the toolbar created `# Smoke` and the saved card displayed `Smoke` rather than raw markers.
 - Search-navigation tests cover every supported result kind. Emulator smoke verifies `Open Note LinkNote` and `Open Task LinkTask` actions, then taps the note result and reaches Notes.
-- Task- and note-focus tests verify task and note results carry stable focus IDs. Emulator smoke taps `Open Note LinkNote`, reaches Notes, and shows `Edit note` with the `LinkNote` title; the task path still opens `Edit task` with `LinkTask`.
+- Money-, task-, and note-focus tests verify money, task, and note results carry stable focus IDs. Emulator smoke creates a temporary EUR 12.34 entry, searches its stored amount, taps `Open Money Expense · Food`, and shows `Editing an entry`, amount `12.34`, and `Update entry`; the note and task paths remain covered by their existing smoke evidence.
 
 ## Week-start preference evidence
 

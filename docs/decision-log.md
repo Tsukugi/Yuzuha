@@ -593,3 +593,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: When a Global Search result kind is `note`, carry its stable ID through `pendingNoteId`. Close Search, open Notes, and load the existing note into edit mode. Task results keep the DEC-083 focus path; all other kinds keep the owning-tab-only behavior from DEC-082.
 - Reason: This gives note search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
 - Consequence: Exact focus for money, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-085: Focus money results from global search
+
+- Status: Accepted.
+- Context: The Money screen already owns a local entry edit form and `editingId` state. A money result can use that form without adding a second route or changing financial storage.
+- Decision: When a Global Search result kind is `money`, carry its stable ID through `pendingMoneyId`. Close Search, open Money, and load the existing entry into edit mode. Note and task results keep their existing exact-focus paths; all other kinds keep the owning-tab-only behavior from DEC-082.
+- Reason: This gives money search a useful exact destination with one deterministic ID handoff and no new data model. The stable ID is resolved against current local data and a missing ID is consumed without mutation.
+- Consequence: Exact focus for accounts, categories, transfers, splits, budgets, recurring rules, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

@@ -108,12 +108,14 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [sharedCapture, setSharedCapture] = useState<SharedCapture | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
+  const [pendingMoneyId, setPendingMoneyId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
   const openGlobalSearchResult = useCallback((navigation: GlobalSearchNavigation) => {
     setPendingTaskId(navigation.focusTaskId);
     setPendingNoteId(navigation.focusNoteId);
+    setPendingMoneyId(navigation.focusMoneyId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -310,7 +312,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
         ) : (
           <>
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
-            {tab === 'money' && <MoneyScreen />}
+            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} onFocusHandled={() => setPendingMoneyId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} onFocusHandled={() => setPendingTaskId(null)} />}
             {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
@@ -1247,7 +1249,7 @@ function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): st
   }
 }
 
-function MoneyScreen() {
+function MoneyScreen({focusMoneyId, onFocusHandled}: {focusMoneyId: string | null; onFocusHandled: () => void}) {
   const {
     data,
     addMoney,
@@ -1277,6 +1279,27 @@ function MoneyScreen() {
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
   const [entryFilterAccountId, setEntryFilterAccountId] = useState<string | 'all'>(emptyMoneyEntryFilter.accountId);
+
+  useEffect(() => {
+    if (!focusMoneyId || !data) {
+      return;
+    }
+    const entry = data.money.find(item => item.id === focusMoneyId);
+    if (!entry) {
+      onFocusHandled();
+      return;
+    }
+    setView('entry');
+    setEditingId(entry.id);
+    setKind(entry.kind);
+    setAmount((entry.amountMinor / 100).toFixed(2));
+    setCategoryId(entry.categoryId ?? '');
+    setAccountId(entry.accountId ?? '');
+    setPayeeId(entry.payeeId ?? '');
+    setNote(entry.note);
+    setError(null);
+    onFocusHandled();
+  }, [data, focusMoneyId, onFocusHandled]);
 
   if (!data) {
     return null;

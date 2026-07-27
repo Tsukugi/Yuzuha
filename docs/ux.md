@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android note-search-focus pass.
+Status: Current Android MVP through the Android money-search-focus pass.
 
 ## Navigation
 
@@ -76,7 +76,7 @@ Each note also has a `Link record` action. The user chooses Task, Project, Money
 
 ### Search the workspace
 
-Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. A note also matches current fields from its linked task, project, money entry, or focus session, and its result shows a `Linked ...` detail label. Archived results are hidden by default; archived project link fields need the same explicit archived-results control. Deleted target content does not become searchable, but a deleted link label remains visible when the note matches another field. Search is case-insensitive, stays in memory, and shows a result kind, title, and detail. Each result row is tappable and opens the owning Money, Notes, Tasks, or App Time tab. Task results load the current task into the Tasks edit form, and note results load the current note into the Notes edit form; other kinds do not claim exact-record focus. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`
+Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. A note also matches current fields from its linked task, project, money entry, or focus session, and its result shows a `Linked ...` detail label. Archived results are hidden by default; archived project link fields need the same explicit archived-results control. Deleted target content does not become searchable, but a deleted link label remains visible when the note matches another field. Search is case-insensitive, stays in memory, and shows a result kind, title, and detail. Each result row is tappable and opens the owning Money, Notes, Tasks, or App Time tab. Money results load the current entry into the Money edit form, task results load the current task into the Tasks edit form, and note results load the current note into the Notes edit form; other kinds do not claim exact-record focus. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`
 
 ### Add a note attachment
 
