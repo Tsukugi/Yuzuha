@@ -1,5 +1,3 @@
-export const TASK_REMINDER_SNOOZE_DELAY_MILLIS = 60 * 60 * 1000;
-
 export function parseTaskReminderLocalDateTime(input: string): number | null {
   if (typeof input !== 'string') {
     return null;

@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
+    expect(data?.schemaVersion).toBe(19);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
+    expect(data?.schemaVersion).toBe(19);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
+    expect(data?.schemaVersion).toBe(19);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
@@ -325,7 +325,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
+    expect(data?.schemaVersion).toBe(19);
     expect(data?.taskRecurrences).toEqual([]);
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
   });
@@ -351,7 +351,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
+    expect(data?.schemaVersion).toBe(19);
     expect(data?.tasks[0].reminderAtMillis).toBeNull();
   });
 
@@ -361,7 +361,18 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(18);
-    expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null});
+    expect(data?.schemaVersion).toBe(19);
+    expect(data?.notificationSettings).toEqual({quietHoursStartLocalTime: null, quietHoursEndLocalTime: null, snoozeDurationMinutes: 60});
+  });
+
+  it('adds the default snooze duration when opening schema 18 data', () => {
+    const legacy = {...emptyAppData(), schemaVersion: 18 as const} as Record<string, unknown>;
+    const settings = legacy.notificationSettings as Record<string, unknown>;
+    delete settings.snoozeDurationMinutes;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(19);
+    expect(data?.notificationSettings.snoozeDurationMinutes).toBe(60);
   });
 });

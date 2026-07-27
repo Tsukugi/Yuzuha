@@ -304,3 +304,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Android reminder notifications expose `Snooze 1h`. The action uses the local action time plus exactly 3,600,000 milliseconds as the new logical task reminder, removes the prior native schedule, schedules the quiet-hours projection, and commits the new timestamp. Missing or completed tasks are no-ops. The notification is dismissed after handling.
 - Reason: One fixed duration is easy to explain, test, and keep consistent across process death without adding schema or preference state. The existing reminder field and projection path remain the single source of truth.
 - Consequence: Current Android actions are `Open`, `Complete`, and `Snooze 1h`. User-selected durations, recurring-rule notifications, iOS actions, account recovery, device enrollment, and sync remain separate contracts.
+
+## DEC-045: Store a small local snooze-duration policy in schema 19
+
+- Context: A fixed one-hour snooze is useful, but different users need a short or longer local deferral. The choice must survive restarts and restore without becoming synced notification state.
+- Decision: Add required `notificationSettings.snoozeDurationMinutes` to app schema 19. Accept only 15, 30, 60, or 120 minutes, default old schema 18 and legacy SQLite data to 60, show the choice in Tasks notification settings, and let the Android `Snooze` action use the selected value. Keep the native action label generic because Android reads the action only after JavaScript loads the local workspace.
+- Reason: The bounded enum is easy to validate, migrate, explain, and test. It preserves the local-first boundary and keeps the task reminder timestamp as the only scheduled record.
+- Consequence: Current Android supports local `Open`, `Complete`, and configurable `Snooze`. Recurring notification policy, per-notification custom durations, iOS actions, account recovery, device enrollment, and sync remain separate contracts.

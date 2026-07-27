@@ -143,7 +143,7 @@ class TaskReminderReceiver : BroadcastReceiver() {
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setAutoCancel(true)
         .setContentIntent(openPendingIntent)
-        .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_recent_history, "Snooze 1h", snoozePendingIntent).build())
+        .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_recent_history, "Snooze", snoozePendingIntent).build())
         .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_menu_save, "Complete", completePendingIntent).build())
         .build()
       try {

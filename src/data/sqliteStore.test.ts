@@ -327,13 +327,29 @@ describe('SQLite workspace store', () => {
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
-    data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'};
+    data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60};
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
 
     await store.save(data);
 
     await expect(store.load()).resolves.toEqual(data);
+  });
+
+  it('defaults the snooze duration when reading legacy SQLite settings', async () => {
+    const database = new MemorySqlite();
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    await store.save(emptyAppData());
+    database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
+
+    await expect(store.load()).resolves.toMatchObject({
+      schemaVersion: 19,
+      notificationSettings: {
+        quietHoursStartLocalTime: '22:00',
+        quietHoursEndLocalTime: '07:00',
+        snoozeDurationMinutes: 60,
+      },
+    });
   });
 
   it('migrates schema 1 financial records into normalized tables', async () => {

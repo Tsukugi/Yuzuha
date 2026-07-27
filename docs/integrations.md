@@ -16,7 +16,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Widgets | Show selected cards and quick capture. | Full product. |
 | Shortcuts/app actions | Open a feature or start a focus session. | Full product. |
 | Deep links | Open a safe local object or settings page. | Full product. |
-| Notification actions | Android MVP: `Open`, `Complete`, and `Snooze 1h`; broader review actions are full product. | Android MVP; broader full product. |
+| Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Read or create user-approved task events. | Full product, optional. |
 | File picker | Import/export backups and attachments. | MVP export; full import/backup. |
 

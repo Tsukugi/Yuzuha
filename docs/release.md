@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 Android snooze-duration policy pass:
+
+- app data schema 19 adds `notificationSettings.snoozeDurationMinutes` with allowed values 15, 30, 60, and 120; existing schema 18 data defaults to 60;
+- Tasks notification settings let the user choose the local snooze duration, while the Android notification action remains generic `Snooze`;
+- JSON, encrypted backup, SQLite, and legacy AsyncStorage paths migrate and persist the setting; native scheduling still applies quiet-hours projection;
+- focused persistence and duration tests, full unit tests, lint, typecheck, bundle checks, debug/release builds, emulator setting/action/alarm smoke, and phone launch smoke passed;
+- recurring-rule notifications, broader category policy, iOS reminders, and sync remain planned.
+
 2026-07-27 Android notification Snooze 1h pass:
 
 - the Android reminder notification now offers `Snooze 1h` alongside `Open` and `Complete`;

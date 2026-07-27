@@ -3,7 +3,6 @@ import TestRenderer, {act} from 'react-test-renderer';
 import {emptyAppData, type AppData} from '../types/domain';
 import {adjustTaskReminderForQuietHours} from '../shared/notificationSettings';
 import {createTaskRecord} from '../shared/taskLifecycle';
-import {TASK_REMINDER_SNOOZE_DELAY_MILLIS} from '../shared/taskReminder';
 import {taskReminders} from '../platform/taskReminders';
 import {AppStoreProvider, useAppStore} from './AppStore';
 
@@ -76,6 +75,7 @@ describe('AppStore task reminders', () => {
       notificationSettings: {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
+        snoozeDurationMinutes: 30,
       },
       tasks: [existingTask],
     } as AppData;
@@ -130,6 +130,7 @@ describe('AppStore task reminders', () => {
       notificationSettings: {
         quietHoursStartLocalTime: formatHour(startHour),
         quietHoursEndLocalTime: formatHour(endHour),
+        snoozeDurationMinutes: 60,
       },
       tasks: [existingTask],
     } as AppData;
@@ -209,6 +210,7 @@ describe('AppStore task reminders', () => {
       notificationSettings: {
         quietHoursStartLocalTime: '22:00',
         quietHoursEndLocalTime: '07:00',
+        snoozeDurationMinutes: 30,
       },
       tasks: [task],
     } as AppData;
@@ -240,7 +242,7 @@ describe('AppStore task reminders', () => {
         await value!.snoozeTaskFromReminder('task_snooze');
       });
 
-      const snoozedAtMillis = nowMillis + TASK_REMINDER_SNOOZE_DELAY_MILLIS;
+      const snoozedAtMillis = nowMillis + 30 * 60 * 1000;
       expect(saved.tasks[0]?.reminderAtMillis).toBe(snoozedAtMillis);
       expect(cancel).toHaveBeenCalledWith('task_snooze');
       expect(schedule).toHaveBeenCalledWith('task_snooze', adjustTaskReminderForQuietHours(snoozedAtMillis, saved.notificationSettings));

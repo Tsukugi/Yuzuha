@@ -19,7 +19,7 @@ import type {
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
-import {validateQuietHoursDraft} from '../shared/notificationSettings';
+import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -393,7 +393,10 @@ export function decodeAppData(
     if (!isNotificationSettingsPayload(parsedSettings)) {
       throw new SqliteDataCorruptError();
     }
-    data.notificationSettings = parsedSettings;
+    data.notificationSettings = {
+      ...parsedSettings,
+      snoozeDurationMinutes: parsedSettings.snoozeDurationMinutes ?? DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES,
+    };
   }
 
   for (const row of rows) {
@@ -640,7 +643,11 @@ function isNotificationSettingsPayload(value: unknown): value is NotificationSet
   const settings = value as Partial<NotificationSettings>;
   const start = settings.quietHoursStartLocalTime;
   const end = settings.quietHoursEndLocalTime;
+  const snoozeDurationMinutes = settings.snoozeDurationMinutes;
   if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string')) {
+    return false;
+  }
+  if (snoozeDurationMinutes !== undefined && !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes)) {
     return false;
   }
   const startInput = typeof start === 'string' ? start : '';

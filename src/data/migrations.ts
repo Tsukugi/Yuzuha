@@ -2,7 +2,7 @@ import {emptyAppData} from '../types/domain';
 import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, UsageRead, UsageSnapshot} from '../types/domain';
 import {validateNoteTags} from '../shared/noteSearch';
 import {validateSavedSearchDraft} from '../shared/savedSearch';
-import {validateQuietHoursDraft} from '../shared/notificationSettings';
+import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -163,6 +163,14 @@ interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'notificationSetting
 
 interface StoredV17 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
   schemaVersion: 17;
+}
+
+interface StoredV18 extends Omit<AppData, 'schemaVersion' | 'notificationSettings'> {
+  schemaVersion: 18;
+  notificationSettings: {
+    quietHoursStartLocalTime: string | null;
+    quietHoursEndLocalTime: string | null;
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -403,7 +411,7 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17 | 18, requireTaskSourceNoteId: boolean): boolean {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17 | 18 | 19, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
     value.schemaVersion === schemaVersion &&
@@ -500,7 +508,11 @@ function isNotificationSettings(value: unknown): boolean {
   }
   const start = value.quietHoursStartLocalTime;
   const end = value.quietHoursEndLocalTime;
+  const snoozeDurationMinutes = value.snoozeDurationMinutes;
   if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string')) {
+    return false;
+  }
+  if (snoozeDurationMinutes !== undefined && !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes)) {
     return false;
   }
   const normalizedStart = typeof start === 'string' ? start : '';
@@ -509,7 +521,7 @@ function isNotificationSettings(value: unknown): boolean {
     validateQuietHoursDraft(normalizedStart, normalizedEnd) === null;
 }
 
-export function isStoredV18(value: unknown): value is AppData {
+export function isStoredV18(value: unknown): value is StoredV18 {
   if (!isStoredV13Shape(value, 18, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
       !Array.isArray(value.taskRecurrences) || !Array.isArray(value.tasks) || !isNotificationSettings(value.notificationSettings)) {
     return false;
@@ -521,6 +533,26 @@ export function isStoredV18(value: unknown): value is AppData {
       (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
       typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
     value.tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
+      (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
+}
+
+export function isStoredV19(value: unknown): value is AppData {
+  const notificationSettings = isRecord(value) ? value.notificationSettings : null;
+  if (!isStoredV13Shape(value, 19, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
+      !Array.isArray(value.taskRecurrences) || !isNotificationSettings(notificationSettings) ||
+      !isValidTaskReminderSnoozeDuration((notificationSettings as Record<string, unknown>).snoozeDurationMinutes)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  const taskRecurrences = record.taskRecurrences as unknown[];
+  const tasks = record.tasks as unknown[];
+  return taskRecurrences.every(rule => isRecord(rule) && typeof rule.id === 'string' && typeof rule.title === 'string' &&
+      typeof rule.details === 'string' && typeof rule.priority === 'string' && typeof rule.listId === 'string' &&
+      (rule.cadence === 'day' || rule.cadence === 'week' || rule.cadence === 'month') && Number.isSafeInteger(rule.interval) &&
+      typeof rule.nextOccurrenceLocalDate === 'string' &&
+      (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
+      typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
+    tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
       (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
 }
 
@@ -696,12 +728,23 @@ export function migrateV16ToV17(value: StoredV16): StoredV17 {
 }
 
 export function migrateV17ToV18(value: StoredV17): AppData {
-  return {
+  return migrateV18ToV19({
     ...value,
     schemaVersion: 18,
     notificationSettings: {
       quietHoursStartLocalTime: null,
       quietHoursEndLocalTime: null,
+    },
+  });
+}
+
+export function migrateV18ToV19(value: StoredV18): AppData {
+  return {
+    ...value,
+    schemaVersion: 19,
+    notificationSettings: {
+      ...value.notificationSettings,
+      snoozeDurationMinutes: DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES,
     },
   };
 }
@@ -727,8 +770,11 @@ function migrateV12ToV18(value: StoredV12): AppData {
 }
 
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV18(value)) {
+  if (isStoredV19(value)) {
     return value;
+  }
+  if (isStoredV18(value)) {
+    return migrateV18ToV19(value);
   }
   if (isStoredV17(value)) {
     return migrateV17ToV18(value);

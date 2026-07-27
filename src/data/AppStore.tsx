@@ -27,8 +27,8 @@ import {
   type TaskRecurrenceDraft,
 } from '../shared/taskRecurrence';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
-import {TASK_REMINDER_SNOOZE_DELAY_MILLIS, validateTaskReminderTimestamp} from '../shared/taskReminder';
-import {adjustTaskReminderForQuietHours, validateQuietHoursDraft} from '../shared/notificationSettings';
+import {validateTaskReminderTimestamp} from '../shared/taskReminder';
+import {adjustTaskReminderForQuietHours, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {taskReminders} from '../platform/taskReminders';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -104,7 +104,7 @@ interface AppStoreValue {
   deleteTaskReminder: (taskId: string) => Promise<void>;
   completeTaskFromReminder: (taskId: string) => Promise<void>;
   snoozeTaskFromReminder: (taskId: string) => Promise<void>;
-  setNotificationQuietHours: (startLocalTime: string, endLocalTime: string) => Promise<void>;
+  setNotificationQuietHours: (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
   setTaskListArchived: (listId: string, isArchived: boolean) => Promise<void>;
@@ -262,7 +262,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   }, [commit, data]);
 
   const setNotificationQuietHours = useCallback(
-    async (startLocalTime: string, endLocalTime: string) => {
+    async (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number) => {
       const current = dataRef.current;
       if (!current) {
         throw new Error('App data is not ready.');
@@ -271,11 +271,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       if (validationError) {
         throw new Error(validationError);
       }
+      const nextSnoozeDurationMinutes = snoozeDurationMinutes ?? current.notificationSettings.snoozeDurationMinutes;
+      if (!isValidTaskReminderSnoozeDuration(nextSnoozeDurationMinutes)) {
+        throw new Error('Choose a valid snooze duration.');
+      }
       const next: AppData = {
         ...current,
         notificationSettings: {
           quietHoursStartLocalTime: startLocalTime.trim() || null,
           quietHoursEndLocalTime: endLocalTime.trim() || null,
+          snoozeDurationMinutes: nextSnoozeDurationMinutes,
         },
       };
       await taskReminders.sync(activeTaskReminderEntries(next));
@@ -763,7 +768,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         return;
       }
       const previousReminderAtMillis = task.reminderAtMillis;
-      const snoozedReminderAtMillis = Date.now() + TASK_REMINDER_SNOOZE_DELAY_MILLIS;
+      const snoozedReminderAtMillis = Date.now() + current.notificationSettings.snoozeDurationMinutes * 60 * 1000;
       if (previousReminderAtMillis !== null) {
         await taskReminders.cancel(taskId);
       }

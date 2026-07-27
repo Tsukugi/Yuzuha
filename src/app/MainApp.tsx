@@ -48,11 +48,12 @@ import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
+import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
 import type {TaskReminderTarget} from '../platform/taskReminders';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskReminderSnoozeDurationMinutes} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -2256,6 +2257,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
   const [quietHoursStartLocalTime, setQuietHoursStartLocalTime] = useState('');
   const [quietHoursEndLocalTime, setQuietHoursEndLocalTime] = useState('');
+  const [snoozeDurationMinutes, setSnoozeDurationMinutes] = useState<TaskReminderSnoozeDurationMinutes>(DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES);
   const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
   const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
   const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
@@ -2287,7 +2289,8 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
     setQuietHoursStartLocalTime(data.notificationSettings.quietHoursStartLocalTime ?? '');
     setQuietHoursEndLocalTime(data.notificationSettings.quietHoursEndLocalTime ?? '');
-  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime]);
+    setSnoozeDurationMinutes(data.notificationSettings.snoozeDurationMinutes);
+  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime, data?.notificationSettings.snoozeDurationMinutes]);
 
   if (!data) {
     return null;
@@ -2438,8 +2441,8 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setNotificationSettingsError(null);
     setNotificationSettingsMessage(null);
     try {
-      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime);
-      setNotificationSettingsMessage(quietHoursStartLocalTime.trim() ? 'Quiet hours saved.' : 'Quiet hours disabled.');
+      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime, snoozeDurationMinutes);
+      setNotificationSettingsMessage(quietHoursStartLocalTime.trim() ? 'Notification settings saved.' : 'Notification settings saved; quiet hours disabled.');
     } catch (settingsError) {
       setNotificationSettingsError(settingsError instanceof Error ? settingsError.message : 'Notification settings could not be saved.');
     } finally {
@@ -2574,6 +2577,12 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <View style={styles.segmentRow}>
             <TextInput accessibilityLabel="Quiet hours start" placeholder="Start HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} autoCapitalize="none" />
             <TextInput accessibilityLabel="Quiet hours end" placeholder="End HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} autoCapitalize="none" />
+          </View>
+          <Text style={styles.formLabel}>Snooze duration</Text>
+          <View style={styles.segmentRow}>
+            {TASK_REMINDER_SNOOZE_DURATION_OPTIONS.map(duration => (
+              <SegmentButton key={duration} label={duration < 60 ? `${duration}m` : `${duration / 60}h`} selected={snoozeDurationMinutes === duration} onPress={() => setSnoozeDurationMinutes(duration)} />
+            ))}
           </View>
           {notificationSettingsError && <Text style={styles.errorText}>{notificationSettingsError}</Text>}
           {notificationSettingsMessage && <Text style={styles.successText}>{notificationSettingsMessage}</Text>}

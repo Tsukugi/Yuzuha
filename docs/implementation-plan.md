@@ -1199,3 +1199,36 @@ Known limits:
 - no user-selected snooze durations, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
 Next pass: user-selected snooze policy or account/device recovery design, with remote sync kept behind its service boundary.
+
+## Implementation review: Android snooze-duration policy pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 19 with required local `snoozeDurationMinutes` values of 15, 30, 60, or 120;
+- schema 18, legacy SQLite, JSON, encrypted backup, and AsyncStorage paths default and migrate the setting to 60 minutes;
+- Tasks notification settings UI to choose and save the local duration;
+- Android notification action label changed to generic `Snooze`; the AppStore applies the selected duration and existing quiet-hours projection;
+- no new permission or minimum-OS change.
+
+Review evidence:
+
+```text
+Focused Jest                PASS - 7 suites, 53 tests for settings, migration, SQLite, import/export, and snooze behavior
+Full Jest                   PASS - 32 suites, 141 tests
+npm run lint                PASS
+npm run typecheck           PASS
+npm run check-bundle        PASS - Android metadata valid
+Android builds              PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator settings smoke     PASS - saved 30m and showed the selected option
+Emulator action smoke       PASS - notification showed generic Snooze and Complete actions
+Emulator alarm smoke        PASS - Snooze scheduled a new alarm about 30 minutes after the action
+Phone smoke                 PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no per-notification custom duration, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.

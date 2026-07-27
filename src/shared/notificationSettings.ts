@@ -1,4 +1,11 @@
-import type {NotificationSettings} from '../types/domain';
+import type {NotificationSettings, TaskReminderSnoozeDurationMinutes} from '../types/domain';
+
+export const TASK_REMINDER_SNOOZE_DURATION_OPTIONS: readonly TaskReminderSnoozeDurationMinutes[] = [15, 30, 60, 120];
+export const DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES: TaskReminderSnoozeDurationMinutes = 60;
+
+export function isValidTaskReminderSnoozeDuration(value: unknown): value is TaskReminderSnoozeDurationMinutes {
+  return TASK_REMINDER_SNOOZE_DURATION_OPTIONS.some(option => option === value);
+}
 
 export function parseLocalTime(input: string): number | null {
   const match = /^(\d{2}):(\d{2})$/.exec(input);
