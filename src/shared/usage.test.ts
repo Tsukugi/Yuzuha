@@ -1,6 +1,18 @@
-import {aggregateUsage, assignUsageRangeDate, sumUsage} from './usage';
+import {aggregateUsage, aggregateUsagePeriod, assignUsageRangeDate, getLocalDayRanges, sumUsage} from './usage';
 
 describe('usage aggregation', () => {
+  it('splits a selected local period into bounded day queries', () => {
+    const range = {
+      start: new Date(2026, 6, 27),
+      end: new Date(2026, 7, 3),
+    };
+    const days = getLocalDayRanges(range);
+
+    expect(days).toHaveLength(7);
+    expect(days[0]).toEqual({start: new Date(2026, 6, 27), end: new Date(2026, 6, 28)});
+    expect(days[6]).toEqual({start: new Date(2026, 7, 2), end: new Date(2026, 7, 3)});
+  });
+
   it('groups records by app and local date', () => {
     const snapshots = aggregateUsage(
       [
@@ -12,6 +24,25 @@ describe('usage aggregation', () => {
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0].durationSeconds).toBe(150);
     expect(sumUsage(snapshots, new Set(['2026-07-26']))).toBe(150);
+  });
+
+  it('keeps daily query results on their queried local dates', () => {
+    const snapshots = aggregateUsagePeriod(
+      [
+        {
+          records: [{packageName: 'com.chat', displayName: 'Chat', durationSeconds: 60, beginTimeMillis: 0}],
+          rangeStartMillis: new Date(2026, 6, 26).getTime(),
+        },
+        {
+          records: [{packageName: 'com.chat', displayName: 'Chat', durationSeconds: 90, beginTimeMillis: 0}],
+          rangeStartMillis: new Date(2026, 6, 27).getTime(),
+        },
+      ],
+      '2026-07-27T12:00:00.000Z',
+    );
+
+    expect(snapshots.map(snapshot => snapshot.localDate).sort()).toEqual(['2026-07-26', '2026-07-27']);
+    expect(snapshots.reduce((total, snapshot) => total + snapshot.durationSeconds, 0)).toBe(150);
   });
 
   it('does not include zero or excluded records', () => {

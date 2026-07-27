@@ -1,4 +1,4 @@
-import {localDateKey} from './period';
+import {localDateKey, type PeriodRange} from './period';
 import type {UsageSnapshot} from '../types/domain';
 
 export interface UsageRecord {
@@ -6,6 +6,27 @@ export interface UsageRecord {
   displayName: string;
   durationSeconds: number;
   beginTimeMillis: number;
+}
+
+export function getLocalDayRanges(range: PeriodRange): PeriodRange[] {
+  const ranges: PeriodRange[] = [];
+  let cursor = new Date(range.start);
+  while (cursor < range.end) {
+    const start = new Date(cursor);
+    const nextDay = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+    ranges.push({start, end: nextDay < range.end ? nextDay : range.end});
+    cursor = nextDay;
+  }
+  return ranges;
+}
+
+export function aggregateUsagePeriod(
+  dailyRecords: Array<{records: UsageRecord[]; rangeStartMillis: number}>,
+  sourceReadAt: string,
+): UsageSnapshot[] {
+  return dailyRecords.flatMap(({records, rangeStartMillis}) =>
+    aggregateUsage(assignUsageRangeDate(records, rangeStartMillis), sourceReadAt),
+  );
 }
 
 export function assignUsageRangeDate(records: UsageRecord[], rangeStartMillis: number): UsageRecord[] {

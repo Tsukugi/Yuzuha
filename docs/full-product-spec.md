@@ -111,6 +111,8 @@ No import changes the database before the user confirms the preview.
 
 The source adapter reports what the platform exposes. Android uses Usage Access and app package data. iOS uses only approved system capabilities and may provide a narrower report. The UI always shows the source and coverage.
 
+Current Android behavior: App Time offers Today, This week, and This month. The screen shows the exact local date range, total duration, per-app rows, and last-read time. A refresh reads each local day once in sequence and commits the selected-period snapshots together only after all day reads succeed. The selected report period is not persisted as a new record and does not start background polling.
+
 ### Goals and groups
 
 The user can create an app group, assign installed packages, choose a daily or weekly target, and set a comparison period. App assignment is local configuration. Unknown or uninstalled apps remain in historical data but are labeled unavailable.

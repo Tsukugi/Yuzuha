@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, one-way task calendar drafts, current-format money CSV import, current JSON export file restore, and bounded encrypted-backup file opening are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, one-way task calendar drafts, current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, and selected App Time reports are current; broader integration capability remains planned.
 
 ## Integration rule
 

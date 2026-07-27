@@ -472,3 +472,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Reject an encrypted backup above 96 MiB from picker metadata when available, check the cached file with `FileSystem.stat` before `readFile`, and always remove an oversized cache copy. Keep the existing schema 2, credential, scrypt, attachment, and restore contracts unchanged.
 - Reason: The bound limits memory and decryption work at the file boundary while leaving room for base64 envelope overhead over the existing 64 MiB plaintext limit. It adds no worker, retry loop, migration, or network path.
 - Consequence: Files above the bound cannot be opened through the file picker. Pasted encrypted text remains on the existing decryption path; account recovery, sync, and legacy encrypted backup schemas remain separate contracts.
+
+## DEC-069: Query selected App Time periods one local day at a time
+
+- Context: App Time originally read only one local day. A selected week or month needs a clear coverage range, but one wide native query could blur local-day ownership and make memory or query cost less predictable.
+- Decision: Offer Today, This week, and This month. Split each selected local period into local calendar-day ranges, query them sequentially after Usage Access is confirmed, aggregate each result against its queried day, and replace usage snapshots once after all reads succeed.
+- Reason: The rule gives the user an exact range and deterministic local-date totals while bounding each native call and avoiding a worker, timer, retry loop, or partial save.
+- Consequence: A month refresh can issue up to 31 sequential native queries and may take longer than a day refresh. The selected UI period is not persisted, and selected timezone/week-start policy remains future work.

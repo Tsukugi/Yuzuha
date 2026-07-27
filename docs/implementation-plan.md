@@ -1953,3 +1953,36 @@ Known limits:
 - the 96 MiB bound protects the file-open boundary; encrypted backup schema 2 and its 64 MiB plaintext limit remain the data contract;
 - pasted encrypted text uses the existing decryption path and does not add a second file-picker record;
 - account recovery, device enrollment, sync, and legacy encrypted backup schemas remain planned or intentionally rejected.
+
+## Implementation review: Android App-Time-period pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- Today, This week, and This month controls with an exact local date-range label;
+- one sequential native Usage Access query per local calendar day in the selected range;
+- period aggregation that keeps each result on its queried local date;
+- one AppStore replacement after all day queries succeed, so a failed refresh does not partially replace the period;
+- no schema change, timer, worker, polling loop, or legacy compatibility path.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - usage/period tests; 11 focused tests, including the DST local-midnight regression
+Full Jest                PASS - 45 suites, 191 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - Day/Week/Month selection and Week refresh with Usage Access
+Phone smoke              PASS - App Time launch shows unavailable permission state with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped; no background app worker added
+```
+
+Known limits:
+
+- the selected period is not persisted as a UI preference and uses the device local calendar;
+- a Month refresh is bounded but may issue up to 31 sequential native day queries;
+- selected timezone and week-start preferences, sync, and iOS app-time parity remain planned.

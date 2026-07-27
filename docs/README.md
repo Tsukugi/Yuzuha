@@ -1,6 +1,6 @@
 # Yuzuha documentation
 
-This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, and bounded encrypted-backup file opening, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
+This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, and selected App Time period reports, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
 ## Read in this order
 

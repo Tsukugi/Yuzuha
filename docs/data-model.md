@@ -146,6 +146,8 @@ Saved searches are local records. JSON exports and encrypted backups include the
 
 Global search is a derived view over `AppData` and adds no entity or migration. It searches record fields already stored locally; archived visibility and Usage Access are query-time rules.
 
+App Time period reports are also derived views over local usage snapshots. The selected Day/Week/Month range is split into local calendar days for reading, then filtered by the same local-date keys for display. Existing usage-read metadata stores the selected range and source read time; changing the report selector does not add a record or migration.
+
 ### Task
 
 | Field | Type | Rule |

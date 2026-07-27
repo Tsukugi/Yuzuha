@@ -27,6 +27,8 @@ The Android summary widget shows only the number of open tasks and active notes.
 
 Android also accepts four strict local deep links: `yuzuha://open/money`, `yuzuha://open/notes`, `yuzuha://open/tasks`, and `yuzuha://open/app-time`. They open existing tabs only. IDs, query data, remote URLs, and network fetching are rejected.
 
+App Time offers Today, This week, and This month reports. Refresh reads each local day once, shows the exact local date range and last-read time, and saves the complete selected-period result together. It adds no background polling.
+
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
 Data tools can import a current Yuzuha money CSV through the system document picker. The file is previewed first; duplicate IDs, broken references, split-linked rows, invalid values, and oversized files block the import. Confirmation appends the entries in one local save. JSON or encrypted backup is required for complete workspace portability.

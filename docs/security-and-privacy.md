@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android encrypted-backup-file-bound pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android App-Time-period pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -110,6 +110,8 @@ For every feature, record data collected, source, local storage, server transfer
 ## Phase 2 Usage Access implementation
 
 Android Usage Access is now declared and accessed through a native `YuzuhaUsageAccess` module. The module checks the special permission before querying `UsageStatsManager`, opens the system settings screen, and returns aggregate duration/package labels only. The app stores snapshots locally and does not send them to a server. The user can leave the permission off and still use every other feature.
+
+The current period control keeps the same boundary. A selected Day, Week, or Month is read as sequential local calendar days only after permission is confirmed. Results are kept in memory until every day query succeeds, then saved in one local transaction. No raw usage data leaves the device, and no background worker or periodic polling was added.
 
 ## Phase 4 local repository controls
 

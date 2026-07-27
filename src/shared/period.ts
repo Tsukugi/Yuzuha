@@ -12,7 +12,7 @@ function startOfDay(date: Date): Date {
 export function getPeriodRange(now: Date, period: Period): PeriodRange {
   const start = startOfDay(now);
   if (period === 'day') {
-    return {start, end: new Date(start.getTime() + 24 * 60 * 60 * 1000)};
+    return {start, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)};
   }
   if (period === 'month') {
     return {
@@ -24,7 +24,10 @@ export function getPeriodRange(now: Date, period: Period): PeriodRange {
   const mondayOffset = (start.getDay() + 6) % 7;
   const weekStart = new Date(start);
   weekStart.setDate(start.getDate() - mondayOffset);
-  return {start: weekStart, end: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)};
+  return {
+    start: weekStart,
+    end: new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7),
+  };
 }
 
 export function isInPeriod(isoDate: string, range: PeriodRange): boolean {

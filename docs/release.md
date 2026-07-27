@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android App-Time-period pass:
+
+- no app or repository schema change; App Time now selects Today, This week, or This month and states the exact local date range and last-read time;
+- refresh splits the selected range into sequential local-day Usage Access reads and replaces the selected snapshots once after all reads succeed; no worker, timer, polling loop, or legacy import path was added;
+- focused usage tests, full Jest (45 suites, 191 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator selector and Week-refresh smoke, and phone clean-launch smoke passed;
+- the emulator had Usage Access enabled for the read; the phone remained in the honest unavailable state because permission was not enabled, and both devices were force-stopped after testing.
+
 2026-07-27 Android encrypted-backup-file-bound pass:
 
 - no app or repository schema change; selected encrypted backup files are now rejected above 96 MiB before cache copy when picker metadata provides a size, and cached files are checked again before read;

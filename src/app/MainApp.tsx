@@ -21,7 +21,7 @@ import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from 
 import {buildMoneyReport} from '../shared/moneyReport';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
-import {aggregateUsage, assignUsageRangeDate, sumUsage} from '../shared/usage';
+import {aggregateUsagePeriod, getLocalDayRanges, sumUsage, type UsageRecord} from '../shared/usage';
 import {buildJsonExport, buildMoneyCsvExport} from '../shared/dataExport';
 import {parseJsonImport, type JsonImportPreview} from '../shared/dataImport';
 import {
@@ -1067,6 +1067,31 @@ function formatMinorTotals(totals: Record<string, number>): string {
   return formatted.length > 0 ? formatted.join(', ') : 'none';
 }
 
+function appTimePeriodLabel(period: Period): string {
+  if (period === 'week') {
+    return 'This week';
+  }
+  if (period === 'month') {
+    return 'This month';
+  }
+  return 'Today';
+}
+
+function appTimeTopAppsLabel(period: Period): string {
+  if (period === 'week') {
+    return 'Top apps this week';
+  }
+  if (period === 'month') {
+    return 'Top apps this month';
+  }
+  return 'Top apps today';
+}
+
+function formatUsageRange(range: {start: Date; end: Date}): string {
+  const endDate = new Date(range.end.getTime() - 1);
+  return `${localDateKey(range.start)} to ${localDateKey(endDate)}`;
+}
+
 function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): string | null {
   if (!generatedKey || !confirmation) {
     return null;
@@ -2039,6 +2064,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
   const [isChecking, setIsChecking] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [usagePeriod, setUsagePeriod] = useState<Period>('day');
   const [goalName, setGoalName] = useState('Weekly attention');
   const [goalPeriod, setGoalPeriod] = useState<'day' | 'week'>('week');
   const [goalMinutes, setGoalMinutes] = useState('300');
@@ -2073,19 +2099,24 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 
   async function refreshUsage() {
     setIsRefreshing(true);
-    setMessage(null);
-    const range = getPeriodRange(new Date(), 'day');
+    const range = getPeriodRange(new Date(), usagePeriod);
+    const dayRanges = getLocalDayRanges(range);
+    setMessage(`Reading ${appTimePeriodLabel(usagePeriod).toLowerCase()} app time...`);
     try {
-      const rawRecords = await usageAccess.query(range.start.getTime(), range.end.getTime());
-      const records = assignUsageRangeDate(rawRecords, range.start.getTime());
-      const snapshots = aggregateUsage(records, new Date().toISOString());
+      const sourceReadAt = new Date().toISOString();
+      const dailyRecords: Array<{records: UsageRecord[]; rangeStartMillis: number}> = [];
+      for (const dayRange of dayRanges) {
+        const rawRecords = await usageAccess.query(dayRange.start.getTime(), dayRange.end.getTime());
+        dailyRecords.push({records: rawRecords, rangeStartMillis: dayRange.start.getTime()});
+      }
+      const snapshots = aggregateUsagePeriod(dailyRecords, sourceReadAt);
       await replaceUsageSnapshots({
         snapshots,
-        localDates: new Set([localDateKey(range.start)]),
+        localDates: getLocalDateKeys(range),
         rangeStartMillis: range.start.getTime(),
         rangeEndMillis: range.end.getTime(),
       });
-      setMessage(`${snapshots.length} app records read from Android.`);
+      setMessage(`${snapshots.length} app records read for ${appTimePeriodLabel(usagePeriod).toLowerCase()}.`);
     } catch {
       setMessage('Android could not provide usage data. Check permission and try again.');
     } finally {
@@ -2093,17 +2124,19 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
     }
   }
 
-  const today = localDateKey(new Date());
-  const allTodaySnapshots = data.usageSnapshots
-    .filter(snapshot => snapshot.localDate === today)
+  const range = getPeriodRange(new Date(), usagePeriod);
+  const periodDates = getLocalDateKeys(range);
+  const periodLabel = appTimePeriodLabel(usagePeriod);
+  const allPeriodSnapshots = data.usageSnapshots
+    .filter(snapshot => periodDates.has(snapshot.localDate))
     .sort((left, right) => right.durationSeconds - left.durationSeconds);
-  const todaySnapshots = allTodaySnapshots.filter(snapshot => snapshot.included);
-  const totalSeconds = todaySnapshots.reduce((total, snapshot) => total + snapshot.durationSeconds, 0);
+  const totalSeconds = sumUsage(data.usageSnapshots, periodDates);
+  const todaySeconds = sumUsage(data.usageSnapshots, new Set([localDateKey(new Date())]));
   const weekRange = getPeriodRange(new Date(), 'week');
   const weekDates = getLocalDateKeys(weekRange);
   const weeklySeconds = sumUsage(data.usageSnapshots, weekDates);
   const activeGoal = data.timeGoals.find(goal => !goal.isArchived && goal.period === goalPeriod);
-  const goalSeconds = goalPeriod === 'day' ? totalSeconds : weeklySeconds;
+  const goalSeconds = goalPeriod === 'day' ? todaySeconds : weeklySeconds;
 
   async function saveGoal() {
     const minutes = Number.parseInt(goalMinutes, 10);
@@ -2140,20 +2173,29 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
         </View>
       ) : (
         <>
+          <SectionTitle title="Report period" />
+          <View style={styles.formCard}>
+            <Text style={styles.cardDetail}>Selected range: {formatUsageRange(range)}. Refresh reads each local day once and commits the result together.</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="Day" selected={usagePeriod === 'day'} onPress={() => setUsagePeriod('day')} />
+              <SegmentButton label="Week" selected={usagePeriod === 'week'} onPress={() => setUsagePeriod('week')} />
+              <SegmentButton label="Month" selected={usagePeriod === 'month'} onPress={() => setUsagePeriod('month')} />
+            </View>
+          </View>
           <SummaryCard
-            title="Today"
+            title={periodLabel}
             value={formatDuration(totalSeconds)}
-            detail={data.usageRead.lastReadAt ? `Last read ${formatDate(data.usageRead.lastReadAt)}` : 'No read yet'}
-            action={isRefreshing ? 'Reading...' : 'Refresh usage'}
+            detail={`${formatUsageRange(range)}. ${data.usageRead.lastReadAt ? `Last read ${formatDate(data.usageRead.lastReadAt)}` : 'No read yet'}`}
+            action={isRefreshing ? 'Reading...' : 'Refresh selected period'}
             disabled={isRefreshing}
             onPress={refreshUsage}
           />
           {message && <Text style={styles.successText}>{message}</Text>}
-          <SectionTitle title="Top apps today" />
-          {allTodaySnapshots.length === 0 ? (
-            <EmptyState text="No app-time data has been read for today." />
+          <SectionTitle title={appTimeTopAppsLabel(usagePeriod)} />
+          {allPeriodSnapshots.length === 0 ? (
+            <EmptyState text={`No app-time data has been read for ${periodLabel.toLowerCase()}.`} />
           ) : (
-            allTodaySnapshots.slice(0, 10).map(snapshot => (
+            allPeriodSnapshots.slice(0, 10).map(snapshot => (
               <View key={snapshot.id} style={styles.listRow}>
                 <View style={styles.listBody}>
                   <Text style={[styles.listTitle, !snapshot.included && styles.completedText]}>{snapshot.displayName}</Text>

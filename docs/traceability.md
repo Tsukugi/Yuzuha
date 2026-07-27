@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android encrypted-backup-file-bound pass.
+Status: Traceability baseline through the Android App-Time-period pass.
 
 ## Authoritative source by concern
 
@@ -34,6 +34,8 @@ Status: Traceability baseline through the Android encrypted-backup-file-bound pa
 ## Requirement evidence rule
 
 An item is complete only when its requirement row, source specification, implementation, test, and release gate agree. A green unit test does not prove permission, migration, accessibility, privacy, or rollback behavior unless that layer is tested too.
+
+Current App Time evidence: `TIME-03` maps to `AppTimeScreen`, `getLocalDayRanges`, `aggregateUsagePeriod`, `src/shared/usage.test.ts`, the emulator Day/Week/Month selector and Week refresh smoke, and the 2026-07-27 App-Time-period release note. The feature adds no schema and remains local-only.
 
 ## Open decision register
 

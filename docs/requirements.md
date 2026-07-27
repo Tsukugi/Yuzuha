@@ -38,7 +38,7 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | --- | --- | --- |
 | TIME-01 | The app explains and links to Android Usage Access settings. | A user can reach the system settings from the empty state. |
 | TIME-02 | The app reads usage totals only after permission is granted. | No usage query runs before the permission check. |
-| TIME-03 | The app shows period totals, per-app totals, and last-read time. | The display states the selected date range and data age. |
+| TIME-03 | The app shows period totals, per-app totals, and last-read time. | Android offers Today, This week, and This month; the display states the selected local date range and data age, and a refresh reads the bounded local days before one final save. |
 | TIME-04 | The user can exclude apps from summaries. | Exclusions apply to future dashboard totals and are visible in settings. |
 | TIME-05 | Usage reads are deterministic for a timezone and date range. | Re-reading the same system data produces the same result. |
 
@@ -167,7 +167,7 @@ Implemented and verified:
 
 - `MONEY-06` foundation: seeded accounts/categories plus user-created accounts/categories;
 - `TIME-01` and `TIME-02`: Android Usage Access explanation, settings link, permission check, and query gate;
-- `TIME-03`: daily total, top-app list, last-read time, and source freshness;
+- `TIME-03`: selected-period total, top-app list, exact local range, last-read time, and source freshness;
 - `TIME-05`: day-range normalization and deterministic local-date aggregation;
 - `CORE-04`: current-month money totals and local-day app-time grouping;
 - schema 1 to schema 2 migration with a regression test.

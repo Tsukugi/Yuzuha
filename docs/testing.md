@@ -1,14 +1,21 @@
 # Testing strategy
 
-Status: Current test strategy through the Android encrypted-backup-file-bound pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android App-Time-period pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 45 Jest suites and 188 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- The current suite is 45 Jest suites and 191 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
+
+## App Time period evidence
+
+- Focused usage tests cover local Day/Week/Month range splitting and aggregation from separate local-day query results.
+- Emulator `emulator-5554`: Usage Access was granted; Day, Week, and Month selectors showed the correct local range, and a Week refresh completed with `0 app records read for this week.` and a saved last-read time.
+- The refresh path made bounded sequential day queries and called the AppStore replacement once after all queries completed. The emulator log had no filtered fatal or ReactNativeJS errors.
+- Phone `42adce68`: release App Time cold launch showed the honest Usage Access unavailable state with no filtered app errors. UI automation is blocked by the device policy.
 
 ## Task reminder evidence
 

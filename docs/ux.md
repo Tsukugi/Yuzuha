@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android encrypted-backup-file-bound pass.
+Status: Current Android MVP through the Android App-Time-period pass.
 
 ## Navigation
 
@@ -193,4 +193,4 @@ The App Time screen also has local Focus sessions. The user can start one manual
 
 ## Phase 2 shipped flow: App Time
 
-Home shows `Not connected` and `Set up access` until the user grants Android Usage Access. The flow opens the system Usage Access screen, returns to Yuzuha, checks permission again, and exposes `Refresh usage`. A successful read shows today’s duration, the last-read date, and top app rows. A failed or empty read names the source and leaves the rest of the app usable.
+Home shows `Not connected` and `Set up access` until the user grants Android Usage Access. The flow opens the system Usage Access screen, returns to Yuzuha, checks permission again, and exposes a report-period selector for Today, This week, or This month. A successful read shows the selected local date range, duration, last-read date, and top app rows. Refresh reads each local day once and commits the result together. A failed or empty read names the source and leaves the rest of the app usable.

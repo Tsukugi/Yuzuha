@@ -9,6 +9,12 @@ describe('period helpers', () => {
     expect(range.end).toEqual(new Date(2026, 6, 27));
   });
 
+  it('ends a daylight-saving day at the next local midnight', () => {
+    const range = getPeriodRange(new Date(2026, 2, 8, 15, 30), 'day');
+    expect(range.end.getHours()).toBe(0);
+    expect(localDateKey(range.end)).toBe('2026-03-09');
+  });
+
   it('starts weeks on Monday', () => {
     const range = getPeriodRange(now, 'week');
     expect(range.start).toEqual(new Date(2026, 6, 20));

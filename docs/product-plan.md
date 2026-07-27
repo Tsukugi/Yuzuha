@@ -69,7 +69,7 @@ Home also offers Quick capture. The menu routes to the existing Money, Notes, an
 ### App time
 
 - Explain Android Usage Access before asking for it.
-- Show daily totals and a per-app breakdown for a selected period.
+- Show daily totals and a per-app breakdown for Today, This week, or This month.
 - Show when the data was last read and which apps were included.
 - Allow the user to exclude apps from the dashboard.
 - Keep the raw usage data local.
