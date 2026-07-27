@@ -67,6 +67,7 @@ describe('encrypted backups', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sourceNoteId: 'note_secret',
+      recurrenceRuleId: null,
       createdAt,
       updatedAt: createdAt,
     });

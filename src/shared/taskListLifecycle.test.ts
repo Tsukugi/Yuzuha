@@ -8,7 +8,7 @@ import {
   updateTaskListRecord,
   validateTaskListDraft,
 } from './taskListLifecycle';
-import type {TaskList} from '../types/domain';
+import type {TaskList, TaskRecurrenceRule} from '../types/domain';
 
 describe('task list lifecycle rules', () => {
   const inbox: TaskList = {
@@ -57,6 +57,21 @@ describe('task list lifecycle rules', () => {
     expect(setTaskListArchived(lists, work.id, true).find(list => list.id === work.id)?.isArchived).toBe(true);
     expect(setTaskListArchived(setTaskListArchived(lists, work.id, true), work.id, false).find(list => list.id === work.id)?.isArchived).toBe(false);
     expect(() => deleteTaskListRecord(lists, [task], work.id)).toThrow(/tasks use/i);
+    const recurrence: TaskRecurrenceRule = {
+      id: 'rule_1',
+      title: 'Review',
+      details: '',
+      priority: 'normal',
+      listId: work.id,
+      cadence: 'week',
+      interval: 1,
+      nextOccurrenceLocalDate: '2026-07-27',
+      missedOccurrencePolicy: 'all',
+      isPaused: false,
+      createdAt: '2026-07-27T12:00:00.000Z',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    };
+    expect(() => deleteTaskListRecord(lists, [], work.id, [recurrence])).toThrow(/recurring tasks use/i);
     expect(deleteTaskListRecord(lists, [], work.id)).toEqual([inbox]);
     expect(() => deleteTaskListRecord(lists, [], TASK_INBOX_LIST_ID)).toThrow(/Inbox/i);
   });

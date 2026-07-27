@@ -14,6 +14,7 @@ import type {
   SavedSearch,
   Task,
   TaskList,
+  TaskRecurrenceRule,
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
@@ -35,6 +36,7 @@ export interface JsonImportRecordCounts {
   attachments: number;
   savedSearches: number;
   taskLists: number;
+  taskRecurrences: number;
   tasks: number;
   usageSnapshots: number;
   timeGoals: number;
@@ -68,7 +70,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 15) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 16) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -90,7 +92,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 15 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 16 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -105,6 +107,7 @@ function validateAppData(data: AppData): void {
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
   validateUniqueIds('task lists', data.taskLists);
+  validateUniqueIds('task recurrence rules', data.taskRecurrences);
   validateUniqueIds('tasks', data.tasks);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
@@ -113,6 +116,7 @@ function validateAppData(data: AppData): void {
   const categoryIds = new Set(data.categories.map(category => category.id));
   const noteIds = new Set(data.notes.map(note => note.id));
   const taskListIds = new Set(data.taskLists.map(taskList => taskList.id));
+  const taskRecurrenceIds = new Set(data.taskRecurrences.map(rule => rule.id));
   const moneyById = new Map(data.money.map(entry => [entry.id, entry]));
   const splitLineIds = new Set<string>();
 
@@ -145,7 +149,8 @@ function validateAppData(data: AppData): void {
     }
     taskListNames.add(normalizedName);
   });
-  data.tasks.forEach(task => validateTask(task, taskListIds));
+  data.taskRecurrences.forEach(rule => validateTaskRecurrence(rule, taskListIds));
+  data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds));
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
   data.timeGoals.forEach(validateTimeGoal);
@@ -283,7 +288,19 @@ function validateTaskList(taskList: TaskList): void {
   }
 }
 
-function validateTask(task: Task, taskListIds: Set<string>): void {
+function validateTaskRecurrence(rule: TaskRecurrenceRule, taskListIds: Set<string>): void {
+  validateId(rule.id, 'task recurrence rule');
+  if (typeof rule.title !== 'string' || !rule.title.trim() || typeof rule.details !== 'string' ||
+      (rule.priority !== 'low' && rule.priority !== 'normal' && rule.priority !== 'high') ||
+      !taskListIds.has(rule.listId) || !isRecurrenceCadence(rule.cadence) || !Number.isSafeInteger(rule.interval) ||
+      rule.interval < 1 || rule.interval > 365 || !isValidLocalDate(rule.nextOccurrenceLocalDate) ||
+      !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) || typeof rule.isPaused !== 'boolean' ||
+      !isIsoDate(rule.createdAt) || !isIsoDate(rule.updatedAt)) {
+    throw new JsonImportError(`Task recurrence rule ${rule.id} has invalid fields.`);
+  }
+}
+
+function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: Set<string>): void {
   validateId(task.id, 'task');
   if (typeof task.title !== 'string' || typeof task.details !== 'string' ||
       (task.status !== 'open' && task.status !== 'completed') ||
@@ -291,6 +308,7 @@ function validateTask(task: Task, taskListIds: Set<string>): void {
       (task.priority !== 'low' && task.priority !== 'normal' && task.priority !== 'high') ||
       !taskListIds.has(task.listId) ||
       (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||
+      (task.recurrenceRuleId !== null && !taskRecurrenceIds.has(task.recurrenceRuleId)) ||
       !isIsoDate(task.createdAt) || !isIsoDate(task.updatedAt)) {
     throw new JsonImportError(`Task ${task.id} has invalid fields.`);
   }
@@ -419,6 +437,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,
     taskLists: data.taskLists.length,
+    taskRecurrences: data.taskRecurrences.length,
     tasks: data.tasks.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,

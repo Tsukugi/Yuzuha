@@ -59,6 +59,8 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | TASK-03 | The user can view overdue, today, upcoming, and completed tasks. | Each view uses one documented timezone and completion rule. |
 | TASK-04 | The user can create, rename, archive, restore, and delete custom task lists. | Inbox cannot be archived/deleted, and a list with tasks cannot be deleted. |
 
+Current implementation extension: the user can create, pause/resume, and delete date-based recurring task rules. Startup creates due open tasks using the stored All, One, or Skip missed-occurrence policy. A task list with a rule cannot be deleted.
+
 ## Quality requirements
 
 - Android MVP target: the current supported Android release and the two previous major releases, subject to the final minimum API decision.

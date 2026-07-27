@@ -14,6 +14,7 @@ import type {
   SavedSearch,
   Task,
   TaskList,
+  TaskRecurrenceRule,
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
@@ -168,6 +169,7 @@ type RecordType =
   | 'attachment'
   | 'saved_search'
   | 'task_list'
+  | 'task_recurrence'
   | 'task'
   | 'usage_snapshot'
   | 'time_goal'
@@ -373,6 +375,7 @@ export function decodeAppData(
   data.attachments = [];
   data.savedSearches = [];
   data.taskLists = [];
+  data.taskRecurrences = [];
   data.tasks = [];
   data.usageSnapshots = [];
   data.usageExcludedPackages = [];
@@ -441,6 +444,9 @@ export function decodeAppData(
       case 'task_list':
         data.taskLists.push(payload as TaskList);
         break;
+      case 'task_recurrence':
+        data.taskRecurrences.push(payload as TaskRecurrenceRule);
+        break;
       case 'task': {
         const taskPayload = payload as Task;
         data.tasks.push({
@@ -448,6 +454,7 @@ export function decodeAppData(
           sourceNoteId: taskPayload.sourceNoteId ?? null,
           priority: taskPayload.priority ?? 'normal',
           listId: taskPayload.listId ?? 'task_list_inbox',
+          recurrenceRuleId: taskPayload.recurrenceRuleId ?? null,
         });
         break;
       }
@@ -574,6 +581,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),
     ...data.taskLists.map(taskList => record('task_list', taskList.id, taskList, taskList.updatedAt)),
+    ...data.taskRecurrences.map(rule => record('task_recurrence', rule.id, rule, rule.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),

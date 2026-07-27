@@ -46,6 +46,7 @@ import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
+import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
@@ -2165,7 +2166,7 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen() {
-  const {data, addTask, updateTask, deleteTask, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList} = useAppStore();
+  const {data, addTask, updateTask, deleteTask, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2180,6 +2181,16 @@ function TasksScreen() {
   const [editingListName, setEditingListName] = useState('');
   const [taskListError, setTaskListError] = useState<string | null>(null);
   const [busyListId, setBusyListId] = useState<string | null>(null);
+  const [ruleTitle, setRuleTitle] = useState('');
+  const [ruleDetails, setRuleDetails] = useState('');
+  const [rulePriority, setRulePriority] = useState<TaskPriority>('normal');
+  const [ruleListId, setRuleListId] = useState(TASK_INBOX_LIST_ID);
+  const [ruleCadence, setRuleCadence] = useState<RecurrenceCadence>('week');
+  const [ruleInterval, setRuleInterval] = useState('1');
+  const [ruleNextDate, setRuleNextDate] = useState(localDateKey(new Date()));
+  const [rulePolicy, setRulePolicy] = useState<MissedOccurrencePolicy>('all');
+  const [taskRecurrenceError, setTaskRecurrenceError] = useState<string | null>(null);
+  const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
 
   if (!data) {
     return null;
@@ -2267,6 +2278,73 @@ function TasksScreen() {
     setEditingListId(null);
     setEditingListName('');
     setTaskListError(null);
+  }
+
+  function resetRuleForm() {
+    setRuleTitle('');
+    setRuleDetails('');
+    setRulePriority('normal');
+    setRuleListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
+    setRuleCadence('week');
+    setRuleInterval('1');
+    setRuleNextDate(localDateKey(new Date()));
+    setRulePolicy('all');
+  }
+
+  async function saveRule() {
+    const draft: TaskRecurrenceDraft = {
+      title: ruleTitle,
+      details: ruleDetails,
+      priority: rulePriority,
+      listId: ruleListId,
+      cadence: ruleCadence,
+      interval: Number(ruleInterval.trim()),
+      nextOccurrenceLocalDate: ruleNextDate.trim(),
+      missedOccurrencePolicy: rulePolicy,
+    };
+    const validationError = validateTaskRecurrenceDraft(draft, taskListIds);
+    if (validationError) {
+      setTaskRecurrenceError(validationError);
+      return;
+    }
+    setTaskRecurrenceError(null);
+    try {
+      await addTaskRecurrence(draft);
+      resetRuleForm();
+    } catch (ruleError) {
+      setTaskRecurrenceError(ruleError instanceof Error ? ruleError.message : 'The recurring task could not be saved.');
+    }
+  }
+
+  async function toggleRule(rule: typeof currentData.taskRecurrences[number]) {
+    setBusyRuleId(rule.id);
+    setTaskRecurrenceError(null);
+    try {
+      await setTaskRecurrencePaused(rule.id, !rule.isPaused);
+    } catch (ruleError) {
+      setTaskRecurrenceError(ruleError instanceof Error ? ruleError.message : 'The recurring task could not be updated.');
+    } finally {
+      setBusyRuleId(null);
+    }
+  }
+
+  async function removeRule(ruleId: string) {
+    setBusyRuleId(ruleId);
+    setTaskRecurrenceError(null);
+    try {
+      await deleteTaskRecurrence(ruleId);
+    } catch (ruleError) {
+      setTaskRecurrenceError(ruleError instanceof Error ? ruleError.message : 'The recurring task could not be deleted.');
+    } finally {
+      setBusyRuleId(null);
+    }
+  }
+
+  function confirmDeleteRule(rule: typeof currentData.taskRecurrences[number]) {
+    Alert.alert('Delete recurring task?', `Delete the rule for "${rule.title}"? Existing tasks stay.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeRule(rule.id)},
+    ]);
   }
 
   async function saveList() {
@@ -2380,6 +2458,53 @@ function TasksScreen() {
                 <TextButton label="Rename" onPress={() => startEditingList(taskList)} disabled={busyListId !== null} />
                 <TextButton label={taskList.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleListArchived(taskList)} disabled={busyListId !== null} />
                 {taskList.id !== TASK_INBOX_LIST_ID && <TextButton label="Delete" danger onPress={() => confirmDeleteList(taskList)} disabled={busyListId !== null} />}
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Recurring tasks</Text>
+          <TextInput accessibilityLabel="Recurring task title" placeholder="What repeats?" placeholderTextColor={colors.muted} style={styles.input} value={ruleTitle} onChangeText={setRuleTitle} />
+          <Text style={styles.formLabel}>Details (optional)</Text>
+          <TextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
+          <Text style={styles.formLabel}>First due date</Text>
+          <TextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} autoCapitalize="none" />
+          <Text style={styles.formLabel}>Repeat every</Text>
+          <View style={styles.segmentRow}>
+            <TextInput accessibilityLabel="Recurring task interval" placeholder="1" placeholderTextColor={colors.muted} style={[styles.input, styles.smallInput]} value={ruleInterval} onChangeText={setRuleInterval} keyboardType="number-pad" />
+            <SegmentButton label="Day" selected={ruleCadence === 'day'} onPress={() => setRuleCadence('day')} />
+            <SegmentButton label="Week" selected={ruleCadence === 'week'} onPress={() => setRuleCadence('week')} />
+            <SegmentButton label="Month" selected={ruleCadence === 'month'} onPress={() => setRuleCadence('month')} />
+          </View>
+          <Text style={styles.formLabel}>Priority</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Low" selected={rulePriority === 'low'} onPress={() => setRulePriority('low')} />
+            <SegmentButton label="Normal" selected={rulePriority === 'normal'} onPress={() => setRulePriority('normal')} />
+            <SegmentButton label="High" selected={rulePriority === 'high'} onPress={() => setRulePriority('high')} />
+          </View>
+          <Text style={styles.formLabel}>List</Text>
+          <View style={styles.segmentRow}>
+            {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
+              <SegmentButton key={taskList.id} label={taskList.name} selected={ruleListId === taskList.id} onPress={() => setRuleListId(taskList.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Missed occurrences</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="All" selected={rulePolicy === 'all'} onPress={() => setRulePolicy('all')} />
+            <SegmentButton label="One" selected={rulePolicy === 'one'} onPress={() => setRulePolicy('one')} />
+            <SegmentButton label="Skip" selected={rulePolicy === 'skip'} onPress={() => setRulePolicy('skip')} />
+          </View>
+          {taskRecurrenceError && <Text style={styles.errorText}>{taskRecurrenceError}</Text>}
+          <PrimaryButton label="Add recurring task" onPress={() => void saveRule()} />
+          {currentData.taskRecurrences.map(rule => (
+            <View key={rule.id} style={styles.taskListRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{rule.title}</Text>
+                <Text style={styles.listMeta}>{rule.cadence} every {rule.interval} · next {rule.nextOccurrenceLocalDate} · missed {rule.missedOccurrencePolicy}{rule.isPaused ? ' · Paused' : ''}</Text>
+              </View>
+              <View style={styles.taskListActions}>
+                <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} onPress={() => void toggleRule(rule)} disabled={busyRuleId !== null} />
+                <TextButton label="Delete" danger onPress={() => confirmDeleteRule(rule)} disabled={busyRuleId !== null} />
               </View>
             </View>
           ))}
@@ -2666,6 +2791,7 @@ const styles = StyleSheet.create({
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
   input: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
+  smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
   primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 10, marginTop: 16, paddingVertical: 13},
   primaryButtonText: {color: colors.accentText, fontSize: 15, fontWeight: '800'},

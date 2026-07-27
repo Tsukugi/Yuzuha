@@ -18,6 +18,14 @@ import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/not
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createTaskRecord, deleteTaskRecord, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
+import {
+  createTaskRecurrenceRecord,
+  deleteTaskRecurrenceRecord,
+  expandDueTaskRecurrences,
+  setTaskRecurrencePaused,
+  validateTaskRecurrenceDraft,
+  type TaskRecurrenceDraft,
+} from '../shared/taskRecurrence';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -93,6 +101,9 @@ interface AppStoreValue {
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
   setTaskListArchived: (listId: string, isArchived: boolean) => Promise<void>;
   deleteTaskList: (listId: string) => Promise<void>;
+  addTaskRecurrence: (input: TaskRecurrenceDraft) => Promise<void>;
+  setTaskRecurrencePaused: (ruleId: string, isPaused: boolean) => Promise<void>;
+  deleteTaskRecurrence: (ruleId: string) => Promise<void>;
   createTaskFromNote: (noteId: string) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   setUsagePermission: (permission: UsagePermissionState, errorCode?: string | null) => Promise<void>;
@@ -119,12 +130,14 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     store
       .load()
       .then(async loaded => {
-        const expanded = expandDueMoneyRecurrences(loaded, localDateKey(new Date()));
-        if (expanded.data !== loaded) {
-          await store.save(expanded.data);
+        const todayLocalDate = localDateKey(new Date());
+        const moneyExpanded = expandDueMoneyRecurrences(loaded, todayLocalDate);
+        const taskExpanded = expandDueTaskRecurrences(moneyExpanded.data, todayLocalDate);
+        if (taskExpanded.data !== loaded) {
+          await store.save(taskExpanded.data);
         }
         if (mounted) {
-          setData(expanded.data);
+          setData(taskExpanded.data);
           setIsLoading(false);
         }
       })
@@ -626,7 +639,47 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const deleteTaskList = useCallback(
     async (listId: string) => {
-      await commit(current => ({...current, taskLists: deleteTaskListRecord(current.taskLists, current.tasks, listId)}));
+      await commit(current => ({...current, taskLists: deleteTaskListRecord(current.taskLists, current.tasks, listId, current.taskRecurrences)}));
+    },
+    [commit],
+  );
+
+  const addTaskRecurrence = useCallback(
+    async (input: TaskRecurrenceDraft) => {
+      await commit(current => {
+        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+        const validationError = validateTaskRecurrenceDraft(input, listIds);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const timestamp = new Date().toISOString();
+        const rule = createTaskRecurrenceRecord(input, createId('task_recurrence'), timestamp);
+        return expandDueTaskRecurrences(
+          {...current, taskRecurrences: [rule, ...current.taskRecurrences]},
+          localDateKey(new Date()),
+          timestamp,
+        ).data;
+      });
+    },
+    [commit],
+  );
+
+  const setTaskRecurrencePausedAction = useCallback(
+    async (ruleId: string, isPaused: boolean) => {
+      await commit(current => ({
+        ...current,
+        taskRecurrences: setTaskRecurrencePaused(current.taskRecurrences, ruleId, isPaused),
+      }));
+    },
+    [commit],
+  );
+
+  const deleteTaskRecurrence = useCallback(
+    async (ruleId: string) => {
+      await commit(current => ({
+        ...current,
+        ...deleteTaskRecurrenceRecord(current.taskRecurrences, current.tasks, ruleId),
+      }));
     },
     [commit],
   );
@@ -769,6 +822,9 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateTaskList,
       setTaskListArchived: setTaskListArchivedAction,
       deleteTaskList,
+      addTaskRecurrence,
+      setTaskRecurrencePaused: setTaskRecurrencePausedAction,
+      deleteTaskRecurrence,
       createTaskFromNote,
       toggleTask,
       setUsagePermission,
@@ -804,6 +860,9 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateTaskList,
       setTaskListArchivedAction,
       deleteTaskList,
+      addTaskRecurrence,
+      setTaskRecurrencePausedAction,
+      deleteTaskRecurrence,
       createTaskFromNote,
       data,
       error,

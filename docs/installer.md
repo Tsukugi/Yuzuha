@@ -103,7 +103,7 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 
 ## Developer note: local data starts after bundle verification
 
-The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository and imports legacy AsyncStorage data on first use. A database migration error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records.
+The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, imports legacy AsyncStorage data on first use, and expands due money and task rules before `MainApp` receives the workspace. A database migration or recurrence-expansion error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records.
 
 ## Developer note
 

@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(15);
+    expect(data?.schemaVersion).toBe(16);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(15);
+    expect(data?.schemaVersion).toBe(16);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,9 +297,36 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(15);
+    expect(data?.schemaVersion).toBe(16);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
+    expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
     expect(data?.tasks[0].listId).toBe('task_list_inbox');
+  });
+
+  it('adds the task recurrence collection and null links when opening schema 15 data', () => {
+    const legacy = {
+      ...emptyAppData(),
+      schemaVersion: 15 as const,
+      taskRecurrences: undefined,
+      tasks: [{
+        id: 'task_1',
+        title: 'Legacy task',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        sourceNoteId: null,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      }],
+    } as never;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(16);
+    expect(data?.taskRecurrences).toEqual([]);
+    expect(data?.tasks[0].recurrenceRuleId).toBeNull();
   });
 });

@@ -47,6 +47,7 @@ export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string
     priority: draft.priority,
     listId: draft.listId,
     sourceNoteId,
+    recurrenceRuleId: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

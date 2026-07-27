@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 15 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 16 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; notifications, normalized report, and sync tables remain future work.
 
 ## Storage rules
 
@@ -146,6 +146,7 @@ Global search is a derived view over `AppData` and adds no entity or migration. 
 | `listId` | UUID | Required task-list link. New tasks use the seeded `Inbox` list. |
 | `dueLocalDate` | `YYYY-MM-DD` nullable | No time-of-day in MVP. |
 | `sourceNoteId` | UUID nullable | Optional stable source-note link. It may point to a deleted note so the UI can show a deleted-source state. |
+| `recurrenceRuleId` | UUID nullable | Optional link to the task rule that generated this task. Deleting a rule keeps the task and clears this link. |
 | `completedAt` | UTC datetime nullable | Set when completed. |
 | `sortOrder` | integer | Stable ordering within a list. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
@@ -160,6 +161,23 @@ Global search is a derived view over `AppData` and adds no entity or migration. 
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
 The current task UI supports custom lists. The seeded `Inbox` list cannot be archived or deleted. Other lists can be archived and remain readable; deletion is allowed only when no task references the list.
+
+### Task recurrence rule
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. Generated task IDs use the stable rule ID and occurrence date. |
+| `title` / `details` | string | Copied into each generated open task. Title is required after trim. |
+| `priority` | enum | `low`, `normal`, or `high`. |
+| `listId` | UUID | Must reference an existing task list. |
+| `cadence` | enum | `day`, `week`, or `month`, using local calendar dates. |
+| `interval` | integer | Whole number from 1 to 365. |
+| `nextOccurrenceLocalDate` | `YYYY-MM-DD` | Next date to generate. |
+| `missedOccurrencePolicy` | enum | `all` creates every due task, `one` creates the first due task, and `skip` creates none; all advance beyond the full due range. |
+| `isPaused` | boolean | Paused rules do not expand. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+Rules expand during startup and rule creation. Notifications, background execution, templates, and editing one occurrence versus a series are planned.
 
 ### Preferences
 
@@ -189,7 +207,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 15 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, task lists, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 14 is migrated into app schema 15 without dropping records and remains the legacy import source for first open. Schema 10 notes receive an empty tag collection, schema 11 notes receive `isArchived: false`, schema 12 data receives an empty saved-search collection, schema 13 tasks receive `sourceNoteId: null`, and schema 14 tasks receive `priority: normal` and the seeded `Inbox` list. Old SQLite recurrence rows without a policy are read as `all`, old SQLite note rows without tags or archive state receive deterministic defaults, and old SQLite tasks without lifecycle fields receive the same task defaults. JSON restore accepts export schema 1, migrates supported app schemas, validates task-list links, task priority, task dates, and all previous record rules, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 16 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, task lists, task recurrence rules, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 15 is migrated into app schema 16 without dropping records and remains the legacy import source for first open. Schema 10 notes receive an empty tag collection, schema 11 notes receive `isArchived: false`, schema 12 data receives an empty saved-search collection, schema 13 tasks receive `sourceNoteId: null`, schema 14 tasks receive `priority: normal` and the seeded `Inbox` list, and schema 15 tasks receive `recurrenceRuleId: null` with an empty task-rule collection. Old SQLite recurrence rows without a policy are read as `all`, old SQLite note rows without tags or archive state receive deterministic defaults, and old SQLite tasks without lifecycle fields receive the same task defaults. JSON restore accepts export schema 1, migrates supported app schemas, validates task-list links, task recurrence links, task priority, task dates, and all previous record rules, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
 
 ## Export and deletion
 

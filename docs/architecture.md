@@ -1,10 +1,10 @@
 # Architecture
 
-Status: Core implementation through the task-lifecycle pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 15 task fields and task lists, schema 14 task source-note links, schema 13 saved searches with note tags and lifecycle fields, local title/body/tag/attachment-name search, local global search across supported workspace records, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; sync and advanced adapters remain planned.
+Status: Core implementation through the recurring-task pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 16 task recurrence rules, schema 15 task fields and task lists, schema 14 task source-note links, schema 13 saved searches with note tags and lifecycle fields, local title/body/tag/attachment-name search, local global search across supported workspace records, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; notifications, sync, and advanced adapters remain planned.
 
 ## System shape
 
-Task-list actions stay in the local AppStore boundary. List names are validated before save; list deletion checks task references before changing the workspace.
+Task-list actions stay in the local AppStore boundary. List names are validated before save; list deletion checks task and recurring-rule references before changing the workspace. Due task rules are expanded in the same startup save that expands money rules, before `MainApp` receives workspace data.
 
 Yuzuha uses a local-first feature architecture. The installer is a native-shell concern and runs before the JavaScript product shell is shown.
 
@@ -104,6 +104,8 @@ Saved searches are stored as typed `saved_search` JSON rows in `app_records`. Sc
 Global search is a derived local projection over the loaded `AppData`; it does not add a database table or index. The Search screen searches supported records in memory, hides archived records unless requested, and only searches included app-time snapshots after Usage Access is granted. Deleted records cannot match because deletion removes them from the local collections.
 
 Tasks created from notes store `sourceNoteId` in the task record. The source note is not changed, and a missing source ID remains valid so the Tasks screen can show `Deleted note` after the source is removed.
+
+Recurring tasks store their own title, details, priority, list, local cadence, interval, next date, missed-occurrence policy, and pause state. Startup expansion creates open task records for due dates and advances the rule beyond every missed date in one repository save. Notifications, background scheduling, templates, and series editing remain planned.
 
 ## Error boundaries
 

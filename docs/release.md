@@ -4,6 +4,15 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 recurring-task pass:
+
+- app data schema 16 adds task recurrence rules and nullable task `recurrenceRuleId` links;
+- Tasks can create, pause/resume, and delete local day/week/month rules with intervals from 1 to 365;
+- rule creation and startup expand due rules with deterministic local dates and explicit All, One, or Skip missed-occurrence behavior;
+- schema 15 data receives an empty rule collection and `recurrenceRuleId: null`; JSON, encrypted backup, and SQLite paths validate and persist the new records;
+- task-list deletion rejects lists referenced by a recurring rule;
+- no permission, native, or minimum-OS change; notifications and background scheduling remain planned.
+
 2026-07-27 task-list management pass:
 
 - Tasks can create, rename, archive/restore, and delete custom lists locally;
@@ -11,7 +20,7 @@ Status: Planned release process.
 - Inbox cannot be archived or deleted, and lists with tasks cannot be deleted;
 - JSON restore and SQLite persistence keep task-list records and validate task references;
 - no schema, permission, or minimum-OS change;
-- known limits remain recurring task rules, reminders, account recovery, and remote sync.
+- known limits remain notifications, background scheduling, account recovery, and remote sync.
 
 2026-07-27 task-lifecycle pass:
 

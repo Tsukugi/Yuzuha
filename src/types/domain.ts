@@ -145,6 +145,22 @@ export interface Task {
   priority: TaskPriority;
   listId: string;
   sourceNoteId: string | null;
+  recurrenceRuleId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskRecurrenceRule {
+  id: string;
+  title: string;
+  details: string;
+  priority: TaskPriority;
+  listId: string;
+  cadence: RecurrenceCadence;
+  interval: number;
+  nextOccurrenceLocalDate: string;
+  missedOccurrencePolicy: MissedOccurrencePolicy;
+  isPaused: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -178,7 +194,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 15;
+  schemaVersion: 16;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -191,6 +207,7 @@ export interface AppData {
   attachments: Attachment[];
   savedSearches: SavedSearch[];
   taskLists: TaskList[];
+  taskRecurrences: TaskRecurrenceRule[];
   tasks: Task[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
@@ -209,7 +226,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 15,
+  schemaVersion: 16,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -238,6 +255,7 @@ export const emptyAppData = (): AppData => ({
       updatedAt: '2026-01-01T00:00:00.000Z',
     },
   ],
+  taskRecurrences: [],
   tasks: [],
   usageSnapshots: [],
   usageRead: {

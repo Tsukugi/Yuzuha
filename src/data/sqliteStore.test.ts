@@ -298,6 +298,20 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.taskRecurrences.push({
+      id: 'task_recurrence_work',
+      title: 'Weekly review',
+      details: 'Keep it current.',
+      priority: 'normal',
+      listId: 'task_list_work',
+      cadence: 'week',
+      interval: 1,
+      nextOccurrenceLocalDate: '2026-08-02',
+      missedOccurrencePolicy: 'all',
+      isPaused: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.tasks.push({
       id: 'task_from_note',
       title: 'A note',
@@ -307,6 +321,7 @@ describe('SQLite workspace store', () => {
       priority: 'normal',
       listId: 'task_list_work',
       sourceNoteId: 'note_1',
+      recurrenceRuleId: null,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });

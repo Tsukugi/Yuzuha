@@ -998,3 +998,38 @@ Known limits:
 - moving tasks in bulk, recurring task rules, reminders, account recovery, and remote sync remain planned.
 
 Next pass: account/device recovery design behind the local-first boundary.
+
+## Implementation review: recurring-task pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 16 with typed task recurrence rules and nullable task `recurrenceRuleId` links;
+- date-only day/week/month rules with intervals from 1 to 365 and explicit All, One, or Skip handling for missed dates;
+- deterministic startup and rule-creation expansion that creates open tasks once and advances each rule beyond the full due range;
+- Tasks UI controls to add, pause/resume, and delete rules;
+- deletion keeps existing generated tasks and clears their rule links;
+- task-list deletion rejects lists referenced by a recurring rule;
+- SQLite, legacy AsyncStorage, JSON export/restore, and encrypted-backup validation for schema 16;
+- migration and round-trip tests for schema 15 to 16, recurrence expansion, list references, and SQLite persistence.
+
+Known limits:
+
+- no notifications, background scheduling, series editing, templates, task occurrence history, account recovery, or sync;
+- phone `42adce68` remains launch-only because device policy blocks touch automation.
+
+Review evidence:
+
+```text
+Focused recurrence tests  PASS - recurrence, migration, list, import, backup, and SQLite coverage
+Full Jest                PASS - 28 suites, 118 tests
+npm run lint             PASS
+npm run typecheck        PASS
+Bundle check             PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator UI smoke        PASS - recurring rule created immediately with a generated task, persisted after restart, and showed next date 2026-08-03
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: account/device recovery design, with notifications and remote sync kept behind separate contracts.

@@ -43,6 +43,7 @@ describe('JSON restore validation', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sourceNoteId: 'note_missing',
+      recurrenceRuleId: null,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -97,7 +98,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(15);
+    expect(preview.data.schemaVersion).toBe(16);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -108,7 +109,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(15);
+    expect(migrated?.schemaVersion).toBe(16);
     expect(migrated?.attachments).toEqual([]);
   });
 

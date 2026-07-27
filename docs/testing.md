@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the task-list management pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the recurring-task pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -16,7 +16,8 @@ Use Jest for pure logic:
 - global-search matching, stable result ordering, archived-record filtering, and Usage Access visibility rules;
 - note-to-task creation, source preservation, source-link migration, JSON/backup validation, and SQLite round trips;
 - task draft validation, task identity-preserving edits, task deletion rules, date filters, schema 15 migration, JSON/backup validation, and SQLite round trips;
-- task-list name validation, identity-preserving rename, archive protection, reference-safe deletion, and import validation;
+- task-list name validation, identity-preserving rename, archive protection, reference-safe deletion for tasks and recurring rules, and import validation;
+- recurring task draft validation, deterministic all/one/skip expansion, pause/delete behavior, schema 15 to 16 migration, JSON validation, and SQLite round trips;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -34,11 +35,11 @@ Use an in-memory or temporary database adapter to test:
 
 ### Android device tests
 
-Current evidence for the task-list management pass:
+Current evidence for the recurring-task pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
-- emulator UI dump showed the schema 15 task form, Inbox list, priority controls, due-date field, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed the schema 16 task form, Inbox list, priority controls, due-date field, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;

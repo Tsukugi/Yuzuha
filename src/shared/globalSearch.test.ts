@@ -33,6 +33,7 @@ describe('global search', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sourceNoteId: null,
+      recurrenceRuleId: null,
       createdAt: '2026-07-27T00:00:00.000Z',
       updatedAt: '2026-07-27T00:00:00.000Z',
     });

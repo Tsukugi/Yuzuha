@@ -262,3 +262,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Allow local custom list create, rename, archive/restore, and delete. Normalize names by trim and case-insensitive uniqueness, cap names at 60 characters, protect Inbox from archive/delete, and reject deletion while any task references the list.
 - Reason: These rules keep task links valid without moving tasks silently or adding a recovery workflow. Archived lists remain readable so existing tasks do not lose context.
 - Consequence: Moving tasks between lists, recurring task lists, synced list changes, account recovery, and remote sync remain separate work.
+
+## DEC-039: Keep recurring tasks local and deterministic in schema 16
+
+- Context: Basic task lifecycle and custom lists exist, but repeating work needs a clear local data contract before reminders or sync.
+- Decision: Add a separate task recurrence rule with a title, details, priority, list link, day/week/month cadence, interval, next local date, pause state, and explicit `all`, `one`, or `skip` missed-occurrence policy. Expand due rules on startup and rule creation using deterministic `task_<rule>_<date>` IDs. Deleting a rule keeps generated tasks and clears their rule links.
+- Reason: Date-only expansion is testable across restarts and does not require notification permission, background execution, an account, or a server. Stable IDs make re-opening idempotent.
+- Consequence: Notifications, background scheduling, series editing, templates, task occurrence history, sync, account recovery, and device enrollment remain separate work.
