@@ -2,7 +2,7 @@
 
 Current schema boundary: the latest Android slice accepts app schema 29 and repository schema 3 only. The payee pass adds current payee records and `payeeId` persistence; older schemas remain rejected without migration.
 
-Status: Core implementation through the Android Money-filtered-totals pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, optional local reminder times on recurring task rules, local task projects with optional task links, same-list task parent links with cycle rejection and child promotion, local task templates with archive controls and direct task creation, local app groups and manual focus sessions, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a device-local 14-day task agenda, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open with a pre-read file bound, schema 28 data validation, notification settings and task reminders, Android `Open`, idempotent `Complete`, configurable `Snooze`, separate global and recurring-task reminder switches, Android text/file share capture, Android static launcher shortcuts, the Android summary widget, strict local Android deep links, the one-way dated-task calendar draft, strict current-format money CSV import, current JSON export file restore, and Money filtered list/totals exist; selected timezone/week-start preferences, calendar reads/event IDs, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
+Status: Core implementation through the Android Money-report-filter pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, reminders, projects, templates, focus sessions, tasks, notes, attachments, share/capture adapters, launcher/widget/deep-link adapters, current-format imports/restores, selected App Time/Home/Review periods, Money filters/totals, and Money report filters exist. The accepted latest-only data boundary is app schema 29 and repository schema 3. Selected timezone/week-start preferences, calendar reads/event IDs, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
 
 Current pass addition: Data tools also support bounded strict current-format money CSV import, current JSON export file restore, and pre-read bounds for encrypted backup files through the existing document-picker boundary. See the file adapter notes below.
 
@@ -17,6 +17,10 @@ Current Review addition: `ReviewScreen` uses `buildReviewSummary` over a selecte
 Current Money filter addition: `MoneyScreen` applies one typed derived filter to the existing non-split entry list and its totals. It supports All/Day/Week/Month, expense/income, category, and account choices, keeps an archived selected category or account visible, groups totals by currency without floating-point math, and adds no schema, migration, network request, or background operation.
 
 Current Payee addition: `MoneyScreen` offers optional payee selection, local payee creation, and archive controls. `MoneyEntry.payeeId` is validated against the current payee records, included in current JSON/CSV/encrypted-backup data, stored in the normalized SQLite money table, and searched by the global search adapter. The pass raises the accepted app schema to 29 and repository schema to 3, with no compatibility migration.
+
+Current Money report addition: `MoneyReportScreen` applies one derived local period/type/category/account filter to source entries and split lines. It discloses the exact range, selected filters, transfer/out-of-range exclusions, and per-currency scope. Category matching uses stable category IDs, while the report adds no stored filter state or background operation.
+
+Detailed schema numbers in older implementation paragraphs below are historical pass notes. The current boundary above is authoritative: app schema 29 and repository schema 3 only.
 
 ## System shape
 
@@ -104,7 +108,7 @@ Hide platform APIs behind typed interfaces. The first Android adapter is app usa
 5. Installer checks size, SHA-256, signature, and bundle compatibility.
 6. Installer atomically promotes the verified file and writes the activation record.
 7. JavaScript starts from the selected verified bundle.
-8. `MainApp` opens the local database, requires repository schema 2 and app schema 28, and renders the first screen.
+8. `MainApp` opens the local database, requires repository schema 3 and app schema 29, and renders the first screen.
 
 If a step fails, the installer returns a named result such as `offline-local`, `invalid-remote`, or `no-verified-bundle`. The UI may explain the result, but it must not silently run an unverified file. See `installer.md`.
 

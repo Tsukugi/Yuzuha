@@ -8,8 +8,8 @@ function entry(overrides: Partial<MoneyEntry>): MoneyEntry {
     kind: overrides.kind ?? 'expense',
     amountMinor: overrides.amountMinor ?? 100,
     currency: overrides.currency ?? 'EUR',
-    accountId: 'account_everyday',
-    categoryId: 'category_food',
+    accountId: overrides.accountId ?? 'account_everyday',
+    categoryId: overrides.categoryId ?? 'category_food',
     payeeId: null,
     category: overrides.category ?? 'Food',
     note: '',
@@ -73,5 +73,34 @@ describe('money reports', () => {
       {name: 'Food', expenseMinor: 700, incomeMinor: 0},
       {name: 'Transport', expenseMinor: 300, incomeMinor: 0},
     ]);
+  });
+
+  it('applies type, category, and account filters to entries and split lines', () => {
+    const splitEntry = entry({id: 'split_parent', amountMinor: 1000, category: 'Split'});
+    splitEntry.splitId = 'split_1';
+    const split: MoneySplit = {
+      id: 'split_1',
+      parentEntryId: splitEntry.id,
+      lines: [
+        {id: 'line_food', categoryId: 'category_food', category: 'Food', amountMinor: 700, note: ''},
+        {id: 'line_transport', categoryId: 'category_transport', category: 'Transport', amountMinor: 300, note: ''},
+      ],
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    };
+    const report = buildMoneyReport(
+      [
+        entry({id: 'ordinary_food', amountMinor: 500}),
+        entry({id: 'ordinary_other_account', amountMinor: 900, accountId: 'account_savings'}),
+        entry({id: 'income_food', kind: 'income', amountMinor: 1200}),
+        splitEntry,
+      ],
+      getPeriodRange(new Date(2026, 6, 26), 'month'),
+      [split],
+      {kind: 'expense', categoryId: 'category_food', accountId: 'account_everyday'},
+    );
+
+    expect(report.currencies[0]).toMatchObject({currency: 'EUR', expenseMinor: 1200, incomeMinor: 0});
+    expect(report.currencies[0].categories).toEqual([{name: 'Food', expenseMinor: 1200, incomeMinor: 0}]);
   });
 });

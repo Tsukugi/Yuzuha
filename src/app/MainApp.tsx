@@ -18,7 +18,7 @@ import {formatDuration} from '../shared/duration';
 import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey, periodLabel} from '../shared/period';
 import type {Period} from '../shared/period';
 import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
-import {buildMoneyReport} from '../shared/moneyReport';
+import {buildMoneyReport, emptyMoneyReportFilter, type MoneyReportFilter} from '../shared/moneyReport';
 import {emptyMoneyEntryFilter, filterMoneyEntries, summarizeMoneyEntries, type MoneyFilterPeriod} from '../shared/moneyFilter';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
@@ -2193,8 +2193,17 @@ function TransferRow({
 
 function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [period, setPeriod] = useState<Period>('month');
+  const [kind, setKind] = useState<MoneyReportFilter['kind']>(emptyMoneyReportFilter.kind);
+  const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
+  const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
   const range = getPeriodRange(new Date(), period);
-  const report = buildMoneyReport(data.money, range, data.splits);
+  const filter: MoneyReportFilter = {kind, categoryId, accountId};
+  const report = buildMoneyReport(data.money, range, data.splits, filter);
+  const filterCategories = data.categories.filter(category => !category.isArchived || category.id === categoryId);
+  const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === accountId);
+  const kindLabel = kind === 'all' ? 'All types' : kind === 'expense' ? 'Expenses' : 'Income';
+  const categoryLabel = categoryId === 'all' ? 'All categories' : data.categories.find(category => category.id === categoryId)?.name ?? 'Selected category';
+  const accountLabel = accountId === 'all' ? 'All accounts' : data.accounts.find(account => account.id === accountId)?.name ?? 'Selected account';
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -2208,8 +2217,34 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
         <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
         <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
       </View>
+      <View style={styles.formCard}>
+        <Text style={styles.formLabel}>Report scope</Text>
+        <Text style={styles.cardDetail}>Range: {formatPeriodRange(range)}</Text>
+        <Text style={styles.cardDetail}>Filters: {kindLabel}, {categoryLabel}, {accountLabel}</Text>
+        <Text style={styles.cardDetail}>Excluded: transfers and entries outside the range; currencies stay in separate cards.</Text>
+      </View>
+      <Text style={styles.formLabel}>Type</Text>
+      <View style={styles.chipWrap}>
+        <ChipButton label="All" selected={kind === 'all'} onPress={() => setKind('all')} />
+        <ChipButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
+        <ChipButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
+      </View>
+      <Text style={styles.formLabel}>Category</Text>
+      <View style={styles.chipWrap}>
+        <ChipButton label="All" selected={categoryId === 'all'} onPress={() => setCategoryId('all')} />
+        {filterCategories.map(category => (
+          <ChipButton key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
+        ))}
+      </View>
+      <Text style={styles.formLabel}>Account</Text>
+      <View style={styles.chipWrap}>
+        <ChipButton label="All" selected={accountId === 'all'} onPress={() => setAccountId('all')} />
+        {filterAccounts.map(account => (
+          <ChipButton key={account.id} label={account.name} selected={accountId === account.id} onPress={() => setAccountId(account.id)} />
+        ))}
+      </View>
       {report.currencies.length === 0 ? (
-        <EmptyState text="No money entries for this period." />
+        <EmptyState text="No money entries match this report scope." />
       ) : (
         report.currencies.map(currencyReport => (
           <View key={currencyReport.currency} style={styles.formCard}>

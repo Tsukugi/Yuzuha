@@ -315,7 +315,7 @@ Not yet complete: end-of-month anchor preferences, recurring task rules, notific
 
 ## Latest-only data boundary
 
-This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 28, export schema 1 carrying app schema 28 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
+This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 29, export schema 1 carrying app schema 29 data, encrypted backup schema 2, and SQLite repository schema 3 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schemas, old CSV versions, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
 
 Current task extension: local projects support active/completed status, archive/restore, and reference-safe deletion. Tasks can carry one optional project link, and JSON, encrypted backup, SQLite, and global search preserve and validate that link.
 
@@ -350,6 +350,8 @@ Current Review extension: Home opens a read-only Review for Today, This week, or
 Current Money filter extension: Money history supports All/Day/Week/Month period, expense/income type, category, and account filters. One derived filter drives the existing non-split list and currency-separated minor-unit totals, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
 
 Current Money payee extension: Money supports optional stable `payeeId` references, local payee creation, case-insensitive unique names, archive controls, and current JSON/CSV/encrypted-backup/SQLite/global-search preservation. App schema 29 and repository schema 3 are current; older versions are rejected rather than migrated.
+
+Current Money report extension: `MONEY-11` now has Day/Week/Month local range filters plus type, category, and account filters. The report discloses its exact range, active filters, and exclusions; split lines match by stable category ID, transfers are excluded, and currencies stay separate. This adds no schema, migration, network request, or background process.
 
 ## Local recovery-key backup implementation review
 

@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android Money-payee pass.
+Status: Traceability baseline through the Android Money-report-filter pass.
 
 ## Authoritative source by concern
 
@@ -44,6 +44,8 @@ Current Home evidence: `CROSS-01` maps to `HomeScreen`, shared `period.ts` helpe
 Current Review evidence: `CROSS-03` maps to `ReviewScreen`, `buildReviewSummary`, `src/shared/review.test.ts`, emulator Today/Week/Month Review smoke, and the 2026-07-27 period-review release note. The screen is source-backed and read-only; persisted reflection and review history remain planned.
 
 Current Money payee evidence: `MONEY-06` maps to `MoneyScreen`, `MoneyPayee`, `moneyPayee.ts`, AppStore payee actions, JSON/CSV/SQLite validation, global-search coverage, the 2026-07-27 Money-payee release note, and emulator Payee-form smoke. Payees use stable IDs; archived records remain valid for existing money entries.
+
+Current Money report evidence: `MONEY-11` maps to `MoneyReportScreen`, `MoneyReportFilter`, `moneyReport.ts`, split-line projection tests, the 2026-07-27 Money-report-filter release note, and emulator report-scope smoke. The filter is derived; transfers and out-of-range entries are excluded and currencies remain separate.
 
 ## Open decision register
 

@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android Money-filtered-totals pass.
+Status: Current Android MVP through the Android Money-report-filter pass.
 
 ## Navigation
 
@@ -200,5 +200,7 @@ Home uses the same selector. It shows the selected local range above the cards. 
 Home's `Review this period` action opens a read-only source-backed Review. Review offers the same Day/Week/Month choices, shows the exact local range, and links each summary card back to Money, App Time, Tasks, or Notes. It does not save a reflection or review history yet.
 
 Money entry history has a compact filter card with Period, Type, Category, and Account controls. The list title shows the matching count, and a currency-separated Filtered totals section shows count, spending, income, and net. An empty result says that no entries match. Filters affect the current history list and totals, and the existing split-entry display rules stay unchanged.
+
+Money reports have Day/Week/Month controls and All/Expense/Income, Category, and Account chips. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
 
 The Money form has an optional Payee selector with `No payee`, active payees, and an archived selected payee only while editing old history. The management card can create and archive payees; duplicate names show an inline store error and no record is written.

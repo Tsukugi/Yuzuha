@@ -521,3 +521,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add local payee records with trimmed case-insensitively unique names, archive instead of delete, and nullable `payeeId` references on money entries. Persist them in current JSON, encrypted backups, CSV, SQLite repository schema 3, and global search. Raise app schema to 29 and reject older versions.
 - Reason: Stable IDs preserve history and keep local data portable without adding a provider, account, sync, or background contract. Latest-only schema rejection is safe because the app has no external users.
 - Consequence: New and edited entries can choose only active payees; existing entries retain archived references. Recurring rules and split parents currently use no payee, and provider payees, sync, and migration remain future work.
+
+## DEC-076: Keep Money report filters derived and split-aware
+
+- Status: Accepted.
+- Context: `MONEY-11` requires reports to explain scope while split entries must remain category-accurate and currencies must never be mixed.
+- Decision: Apply one local period/type/category/account filter to report source entries. Apply the category part to split lines by stable `categoryId`, exclude transfers and out-of-range entries, and group results into separate currency cards. Keep filter state in the screen only.
+- Reason: A single deterministic projection keeps the scope card, totals, and split categories aligned without adding persisted preferences, schema, migration, network work, or a background process.
+- Consequence: Filter state resets when the report screen is left. Payee filters, saved report views, cross-screen filter state, and sync remain future work.

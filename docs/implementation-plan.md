@@ -2181,3 +2181,33 @@ Known limits:
 - payees are local records and are not synced or linked to provider transactions;
 - recurring money rules and split-entry creation currently use no payee and leave generated/parent `payeeId` null;
 - payee state is not a separate filter; it is shown in the entry form, history row, and global search.
+
+## Implementation review: Android Money-report-filter pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- one typed report filter for local period, income/expense kind, category ID, and account ID;
+- split-line category matching without counting the split parent twice;
+- explicit report scope text for range, filters, exclusions, and separate currencies;
+- no schema, migration, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - report filter and split-line tests; 4 focused tests
+Full Jest                PASS - 48 suites, 204 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - report scope, filters, filtered scope, and empty state rendered
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped after smoke
+```
+
+Known limits:
+
+- report filters are screen state and reset when the report screen is left;
+- payee filtering, saved report views, cross-screen filter state, and sync remain future work.

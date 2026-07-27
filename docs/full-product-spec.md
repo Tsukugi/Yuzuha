@@ -56,6 +56,8 @@ Current Money list behavior: Money history can be filtered by All/Day/Week/Month
 
 Current Money payee behavior: An entry may select one active local payee or `No payee`. Payee names are trimmed and case-insensitively unique; archived payees remain valid for existing entries but cannot be selected for new entries. The reference is stable across current JSON, encrypted backup, SQLite, CSV, and global search paths.
 
+Current Money report behavior: The report screen offers Day, Week, and Month local ranges plus All/Expense/Income, category, and account filters. It shows the exact range and active filters, says that transfers and out-of-range entries are excluded, keeps currencies in separate cards, and applies category filters to split lines by stable line category ID. Filter state is local screen state only.
+
 ### Review behavior
 
 The user can open a daily, weekly, or monthly review. A review contains:

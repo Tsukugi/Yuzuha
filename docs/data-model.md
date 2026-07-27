@@ -4,6 +4,8 @@ The Android summary widget is a live non-database projection over the current ta
 
 Current schema boundary: app schema 29 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. Older schemas are rejected without migration.
 
+The detailed status paragraph below retains earlier schema numbers as historical implementation notes. The current data boundary above is authoritative.
+
 Status: The local SQLite repository boundary is implemented with app data schema 28 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, optional local reminder times on recurring task rules, task projects and optional task-to-project links, task templates with archive controls and direct task creation, task parent links with cycle rejection and child promotion, app groups and manual focus sessions with optional record links, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a derived device-local 14-day task agenda, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, separate global and recurring-task reminder category pauses, Android `Open`, idempotent `Complete`, and configurable `Snooze` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, validated JSON restore, and ephemeral Android text-share capture are live; selected timezone/week-start settings, broader notification automation, file/URI share records, app blocking, normalized report, and sync tables remain future work.
 
 Android task calendar drafts are external editor input only. A dated task supplies title, details, and a local all-day date to the system calendar editor; no calendar row, event ID, permission grant, schema field, export field, or background state is stored.
@@ -157,6 +159,8 @@ Period Review is another derived view over the same records. Its summary is calc
 Money entry filters and totals are another derived view over current money records. The selected period, type, category, and account live in screen state; one filtered non-split entry set drives both the list and currency-separated minor-unit totals. They are not saved as fields, preferences, migrations, or sync objects.
 
 Payees are current local source records with `id`, trimmed unique `name`, archive state, and timestamps. Money entries carry nullable `payeeId` references; validation rejects missing payee IDs and archives preserve referenced history. Payees are included in current exports and backups and add no sync, account, or background state.
+
+Money report scope is a derived projection over money entries and split lines. Its local period, kind, category ID, and account ID filters are not persisted; transfers are not report inputs, out-of-range entries are skipped, split lines match their own category IDs, and currencies are grouped separately. No schema field or migration is added.
 
 ### Task
 

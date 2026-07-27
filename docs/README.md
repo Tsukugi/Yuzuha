@@ -4,6 +4,8 @@ This is the product and engineering baseline for Yuzuha. Core code exists throug
 
 The latest current-schema pass adds local payees and nullable stable payee IDs on money entries. It uses app schema 29 and repository schema 3; old versions remain intentionally rejected.
 
+The current Money report pass adds derived period, type, category, and account filters with an explicit scope disclosure. Split-line categories are matched by stable IDs, transfers stay out of reports, and currencies remain separate.
+
 ## Read in this order
 
 1. [Product plan](product-plan.md) - why the product exists, full scope, phases, metrics, and review questions.

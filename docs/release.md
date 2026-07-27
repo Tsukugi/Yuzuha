@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android Money-report-filter pass:
+
+- Money reports now filter by local Day/Week/Month range, type, category, and account in one derived scope;
+- the scope card states the exact range, active filters, transfer/out-of-range exclusions, and separate-currency behavior; split lines use their own category IDs;
+- no schema, migration, network request, worker, or background process was added;
+- focused report tests, full Jest (48 suites, 204 tests), lint, typecheck, bundle validation, release APK build, emulator report-control smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android Money-payee pass:
 
 - Money entries can select an optional local payee by stable ID; payees have trimmed case-insensitively unique names, archive controls, and visible form/list state;

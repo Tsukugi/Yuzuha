@@ -32,7 +32,7 @@ The current release supports one optional local reminder on each open task and o
 
 Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data. The notification content intent carries the stable task ID; cold starts use the initial-intent getter, and warm app launches use a native event before the Tasks form loads that task.
 
-The full-product target adds explicit timezone and synced notification state. The current local Task reminders flag, recurring-task reminders flag, quiet-hours pair, recurring-rule reminder time, task parent link, task template fields, task dependency condition, and local snooze-duration policy are in app schema 28; broader category automation and timezone contracts remain planned.
+The full-product target adds explicit timezone and synced notification state. The current local Task reminders flag, recurring-task reminders flag, quiet-hours pair, recurring-rule reminder time, task parent link, task template fields, task dependency condition, local snooze-duration policy, and payee records are in app schema 29; broader category automation and timezone contracts remain planned.
 
 The current overall app schema is 29 after the Money payee pass. Notification data and behavior are unchanged by that pass.
 

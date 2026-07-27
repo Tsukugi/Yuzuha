@@ -1,6 +1,18 @@
 import {isInPeriod} from './period';
-import type {MoneyEntry, MoneySplit} from '../types/domain';
+import type {MoneyEntry, MoneyKind, MoneySplit} from '../types/domain';
 import type {PeriodRange} from './period';
+
+export interface MoneyReportFilter {
+  kind: MoneyKind | 'all';
+  categoryId: string | 'all';
+  accountId: string | 'all';
+}
+
+export const emptyMoneyReportFilter: MoneyReportFilter = {
+  kind: 'all',
+  categoryId: 'all',
+  accountId: 'all',
+};
 
 export interface MoneyCategoryReport {
   name: string;
@@ -21,19 +33,33 @@ export interface MoneyReport {
   currencies: MoneyCurrencyReport[];
 }
 
-export function buildMoneyReport(entries: MoneyEntry[], range: PeriodRange, splits: MoneySplit[] = []): MoneyReport {
+export function buildMoneyReport(
+  entries: MoneyEntry[],
+  range: PeriodRange,
+  splits: MoneySplit[] = [],
+  filter: MoneyReportFilter = emptyMoneyReportFilter,
+): MoneyReport {
   const currencies = new Map<string, MoneyCurrencyReport>();
   const splitByParent = new Map(splits.map(split => [split.parentEntryId, split]));
   for (const entry of entries) {
     if (!isInPeriod(entry.occurredAt, range)) {
       continue;
     }
+    if ((filter.kind !== 'all' && entry.kind !== filter.kind) ||
+        (filter.accountId !== 'all' && entry.accountId !== filter.accountId)) {
+      continue;
+    }
     const split = splitByParent.get(entry.id);
     const reportLines = split?.lines.map(line => ({
+      categoryId: line.categoryId,
       amountMinor: line.amountMinor,
       category: line.category,
-    })) ?? [{amountMinor: entry.amountMinor, category: entry.category}];
-    for (const line of reportLines) {
+    })) ?? [{categoryId: entry.categoryId, amountMinor: entry.amountMinor, category: entry.category}];
+    const filteredLines = reportLines.filter(line => filter.categoryId === 'all' || line.categoryId === filter.categoryId);
+    if (filteredLines.length === 0) {
+      continue;
+    }
+    for (const line of filteredLines) {
       const currencyReport = currencies.get(entry.currency) ?? {
         currency: entry.currency,
         incomeMinor: 0,
