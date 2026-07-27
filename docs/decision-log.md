@@ -227,3 +227,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Match the existing case-insensitive local query against attachment file names as metadata. Do not inspect attachment bytes, add an index, or send search input anywhere. Keep archived filtering and pinned-first ordering unchanged.
 - Reason: File names are useful local metadata and the existing attachment model already validates them. Searching names adds retrieval value without widening privacy or file-parsing scope.
 - Consequence: Saved searches, global search, and synced attachment indexes remain future contracts.
+
+## DEC-034: Persist local saved searches in app schema 13
+
+- Context: Notes search now covers note and attachment metadata, but repeating useful local queries needs a small durable record without introducing a global index or sync state.
+- Decision: Store a trimmed saved-search name, trimmed note query, archived-note visibility flag, and created/updated timestamps in typed `saved_search` rows. Limit names to 80 characters and queries to 200 characters. Migrate schema 12 data to schema 13 with an empty collection. Include saved searches in JSON exports, encrypted backups, SQLite persistence, and validated restore.
+- Reason: The record is small, local, portable, and deterministic. Apply restores the query and archived visibility together; Delete requires confirmation.
+- Consequence: This is local Notes search only. Global search, synced saved searches, and remote sync remain separate work.

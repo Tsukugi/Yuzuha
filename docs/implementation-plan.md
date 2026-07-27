@@ -836,3 +836,35 @@ Android builds     PASS - debug and release APKs with Java 17
 Emulator smoke     PASS - `BackupSmoke` found by `yuzuha-attachment.txt`
 Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
 ```
+
+## Implementation review: saved-search pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 13 with deterministic schema 12 to schema 13 migration;
+- typed local saved-search records with trimmed names, trimmed note queries, archived-note visibility, and 80/200 character limits;
+- SQLite and legacy AsyncStorage persistence, JSON export/restore validation, and password/recovery encrypted-backup round trips;
+- Notes controls to save the current non-empty query, Apply it, and Delete it after confirmation;
+- documentation and release notes for the local-only search boundary.
+
+Known limits:
+
+- global search, synced notes, account recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 7 suites, 42 tests
+Full Jest          PASS - 23 suites, 100 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - `Work` saved for `work`, persisted after restart, applied, and deleted after confirmation
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: global search design or account/device recovery, with remote sync kept behind the local-first boundary.

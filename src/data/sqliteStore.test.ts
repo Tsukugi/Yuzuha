@@ -283,6 +283,14 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.savedSearches.push({
+      id: 'saved_search_1',
+      name: 'Work notes',
+      query: 'work',
+      showArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));

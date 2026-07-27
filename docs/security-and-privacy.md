@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the attachment filename search pass. This document is not a legal privacy policy.
+Status: Security baseline through the saved-search pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -28,6 +28,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Encrypted backup schema 2 keeps attachment IDs, sizes, checksums, and bytes inside authenticated ciphertext. Backup creation verifies private files before encryption, and restore verifies the decoded bytes before staging them. Plain JSON exports do not contain attachment bytes.
 - Android attachment preview validates the canonical file path under the app-private `attachments` directory, supports only the declared image/PDF/plain-text MIME set, and shares a single read-only `FileProvider` URI with the selected external viewer. It does not expose the attachment directory or broad storage access.
 - Note search runs over local title, body, normalized tag values, and attachment file names only. It never reads attachment bytes for search. Search input and results are not sent to a service or written to telemetry.
+- Saved-search names, queries, and archived-note visibility are local workspace data. They are included only when the user creates an export or encrypted backup, and are not sent to telemetry or sync because sync is not implemented.
 
 ## Android Usage Access
 

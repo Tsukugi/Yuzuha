@@ -11,6 +11,7 @@ import type {
   MoneySplit,
   MoneyTransfer,
   Note,
+  SavedSearch,
   Task,
   TimeGoal,
   UsageSnapshot,
@@ -18,6 +19,7 @@ import type {
 import {ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_NAME_LENGTH, ATTACHMENT_MAX_PER_NOTE, isSha256, isSupportedAttachmentMimeType} from './attachment';
 import {isValidLocalDate} from './moneyRecurrence';
 import {validateNoteTags} from './noteSearch';
+import {validateSavedSearchDraft} from './savedSearch';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -29,6 +31,7 @@ export interface JsonImportRecordCounts {
   categories: number;
   notes: number;
   attachments: number;
+  savedSearches: number;
   tasks: number;
   usageSnapshots: number;
   timeGoals: number;
@@ -62,7 +65,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 12) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 13) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -84,7 +87,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 12 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 13 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -97,6 +100,7 @@ function validateAppData(data: AppData): void {
   validateUniqueIds('categories', data.categories);
   validateUniqueIds('notes', data.notes);
   validateUniqueIds('attachments', data.attachments);
+  validateUniqueIds('saved searches', data.savedSearches);
   validateUniqueIds('tasks', data.tasks);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
@@ -126,6 +130,7 @@ function validateAppData(data: AppData): void {
       throw new JsonImportError(`Note ${attachment.noteId} has more than ${ATTACHMENT_MAX_PER_NOTE} attachments.`);
     }
   });
+  data.savedSearches.forEach(validateSavedSearch);
   data.tasks.forEach(validateTask);
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
@@ -243,6 +248,15 @@ function validateAttachment(attachment: Attachment, noteIds: Set<string>): void 
       !isSupportedAttachmentMimeType(attachment.mimeType) || !Number.isSafeInteger(attachment.byteSize) || attachment.byteSize <= 0 ||
       attachment.byteSize > ATTACHMENT_MAX_BYTES || !isSha256(attachment.sha256) || !isIsoDate(attachment.createdAt) || !isIsoDate(attachment.updatedAt)) {
     throw new JsonImportError(`Attachment ${attachment.id} has invalid fields.`);
+  }
+}
+
+function validateSavedSearch(savedSearch: SavedSearch): void {
+  validateId(savedSearch.id, 'saved search');
+  if (validateSavedSearchDraft(savedSearch) !== null ||
+      savedSearch.name !== savedSearch.name.trim() || savedSearch.query !== savedSearch.query.trim() ||
+      !isIsoDate(savedSearch.createdAt) || !isIsoDate(savedSearch.updatedAt)) {
+    throw new JsonImportError(`Saved search ${savedSearch.id} has invalid fields.`);
   }
 }
 
@@ -377,6 +391,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     categories: data.categories.length,
     notes: data.notes.length,
     attachments: data.attachments.length,
+    savedSearches: data.savedSearches.length,
     tasks: data.tasks.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,

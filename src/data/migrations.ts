@@ -1,6 +1,7 @@
 import {emptyAppData} from '../types/domain';
 import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, UsageRead, UsageSnapshot} from '../types/domain';
 import {validateNoteTags} from '../shared/noteSearch';
+import {validateSavedSearchDraft} from '../shared/savedSearch';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -100,29 +101,37 @@ interface StoredV7 {
   timeGoals: AppData['timeGoals'];
 }
 
-interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'attachments'> {
+interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'attachments' | 'savedSearches'> {
   schemaVersion: 8;
   recurrences: Array<Omit<MoneyRecurrenceRule, 'missedOccurrencePolicy'>>;
 }
 
-interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments'> {
+interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments' | 'savedSearches'> {
   schemaVersion: 9;
 }
 
 type StoredNoteV11 = Omit<AppData['notes'][number], 'isArchived'>;
 
-interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notes'> {
+interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches'> {
   schemaVersion: 10;
   notes: StoredNoteV11[];
 }
 
-interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notes'> {
+interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches'> {
   schemaVersion: 11;
   notes: StoredNoteV11[];
 }
 
+interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches'> {
+  schemaVersion: 12;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
 }
 
 export function isStoredV1(value: unknown): value is StoredV1 {
@@ -332,7 +341,7 @@ export function isStoredV11(value: unknown): value is StoredV11 {
   );
 }
 
-export function isStoredV12(value: unknown): value is AppData {
+export function isStoredV12(value: unknown): value is StoredV12 {
   return (
     isRecord(value) &&
     value.schemaVersion === 12 &&
@@ -347,6 +356,43 @@ export function isStoredV12(value: unknown): value is AppData {
     Array.isArray(value.notes) &&
     value.notes.every(note => isRecord(note) && validateNoteTags(note.tags) && typeof note.isPinned === 'boolean' && typeof note.isArchived === 'boolean') &&
     Array.isArray(value.attachments) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV13(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 13 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
+    Array.isArray(value.splits) &&
+    Array.isArray(value.budgets) &&
+    Array.isArray(value.recurrences) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    value.notes.every(note => isRecord(note) && validateNoteTags(note.tags) && typeof note.isPinned === 'boolean' && typeof note.isArchived === 'boolean') &&
+    Array.isArray(value.attachments) &&
+    Array.isArray(value.savedSearches) &&
+    value.savedSearches.every(savedSearch => {
+      if (!isRecord(savedSearch) || typeof savedSearch.id !== 'string' || typeof savedSearch.name !== 'string' ||
+          typeof savedSearch.query !== 'string' || typeof savedSearch.showArchived !== 'boolean' ||
+          typeof savedSearch.createdAt !== 'string' || typeof savedSearch.updatedAt !== 'string') {
+        return false;
+      }
+      return validateSavedSearchDraft({
+        name: savedSearch.name,
+        query: savedSearch.query,
+        showArchived: savedSearch.showArchived,
+      }) === null && savedSearch.name === savedSearch.name.trim() && savedSearch.query === savedSearch.query.trim() &&
+        isIsoDate(savedSearch.createdAt) && isIsoDate(savedSearch.updatedAt);
+    }) &&
     Array.isArray(value.tasks) &&
     Array.isArray(value.usageSnapshots) &&
     isRecord(value.usageRead) &&
@@ -469,7 +515,7 @@ export function migrateV10ToV11(value: StoredV10): StoredV11 {
   };
 }
 
-export function migrateV11ToV12(value: StoredV11): AppData {
+export function migrateV11ToV12(value: StoredV11): StoredV12 {
   return {
     ...value,
     schemaVersion: 12,
@@ -477,36 +523,47 @@ export function migrateV11ToV12(value: StoredV11): AppData {
   };
 }
 
+export function migrateV12ToV13(value: StoredV12): AppData {
+  return {
+    ...value,
+    schemaVersion: 13,
+    savedSearches: [],
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV12(value)) {
+  if (isStoredV13(value)) {
     return value;
   }
+  if (isStoredV12(value)) {
+    return migrateV12ToV13(value);
+  }
   if (isStoredV11(value)) {
-    return migrateV11ToV12(value);
+    return migrateV12ToV13(migrateV11ToV12(value));
   }
   if (isStoredV10(value)) {
-    return migrateV11ToV12(migrateV10ToV11(value));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(value)));
   }
   if (isStoredV9(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value)));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
   }
   if (isStoredV8(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
   }
   if (isStoredV7(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value)))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
   }
   if (isStoredV6(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value))))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
   }
   if (isStoredV5(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value)))))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
   }
   if (isStoredV4(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value))))))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
   }
   if (isStoredV3(value)) {
-    return migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value)))))))));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
   }
   if (isStoredV2(value)) {
     const v3 = migrateV2ToV3(value);
@@ -517,7 +574,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV11ToV12(migrateV10ToV11(v10));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   if (isStoredV1(value)) {
     const v2 = migrateV1ToV2(value);
@@ -529,7 +586,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV11ToV12(migrateV10ToV11(v10));
+    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   return null;
 }

@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 saved-search pass:
+
+- app data schema 13 adds local saved-search records and migrates schema 12 with an empty saved-search collection;
+- Notes can save the current trimmed query and archived-note visibility, then Apply or Delete a saved search;
+- saved searches are included in JSON exports, encrypted backups, SQLite persistence, and confirmed restore validation;
+- no permission or minimum-OS change;
+- known limits remain global search, synced notes, account recovery, and remote sync.
+
 2026-07-27 note lifecycle pass:
 
 - app data schema 12 adds `isArchived`, with schema 11 notes migrating to `false`;

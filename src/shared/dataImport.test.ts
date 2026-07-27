@@ -26,6 +26,14 @@ describe('JSON restore validation', () => {
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
+    data.savedSearches.push({
+      id: 'saved_search_1',
+      name: 'Local notes',
+      query: 'local',
+      showArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
 
     const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
 
@@ -33,7 +41,22 @@ describe('JSON restore validation', () => {
     expect(preview.recordCounts.notes).toBe(1);
     expect(preview.recordCounts.attachments).toBe(1);
     expect(preview.recordCounts.accounts).toBe(1);
-    expect(preview.totalRecords).toBe(10);
+    expect(preview.recordCounts.savedSearches).toBe(1);
+    expect(preview.totalRecords).toBe(11);
+  });
+
+  it('rejects saved searches that are not stored in normalized form', () => {
+    const data = emptyAppData();
+    data.savedSearches.push({
+      id: 'saved_search_1',
+      name: ' Local notes ',
+      query: ' local ',
+      showArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
   });
 
   it('migrates a supported schema 7 export before validation', () => {
@@ -48,7 +71,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(12);
+    expect(preview.data.schemaVersion).toBe(13);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -59,7 +82,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(12);
+    expect(migrated?.schemaVersion).toBe(13);
     expect(migrated?.attachments).toEqual([]);
   });
 

@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(12);
+    expect(data?.schemaVersion).toBe(13);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -269,5 +269,14 @@ describe('schema migrations', () => {
 
     expect(data.schemaVersion).toBe(12);
     expect(data.notes[0].isArchived).toBe(false);
+  });
+
+  it('adds an empty saved-search collection when opening schema 12 data', () => {
+    const legacy = {...emptyAppData(), schemaVersion: 12 as const};
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(13);
+    expect(data?.savedSearches).toEqual([]);
   });
 });

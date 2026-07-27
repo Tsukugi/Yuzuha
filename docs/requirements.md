@@ -347,7 +347,14 @@ Note lifecycle is implemented and verified:
 - archived notes are hidden by default, with an explicit Show archived notes control; pinned notes sort first;
 - deleting a note removes its attachment metadata and private attachment files.
 
-Not yet complete: saved searches, global search, synced notes, and remote sync.
+Saved-search controls are implemented and verified:
+
+- users can save the current local note query with a trimmed name and the current archived-note visibility mode;
+- users can Apply a saved search or delete it after confirmation;
+- names are limited to 80 characters and queries to 200 characters;
+- saved searches persist locally and are included in JSON and encrypted backup data.
+
+Not yet complete: global search, synced notes, and remote sync.
 
 ## Portable encrypted attachment implementation review
 

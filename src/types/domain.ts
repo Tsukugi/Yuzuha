@@ -117,6 +117,15 @@ export interface Attachment {
   updatedAt: string;
 }
 
+export interface SavedSearch {
+  id: string;
+  name: string;
+  query: string;
+  showArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -156,7 +165,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 12;
+  schemaVersion: 13;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -167,6 +176,7 @@ export interface AppData {
   categories: MoneyCategory[];
   notes: Note[];
   attachments: Attachment[];
+  savedSearches: SavedSearch[];
   tasks: Task[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
@@ -185,7 +195,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 12,
+  schemaVersion: 13,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -204,6 +214,7 @@ export const emptyAppData = (): AppData => ({
   categories: createDefaultCategories(),
   notes: [],
   attachments: [],
+  savedSearches: [],
   tasks: [],
   usageSnapshots: [],
   usageRead: {

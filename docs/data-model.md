@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 12 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 13 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -118,7 +118,19 @@ The implementation must choose one source-of-truth rule for `included` before co
 | `sha256` | lowercase hex | 64-character checksum of the stored file. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. Plain JSON exports contain attachment metadata only. New encrypted backup schema 2 payloads include verified attachment bytes, with a 32 MiB total attachment limit. Android preview does not add data fields: it validates this private path and exposes one file at a time through a read-only FileProvider URI. Local note search now also matches attachment file names; it does not inspect attachment bytes. Saved searches and synced attachment indexes remain planned.
+Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. Plain JSON exports contain attachment metadata only. New encrypted backup schema 2 payloads include verified attachment bytes, with a 32 MiB total attachment limit. Android preview does not add data fields: it validates this private path and exposes one file at a time through a read-only FileProvider URI. Local note search now also matches attachment file names; it does not inspect attachment bytes.
+
+### Saved search
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `id` | UUID | Primary key. |
+| `name` | string | Required after trim; maximum 80 characters. |
+| `query` | string | Required after trim; maximum 200 characters. It uses the local note search matcher. |
+| `showArchived` | boolean | Restored with the query and controls whether archived notes are included. |
+| `createdAt` / `updatedAt` | UTC datetime | Required. |
+
+Saved searches are local records. JSON exports and encrypted backups include them. Global search, synced indexes, and synced saved-search state remain planned.
 
 ### Task
 
@@ -163,7 +175,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 12 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 11 is migrated into app schema 12 without dropping records and remains the legacy import source for first open. Schema 10 notes receive an empty tag collection, and schema 11 notes receive `isArchived: false`. Old SQLite recurrence rows without a policy are read as `all`, and old SQLite note rows without tags or archive state receive their deterministic defaults. JSON restore accepts export schema 1, migrates supported app schemas, validates record IDs, references, timestamps, currencies, note tags, note lifecycle fields, attachment type/size/checksum rules, split totals, recurrence dates, and missed-occurrence policies, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 13 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 12 is migrated into app schema 13 without dropping records and remains the legacy import source for first open. Schema 10 notes receive an empty tag collection, schema 11 notes receive `isArchived: false`, and schema 12 data receives an empty saved-search collection. Old SQLite recurrence rows without a policy are read as `all`, and old SQLite note rows without tags or archive state receive their deterministic defaults. JSON restore accepts export schema 1, migrates supported app schemas, validates record IDs, references, timestamps, currencies, note tags, note lifecycle fields, saved-search limits, attachment type/size/checksum rules, split totals, recurrence dates, and missed-occurrence policies, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
 
 ## Export and deletion
 

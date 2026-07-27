@@ -11,6 +11,7 @@ import type {
   MoneySplitLine,
   MoneyTransfer,
   Note,
+  SavedSearch,
   Task,
   TimeGoal,
   UsageSnapshot,
@@ -164,6 +165,7 @@ type RecordType =
   | 'category'
   | 'note'
   | 'attachment'
+  | 'saved_search'
   | 'task'
   | 'usage_snapshot'
   | 'time_goal'
@@ -367,6 +369,7 @@ export function decodeAppData(
   data.categories = [];
   data.notes = [];
   data.attachments = [];
+  data.savedSearches = [];
   data.tasks = [];
   data.usageSnapshots = [];
   data.usageExcludedPackages = [];
@@ -428,6 +431,9 @@ export function decodeAppData(
       }
       case 'attachment':
         data.attachments.push(payload as Attachment);
+        break;
+      case 'saved_search':
+        data.savedSearches.push(payload as SavedSearch);
         break;
       case 'task':
         data.tasks.push(payload as Task);
@@ -550,6 +556,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
+    ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),

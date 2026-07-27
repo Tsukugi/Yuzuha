@@ -50,6 +50,14 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.savedSearches.push({
+      id: 'saved_search_secret',
+      name: 'Private search',
+      query: 'private',
+      showArchived: true,
+      createdAt,
+      updatedAt: createdAt,
+    });
 
     const attachmentFiles = [{
       id: 'attachment_secret',

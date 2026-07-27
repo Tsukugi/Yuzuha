@@ -15,6 +15,7 @@ import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
+import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -79,6 +80,8 @@ interface AppStoreValue {
   toggleNotePinned: (noteId: string) => Promise<void>;
   setNoteArchived: (noteId: string, isArchived: boolean) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
+  addSavedSearch: (input: SavedSearchDraft) => Promise<void>;
+  deleteSavedSearch: (savedSearchId: string) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: {title: string; details: string}) => Promise<void>;
@@ -460,6 +463,31 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit, data?.attachments],
   );
 
+  const addSavedSearch = useCallback(
+    async (input: SavedSearchDraft) => {
+      const validationError = validateSavedSearchDraft(input);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const savedSearch = createSavedSearch(input, createId('saved_search'), timestamp);
+      await commit(current => ({...current, savedSearches: [savedSearch, ...current.savedSearches]}));
+    },
+    [commit],
+  );
+
+  const deleteSavedSearch = useCallback(
+    async (savedSearchId: string) => {
+      await commit(current => {
+        if (!current.savedSearches.some(savedSearch => savedSearch.id === savedSearchId)) {
+          throw new Error('The saved search no longer exists.');
+        }
+        return {...current, savedSearches: current.savedSearches.filter(savedSearch => savedSearch.id !== savedSearchId)};
+      });
+    },
+    [commit],
+  );
+
   const addAttachment = useCallback(
     async (noteId: string, attachment: Attachment) => {
       await commit(current => {
@@ -630,6 +658,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       toggleNotePinned,
       setNoteArchived,
       deleteNote,
+      addSavedSearch,
+      deleteSavedSearch,
       addAttachment,
       deleteAttachment,
       addTask,
@@ -656,6 +686,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       toggleNotePinned,
       setNoteArchived,
       deleteNote,
+      addSavedSearch,
+      deleteSavedSearch,
       addAttachment,
       deleteAttachment,
       addTask,

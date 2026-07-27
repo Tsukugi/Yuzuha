@@ -44,7 +44,7 @@ import {normalizeNoteTags} from '../shared/noteSearch';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -577,6 +577,7 @@ function formatImportPreview(preview: JsonImportPreview): string {
     ['categories', 'categories'],
     ['notes', 'notes'],
     ['attachments', 'attachments'],
+    ['savedSearches', 'saved searches'],
     ['tasks', 'tasks'],
     ['usageSnapshots', 'app-time records'],
     ['timeGoals', 'time goals'],
@@ -1723,15 +1724,17 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 }
 
 function NotesScreen() {
-  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addAttachment, deleteAttachment} = useAppStore();
+  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [savedSearchName, setSavedSearchName] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
+  const [busySavedSearchId, setBusySavedSearchId] = useState<string | null>(null);
 
   if (!data) {
     return null;
@@ -1876,6 +1879,42 @@ function NotesScreen() {
     }
   }
 
+  async function saveSearch() {
+    setError(null);
+    try {
+      await addSavedSearch({name: savedSearchName, query: searchQuery, showArchived});
+      setSavedSearchName('');
+    } catch (savedSearchError) {
+      setError(savedSearchError instanceof Error ? savedSearchError.message : 'The saved search could not be saved.');
+    }
+  }
+
+  function applySavedSearch(savedSearch: SavedSearch) {
+    setSearchQuery(savedSearch.query);
+    setShowArchived(savedSearch.showArchived);
+    setError(null);
+  }
+
+  function confirmDeleteSavedSearch(savedSearch: SavedSearch) {
+    Alert.alert(
+      'Delete saved search?',
+      `Remove “${savedSearch.name}” from this device?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setBusySavedSearchId(savedSearch.id);
+            void deleteSavedSearch(savedSearch.id)
+              .catch(savedSearchError => setError(savedSearchError instanceof Error ? savedSearchError.message : 'The saved search could not be deleted.'))
+              .finally(() => setBusySavedSearchId(null));
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -1923,6 +1962,37 @@ function NotesScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
+        {searchQuery.trim() && (
+          <View style={styles.formCard}>
+            <Text style={styles.formLabel}>Save current search</Text>
+            <TextInput
+              accessibilityLabel="Saved search name"
+              placeholder="Name this search"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={savedSearchName}
+              onChangeText={setSavedSearchName}
+            />
+            <TextButton label="Save search" onPress={() => void saveSearch()} />
+          </View>
+        )}
+        {data.savedSearches.length > 0 && (
+          <View style={styles.formCard}>
+            <Text style={styles.formLabel}>Saved searches</Text>
+            {data.savedSearches.map(savedSearch => (
+              <View key={savedSearch.id} style={styles.savedSearchRow}>
+                <View style={styles.listBody}>
+                  <Text style={styles.listTitle}>{savedSearch.name}</Text>
+                  <Text style={styles.listMeta}>{savedSearch.query}{savedSearch.showArchived ? ' · includes archived' : ''}</Text>
+                </View>
+                <View style={styles.noteActions}>
+                  <TextButton label="Apply" disabled={busySavedSearchId !== null} onPress={() => applySavedSearch(savedSearch)} />
+                  <TextButton label="Delete" danger disabled={busySavedSearchId !== null} onPress={() => confirmDeleteSavedSearch(savedSearch)} />
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
         <TextButton label={showArchived ? 'Hide archived notes' : 'Show archived notes'} onPress={() => setShowArchived(current => !current)} />
         <SectionTitle title={showArchived ? 'All notes' : 'Active notes'} />
         {data.notes.length === 0 ? (
@@ -2245,6 +2315,7 @@ const styles = StyleSheet.create({
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
   noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginBottom: 10, padding: 15},
+  savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 10, paddingTop: 10},
   noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
   attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
   attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 4},
