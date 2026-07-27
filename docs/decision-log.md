@@ -437,3 +437,17 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Accept only `ACTION_VIEW` links with the exact custom routes `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time`. Validate and clear them natively, then route to existing tabs through a cold-start getter or warm-app event.
 - Reason: The contract is useful, deterministic, local-only, and reuses existing screens without adding storage, network, or background work.
 - Consequence: Malformed and unsupported links are ignored. Record-specific links, verified remote App Links, iOS deep links, and link-driven actions remain separate contracts.
+
+## DEC-064: Keep the first calendar integration as a one-way task draft
+
+- Context: A dated task can be useful in the user's calendar, but calendar reads, event ownership, permissions, selected timezone behavior, and reconciliation are not defined yet.
+- Decision: Add a `Calendar` task-row action on Android only. Validate the task title and local due date, then open the system `ACTION_INSERT` editor with an all-day local interval and task details. Do not request calendar permissions, read calendar rows, store an event ID, add a schema field, or run a worker.
+- Reason: This gives a useful handoff with a small, deterministic boundary and keeps Yuzuha's local task as the only product source of truth.
+- Consequence: The user must confirm the external draft and Yuzuha cannot report whether it was saved. Two-way calendar behavior, reconciliation, selected calendar/timezone settings, focus-session export, and iOS parity remain separate future contracts.
+
+## DEC-065: Do not clear unknown cold-start intents
+
+- Context: `MainActivity` receives launcher actions and deep links through the same Android intent. The launcher bridge previously cleared every initial intent even when it did not recognize the action, which erased cold deep links before `DeepLinkModule` could read them.
+- Decision: Clear the activity intent only after `LaunchActionsModule` recognizes one of its fixed launcher actions. Leave unknown intents unchanged for the next typed adapter.
+- Reason: Each adapter owns only its own accepted input. The rule is deterministic and preserves independent entry-point contracts without adding retries or recovery behavior.
+- Consequence: A cold deep link reaches its adapter; unknown intents remain available for later adapters and are otherwise ignored. The release smoke test covers the regression.

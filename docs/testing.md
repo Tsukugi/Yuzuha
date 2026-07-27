@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android deep-link pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android calendar-draft pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 41 Jest suites and 174 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 42 Jest suites and 176 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -49,6 +49,10 @@ Status: Current test strategy through the Android deep-link pass. Unit tests and
 - Deep-link coverage: pure routing tests cover all four supported routes and reject query data, remote hosts, extra paths, whitespace, and non-string values.
 - Emulator `emulator-5554`: release cold `yuzuha://open/tasks` opened Tasks, warm `yuzuha://open/notes` opened Notes, and a query-bearing task link was ignored without changing the Notes tab; no filtered fatal or ReactNativeJS errors appeared.
 - Phone `42adce68`: release cold and warm deep links delivered to `MainActivity`, the `yuzuha` manifest filter was registered, and no filtered fatal or ReactNativeJS errors appeared. UI text remains emulator-verified because phone automation has no root.
+- Calendar-draft coverage: strict title/details/date validation rejects blank titles, missing dates, and impossible local dates; valid dated tasks produce the exact Android draft boundary without a schema or permission contract.
+- Emulator `emulator-5554`: a dated `CalendarSmoke` task was filtered to Upcoming, its visible `Calendar` action opened `com.google.android.calendar` through the system editor path, and no filtered fatal or ReactNativeJS errors appeared. The device showed Google Calendar's first-run screen, so Yuzuha did not claim that the external event was saved.
+- Phone `42adce68`: the latest release installed and cold-launched `MainActivity` with no filtered fatal or ReactNativeJS errors; UI automation still returned no root.
+- Cold-intent regression: before the native fix, an unknown `ACTION_VIEW` was cleared by the launcher-action module and a cold `yuzuha://open/tasks` smoke stayed on Home. After the fix, the same release smoke opened Tasks; the launcher bridge now clears only recognized launcher actions.
 
 ### Unit tests
 

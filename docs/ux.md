@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android deep-link pass.
+Status: Current Android MVP through the Android calendar-draft pass.
 
 ## Navigation
 
@@ -55,6 +55,10 @@ The recurring-task form asks for a title, details, first due date, optional loca
 The Task view has List and Agenda modes. Agenda shows dated tasks grouped for the next 14 device-local calendar days and keeps completed tasks in their date group. Undated tasks stay in List mode. List mode can sort by Manual, Due date, or Priority. Manual order is stored per task list; the All list view exposes Up and Down controls when Manual sorting is selected, while Due date puts undated tasks last and Priority puts High before Normal before Low. The current agenda does not expose a timezone or week-start preference; those settings are a later product contract.
 
 The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder. The Notification settings card has a Task reminders On/Off switch. Off clears native reminder alarms but keeps logical reminder times; On rebuilds future alarms. It also accepts an optional daily `HH:mm` start and end; both fields are required when enabled, equal values are rejected, and clearing both disables quiet hours. It lets the user choose a snooze duration of 15m, 30m, 1h, or 2h; the default is 1h. A reminder inside the same-day or overnight window is delivered at the local window end. The notification uses generic text rather than task details; tapping it opens the matching task in edit mode, `Complete` marks the existing open task complete without reopening it, and `Snooze` sets a new reminder using the selected duration when the category is enabled.
+
+### Add a task to the calendar
+
+A task row shows `Calendar` only as a one-way Android draft action. The task must have a non-empty title and a valid local due date. Tapping it opens the system calendar editor with the task title, details, and an all-day date. Yuzuha does not request calendar permission, read calendar data, store an event ID, or change the task. A task without a due date shows `A valid due date is required before adding the task to the calendar.`
 
 ### Search notes
 

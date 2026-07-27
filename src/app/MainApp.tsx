@@ -63,9 +63,11 @@ import {taskReminders} from '../platform/taskReminders';
 import {shareCapture} from '../platform/shareCapture';
 import {launchActions} from '../platform/launchActions';
 import {deepLinks} from '../platform/deepLinks';
+import {calendarDrafts} from '../platform/calendarDrafts';
 import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
+import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -3203,6 +3205,32 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
   }
 
+  async function addTaskToCalendar(task: Task) {
+    if (!calendarDrafts.isSupported()) {
+      setError('Calendar export is available on Android only.');
+      return;
+    }
+    const draft = {
+      title: task.title,
+      details: task.details,
+      dueLocalDate: task.dueLocalDate ?? '',
+    };
+    const validationError = validateCalendarTaskDraft(draft);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    try {
+      const opened = await calendarDrafts.openTaskDraft(draft);
+      if (!opened) {
+        setError('No calendar editor is available on this device.');
+      }
+    } catch (calendarError) {
+      setError(calendarError instanceof Error ? calendarError.message : 'The calendar editor could not be opened.');
+    }
+  }
+
   function confirmDeleteList(taskList: typeof currentData.taskLists[number]) {
     Alert.alert('Delete task list?', `Delete "${taskList.name}"? Lists with tasks cannot be deleted.`, [
       {text: 'Cancel', style: 'cancel'},
@@ -3235,6 +3263,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
         <View style={styles.taskActions}>
           {allowManualMove && <TextButton label="Up" onPress={() => void moveTaskFromList(task.id, 'up')} />}
           {allowManualMove && <TextButton label="Down" onPress={() => void moveTaskFromList(task.id, 'down')} />}
+          <TextButton label="Calendar" onPress={() => void addTaskToCalendar(task)} disabled={busyTaskId !== null} />
           <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
           <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
         </View>

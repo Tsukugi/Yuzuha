@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the Android deep-link pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, optional local reminder times on recurring task rules, local task projects with optional task links, same-list task parent links with cycle rejection and child promotion, local task templates with archive controls and direct task creation, local app groups and manual focus sessions, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a device-local 14-day task agenda, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 28 data validation, notification settings and task reminders, Android `Open`, idempotent `Complete`, configurable `Snooze`, separate global and recurring-task reminder switches, Android text/file share capture, Android static launcher shortcuts, the Android summary widget, and strict local Android deep links exist; selected timezone/week-start preferences, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
+Status: Core implementation through the Android calendar-draft pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, optional local reminder times on recurring task rules, local task projects with optional task links, same-list task parent links with cycle rejection and child promotion, local task templates with archive controls and direct task creation, local app groups and manual focus sessions, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a device-local 14-day task agenda, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 28 data validation, notification settings and task reminders, Android `Open`, idempotent `Complete`, configurable `Snooze`, separate global and recurring-task reminder switches, Android text/file share capture, Android static launcher shortcuts, the Android summary widget, strict local Android deep links, and the one-way dated-task calendar draft exist; selected timezone/week-start preferences, calendar reads/event IDs, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
 
 ## System shape
 
@@ -16,6 +16,8 @@ The Android summary widget is a derived platform projection. `AppStoreProvider` 
 
 Android deep links are a typed local entry-point adapter. `DeepLinkModule` accepts only `ACTION_VIEW` with the exact `yuzuha://open/{money|notes|tasks|app-time}` route, clears the consumed intent, and delivers the canonical URI through a cold-start getter or warm-app event. `MainApp` maps the validated target to an existing tab. Query strings, fragments, extra paths, IDs, and remote URLs are rejected before JavaScript routing; no record or network path is involved.
 
+Android calendar drafts are a narrow system adapter. `calendarDrafts` validates a task title, details, and strict local `YYYY-MM-DD` due date. `CalendarDraftModule` converts the date to a device-local all-day interval and opens `CalendarContract.Events.CONTENT_URI` with `ACTION_INSERT`. It does not request `READ_CALENDAR` or `WRITE_CALENDAR`, read calendar rows, keep an event ID, create an AppData record, or schedule background work. The user owns the final save in the external calendar editor. `LaunchActionsModule` leaves unknown actions untouched so a separate deep-link adapter can inspect the same cold-start intent.
+
 Yuzuha uses a local-first feature architecture. The installer is a native-shell concern and runs before the JavaScript product shell is shown.
 
 ```mermaid
@@ -29,6 +31,7 @@ flowchart TD
     SHARE --> APP
     WIDGET --> APP
     LINK --> APP
+    APP --> CAL[Android calendar editor draft]
     APP --> NAV[Navigation]
     NAV --> HOME[Home dashboard]
     NAV --> MONEY[Money]

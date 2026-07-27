@@ -24,7 +24,7 @@ class LaunchActionsModule(private val context: ReactApplicationContext) : ReactC
   fun getInitialLaunchAction(promise: Promise) {
     val activity = getReactApplicationContext().getCurrentActivity()
     val action = pendingLaunchAction ?: activity?.intent?.let { intent ->
-      actionFor(intent).also { clearIntent(intent) }
+      actionFor(intent)?.also { clearIntent(intent) }
     }
     pendingLaunchAction = null
     promise.resolve(action)

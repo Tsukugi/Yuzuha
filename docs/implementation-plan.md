@@ -1822,3 +1822,37 @@ Known limits:
 - routes open existing tabs only; record-specific IDs and actions are intentionally not accepted;
 - custom-scheme links are local to this Android slice; verified remote App Links and iOS deep links remain planned;
 - malformed links are ignored with no visible record or network side effect.
+
+## Implementation review: Android task-calendar draft pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- strict shared validation for task title, details, and local `YYYY-MM-DD` due date;
+- typed JavaScript platform adapter and Android `CalendarDraftModule` using the system `ACTION_INSERT` calendar editor;
+- all-day local date projection with no `READ_CALENDAR` or `WRITE_CALENDAR` permission, calendar read, event ID, schema field, or worker;
+- a `Calendar` action on task rows with an honest error for undated or invalid tasks;
+- a cold-start routing fix so `LaunchActionsModule` clears only recognized launcher actions and leaves unknown intents for the deep-link adapter;
+- current architecture, integrations, requirements, UX, security, data-model, full specification, release, testing, traceability, and decision docs updated.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - calendar draft validation
+Full Jest                PASS - 42 suites, 176 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - dated task Calendar action opened the system Google Calendar editor path; no filtered app errors
+Deep-link regression     PASS - cold yuzuha://open/tasks opened Tasks after the intent-preservation fix
+Phone smoke              PASS - release MainActivity cold launch with no filtered app errors; UI root unavailable by device policy
+```
+
+Known limits:
+
+- the user must confirm the event in the external calendar editor; Yuzuha does not know whether it was saved;
+- only dated tasks can be drafted, and the draft is all-day in the device's current timezone;
+- calendar reads, event reconciliation, selected calendar/timezone settings, focus-session export, iOS parity, and sync remain planned.

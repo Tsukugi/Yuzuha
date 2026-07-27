@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Planning traceability baseline.
+Status: Traceability baseline through the Android calendar-draft pass.
 
 ## Authoritative source by concern
 
@@ -26,7 +26,7 @@ Status: Planning traceability baseline.
 | 0 Foundation | Scope and open decisions accepted. | Shell, database, migrations, typed errors, and installer tests. | Clean install, offline launch, and bad-bundle result. |
 | 1 Core records | Money, notes, tasks, Home, app-time empty states. | Repository, query, export, delete, and device tests. | MVP release checklist and migration fixture. |
 | 2 Planning and insight | Budgets, goals, reports, projects, recurrence, focus. | Reconciliation, timezone, dependency, and projection tests. | Data release notes and performance baseline. |
-| 3 Capture and automation | Rich notes, links, reviews, reminders, integrations. | Scheduler, search, attachment, permission, and accessibility tests. | Integration disclosures and notification rollback. |
+| 3 Capture and automation | Rich notes, links, reviews, reminders, integrations, and one-way dated-task calendar drafts. | Scheduler, search, attachment, calendar-boundary, permission, and accessibility tests. | Integration disclosures and notification rollback. |
 | 4 Continuity | Sync, recovery, conflicts, backup, import. | Two-device, encryption, API, deletion, and outage tests. | Security review, service rollout, and recovery rehearsal. |
 | 5 Maturity | iOS capability matrix, localization, support. | Performance, SLO, redaction, store, and incident tests. | Staged rollout and public support policy. |
 | 6 Optional integrations | Provider/OCR/advanced automation decision. | Provider isolation and new threat model. | Separate legal, privacy, and rollback approval. |
@@ -38,4 +38,3 @@ An item is complete only when its requirement row, source specification, impleme
 ## Open decision register
 
 Before a phase starts, move its open decisions into `decision-log.md` with an owner, choice, reason, consequence, and validation plan. Do not treat an unresolved decision as an implementation detail when it changes the data model, user promise, privacy boundary, or release process.
-

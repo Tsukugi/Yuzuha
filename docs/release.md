@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android task-calendar-draft pass:
+
+- no app or repository schema change; dated task rows validate title/details/date and open the Android system calendar editor with an all-day local draft;
+- the bridge requests no calendar permission, reads no calendar rows, stores no external event ID, and starts no worker; canceling the external editor leaves Yuzuha unchanged;
+- focused calendar validation, full Jest (42 suites, 176 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator calendar-editor smoke, and phone clean-launch smoke passed;
+- the cold-start intent regression was fixed and rechecked: unknown launcher actions no longer clear a valid deep-link intent, so cold `yuzuha://open/tasks` opens Tasks; both devices were left without Gradle or Java build processes.
+
 2026-07-27 Android deep-link pass:
 
 - no app or repository schema change; Android accepts only exact local `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time` routes;

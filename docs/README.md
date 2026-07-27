@@ -1,6 +1,6 @@
 # Yuzuha documentation
 
-This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, and text/file share capture, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
+This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, and the one-way task calendar draft, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
 ## Read in this order
 

@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android deep-link pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android calendar-draft pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -94,6 +94,8 @@ Android launcher shortcuts contain only fixed action IDs and labels. They do not
 The Android summary widget contains only two aggregate counts: open tasks and active notes. It stores those counts in app-private preferences, never receives note/task text or money/app-time values, does not show raw content on the launcher, and updates only after the JavaScript store loads or commits data. The widget has no periodic worker and its tap action opens Yuzuha.
 
 Android deep links accept only the fixed local `yuzuha://open/...` routes. The native bridge rejects query strings, fragments, IDs, extra paths, unknown targets, and remote schemes before JavaScript routing. No note text, task text, money value, token, or network URL is accepted from a link.
+
+Android calendar drafts do not request `READ_CALENDAR` or `WRITE_CALENDAR` and do not read calendar content. The bridge sends only the selected task title, details, and local due date to the system editor through `ACTION_INSERT`; it stores no external event ID and starts no worker. The user confirms or cancels the draft in the calendar app, and canceling cannot change the Yuzuha task.
 
 ## Privacy review gates for new features
 

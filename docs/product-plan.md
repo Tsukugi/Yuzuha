@@ -166,7 +166,7 @@ Add accounts and categories, budgets, goals, reports, projects, recurrence, focu
 
 ### Phase 3 - Capture and automation
 
-Add rich notes, links, attachments, saved searches, global capture, reminders, templates, widgets, share actions, deep links, and calendar actions. The current Android slice covers bounded text share preview, confirmed note/task saving, supported image/PDF/plain-text file share preview with note-attachment saving, static shortcuts into Money, Notes, Tasks, and App Time, a low-risk summary widget for open tasks and active notes, and strict local deep links to those tabs. Dynamic shortcuts, unsupported file types, user-selected widget cards, remote app links, and calendar actions remain planned.
+Add rich notes, links, attachments, saved searches, global capture, reminders, templates, widgets, share actions, deep links, and calendar actions. The current Android slice covers bounded text share preview, confirmed note/task saving, supported image/PDF/plain-text file share preview with note-attachment saving, static shortcuts into Money, Notes, Tasks, and App Time, a low-risk summary widget for open tasks and active notes, strict local deep links to those tabs, and one-way calendar drafts for dated tasks. Dynamic shortcuts, unsupported file types, user-selected widget cards, remote app links, calendar reads, event reconciliation, and selected timezone/calendar preferences remain planned.
 
 ### Phase 4 - Continuity and portability
 

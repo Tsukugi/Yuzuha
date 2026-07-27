@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture, static launcher shortcuts, the summary widget, and strict local deep links are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, and one-way task calendar drafts are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -17,7 +17,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Shortcuts/app actions | Android static shortcuts open Money, Notes, Tasks, or App Time. | Current Android slice. |
 | Deep links | Open one of four existing Android tabs through a strict local `yuzuha://open/...` route. | Current Android slice. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
-| Calendar | Read or create user-approved task events. | Full product, optional. |
+| Calendar | Open a dated task in the Android system calendar editor as a user-confirmed draft; no read, event ID, or calendar permission. | Current Android slice; two-way read/write remains full product, optional. |
 | File picker | Import/export backups and attachments. | MVP export; full import/backup. |
 
 ## Share capture
@@ -40,7 +40,9 @@ The Android manifest accepts `ACTION_VIEW` for the custom `yuzuha` scheme and `o
 
 ## Calendar
 
-Calendar integration is opt-in and scoped. The app can create a calendar event from a task or focus session and may read events only when needed for a calendar view. Imported events are not tasks unless the user converts them. Revoking permission stops future reads but does not delete already-created Yuzuha tasks.
+The current Android slice accepts one action: a dated task row can open the system calendar editor with the task title, details, and an all-day local due date. Yuzuha does not request calendar permissions, read calendar rows, persist an external event ID, or run a worker. The user confirms or cancels the draft in the external editor; canceling leaves the Yuzuha task unchanged.
+
+Two-way calendar reads, event reconciliation, focus-session export, selected calendar/timezone preferences, and iOS parity remain planned. Any future permission-based integration must define grant, deny, revoke, deletion, and locked-screen behavior before implementation.
 
 ## Import formats
 

@@ -14,6 +14,7 @@ class YuzuhaNativePackage : ReactPackage {
       ShareCaptureModule(reactContext),
       LaunchActionsModule(reactContext),
       DeepLinkModule(reactContext),
+      CalendarDraftModule(reactContext),
       YuzuhaWidgetModule(reactContext),
     )
   }
