@@ -110,6 +110,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [pendingNoteId, setPendingNoteId] = useState<string | null>(null);
   const [pendingMoneyId, setPendingMoneyId] = useState<string | null>(null);
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
+  const [pendingTemplateId, setPendingTemplateId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
 
@@ -118,6 +119,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setPendingNoteId(navigation.focusNoteId);
     setPendingMoneyId(navigation.focusMoneyId);
     setPendingProjectId(navigation.focusProjectId);
+    setPendingTemplateId(navigation.focusTemplateId);
     setGlobalSearchOpen(false);
     setTab(navigation.destination);
   }, []);
@@ -316,7 +318,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} onFocusHandled={() => setPendingMoneyId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
-            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} />}
+            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} />}
             {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
           </>
         )}
@@ -3282,7 +3284,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
   return new Intl.DateTimeFormat(undefined, {weekday: 'long', month: 'short', day: 'numeric'}).format(new Date(year, month - 1, day));
 }
 
-function TasksScreen({focusTaskId, focusProjectId, onTaskFocusHandled, onProjectFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void}) {
+function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void}) {
   const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -3380,6 +3382,27 @@ function TasksScreen({focusTaskId, focusProjectId, onTaskFocusHandled, onProject
     setProjectError(null);
     onProjectFocusHandled();
   }, [data, focusProjectId, onProjectFocusHandled]);
+
+  useEffect(() => {
+    if (!focusTemplateId || !data) {
+      return;
+    }
+    const template = data.templates.find(item => item.id === focusTemplateId);
+    if (!template) {
+      onTemplateFocusHandled();
+      return;
+    }
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateTitle(template.title);
+    setTemplateDetails(template.details);
+    setTemplatePriority(template.priority);
+    setTemplateListId(template.listId);
+    setTemplateProjectId(template.projectId);
+    setTemplateError(null);
+    setTemplateMessage(null);
+    onTemplateFocusHandled();
+  }, [data, focusTemplateId, onTemplateFocusHandled]);
 
   useEffect(() => {
     if (!data) {

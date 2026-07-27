@@ -65,6 +65,7 @@ export interface GlobalSearchNavigation {
   focusNoteId: string | null;
   focusMoneyId: string | null;
   focusProjectId: string | null;
+  focusTemplateId: string | null;
 }
 
 export function globalSearchNavigation(result: Pick<GlobalSearchResult, 'kind' | 'id'>): GlobalSearchNavigation {
@@ -74,6 +75,7 @@ export function globalSearchNavigation(result: Pick<GlobalSearchResult, 'kind' |
     focusNoteId: result.kind === 'note' ? result.id : null,
     focusMoneyId: result.kind === 'money' ? result.id : null,
     focusProjectId: result.kind === 'project' ? result.id : null,
+    focusTemplateId: result.kind === 'task-template' ? result.id : null,
   };
 }
 

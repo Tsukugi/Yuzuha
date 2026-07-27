@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android template-search-focus pass:
+
+- Global Search task-template results now pass their stable ID through the existing Tasks template focus path and open the matching template in edit mode;
+- money, note, task, and project results keep exact focus, while account, category, transfer, split, budget, recurrence, list, app-group, focus, goal, usage, and other results keep owning-tab-only behavior;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused template-navigation tests, full Jest (51 suites, 227 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator template-focus smoke, and phone cold-start process/activity smoke passed; the phone rejects automated touch input, and both devices were force-stopped.
+
 2026-07-28 Android project-search-focus pass:
 
 - Global Search project results now pass their stable ID through the existing Tasks project focus path and open the matching project in edit mode;

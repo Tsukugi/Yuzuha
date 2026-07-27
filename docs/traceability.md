@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android project-search-focus pass.
+Status: Traceability baseline through the Android template-search-focus pass.
 
 ## Authoritative source by concern
 
@@ -66,6 +66,8 @@ Current note-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigat
 Current money-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingMoneyId`, the existing `MoneyScreen` focus effect, the money-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 money-search-focus release note. Money results load the current entry in edit mode; other results remain tab-only.
 
 Current project-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingProjectId`, the existing `TasksScreen` project focus effect, the project-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 project-search-focus release note. Project results load the current project in the Tasks edit form; other results remain tab-only.
+
+Current template-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingTemplateId`, the existing `TasksScreen` template focus effect, the template-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 template-search-focus release note. Task-template results load the current template in the Tasks edit form; other results remain tab-only.
 
 ## Open decision register
 

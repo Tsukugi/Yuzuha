@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the Android project-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android template-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -31,7 +31,7 @@ Status: Current test strategy through the Android project-search-focus pass. Uni
 - Global-search tests verify active linked-target matching, readable note-result labels, archived-project gating, and exclusion of deleted target content from search.
 - Rich-note tests verify supported inline/line markers, plain-text fallback, selection-based formatting, multi-line bullets, and heading toggling. Emulator smoke verifies the toolbar created `# Smoke` and the saved card displayed `Smoke` rather than raw markers.
 - Search-navigation tests cover every supported result kind. Emulator smoke verifies `Open Note LinkNote` and `Open Task LinkTask` actions, then taps the note result and reaches Notes.
-- Money-, task-, note-, and project-focus tests verify money, task, note, and project results carry stable focus IDs. Emulator smoke creates a temporary `SearchProject`, searches it, taps `Open Project SearchProject`, and shows `Edit project`, project name `SearchProject`, and `Update project`; the money, note, and task paths remain covered by their existing smoke evidence.
+- Money-, task-, note-, project-, and template-focus tests verify money, task, note, project, and task-template results carry stable focus IDs. Emulator smoke creates a temporary `SearchTemplate`, searches it, taps `Open Task template SearchTemplate`, and shows `Edit task template`, name `SearchTemplate`, title `TemplateTask`, and `Update template`; the money, note, task, and project paths remain covered by their existing smoke evidence.
 
 ## Week-start preference evidence
 
