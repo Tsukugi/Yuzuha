@@ -1488,3 +1488,35 @@ Known limits:
 
 - Agenda keeps source order within a date and is not a calendar with timezone or week-start preferences;
 - bulk reorder, cross-device order reconciliation, and sync remain planned.
+
+## Implementation review: local task-project pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 25 adds `projects` and the optional `Task.projectId`; no schema 24 upgrade path was added;
+- project names are trimmed, limited to 80 characters, and unique case-insensitively; status and archive state use strict typed values;
+- Tasks can create, rename, complete/reopen, archive/restore, and delete projects; deletion is rejected while any task references the project;
+- the task form offers active projects for new links, existing archived links remain readable, and task rows show the project label or a deterministic deleted-project label;
+- JSON import, encrypted backup, SQLite persistence, current-record validation, global search, UX, architecture, requirements, decision, release, and testing docs include the current project contract.
+
+Review evidence:
+
+```text
+Failing test first       PASS - project lifecycle import was reproduced as a missing module before implementation
+Focused Jest             PASS - 5 suites, 44 tests for project lifecycle, store, JSON, backup, SQLite, and search behavior
+Full Jest                PASS - 33 suites, 145 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds          PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release opened MainActivity, Tasks, project selector, and Projects card
+Phone smoke              PASS - clean release opened MainActivity on 42adce68
+Resource cleanup         PASS - no Yuzuha app, Java, or Gradle processes remained
+```
+
+Known limits:
+
+- projects are local task grouping only; notes, money, app-time, focus, subtasks, templates, cross-device projects, and sync remain separate future contracts;
+- project deletion is reference-safe and therefore requires linked tasks to be moved or deleted first.

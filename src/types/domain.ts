@@ -136,6 +136,17 @@ export interface TaskList {
   updatedAt: string;
 }
 
+export type TaskProjectStatus = 'active' | 'completed';
+
+export interface TaskProject {
+  id: string;
+  name: string;
+  status: TaskProjectStatus;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -145,6 +156,7 @@ export interface Task {
   priority: TaskPriority;
   listId: string;
   sortOrder: number;
+  projectId: string | null;
   sourceNoteId: string | null;
   recurrenceRuleId: string | null;
   reminderAtMillis: number | null;
@@ -218,7 +230,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 24;
+  schemaVersion: 25;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -230,6 +242,7 @@ export interface AppData {
   notes: Note[];
   attachments: Attachment[];
   savedSearches: SavedSearch[];
+  projects: TaskProject[];
   taskLists: TaskList[];
   taskRecurrences: TaskRecurrenceRule[];
   tasks: Task[];
@@ -252,7 +265,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 24,
+  schemaVersion: 25,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -272,6 +285,7 @@ export const emptyAppData = (): AppData => ({
   notes: [],
   attachments: [],
   savedSearches: [],
+  projects: [],
   taskLists: [
     {
       id: 'task_list_inbox',

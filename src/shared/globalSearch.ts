@@ -6,6 +6,7 @@ export type GlobalSearchKind =
   | 'category'
   | 'money'
   | 'note'
+  | 'project'
   | 'recurrence'
   | 'saved-search'
   | 'split'
@@ -30,17 +31,18 @@ export interface GlobalSearchOptions {
 const KIND_ORDER: Record<GlobalSearchKind, number> = {
   money: 0,
   note: 1,
-  'saved-search': 2,
-  task: 3,
-  'task-list': 4,
-  account: 5,
-  category: 6,
-  transfer: 7,
-  split: 8,
-  budget: 9,
-  recurrence: 10,
-  'time-goal': 11,
-  usage: 12,
+  project: 2,
+  'saved-search': 3,
+  task: 4,
+  'task-list': 5,
+  account: 6,
+  category: 7,
+  transfer: 8,
+  split: 9,
+  budget: 10,
+  recurrence: 11,
+  'time-goal': 12,
+  usage: 13,
 };
 
 function includesQuery(query: string, values: Array<string | number | null | undefined>): boolean {
@@ -123,6 +125,17 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         id: savedSearch.id,
         title: savedSearch.name,
         detail: `${savedSearch.query}${savedSearch.showArchived ? ' · includes archived' : ''}`,
+      });
+    }
+  });
+
+  data.projects.forEach(project => {
+    if (isVisible(project.isArchived, includeArchived) && includesQuery(normalizedQuery, [project.name, project.status])) {
+      add('project', {
+        id: project.id,
+        title: project.name,
+        detail: `${project.status === 'completed' ? 'Completed' : 'Active'} project`,
+        isArchived: project.isArchived,
       });
     }
   });

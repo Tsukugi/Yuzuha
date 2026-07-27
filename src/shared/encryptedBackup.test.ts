@@ -58,6 +58,14 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.projects.push({
+      id: 'project_secret',
+      name: 'Private project',
+      status: 'active',
+      isArchived: false,
+      createdAt,
+      updatedAt: createdAt,
+    });
     data.tasks.push({
       id: 'task_secret',
       title: 'Review private note',
@@ -67,6 +75,7 @@ describe('encrypted backups', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sortOrder: 0,
+      projectId: 'project_secret',
       sourceNoteId: 'note_secret',
       recurrenceRuleId: null,
       reminderAtMillis: null,
@@ -162,7 +171,7 @@ describe('encrypted backups', () => {
   });
 
   it('rejects old app data when building a backup', async () => {
-    const oldData = {...emptyAppData(), schemaVersion: 23 as never};
+    const oldData = {...emptyAppData(), schemaVersion: 24 as never};
 
     await expect(buildEncryptedBackup(oldData, password, createdAt, deterministicRandomBytes)).rejects.toThrow(/app data version/i);
   });

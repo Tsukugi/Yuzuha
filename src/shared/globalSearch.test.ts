@@ -33,6 +33,7 @@ describe('global search', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sortOrder: 0,
+      projectId: null,
       sourceNoteId: null,
       recurrenceRuleId: null,
       reminderAtMillis: null,
@@ -60,6 +61,14 @@ describe('global search', () => {
       createdAt: '2026-07-27T00:00:00.000Z',
       updatedAt: '2026-07-27T00:00:00.000Z',
     });
+    data.projects.push({
+      id: 'project_work',
+      name: 'Project work',
+      status: 'active',
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
     data.taskLists.push({
       id: 'task_list_project',
       name: 'Project work',
@@ -73,7 +82,7 @@ describe('global search', () => {
     expect(results[0]).toMatchObject({id: 'note_work', title: 'Planning'});
 
     const workResults = searchGlobal(data, 'work');
-    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'saved-search', 'task', 'task-list']);
+    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'project', 'saved-search', 'task', 'task-list']);
   });
 
   it('hides archived records and inaccessible app-time data by default', () => {

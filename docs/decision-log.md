@@ -367,3 +367,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add required non-negative `Task.sortOrder` in app schema 24. Allocate the next order within a list for new, note-linked, moved-list, and recurring tasks. List mode offers Manual, Due date, and Priority sorting; the All view swaps adjacent manual orders through Up and Down controls when Manual sorting is selected. Due-date sorting places undated tasks last; priority sorting uses High, Normal, then Low. Agenda keeps its existing source order within each local date.
 - Reason: Manual order must survive restart, export, backup, and restore. Derived sort modes should not rewrite source records, and the fixed tie rules keep results deterministic without a separate index or sync contract.
 - Consequence: Schema 23 data is rejected rather than upgraded. Cross-device ordering, selected timezone/week-start rules, bulk reorder, and sync remain separate contracts.
+
+## DEC-054: Keep the first project contract local and task-scoped
+
+- Context: The product needs grouping for tasks, but notes, money, focus sessions, subtasks, templates, and sync do not have a shared project contract yet.
+- Decision: Add schema 25 `projects` with a unique local name, active/completed status, and archive state. Give each task one optional `projectId`. Offer project controls in Tasks, keep archived links readable, and reject project deletion while any task references it.
+- Reason: This gives task grouping useful now without inventing cross-feature ownership or a sync conflict model. A single optional link is small, typed, and easy to validate across SQLite, JSON, encrypted backup, and search.
+- Consequence: Schema 24 data is rejected rather than upgraded. Notes, money, app-time, focus, subtasks, templates, cross-device projects, and sync links remain separate future contracts.

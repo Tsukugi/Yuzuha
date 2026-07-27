@@ -17,6 +17,7 @@ import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createTaskRecord, deleteTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
+import {createProjectRecord, deleteProjectRecord, setProjectArchived, updateProjectRecord, validateProjectDraft, validateProjectName, type ProjectDraft} from '../shared/projectLifecycle';
 import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
 import {
   createTaskRecurrenceRecord,
@@ -98,6 +99,10 @@ interface AppStoreValue {
   deleteSavedSearch: (savedSearchId: string) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
+  addProject: (input: ProjectDraft) => Promise<string>;
+  updateProject: (projectId: string, input: ProjectDraft) => Promise<void>;
+  setProjectArchived: (projectId: string, isArchived: boolean) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
   addTask: (input: TaskDraft) => Promise<string>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
   moveTask: (taskId: string, direction: 'up' | 'down') => Promise<void>;
@@ -630,17 +635,65 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const addProject = useCallback(
+    async (input: ProjectDraft): Promise<string> => {
+      const projectId = createId('project');
+      await commit(current => {
+        const validationError = validateProjectDraft(input) ?? validateProjectName(current.projects, input);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const project = createProjectRecord(input, projectId, new Date().toISOString());
+        return {...current, projects: [project, ...current.projects]};
+      });
+      return projectId;
+    },
+    [commit],
+  );
+
+  const updateProject = useCallback(
+    async (projectId: string, input: ProjectDraft) => {
+      await commit(current => {
+        const project = current.projects.find(item => item.id === projectId);
+        if (!project) {
+          throw new Error('The project no longer exists.');
+        }
+        const validationError = validateProjectDraft(input) ?? validateProjectName(current.projects, input, projectId);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        return {...current, projects: current.projects.map(item => item.id === projectId ? updateProjectRecord(project, input, new Date().toISOString()) : item)};
+      });
+    },
+    [commit],
+  );
+
+  const setProjectArchivedAction = useCallback(
+    async (projectId: string, isArchived: boolean) => {
+      await commit(current => ({...current, projects: setProjectArchived(current.projects, projectId, isArchived)}));
+    },
+    [commit],
+  );
+
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      await commit(current => ({...current, projects: deleteProjectRecord(current.projects, current.tasks, projectId)}));
+    },
+    [commit],
+  );
+
   const addTask = useCallback(
     async (input: TaskDraft): Promise<string> => {
       const taskId = createId('task');
       await commit(current => {
         const listIds = new Set(current.taskLists.map(taskList => taskList.id));
-        const validationError = validateTaskDraft(input, listIds);
+        const projectIds = new Set(current.projects.map(project => project.id));
+        const validationError = validateTaskDraft(input, listIds, projectIds);
         if (validationError) {
           throw new Error(validationError);
         }
         const now = new Date().toISOString();
-        const task = createTaskRecord(input, taskId, now, null, nextTaskSortOrder(current.tasks, input.listId));
+        const task = createTaskRecord(input, taskId, now, null, nextTaskSortOrder(current.tasks, input.listId), projectIds);
         return {...current, tasks: [task, ...current.tasks]};
       });
       return taskId;
@@ -656,11 +709,12 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
           throw new Error('The task no longer exists.');
         }
         const listIds = new Set(current.taskLists.map(taskList => taskList.id));
-        const validationError = validateTaskDraft(input, listIds);
+        const projectIds = new Set(current.projects.map(project => project.id));
+        const validationError = validateTaskDraft(input, listIds, projectIds);
         if (validationError) {
           throw new Error(validationError);
         }
-        const updatedTask = updateTaskRecord(task, input, new Date().toISOString());
+        const updatedTask = updateTaskRecord(task, input, new Date().toISOString(), projectIds);
         return {
           ...current,
           tasks: current.tasks.map(item => item.id === taskId
@@ -1122,6 +1176,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteSavedSearch,
       addAttachment,
       deleteAttachment,
+      addProject,
+      updateProject,
+      setProjectArchived: setProjectArchivedAction,
+      deleteProject,
       addTask,
       updateTask,
       moveTask,
@@ -1168,6 +1226,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteSavedSearch,
       addAttachment,
       deleteAttachment,
+      addProject,
+      updateProject,
+      setProjectArchivedAction,
+      deleteProject,
       addTask,
       updateTask,
       moveTask,

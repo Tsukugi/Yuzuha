@@ -14,6 +14,7 @@ import type {
   Task,
   TaskDependency,
   TaskList,
+  TaskProject,
   TaskRecurrenceRule,
   TimeGoal,
   UsageSnapshot,
@@ -26,6 +27,7 @@ import {TASK_LIST_MAX_NAME_LENGTH} from './taskListLifecycle';
 import {isValidTaskReminderSnoozeDuration} from './notificationSettings';
 import {isValidTaskRecurrenceReminderLocalTime} from './taskRecurrence';
 import {validateTaskDependencyDraft} from './taskDependency';
+import {TASK_PROJECT_MAX_NAME_LENGTH} from './projectLifecycle';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -38,6 +40,7 @@ export interface JsonImportRecordCounts {
   notes: number;
   attachments: number;
   savedSearches: number;
+  projects: number;
   taskLists: number;
   taskRecurrences: number;
   tasks: number;
@@ -74,7 +77,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 24) {
+  if (appSchemaVersion !== 25) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -93,7 +96,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 24 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 25 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -110,6 +113,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('notes', data.notes);
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
+  validateUniqueIds('projects', data.projects);
   validateUniqueIds('task lists', data.taskLists);
   validateUniqueIds('task recurrence rules', data.taskRecurrences);
   validateUniqueIds('tasks', data.tasks);
@@ -145,6 +149,16 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
     }
   });
   data.savedSearches.forEach(validateSavedSearch);
+  const projectNames = new Set<string>();
+  data.projects.forEach(project => {
+    validateProject(project);
+    const normalizedName = project.name.toLocaleLowerCase();
+    if (projectNames.has(normalizedName)) {
+      throw new JsonImportError(`Project ${project.id} duplicates another project name.`);
+    }
+    projectNames.add(normalizedName);
+  });
+  const projectIds = new Set(data.projects.map(project => project.id));
   const taskListNames = new Set<string>();
   data.taskLists.forEach(taskList => {
     validateTaskList(taskList);
@@ -155,7 +169,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
     taskListNames.add(normalizedName);
   });
   data.taskRecurrences.forEach(rule => validateTaskRecurrence(rule, taskListIds));
-  data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds));
+  data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds, projectIds));
   const sortOrdersByList = new Set<string>();
   data.tasks.forEach(task => {
     const key = `${task.listId}:${task.sortOrder}`;
@@ -303,6 +317,15 @@ function validateTaskList(taskList: TaskList): void {
   }
 }
 
+function validateProject(project: TaskProject): void {
+  validateId(project.id, 'project');
+  if (typeof project.name !== 'string' || project.name.trim() === '' || project.name !== project.name.trim() || project.name.length > TASK_PROJECT_MAX_NAME_LENGTH ||
+      (project.status !== 'active' && project.status !== 'completed') || typeof project.isArchived !== 'boolean' ||
+      !isIsoDate(project.createdAt) || !isIsoDate(project.updatedAt)) {
+    throw new JsonImportError(`Project ${project.id} has invalid fields.`);
+  }
+}
+
 function validateTaskRecurrence(rule: TaskRecurrenceRule, taskListIds: Set<string>): void {
   validateId(rule.id, 'task recurrence rule');
   if (typeof rule.title !== 'string' || !rule.title.trim() || typeof rule.details !== 'string' ||
@@ -317,7 +340,7 @@ function validateTaskRecurrence(rule: TaskRecurrenceRule, taskListIds: Set<strin
   }
 }
 
-function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: Set<string>): void {
+function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: Set<string>, projectIds: Set<string>): void {
   validateId(task.id, 'task');
   if (typeof task.title !== 'string' || typeof task.details !== 'string' ||
       (task.status !== 'open' && task.status !== 'completed') ||
@@ -325,6 +348,7 @@ function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: S
       (task.priority !== 'low' && task.priority !== 'normal' && task.priority !== 'high') ||
       !taskListIds.has(task.listId) ||
       !Number.isSafeInteger(task.sortOrder) || task.sortOrder < 0 ||
+      (task.projectId !== null && !projectIds.has(task.projectId)) ||
       (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||
       (task.recurrenceRuleId !== null && !taskRecurrenceIds.has(task.recurrenceRuleId)) ||
       (task.reminderAtMillis !== null && (!Number.isSafeInteger(task.reminderAtMillis) || task.reminderAtMillis <= 0)) ||
@@ -476,6 +500,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     notes: data.notes.length,
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,
+    projects: data.projects.length,
     taskLists: data.taskLists.length,
     taskRecurrences: data.taskRecurrences.length,
     tasks: data.tasks.length,

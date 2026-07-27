@@ -10,12 +10,13 @@ export interface TaskDraft {
   dueLocalDate: string | null;
   priority: TaskPriority;
   listId: string;
+  projectId?: string | null;
 }
 
 export type TaskFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'completed';
 export type TaskSort = 'manual' | 'due' | 'priority';
 
-export function validateTaskDraft(draft: TaskDraft, listIds: ReadonlySet<string> = new Set([TASK_INBOX_LIST_ID])): string | null {
+export function validateTaskDraft(draft: TaskDraft, listIds: ReadonlySet<string> = new Set([TASK_INBOX_LIST_ID]), projectIds: ReadonlySet<string> = new Set()): string | null {
   if (typeof draft.title !== 'string' || !draft.title.trim()) {
     return 'Task title is required.';
   }
@@ -31,11 +32,14 @@ export function validateTaskDraft(draft: TaskDraft, listIds: ReadonlySet<string>
   if (typeof draft.listId !== 'string' || !listIds.has(draft.listId)) {
     return 'Choose a valid task list.';
   }
+  if (draft.projectId !== undefined && draft.projectId !== null && !projectIds.has(draft.projectId)) {
+    return 'Choose a valid project.';
+  }
   return null;
 }
 
-export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string, sourceNoteId: string | null = null, sortOrder = 0): Task {
-  const validationError = validateTaskDraft(draft, new Set([draft.listId]));
+export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string, sourceNoteId: string | null = null, sortOrder = 0, projectIds: ReadonlySet<string> = draft.projectId ? new Set([draft.projectId]) : new Set()): Task {
+  const validationError = validateTaskDraft(draft, new Set([draft.listId]), projectIds);
   if (validationError) {
     throw new Error(validationError);
   }
@@ -51,6 +55,7 @@ export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string
     priority: draft.priority,
     listId: draft.listId,
     sortOrder,
+    projectId: draft.projectId ?? null,
     sourceNoteId,
     recurrenceRuleId: null,
     reminderAtMillis: null,
@@ -59,8 +64,8 @@ export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string
   };
 }
 
-export function updateTaskRecord(task: Task, draft: TaskDraft, timestamp: string): Task {
-  const validationError = validateTaskDraft(draft, new Set([draft.listId]));
+export function updateTaskRecord(task: Task, draft: TaskDraft, timestamp: string, projectIds: ReadonlySet<string> = draft.projectId ? new Set([draft.projectId]) : new Set()): Task {
+  const validationError = validateTaskDraft(draft, new Set([draft.listId]), projectIds);
   if (validationError) {
     throw new Error(validationError);
   }
@@ -71,6 +76,7 @@ export function updateTaskRecord(task: Task, draft: TaskDraft, timestamp: string
     dueLocalDate: draft.dueLocalDate,
     priority: draft.priority,
     listId: draft.listId,
+    projectId: draft.projectId ?? null,
     updatedAt: timestamp,
   };
 }

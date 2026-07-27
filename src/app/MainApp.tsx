@@ -45,6 +45,7 @@ import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, sortTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter, type TaskSort} from '../shared/taskLifecycle';
+import {validateProjectDraft, type ProjectDraft} from '../shared/projectLifecycle';
 import {getBlockingTaskIds} from '../shared/taskDependency';
 import {buildTaskAgenda} from '../shared/taskAgenda';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
@@ -55,7 +56,7 @@ import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
 import type {TaskReminderTarget} from '../platform/taskReminders';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskReminderSnoozeDurationMinutes} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -325,6 +326,8 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
       return 'Money';
     case 'note':
       return 'Note';
+    case 'project':
+      return 'Project';
     case 'task':
       return 'Task';
     case 'task-list':
@@ -730,6 +733,7 @@ function formatImportPreview(preview: JsonImportPreview): string {
     ['notes', 'notes'],
     ['attachments', 'attachments'],
     ['savedSearches', 'saved searches'],
+    ['projects', 'projects'],
     ['tasks', 'tasks'],
     ['usageSnapshots', 'app-time records'],
     ['timeGoals', 'time goals'],
@@ -2239,13 +2243,14 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
 }
 
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
-  const {data, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
+  const {data, addProject, updateProject, setProjectArchived, deleteProject, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
   const [reminderAtLocalDateTime, setReminderAtLocalDateTime] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
@@ -2257,6 +2262,11 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [editingListName, setEditingListName] = useState('');
   const [taskListError, setTaskListError] = useState<string | null>(null);
   const [busyListId, setBusyListId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState('');
+  const [projectStatus, setProjectStatus] = useState<TaskProject['status']>('active');
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const [busyProjectId, setBusyProjectId] = useState<string | null>(null);
   const [ruleTitle, setRuleTitle] = useState('');
   const [ruleDetails, setRuleDetails] = useState('');
   const [rulePriority, setRulePriority] = useState<TaskPriority>('normal');
@@ -2297,6 +2307,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setReminderAtLocalDateTime(task.reminderAtMillis === null ? '' : formatTaskReminderLocalDateTime(task.reminderAtMillis));
     setPriority(task.priority);
     setListId(task.listId);
+    setProjectId(task.projectId);
     setEditingTaskId(task.id);
     setError(null);
     onFocusHandled();
@@ -2319,6 +2330,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
 
   const currentData = data;
   const taskListIds = new Set(currentData.taskLists.map(taskList => taskList.id));
+  const projectIds = new Set(currentData.projects.map(project => project.id));
   const todayLocalDate = localDateKey(new Date());
   const visibleTasks = sortTasks(filterTasks(currentData.tasks, filter, todayLocalDate), taskSort);
   const agendaDays = buildTaskAgenda(currentData.tasks, todayLocalDate, 14);
@@ -2330,6 +2342,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setReminderAtLocalDateTime('');
     setPriority('normal');
     setListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
+    setProjectId(null);
     setEditingTaskId(null);
   }
 
@@ -2340,6 +2353,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setReminderAtLocalDateTime(task.reminderAtMillis === null ? '' : formatTaskReminderLocalDateTime(task.reminderAtMillis));
     setPriority(task.priority);
     setListId(task.listId);
+    setProjectId(task.projectId);
     setEditingTaskId(task.id);
     setError(null);
   }
@@ -2351,8 +2365,9 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
       dueLocalDate: dueLocalDate.trim() || null,
       priority,
       listId,
+      projectId,
     };
-    const validationError = validateTaskDraft(draft, taskListIds);
+    const validationError = validateTaskDraft(draft, taskListIds, projectIds);
     if (validationError) {
       setError(validationError);
       return;
@@ -2407,6 +2422,92 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     Alert.alert('Delete task?', `Delete "${task.title}"? This cannot be undone.`, [
       {text: 'Cancel', style: 'cancel'},
       {text: 'Delete', style: 'destructive', onPress: () => void removeTask(task.id)},
+    ]);
+  }
+
+  function startEditingProject(project: TaskProject) {
+    setEditingProjectId(project.id);
+    setProjectName(project.name);
+    setProjectStatus(project.status);
+    setProjectError(null);
+  }
+
+  function resetProjectForm() {
+    setEditingProjectId(null);
+    setProjectName('');
+    setProjectStatus('active');
+    setProjectError(null);
+  }
+
+  async function saveProject() {
+    const draft: ProjectDraft = {name: projectName, status: projectStatus};
+    const validationError = validateProjectDraft(draft);
+    if (validationError) {
+      setProjectError(validationError);
+      return;
+    }
+    setProjectError(null);
+    try {
+      if (editingProjectId) {
+        await updateProject(editingProjectId, draft);
+      } else {
+        await addProject(draft);
+      }
+      resetProjectForm();
+    } catch (saveError) {
+      setProjectError(saveError instanceof Error ? saveError.message : 'The project could not be saved.');
+    }
+  }
+
+  async function toggleProjectArchived(project: TaskProject) {
+    setBusyProjectId(project.id);
+    setProjectError(null);
+    try {
+      await setProjectArchived(project.id, !project.isArchived);
+      if (!project.isArchived && projectId === project.id && !editingTaskId) {
+        setProjectId(null);
+      }
+    } catch (archiveError) {
+      setProjectError(archiveError instanceof Error ? archiveError.message : 'The project archive state could not be changed.');
+    } finally {
+      setBusyProjectId(null);
+    }
+  }
+
+  async function toggleProjectStatus(project: TaskProject) {
+    setBusyProjectId(project.id);
+    setProjectError(null);
+    try {
+      await updateProject(project.id, {name: project.name, status: project.status === 'active' ? 'completed' : 'active'});
+    } catch (statusError) {
+      setProjectError(statusError instanceof Error ? statusError.message : 'The project status could not be changed.');
+    } finally {
+      setBusyProjectId(null);
+    }
+  }
+
+  async function removeProject(projectIdToRemove: string) {
+    setBusyProjectId(projectIdToRemove);
+    setProjectError(null);
+    try {
+      await deleteProject(projectIdToRemove);
+      if (projectId === projectIdToRemove) {
+        setProjectId(null);
+      }
+      if (editingProjectId === projectIdToRemove) {
+        resetProjectForm();
+      }
+    } catch (deleteError) {
+      setProjectError(deleteError instanceof Error ? deleteError.message : 'The project could not be deleted.');
+    } finally {
+      setBusyProjectId(null);
+    }
+  }
+
+  function confirmDeleteProject(project: TaskProject) {
+    Alert.alert('Delete project?', `Delete "${project.name}"? Projects with tasks cannot be deleted.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeProject(project.id)},
     ]);
   }
 
@@ -2617,6 +2718,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   function renderTaskRow(task: Task, allowManualMove: boolean) {
     const sourceLabel = getTaskSourceLabel(task, currentData.notes);
     const taskList = currentData.taskLists.find(taskListItem => taskListItem.id === task.listId);
+    const project = task.projectId === null ? null : currentData.projects.find(projectItem => projectItem.id === task.projectId);
     return (
       <View key={task.id} style={styles.taskRow}>
         <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
@@ -2626,7 +2728,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <View style={styles.listBody}>
             <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
             {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
-            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', project?.name ?? (task.projectId === null ? null : 'Deleted project'), task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
             {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
             {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
               const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
@@ -2668,6 +2770,13 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <View style={styles.segmentRow}>
             {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
               <SegmentButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Project (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+            {data.projects.filter(project => !project.isArchived || project.id === projectId).map(project => (
+              <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
             ))}
           </View>
           {error && <Text style={styles.errorText}>{error}</Text>}
@@ -2735,6 +2844,41 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
               </View>
             );
           })}
+        </View>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>{editingProjectId ? 'Edit project' : 'Projects'}</Text>
+          <TextInput
+            accessibilityLabel="Project name"
+            placeholder="Project name"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={projectName}
+            onChangeText={setProjectName}
+          />
+          <Text style={styles.formLabel}>Status</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Active" selected={projectStatus === 'active'} onPress={() => setProjectStatus('active')} />
+            <SegmentButton label="Completed" selected={projectStatus === 'completed'} onPress={() => setProjectStatus('completed')} />
+          </View>
+          {projectError && <Text style={styles.errorText}>{projectError}</Text>}
+          <PrimaryButton label={editingProjectId ? 'Update project' : 'Add project'} onPress={() => void saveProject()} />
+          {editingProjectId && <TextButton label="Cancel project edit" onPress={resetProjectForm} />}
+          {currentData.projects.length === 0 ? (
+            <Text style={styles.cardDetail}>No projects yet.</Text>
+          ) : currentData.projects.map(project => (
+            <View key={project.id} style={styles.taskListRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{project.name}</Text>
+                <Text style={styles.listMeta}>{project.status === 'completed' ? 'Completed' : 'Active'}{project.isArchived ? ' · Archived' : ''}</Text>
+              </View>
+              <View style={styles.taskListActions}>
+                <TextButton label={project.status === 'completed' ? 'Reopen' : 'Complete'} onPress={() => void toggleProjectStatus(project)} disabled={busyProjectId !== null} />
+                <TextButton label="Edit" onPress={() => startEditingProject(project)} disabled={busyProjectId !== null} />
+                <TextButton label={project.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleProjectArchived(project)} disabled={busyProjectId !== null} />
+                <TextButton label="Delete" danger onPress={() => confirmDeleteProject(project)} disabled={busyProjectId !== null} />
+              </View>
+            </View>
+          ))}
         </View>
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>

@@ -16,6 +16,7 @@ import type {
   Task,
   TaskDependency,
   TaskList,
+  TaskProject,
   TaskRecurrenceRule,
   TimeGoal,
   UsageSnapshot,
@@ -173,6 +174,7 @@ type RecordType =
   | 'note'
   | 'attachment'
   | 'saved_search'
+  | 'project'
   | 'task_list'
   | 'task_recurrence'
   | 'task'
@@ -380,6 +382,7 @@ export function decodeAppData(
   data.notes = [];
   data.attachments = [];
   data.savedSearches = [];
+  data.projects = [];
   data.taskLists = [];
   data.taskRecurrences = [];
   data.tasks = [];
@@ -459,6 +462,16 @@ export function decodeAppData(
       case 'saved_search':
         data.savedSearches.push(payload as SavedSearch);
         break;
+      case 'project': {
+        const projectPayload = payload as TaskProject;
+        if (typeof projectPayload.name !== 'string' ||
+            (projectPayload.status !== 'active' && projectPayload.status !== 'completed') ||
+            typeof projectPayload.isArchived !== 'boolean') {
+          throw new SqliteDataCorruptError();
+        }
+        data.projects.push(projectPayload);
+        break;
+      }
       case 'task_list':
         data.taskLists.push(payload as TaskList);
         break;
@@ -616,6 +629,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),
+    ...data.projects.map(project => record('project', project.id, project, project.updatedAt)),
     ...data.taskLists.map(taskList => record('task_list', taskList.id, taskList, taskList.updatedAt)),
     ...data.taskRecurrences.map(rule => record('task_recurrence', rule.id, rule, rule.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),

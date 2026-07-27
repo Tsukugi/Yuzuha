@@ -272,6 +272,14 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.projects.push({
+      id: 'project_work',
+      name: 'Project work',
+      status: 'active',
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.taskRecurrences.push({
       id: 'task_recurrence_work',
       title: 'Weekly review',
@@ -296,6 +304,7 @@ describe('SQLite workspace store', () => {
       priority: 'normal',
       listId: 'task_list_work',
       sortOrder: 0,
+      projectId: 'project_work',
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
       reminderAtMillis: 1780000000000,
@@ -311,6 +320,7 @@ describe('SQLite workspace store', () => {
       priority: 'normal',
       listId: 'task_list_work',
       sortOrder: 1,
+      projectId: null,
       sourceNoteId: null,
       recurrenceRuleId: null,
       reminderAtMillis: null,

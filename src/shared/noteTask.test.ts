@@ -24,6 +24,7 @@ describe('note to task conversion', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sortOrder: 0,
+      projectId: null,
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
       reminderAtMillis: null,

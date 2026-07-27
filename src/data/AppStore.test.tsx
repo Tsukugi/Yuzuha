@@ -617,4 +617,43 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('persists project links and blocks deleting a project with tasks', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    let projectId = '';
+    await act(async () => {
+      projectId = await value!.addProject({name: 'Website refresh', status: 'active'});
+      await value!.addTask({title: 'Draft page', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox', projectId});
+    });
+    expect(saved.projects.find(project => project.id === projectId)?.name).toBe('Website refresh');
+    expect(saved.tasks[0]?.projectId).toBe(projectId);
+    await act(async () => {
+      await expect(value!.deleteProject(projectId)).rejects.toThrow(/tasks/i);
+      await value!.setProjectArchived(projectId, true);
+      await value!.updateProject(projectId, {name: 'Website refresh done', status: 'completed'});
+    });
+    expect(saved.projects[0]).toMatchObject({name: 'Website refresh done', status: 'completed', isArchived: true});
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

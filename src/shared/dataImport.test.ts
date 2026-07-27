@@ -44,6 +44,7 @@ describe('JSON restore validation', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sortOrder: 0,
+      projectId: null,
       sourceNoteId: 'note_missing',
       recurrenceRuleId: null,
       reminderAtMillis: null,
@@ -84,6 +85,7 @@ describe('JSON restore validation', () => {
         priority: 'normal',
         listId: 'task_list_inbox',
         sortOrder: 0,
+        projectId: null,
         sourceNoteId: null,
         recurrenceRuleId: null,
         reminderAtMillis: null,
@@ -99,6 +101,7 @@ describe('JSON restore validation', () => {
         priority: 'normal',
         listId: 'task_list_inbox',
         sortOrder: 1,
+        projectId: null,
         sourceNoteId: null,
         recurrenceRuleId: null,
         reminderAtMillis: null,
@@ -163,6 +166,32 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/manual order/i);
   });
 
+  it('imports a project and a task linked to it', () => {
+    const data = emptyAppData();
+    data.projects.push({
+      id: 'project_1',
+      name: 'Website refresh',
+      status: 'active',
+      isArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    data.tasks.push(createTaskRecord(
+      {title: 'Draft page', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox', projectId: 'project_1'},
+      'task_1',
+      '2026-07-26T00:00:00.000Z',
+      null,
+      0,
+      new Set(['project_1']),
+    ));
+
+    const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
+
+    expect(preview.data.projects).toEqual(data.projects);
+    expect(preview.data.tasks[0]?.projectId).toBe('project_1');
+    expect(preview.recordCounts.projects).toBe(1);
+  });
+
   it('rejects task reminders that are not positive safe integers', () => {
     const data = emptyAppData();
     data.tasks.push({
@@ -174,6 +203,7 @@ describe('JSON restore validation', () => {
       priority: 'normal',
       listId: 'task_list_inbox',
       sortOrder: 0,
+      projectId: null,
       sourceNoteId: null,
       recurrenceRuleId: null,
       reminderAtMillis: -1,

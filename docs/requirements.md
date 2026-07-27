@@ -313,7 +313,9 @@ Not yet complete: end-of-month anchor preferences, recurring task rules, notific
 
 ## Latest-only data boundary
 
-This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 24, export schema 1 carrying app schema 24 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
+This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 25, export schema 1 carrying app schema 25 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
+
+Current task extension: local projects support active/completed status, archive/restore, and reference-safe deletion. Tasks can carry one optional project link, and JSON, encrypted backup, SQLite, and global search preserve and validate that link.
 
 ## Local recovery-key backup implementation review
 
