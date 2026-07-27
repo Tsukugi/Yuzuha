@@ -20,6 +20,7 @@ describe('task lifecycle rules', () => {
       dueLocalDate: '2026-07-28',
       priority: 'high',
       listId: 'task_list_inbox',
+      parentTaskId: null,
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
       reminderAtMillis: null,

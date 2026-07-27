@@ -6,6 +6,15 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 local-task-subtask pass:
+
+- app data schema 27 adds one optional same-list `Task.parentTaskId`; schema 26 data remains rejected because the app has no external users;
+- the Tasks form offers a parent task from the current list, rejects self-links and cycles, and shows parent/subtask labels in task rows;
+- deleting a parent promotes its direct children; nested child links remain attached to their preserved parent;
+- JSON import, encrypted backups, SQLite persistence, current-record validation, and global search preserve and validate parent links;
+- focused subtask/store/boundary tests, full Jest (35 suites, 154 tests), lint, typecheck, bundle validation, Android debug/release builds, clean emulator UI smoke, and phone launch smoke passed;
+- emulator smoke confirmed the schema 27 Tasks form showed `Parent task (optional)` and `No parent`; both devices were force-stopped after the check, with no Gradle/Java build processes left running.
+
 2026-07-27 focus-session pass:
 
 - app data schema 26 adds local `appGroups` and `focusSessions`; schema 25 data remains rejected because the app has no external users;

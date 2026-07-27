@@ -155,6 +155,7 @@ export interface Task {
   dueLocalDate: string | null;
   priority: TaskPriority;
   listId: string;
+  parentTaskId: string | null;
   sortOrder: number;
   projectId: string | null;
   sourceNoteId: string | null;
@@ -256,7 +257,7 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 26;
+  schemaVersion: 27;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -293,7 +294,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 26,
+  schemaVersion: 27,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

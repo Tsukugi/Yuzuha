@@ -10,6 +10,7 @@ export function createTaskFromNote(note: Note, id: string, timestamp: string, so
     dueLocalDate: null,
     priority: TASK_DEFAULT_PRIORITY,
     listId: TASK_INBOX_LIST_ID,
+    parentTaskId: null,
     sortOrder,
     projectId: null,
     sourceNoteId: note.id,

@@ -1553,3 +1553,35 @@ Known limits:
 
 - focus timing is manual and local; there is no background timer, notification automation, app blocking, installed-app catalog, or sync;
 - app-group links are package labels only and do not grant access to app content.
+
+## Implementation review: local task-subtask pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 27 adds one optional `Task.parentTaskId`; no schema 26 upgrade path was added;
+- parent links require an existing task in the same list and reject missing parents, self-links, and cycles;
+- the Tasks form offers same-list parent selection and task rows show parent and child-count labels;
+- deleting a parent promotes direct children to top-level tasks in the same transaction; deeper descendants keep their existing links;
+- JSON import, encrypted backup, SQLite persistence, current-record validation, global search, UX, architecture, requirements, decision, release, and testing docs include the current subtask contract.
+
+Review evidence:
+
+```text
+Failing test first       PASS - subtask lifecycle import was reproduced as a missing module before implementation
+Focused Jest             PASS - subtask, lifecycle, store, JSON, backup, and SQLite suites passed
+Full Jest                PASS - 35 suites, 154 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release opened MainActivity and the schema 27 Tasks form showed Parent task (optional)
+Phone smoke              PASS - release APK opened MainActivity on 42adce68 with no fatal or ReactNativeJS error
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- subtasks are local same-list links only; cross-list hierarchy, templates, recurring subtask trees, cross-device merges, and sync remain planned;
+- there is no dedicated hierarchy view yet; the current Tasks list shows the parent label and direct-child count.

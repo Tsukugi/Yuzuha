@@ -23,6 +23,7 @@ describe('note to task conversion', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      parentTaskId: null,
       sortOrder: 0,
       projectId: null,
       sourceNoteId: 'note_1',

@@ -702,4 +702,43 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('persists subtasks, rejects cycles, and promotes children after parent deletion', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    let parentId = '';
+    let childId = '';
+    await act(async () => {
+      parentId = await value!.addTask({title: 'Parent', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'});
+      childId = await value!.addTask({title: 'Child', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox', parentTaskId: parentId});
+    });
+    expect(saved.tasks.find(task => task.id === childId)?.parentTaskId).toBe(parentId);
+    await act(async () => {
+      await expect(value!.updateTask(parentId, {title: 'Parent', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox', parentTaskId: childId})).rejects.toThrow(/cycle/i);
+      await value!.deleteTask(parentId);
+    });
+    expect(saved.tasks).toHaveLength(1);
+    expect(saved.tasks[0]).toMatchObject({id: childId, parentTaskId: null});
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

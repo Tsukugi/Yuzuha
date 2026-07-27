@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -2419,6 +2419,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [parentTaskId, setParentTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
@@ -2476,6 +2477,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setPriority(task.priority);
     setListId(task.listId);
     setProjectId(task.projectId);
+    setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
     setError(null);
     onFocusHandled();
@@ -2497,6 +2499,15 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   }
 
   const currentData = data;
+  const subtaskCountByParent = useMemo(() => {
+    const counts = new Map<string, number>();
+    currentData.tasks.forEach(task => {
+      if (task.parentTaskId !== null) {
+        counts.set(task.parentTaskId, (counts.get(task.parentTaskId) ?? 0) + 1);
+      }
+    });
+    return counts;
+  }, [currentData.tasks]);
   const taskListIds = new Set(currentData.taskLists.map(taskList => taskList.id));
   const projectIds = new Set(currentData.projects.map(project => project.id));
   const todayLocalDate = localDateKey(new Date());
@@ -2511,6 +2522,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setPriority('normal');
     setListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
     setProjectId(null);
+    setParentTaskId(null);
     setEditingTaskId(null);
   }
 
@@ -2522,6 +2534,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setPriority(task.priority);
     setListId(task.listId);
     setProjectId(task.projectId);
+    setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
     setError(null);
   }
@@ -2534,6 +2547,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
       priority,
       listId,
       projectId,
+      parentTaskId,
     };
     const validationError = validateTaskDraft(draft, taskListIds, projectIds);
     if (validationError) {
@@ -2887,6 +2901,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     const sourceLabel = getTaskSourceLabel(task, currentData.notes);
     const taskList = currentData.taskLists.find(taskListItem => taskListItem.id === task.listId);
     const project = task.projectId === null ? null : currentData.projects.find(projectItem => projectItem.id === task.projectId);
+    const subtaskCount = subtaskCountByParent.get(task.id) ?? 0;
     return (
       <View key={task.id} style={styles.taskRow}>
         <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
@@ -2896,7 +2911,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <View style={styles.listBody}>
             <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
             {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
-            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', project?.name ?? (task.projectId === null ? null : 'Deleted project'), task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', project?.name ?? (task.projectId === null ? null : 'Deleted project'), task.parentTaskId === null ? null : `Subtask of ${currentData.tasks.find(parent => parent.id === task.parentTaskId)?.title ?? 'Deleted task'}`, subtaskCount > 0 ? `${subtaskCount} subtasks` : null, task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
             {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
             {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
               const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
@@ -2945,6 +2960,13 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
             <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
             {data.projects.filter(project => !project.isArchived || project.id === projectId).map(project => (
               <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Parent task (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No parent" selected={parentTaskId === null} onPress={() => setParentTaskId(null)} />
+            {currentData.tasks.filter(task => task.id !== editingTaskId && task.listId === listId).map(task => (
+              <SegmentButton key={task.id} label={task.title} selected={parentTaskId === task.id} onPress={() => setParentTaskId(task.id)} />
             ))}
           </View>
           {error && <Text style={styles.errorText}>{error}</Text>}

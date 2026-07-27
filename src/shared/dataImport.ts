@@ -31,6 +31,7 @@ import {isValidTaskRecurrenceReminderLocalTime} from './taskRecurrence';
 import {validateTaskDependencyDraft} from './taskDependency';
 import {TASK_PROJECT_MAX_NAME_LENGTH} from './projectLifecycle';
 import {validateAppGroupDraft} from './appGroupLifecycle';
+import {validateTaskParentLink} from './taskSubtask';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -82,7 +83,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 26) {
+  if (appSchemaVersion !== 27) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -101,7 +102,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 26 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 27 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -177,6 +178,12 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   });
   data.taskRecurrences.forEach(rule => validateTaskRecurrence(rule, taskListIds));
   data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds, projectIds));
+  data.tasks.forEach(task => {
+    const parentError = validateTaskParentLink(task.id, task.parentTaskId, data.tasks);
+    if (parentError) {
+      throw new JsonImportError(`Task ${task.id} has an invalid parent: ${parentError}`);
+    }
+  });
   const sortOrdersByList = new Set<string>();
   data.tasks.forEach(task => {
     const key = `${task.listId}:${task.sortOrder}`;
@@ -359,6 +366,7 @@ function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: S
       (task.dueLocalDate !== null && !isValidLocalDate(task.dueLocalDate)) ||
       (task.priority !== 'low' && task.priority !== 'normal' && task.priority !== 'high') ||
       !taskListIds.has(task.listId) ||
+      (task.parentTaskId !== null && typeof task.parentTaskId !== 'string') ||
       !Number.isSafeInteger(task.sortOrder) || task.sortOrder < 0 ||
       (task.projectId !== null && !projectIds.has(task.projectId)) ||
       (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||

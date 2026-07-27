@@ -497,6 +497,7 @@ export function decodeAppData(
         if ((taskPayload.sourceNoteId !== null && typeof taskPayload.sourceNoteId !== 'string') ||
             (taskPayload.priority !== 'low' && taskPayload.priority !== 'normal' && taskPayload.priority !== 'high') ||
             typeof taskPayload.listId !== 'string' ||
+            (taskPayload.parentTaskId !== null && typeof taskPayload.parentTaskId !== 'string') ||
             (taskPayload.recurrenceRuleId !== null && typeof taskPayload.recurrenceRuleId !== 'string') ||
             (taskPayload.reminderAtMillis !== null && (!Number.isSafeInteger(taskPayload.reminderAtMillis) || taskPayload.reminderAtMillis <= 0))) {
           throw new SqliteDataCorruptError();

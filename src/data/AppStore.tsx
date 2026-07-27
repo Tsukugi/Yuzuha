@@ -16,7 +16,7 @@ import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
-import {createTaskRecord, deleteTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
+import {createTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createProjectRecord, deleteProjectRecord, setProjectArchived, updateProjectRecord, validateProjectDraft, validateProjectName, type ProjectDraft} from '../shared/projectLifecycle';
 import {createAppGroupRecord, deleteAppGroupRecord, setAppGroupArchived, updateAppGroupRecord, validateAppGroupDraft, validateAppGroupName, type AppGroupDraft} from '../shared/appGroupLifecycle';
 import {createFocusSessionRecord, finishFocusSession as finishFocusSessionRecord, validateFocusSessionDraft, type FocusSessionDraft, type FocusSessionFinishAction} from '../shared/focusSessionLifecycle';
@@ -32,6 +32,7 @@ import {
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {validateTaskReminderTimestamp} from '../shared/taskReminder';
 import {createTaskDependencyRecord, deleteTaskDependencyRecord, getBlockingTaskIds, validateTaskDependencyDraft} from '../shared/taskDependency';
+import {promoteSubtasksAfterDelete, validateTaskParentLink} from '../shared/taskSubtask';
 import {adjustTaskReminderForQuietHours, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {taskReminders} from '../platform/taskReminders';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
@@ -801,6 +802,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         }
         const now = new Date().toISOString();
         const task = createTaskRecord(input, taskId, now, null, nextTaskSortOrder(current.tasks, input.listId), projectIds);
+        const parentError = validateTaskParentLink(task.id, task.parentTaskId, [task, ...current.tasks]);
+        if (parentError) {
+          throw new Error(parentError);
+        }
         return {...current, tasks: [task, ...current.tasks]};
       });
       return taskId;
@@ -822,10 +827,15 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
           throw new Error(validationError);
         }
         const updatedTask = updateTaskRecord(task, input, new Date().toISOString(), projectIds);
+        const candidateTasks = current.tasks.map(item => item.id === taskId ? updatedTask : item);
+        const parentError = validateTaskParentLink(taskId, updatedTask.parentTaskId, candidateTasks);
+        if (parentError) {
+          throw new Error(parentError);
+        }
         return {
           ...current,
-          tasks: current.tasks.map(item => item.id === taskId
-            ? {...updatedTask, sortOrder: input.listId === task.listId ? task.sortOrder : nextTaskSortOrder(current.tasks, input.listId)}
+          tasks: candidateTasks.map(item => item.id === taskId
+            ? {...item, sortOrder: input.listId === task.listId ? task.sortOrder : nextTaskSortOrder(current.tasks, input.listId)}
             : item),
         };
       });
@@ -864,9 +874,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         await taskReminders.cancel(taskId);
       }
       try {
+        const timestamp = new Date().toISOString();
         await commit(current => ({
           ...current,
-          tasks: deleteTaskRecord(current.tasks, taskId),
+          tasks: promoteSubtasksAfterDelete(current.tasks, taskId, timestamp),
           taskDependencies: current.taskDependencies.filter(dependency => dependency.sourceTaskId !== taskId && dependency.dependentTaskId !== taskId),
         }));
       } catch (error) {

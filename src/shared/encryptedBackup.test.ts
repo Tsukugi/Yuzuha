@@ -82,6 +82,7 @@ describe('encrypted backups', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      parentTaskId: null,
       sortOrder: 0,
       projectId: 'project_secret',
       sourceNoteId: 'note_secret',
@@ -192,7 +193,7 @@ describe('encrypted backups', () => {
   });
 
   it('rejects old app data when building a backup', async () => {
-    const oldData = {...emptyAppData(), schemaVersion: 25 as never};
+    const oldData = {...emptyAppData(), schemaVersion: 26 as never};
 
     await expect(buildEncryptedBackup(oldData, password, createdAt, deterministicRandomBytes)).rejects.toThrow(/app data version/i);
   });

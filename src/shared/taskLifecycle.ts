@@ -11,6 +11,7 @@ export interface TaskDraft {
   priority: TaskPriority;
   listId: string;
   projectId?: string | null;
+  parentTaskId?: string | null;
 }
 
 export type TaskFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'completed';
@@ -54,6 +55,7 @@ export function createTaskRecord(draft: TaskDraft, id: string, timestamp: string
     dueLocalDate: draft.dueLocalDate,
     priority: draft.priority,
     listId: draft.listId,
+    parentTaskId: draft.parentTaskId ?? null,
     sortOrder,
     projectId: draft.projectId ?? null,
     sourceNoteId,
@@ -76,6 +78,7 @@ export function updateTaskRecord(task: Task, draft: TaskDraft, timestamp: string
     dueLocalDate: draft.dueLocalDate,
     priority: draft.priority,
     listId: draft.listId,
+    parentTaskId: draft.parentTaskId ?? null,
     projectId: draft.projectId ?? null,
     updatedAt: timestamp,
   };

@@ -381,3 +381,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add schema 26 `appGroups` and `focusSessions`. Allow one active manual session, derive elapsed time from stored timestamps, and record `completed`, `manual`, or `interrupted` outcomes. App groups store trimmed package-name labels and can be linked to a session.
 - Reason: The user gets an auditable focus history without a background worker, hidden monitoring, or a false promise that the app can block other apps. Timestamp-derived duration survives restart and is easy to validate.
 - Consequence: App blocking, background/notification focus automation, app-group assignment from a full installed-app catalog, cross-device sessions, and sync remain separate contracts. Schema 25 data is rejected rather than upgraded.
+
+## DEC-056: Keep subtasks as one same-list parent link
+
+- Context: Tasks need a small local hierarchy, but there is no need for a separate subtask table, cross-list hierarchy, or sync conflict model before public users exist.
+- Decision: Add schema 27 `Task.parentTaskId`. Allow one optional parent in the same task list, reject missing parents, self-links, and cycles, and promote direct children when a parent is deleted.
+- Reason: A single typed link keeps storage and UI small, supports nested subtasks through the same rule, and gives deletion a deterministic result without preserving a deleted record.
+- Consequence: Cross-list subtasks, templates, recurring subtask trees, cross-device hierarchy merges, and sync remain separate future contracts. Schema 26 data is rejected rather than upgraded.

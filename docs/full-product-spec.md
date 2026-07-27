@@ -158,7 +158,7 @@ The user chooses a recurrence rule and a missed-occurrence policy: create all mi
 
 ### Projects and dependencies
 
-A project groups tasks, notes, budget links, and focus sessions. A dependency blocks a task until its source task reaches the configured state. Cycles are rejected at save time.
+A project groups tasks, notes, budget links, and focus sessions. A task may also have one optional parent task in the same list; parent self-links and cycles are rejected, and deleting a parent promotes its direct children. A dependency blocks a task until its source task reaches the configured state. Cycles are rejected at save time.
 
 ## 8. Cross-feature links
 
@@ -206,4 +206,3 @@ The full product is complete only when:
 - accessibility and localization gates pass;
 - release, support, incident, and rollback procedures are exercised;
 - no feature silently changes financial totals, reminders, or user data.
-
