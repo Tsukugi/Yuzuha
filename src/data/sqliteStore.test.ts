@@ -291,6 +291,16 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.tasks.push({
+      id: 'task_from_note',
+      title: 'A note',
+      details: 'Body',
+      status: 'open',
+      dueLocalDate: null,
+      sourceNoteId: 'note_1',
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     const database = new MemorySqlite();
     const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
@@ -402,6 +412,32 @@ describe('SQLite workspace store', () => {
 
     expect(data.notes[0].tags).toEqual([]);
     expect(data.notes[0].isArchived).toBe(false);
+  });
+
+  it('upgrades old SQLite task rows with a null source-note link', async () => {
+    const database = new MemorySqlite();
+    database.schemaVersion = '2';
+    database.meta.set('schema_version', '2');
+    database.meta.set('main_currency', 'EUR');
+    database.records.set('task:old_task', {
+      recordType: 'task',
+      recordId: 'old_task',
+      payloadJson: JSON.stringify({
+        id: 'old_task',
+        title: 'Old task',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }),
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+
+    const data = await store.load();
+
+    expect(data.tasks[0].sourceNoteId).toBeNull();
   });
 
   it('rejects malformed persisted record payloads', async () => {

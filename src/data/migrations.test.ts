@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(13);
+    expect(data?.schemaVersion).toBe(14);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,28 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(13);
+    expect(data?.schemaVersion).toBe(14);
     expect(data?.savedSearches).toEqual([]);
+  });
+
+  it('adds a null source-note link when opening schema 13 tasks', () => {
+    const legacy = {
+      ...emptyAppData(),
+      schemaVersion: 13 as const,
+      tasks: [{
+        id: 'task_1',
+        title: 'Legacy task',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      }],
+    } as never;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(14);
+    expect(data?.tasks[0].sourceNoteId).toBeNull();
   });
 });

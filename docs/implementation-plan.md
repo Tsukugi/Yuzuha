@@ -901,3 +901,36 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: account/device recovery design or the next Phase 3 capture contract, with remote sync kept behind the local-first boundary.
+
+## Implementation review: note-to-task pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 14 with deterministic schema 13 to schema 14 task-link migration;
+- nullable `sourceNoteId` on tasks, with old tasks receiving `null`;
+- Notes `Make task` action that copies the note title/body into a new open task and leaves the note unchanged;
+- Tasks source-note display with an explicit `Deleted note` state after source deletion;
+- JSON restore, encrypted backup, SQLite round-trip, and local-store coverage for the link field;
+- documentation and release notes for the local cross-feature boundary.
+
+Known limits:
+
+- task editing, projects, recurring task rules, reminders, synced links, account recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 7 suites, 44 tests
+Full Jest          PASS - 25 suites, 106 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - note `Phase Tags` converted to a task and Tasks showed `From note: Phase Tags`
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: account/device recovery design or the next Phase 3 task contract, with remote sync kept behind the local-first boundary.

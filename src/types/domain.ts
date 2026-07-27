@@ -132,6 +132,7 @@ export interface Task {
   details: string;
   status: 'open' | 'completed';
   dueLocalDate: string | null;
+  sourceNoteId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -165,7 +166,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 13;
+  schemaVersion: 14;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -195,7 +196,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 13,
+  schemaVersion: 14,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

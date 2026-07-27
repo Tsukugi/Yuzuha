@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the global-search pass.
+Status: Current Android MVP through the note-to-task pass.
 
 ## Navigation
 
@@ -45,6 +45,8 @@ Notes has a local search field. It matches title, body, normalized tags, and att
 Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default. Show archived notes reveals them for review or restore, and pinned notes appear first. Deleting a note also removes its attachment metadata and private files.
 
 When a note query is non-empty, Notes can save it under a local name. Saving also records whether archived notes are included. The saved-search list shows the name and query, Apply restores both values, and Delete requires confirmation. Saved searches stay on the device and are included in local exports and encrypted backups; they are not global or synced searches.
+
+Each note has a `Make task` action. It creates a new open task using the note title and body, leaves the note unchanged, and shows the source note title in Tasks. If the note is later deleted, the task shows `Deleted note` instead of losing the task.
 
 ### Search the workspace
 

@@ -363,6 +363,15 @@ Local global-search controls are implemented and verified:
 
 Not yet complete: synced search, synced notes, and remote sync.
 
+Note-to-task conversion is implemented and verified:
+
+- a note can create a new open task with the note title and body;
+- the task stores `sourceNoteId` and the source note remains unchanged;
+- deleting the source note leaves the task and its source ID, so the task can show `Deleted note`;
+- schema 13 tasks migrate to schema 14 with `sourceNoteId: null`.
+
+Not yet complete: task editing, recurring task rules, reminders, synced notes, and remote sync.
+
 ## Portable encrypted attachment implementation review
 
 Implemented and verified:

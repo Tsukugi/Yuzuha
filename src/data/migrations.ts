@@ -126,6 +126,13 @@ interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches'> {
   schemaVersion: 12;
 }
 
+type StoredTaskV13 = Omit<AppData['tasks'][number], 'sourceNoteId'>;
+
+interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks'> {
+  schemaVersion: 13;
+  tasks: StoredTaskV13[];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -364,10 +371,10 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-export function isStoredV13(value: unknown): value is AppData {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
-    value.schemaVersion === 13 &&
+    value.schemaVersion === schemaVersion &&
     typeof value.mainCurrency === 'string' &&
     Array.isArray(value.money) &&
     Array.isArray(value.transfers) &&
@@ -394,11 +401,20 @@ export function isStoredV13(value: unknown): value is AppData {
         isIsoDate(savedSearch.createdAt) && isIsoDate(savedSearch.updatedAt);
     }) &&
     Array.isArray(value.tasks) &&
+    value.tasks.every(task => isRecord(task) && (!requireTaskSourceNoteId || typeof task.sourceNoteId === 'string' || task.sourceNoteId === null)) &&
     Array.isArray(value.usageSnapshots) &&
     isRecord(value.usageRead) &&
     Array.isArray(value.usageExcludedPackages) &&
     Array.isArray(value.timeGoals)
   );
+}
+
+export function isStoredV13(value: unknown): value is StoredV13 {
+  return isStoredV13Shape(value, 13, false);
+}
+
+export function isStoredV14(value: unknown): value is AppData {
+  return isStoredV13Shape(value, 14, true);
 }
 
 function legacyCategoryId(name: string): string {
@@ -523,7 +539,7 @@ export function migrateV11ToV12(value: StoredV11): StoredV12 {
   };
 }
 
-export function migrateV12ToV13(value: StoredV12): AppData {
+export function migrateV12ToV13(value: StoredV12): StoredV13 {
   return {
     ...value,
     schemaVersion: 13,
@@ -531,39 +547,54 @@ export function migrateV12ToV13(value: StoredV12): AppData {
   };
 }
 
+export function migrateV13ToV14(value: StoredV13): AppData {
+  return {
+    ...value,
+    schemaVersion: 14,
+    tasks: value.tasks.map(task => ({...task, sourceNoteId: null})),
+  };
+}
+
+function migrateV12ToV14(value: StoredV12): AppData {
+  return migrateV13ToV14(migrateV12ToV13(value));
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV13(value)) {
+  if (isStoredV14(value)) {
     return value;
   }
+  if (isStoredV13(value)) {
+    return migrateV13ToV14(value);
+  }
   if (isStoredV12(value)) {
-    return migrateV12ToV13(value);
+    return migrateV13ToV14(migrateV12ToV13(value));
   }
   if (isStoredV11(value)) {
-    return migrateV12ToV13(migrateV11ToV12(value));
+    return migrateV13ToV14(migrateV12ToV13(migrateV11ToV12(value)));
   }
   if (isStoredV10(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(value)));
+    return migrateV13ToV14(migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(value))));
   }
   if (isStoredV9(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
   }
   if (isStoredV8(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
   }
   if (isStoredV7(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
   }
   if (isStoredV6(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
   }
   if (isStoredV5(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
   }
   if (isStoredV4(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
   }
   if (isStoredV3(value)) {
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
   }
   if (isStoredV2(value)) {
     const v3 = migrateV2ToV3(value);
@@ -574,7 +605,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   if (isStoredV1(value)) {
     const v2 = migrateV1ToV2(value);
@@ -586,7 +617,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   return null;
 }

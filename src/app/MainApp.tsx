@@ -43,6 +43,7 @@ import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {normalizeNoteTags} from '../shared/noteSearch';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
+import {getTaskSourceLabel} from '../shared/noteTask';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch} from '../types/domain';
@@ -1805,7 +1806,7 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 }
 
 function NotesScreen() {
-  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, addAttachment, deleteAttachment} = useAppStore();
+  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
@@ -1898,6 +1899,18 @@ function NotesScreen() {
       }
     } catch (noteError) {
       setError(noteError instanceof Error ? noteError.message : 'The note could not be deleted.');
+    } finally {
+      setBusyNoteId(null);
+    }
+  }
+
+  async function makeTask(note: Note) {
+    setError(null);
+    setBusyNoteId(note.id);
+    try {
+      await createTaskFromNote(note.id);
+    } catch (taskError) {
+      setError(taskError instanceof Error ? taskError.message : 'The task could not be created from this note.');
     } finally {
       setBusyNoteId(null);
     }
@@ -2096,6 +2109,7 @@ function NotesScreen() {
                   <TextButton label="Edit" disabled={isBusy} onPress={() => startEditing(note)} />
                   <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
                   <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
+                  <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
                   <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
                 </View>
                 {noteAttachments.length > 0 && (
@@ -2213,6 +2227,7 @@ function TasksScreen() {
               <View style={styles.listBody}>
                 <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
                 {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
+                {getTaskSourceLabel(task, data.notes) && <Text style={styles.listMeta}>{getTaskSourceLabel(task, data.notes)}</Text>}
               </View>
             </Pressable>
           ))

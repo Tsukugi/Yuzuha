@@ -58,6 +58,16 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.tasks.push({
+      id: 'task_secret',
+      title: 'Review private note',
+      details: 'Keep the source link.',
+      status: 'open',
+      dueLocalDate: null,
+      sourceNoteId: 'note_secret',
+      createdAt,
+      updatedAt: createdAt,
+    });
 
     const attachmentFiles = [{
       id: 'attachment_secret',
@@ -137,7 +147,7 @@ describe('encrypted backups', () => {
     await expect(decryptEncryptedBackup(backup, 'wrong password that is long')).rejects.toThrow(/password/i);
 
     const parsed = JSON.parse(backup) as {ciphertextBase64: string};
-    const index = parsed.ciphertextBase64.length - 3;
+    const index = Math.floor(parsed.ciphertextBase64.length / 2);
     parsed.ciphertextBase64 = `${parsed.ciphertextBase64.slice(0, index)}${parsed.ciphertextBase64[index] === 'A' ? 'B' : 'A'}${parsed.ciphertextBase64.slice(index + 1)}`;
     await expect(decryptEncryptedBackup(JSON.stringify(parsed), password)).rejects.toThrow(/password|damaged/i);
   });

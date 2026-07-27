@@ -241,3 +241,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Search the loaded `AppData` in memory. Match supported money, notes, tasks, saved searches, accounts/categories, transfers/splits/budgets, recurrence rules, time goals, and app-time metadata case-insensitively. Hide archived records unless the user enables archived results. Require granted Usage Access and `included: true` for app-time matches.
 - Reason: The rule is small, inspectable, and follows the existing local-first privacy boundary. Deleted records are absent from the source collections, and no attachment bytes are read.
 - Consequence: Search has no persistent index, date filters, command actions, or synced results yet. Those remain separate product work.
+
+## DEC-036: Link note-created tasks by stable source ID
+
+- Context: A note can contain a next action, and the Phase 3 contract requires converting it into a task without changing the source note.
+- Decision: Add nullable `sourceNoteId` to tasks in app schema 14. The Notes action creates a new open task from the note title/body. A missing source ID remains valid so Tasks can show `Deleted note` after source deletion. Existing schema 13 tasks migrate with `null`.
+- Reason: A stable ID preserves provenance without copying mutable note state into a hidden relationship or deleting the task when the note is deleted. The action remains local and works offline.
+- Consequence: This pass does not add task editing, projects, reminders, recurrence, or synced links.

@@ -4,6 +4,15 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 note-to-task pass:
+
+- app data schema 14 adds an optional `sourceNoteId` to tasks and migrates schema 13 tasks with `null`;
+- Notes can create a new open task from the note title/body without changing the note;
+- Tasks show the source note title, or `Deleted note` when the source no longer exists;
+- JSON restore, encrypted backups, SQLite persistence, and local migration validation include the new task link;
+- no permission or minimum-OS change;
+- known limits remain task editing, recurring task rules, reminders, synced notes, account recovery, and remote sync.
+
 2026-07-27 global-search pass:
 
 - Home opens a local Search screen that searches supported money, notes, tasks, saved searches, account/category, transfer/split/budget, recurrence, time-goal, and app-time metadata records;

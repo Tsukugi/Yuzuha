@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the global-search pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 13 saved searches with note tags and lifecycle fields, local title/body/tag/attachment-name search, local global search across supported workspace records, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; sync and advanced adapters remain planned.
+Status: Core implementation through the note-to-task pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 14 task source-note links, schema 13 saved searches with note tags and lifecycle fields, local title/body/tag/attachment-name search, local global search across supported workspace records, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; sync and advanced adapters remain planned.
 
 ## System shape
 
@@ -100,6 +100,8 @@ src/
 Saved searches are stored as typed `saved_search` JSON rows in `app_records`. Schema 12 data migrates to schema 13 with no saved searches. The Notes screen owns the local name/query/archive-visibility rules and calls the repository through `AppStore`; Apply and Delete do not introduce a global index or sync state.
 
 Global search is a derived local projection over the loaded `AppData`; it does not add a database table or index. The Search screen searches supported records in memory, hides archived records unless requested, and only searches included app-time snapshots after Usage Access is granted. Deleted records cannot match because deletion removes them from the local collections.
+
+Tasks created from notes store `sourceNoteId` in the task record. The source note is not changed, and a missing source ID remains valid so the Tasks screen can show `Deleted note` after the source is removed.
 
 ## Error boundaries
 

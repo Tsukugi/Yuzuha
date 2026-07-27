@@ -435,9 +435,11 @@ export function decodeAppData(
       case 'saved_search':
         data.savedSearches.push(payload as SavedSearch);
         break;
-      case 'task':
-        data.tasks.push(payload as Task);
+      case 'task': {
+        const taskPayload = payload as Task;
+        data.tasks.push({...taskPayload, sourceNoteId: taskPayload.sourceNoteId ?? null});
         break;
+      }
       case 'usage_snapshot':
         data.usageSnapshots.push(payload as UsageSnapshot);
         break;

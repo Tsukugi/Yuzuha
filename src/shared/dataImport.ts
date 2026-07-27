@@ -65,7 +65,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 13) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 14) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -87,7 +87,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 13 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 14 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -265,6 +265,7 @@ function validateTask(task: Task): void {
   if (typeof task.title !== 'string' || typeof task.details !== 'string' ||
       (task.status !== 'open' && task.status !== 'completed') ||
       (task.dueLocalDate !== null && !isValidLocalDate(task.dueLocalDate)) ||
+      (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||
       !isIsoDate(task.createdAt) || !isIsoDate(task.updatedAt)) {
     throw new JsonImportError(`Task ${task.id} has invalid fields.`);
   }

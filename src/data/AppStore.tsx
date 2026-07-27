@@ -15,6 +15,7 @@ import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
+import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -85,6 +86,7 @@ interface AppStoreValue {
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: {title: string; details: string}) => Promise<void>;
+  createTaskFromNote: (noteId: string) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   setUsagePermission: (permission: UsagePermissionState, errorCode?: string | null) => Promise<void>;
   toggleUsageExclusion: (packageName: string) => Promise<void>;
@@ -540,10 +542,28 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         id: createId('task'),
         status: 'open',
         dueLocalDate: null,
+        sourceNoteId: null,
         createdAt: now,
         updatedAt: now,
       };
       await commit(current => ({...current, tasks: [task, ...current.tasks]}));
+    },
+    [commit],
+  );
+
+  const createTaskFromNote = useCallback(
+    async (noteId: string) => {
+      const now = new Date().toISOString();
+      await commit(current => {
+        const note = current.notes.find(item => item.id === noteId);
+        if (!note) {
+          throw new Error('The note no longer exists.');
+        }
+        return {
+          ...current,
+          tasks: [createTaskFromNoteRecord(note, createId('task'), now), ...current.tasks],
+        };
+      });
     },
     [commit],
   );
@@ -663,6 +683,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addAttachment,
       deleteAttachment,
       addTask,
+      createTaskFromNote,
       toggleTask,
       setUsagePermission,
       toggleUsageExclusion,
@@ -691,6 +712,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addAttachment,
       deleteAttachment,
       addTask,
+      createTaskFromNote,
       data,
       error,
       isLoading,
