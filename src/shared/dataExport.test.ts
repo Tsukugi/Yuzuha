@@ -10,6 +10,7 @@ describe('data exports', () => {
       body: 'Keep this local',
       tags: [],
       isPinned: false,
+      isArchived: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -21,7 +22,7 @@ describe('data exports', () => {
     };
 
     expect(parsed.exportSchemaVersion).toBe(DATA_EXPORT_SCHEMA_VERSION);
-    expect(parsed.appSchemaVersion).toBe(11);
+    expect(parsed.appSchemaVersion).toBe(12);
     expect(parsed.exportedAt).toBe('2026-07-26T12:00:00.000Z');
     expect(parsed.data).toEqual(data);
     expect(parsed.data).toHaveProperty('money');
@@ -53,7 +54,7 @@ describe('data exports', () => {
     expect(lines[0]).toContain('exportSchemaVersion');
     expect(lines[0]).toContain('appSchemaVersion');
     expect(lines[0]).toContain('currency');
-    expect(lines[1]).toContain('1,11,money_1,expense,1099,EUR');
+    expect(lines[1]).toContain('1,12,money_1,expense,1099,EUR');
     expect(csv).toContain('"Food, lunch"');
     expect(csv).toContain('"A ""shared"" meal');
   });

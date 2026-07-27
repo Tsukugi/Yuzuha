@@ -36,6 +36,7 @@ describe('encrypted backups', () => {
       body: 'Do not expose this text — café',
       tags: ['private'],
       isPinned: false,
+      isArchived: false,
       createdAt,
       updatedAt: createdAt,
     });
@@ -76,6 +77,7 @@ describe('encrypted backups', () => {
       body: '',
       tags: [],
       isPinned: false,
+      isArchived: false,
       createdAt,
       updatedAt: createdAt,
     });

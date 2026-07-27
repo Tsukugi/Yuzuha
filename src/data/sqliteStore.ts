@@ -416,11 +416,14 @@ export function decodeAppData(
         if (typeof payload !== 'object' || payload === null) {
           throw new SqliteDataCorruptError();
         }
-        const notePayload = payload as {tags?: unknown};
+        const notePayload = payload as {tags?: unknown; isArchived?: unknown};
         if (notePayload.tags !== undefined && (!Array.isArray(notePayload.tags) || notePayload.tags.some(tag => typeof tag !== 'string'))) {
           throw new SqliteDataCorruptError();
         }
-        data.notes.push({...payload, tags: notePayload.tags ?? []} as Note);
+        if (notePayload.isArchived !== undefined && typeof notePayload.isArchived !== 'boolean') {
+          throw new SqliteDataCorruptError();
+        }
+        data.notes.push({...payload, tags: notePayload.tags ?? [], isArchived: notePayload.isArchived ?? false} as Note);
         break;
       }
       case 'attachment':

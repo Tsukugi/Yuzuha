@@ -7,6 +7,7 @@ const note: Note = {
   body: 'A short plan for the next release.',
   tags: ['work', 'planning'],
   isPinned: false,
+  isArchived: false,
   createdAt: '2026-07-27T12:00:00.000Z',
   updatedAt: '2026-07-27T12:00:00.000Z',
 };

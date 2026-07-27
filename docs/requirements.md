@@ -268,7 +268,7 @@ Not yet complete: missed-occurrence choices, end-of-month anchor preferences, re
 Implemented and verified:
 
 - JSON export schema 1 can be pasted into Data tools and previewed without changing local data;
-- supported app schemas are migrated to schema 11 before restore;
+- supported app schemas are migrated to schema 12 before restore;
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
@@ -335,12 +335,19 @@ Android preview is implemented: Notes can open a supported private image, PDF, o
 
 Implemented and verified:
 
-- app data schema 11 adds a normalized tag array to every note;
-- schema 10 AsyncStorage notes and older SQLite note rows migrate to an empty tag array without changing their title or body;
+- app data schema 12 adds note lifecycle state to the normalized tag array already stored on every note;
+- schema 10 AsyncStorage notes and older SQLite note rows migrate to an empty tag array and `isArchived: false` without changing their title or body;
 - tags are trimmed, lowercased, deduplicated, and limited to 20 values of at most 40 characters;
 - Notes search matches title, body, and tags case-insensitively and keeps the query local.
 
-Not yet complete: note edit/archive/pin/delete, attachment filename search, saved searches, global search, and synced notes.
+Note lifecycle is implemented and verified:
+
+- users can edit title, body, and tags with the same validation as note creation;
+- users can pin/unpin notes, archive/restore notes, and delete notes after confirmation;
+- archived notes are hidden by default, with an explicit Show archived notes control; pinned notes sort first;
+- deleting a note removes its attachment metadata and private attachment files.
+
+Not yet complete: attachment filename search, saved searches, global search, synced notes, and remote sync.
 
 ## Portable encrypted attachment implementation review
 

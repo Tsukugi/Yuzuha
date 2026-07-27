@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the note tags and search pass.
+Status: Current Android MVP through the note lifecycle pass.
 
 ## Navigation
 
@@ -41,6 +41,8 @@ The short form asks for a title first. Details, due date, priority, and list are
 ### Search notes
 
 Notes has a local search field. It matches title, body, and normalized tags case-insensitively. Results show the title, a short body preview, tags, and updated time. An empty query shows all notes; a query with no matches shows an honest empty state. Search must not send note content to a server.
+
+Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default. Show archived notes reveals them for review or restore, and pinned notes appear first. Deleting a note also removes its attachment metadata and private files.
 
 ### Add a note attachment
 

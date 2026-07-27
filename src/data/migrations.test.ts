@@ -1,4 +1,4 @@
-import {migrateStoredData, migrateV10ToV11, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
+import {migrateStoredData, migrateV10ToV11, migrateV11ToV12, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
 import {emptyAppData} from '../types/domain';
 import type {MoneyCategory} from '../types/domain';
 
@@ -245,8 +245,29 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(11);
+    expect(data?.schemaVersion).toBe(12);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
+  });
+
+  it('adds the archive flag when opening schema 11 data', () => {
+    const legacy = {
+      ...emptyAppData(),
+      schemaVersion: 11 as const,
+      notes: [{
+        id: 'note_1',
+        title: 'Legacy',
+        body: '',
+        tags: [],
+        isPinned: false,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      }],
+    } as never;
+
+    const data = migrateV11ToV12(legacy);
+
+    expect(data.schemaVersion).toBe(12);
+    expect(data.notes[0].isArchived).toBe(false);
   });
 });

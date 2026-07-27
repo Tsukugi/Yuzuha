@@ -32,6 +32,7 @@ describe('LocalStore', () => {
       body: '',
       tags: [],
       isPinned: false,
+      isArchived: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -70,9 +71,9 @@ describe('LocalStore', () => {
     );
 
     const data = await new LocalStore(driver).load();
-    expect(data.schemaVersion).toBe(11);
+    expect(data.schemaVersion).toBe(12);
     expect(data.money[0].accountId).toBe('account_everyday');
     expect(data.money[0].categoryId).toBe('category_lunch');
-    await expect(driver.getItem('@yuzuha/app-data/v11')).resolves.toContain('schemaVersion');
+    await expect(driver.getItem('@yuzuha/app-data/v12')).resolves.toContain('schemaVersion');
   });
 });

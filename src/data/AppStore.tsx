@@ -14,7 +14,7 @@ import {localDateKey} from '../shared/period';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
-import {validateNoteTags} from '../shared/noteSearch';
+import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -74,7 +74,11 @@ interface AppStoreValue {
   addMoneyCategory: (name: string, kind: MoneyKind | 'both') => Promise<void>;
   archiveMoneyAccount: (accountId: string) => Promise<void>;
   archiveMoneyCategory: (categoryId: string) => Promise<void>;
-  addNote: (input: {title: string; body: string; tags: string[]}) => Promise<void>;
+  addNote: (input: NoteDraft) => Promise<void>;
+  updateNote: (noteId: string, input: NoteDraft) => Promise<void>;
+  toggleNotePinned: (noteId: string) => Promise<void>;
+  setNoteArchived: (noteId: string, isArchived: boolean) => Promise<void>;
+  deleteNote: (noteId: string) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: {title: string; details: string}) => Promise<void>;
@@ -369,21 +373,91 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const addNote = useCallback(
-    async (input: {title: string; body: string; tags: string[]}) => {
-      if (!validateNoteTags(input.tags)) {
-        throw new Error('Note tags are invalid. Use up to 20 lowercase tags with 40 characters each.');
+    async (input: NoteDraft) => {
+      const validationError = validateNoteDraft(input);
+      if (validationError) {
+        throw new Error(validationError);
       }
       const now = new Date().toISOString();
       const note: Note = {
         ...input,
         id: createId('note'),
         isPinned: false,
+        isArchived: false,
         createdAt: now,
         updatedAt: now,
       };
       await commit(current => ({...current, notes: [note, ...current.notes]}));
     },
     [commit],
+  );
+
+  const updateNote = useCallback(
+    async (noteId: string, input: NoteDraft) => {
+      const validationError = validateNoteDraft(input);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const updatedAt = new Date().toISOString();
+      await commit(current => {
+        const note = current.notes.find(item => item.id === noteId);
+        if (!note) {
+          throw new Error('The note no longer exists.');
+        }
+        return {...current, notes: current.notes.map(item => item.id === noteId ? updateNoteRecord(note, input, updatedAt) : item)};
+      });
+    },
+    [commit],
+  );
+
+  const toggleNotePinned = useCallback(
+    async (noteId: string) => {
+      const updatedAt = new Date().toISOString();
+      await commit(current => {
+        if (!current.notes.some(note => note.id === noteId)) {
+          throw new Error('The note no longer exists.');
+        }
+        return {
+          ...current,
+          notes: current.notes.map(note => note.id === noteId ? {...note, isPinned: !note.isPinned, updatedAt} : note),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const setNoteArchived = useCallback(
+    async (noteId: string, isArchived: boolean) => {
+      const updatedAt = new Date().toISOString();
+      await commit(current => {
+        if (!current.notes.some(note => note.id === noteId)) {
+          throw new Error('The note no longer exists.');
+        }
+        return {
+          ...current,
+          notes: current.notes.map(note => note.id === noteId ? {...note, isArchived, updatedAt} : note),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const deleteNote = useCallback(
+    async (noteId: string) => {
+      const noteAttachments = (data?.attachments ?? []).filter(attachment => attachment.noteId === noteId);
+      await deleteAttachmentFiles(noteAttachments);
+      await commit(current => {
+        if (!current.notes.some(note => note.id === noteId)) {
+          throw new Error('The note no longer exists.');
+        }
+        return {
+          ...current,
+          notes: current.notes.filter(note => note.id !== noteId),
+          attachments: current.attachments.filter(attachment => attachment.noteId !== noteId),
+        };
+      });
+    },
+    [commit, data?.attachments],
   );
 
   const addAttachment = useCallback(
@@ -552,6 +626,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       archiveMoneyAccount,
       archiveMoneyCategory,
       addNote,
+      updateNote,
+      toggleNotePinned,
+      setNoteArchived,
+      deleteNote,
       addAttachment,
       deleteAttachment,
       addTask,
@@ -574,6 +652,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoneyBudget,
       deleteMoneyBudget,
       addNote,
+      updateNote,
+      toggleNotePinned,
+      setNoteArchived,
+      deleteNote,
       addAttachment,
       deleteAttachment,
       addTask,

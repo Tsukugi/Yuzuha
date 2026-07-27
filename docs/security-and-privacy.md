@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the note tags and search pass. This document is not a legal privacy policy.
+Status: Security baseline through the note lifecycle pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -18,6 +18,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Protect encryption keys with Android Keystore where supported.
 - Use encrypted local storage for product records if the selected SQLite binding supports it; otherwise document the residual risk before release.
 - Do not log note bodies, transaction notes, amounts, package names, or export contents.
+- Note archive and deletion are local metadata operations; confirmed note deletion also removes the note's private attachment files.
 - Redact URLs, file paths, and identifiers in crash reports.
 - Clear temporary bundle files after failed verification or activation.
 - Use HTTPS and certificate validation for update metadata and bundle downloads.

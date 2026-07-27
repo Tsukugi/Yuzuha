@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the Android attachment preview pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the note lifecycle pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -12,6 +12,7 @@ Use Jest for pure logic:
 - date and timezone grouping;
 - task state transitions and overdue rules;
 - note search normalization;
+- note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
 - export serialization and redaction.
@@ -27,6 +28,14 @@ Use an in-memory or temporary database adapter to test:
 - installer activation and last-known-good behavior with mocked file and network adapters.
 
 ### Android device tests
+
+Current evidence for the note lifecycle pass:
+
+- Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
+- emulator smoke covered create, edit, pin, archive, Show archived, restore, delete confirmation, and confirmed deletion;
+- both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
+- no fatal Android or React Native error appeared during the final launch checks;
+- phone touch input remains blocked by the device policy, so phone validation is launch-only.
 
 Run on an emulator and at least one physical device before beta:
 

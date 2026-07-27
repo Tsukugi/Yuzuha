@@ -12,6 +12,7 @@ describe('JSON restore validation', () => {
       body: 'Local note',
       tags: ['local'],
       isPinned: false,
+      isArchived: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -47,7 +48,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(11);
+    expect(preview.data.schemaVersion).toBe(12);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -58,7 +59,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(11);
+    expect(migrated?.schemaVersion).toBe(12);
     expect(migrated?.attachments).toEqual([]);
   });
 
@@ -73,6 +74,7 @@ describe('JSON restore validation', () => {
         body: '',
         tags: [],
         isPinned: false,
+        isArchived: false,
         createdAt: '2026-07-26T00:00:00.000Z',
         updatedAt: '2026-07-26T00:00:00.000Z',
       },
@@ -82,6 +84,7 @@ describe('JSON restore validation', () => {
         body: '',
         tags: [],
         isPinned: false,
+        isArchived: false,
         createdAt: '2026-07-26T00:00:00.000Z',
         updatedAt: '2026-07-26T00:00:00.000Z',
       },
@@ -144,6 +147,7 @@ describe('JSON restore validation', () => {
       body: '',
       tags: [],
       isPinned: false,
+      isArchived: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -159,5 +163,22 @@ describe('JSON restore validation', () => {
     }));
 
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/more than 10 attachments/i);
+  });
+
+  it('rejects a note with malformed lifecycle state', () => {
+    const data = emptyAppData();
+    data.notes.push({
+      id: 'note_1',
+      title: 'Keep this',
+      body: '',
+      tags: [],
+      isPinned: false,
+      isArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    (data.notes[0] as unknown as {isArchived: unknown}).isArchived = 'yes';
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/export data shape is not supported/i);
   });
 });

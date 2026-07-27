@@ -2,6 +2,17 @@
 
 Status: Planned release process.
 
+## Current pass release notes
+
+2026-07-27 note lifecycle pass:
+
+- app data schema 12 adds `isArchived`, with schema 11 notes migrating to `false`;
+- Notes now supports edit, pin/unpin, archive/restore, and confirmed delete;
+- archived notes are hidden by default and pinned notes sort first;
+- confirmed note deletion removes related attachment metadata and private files;
+- no permission or minimum-OS change;
+- known limits remain attachment filename search, saved searches, global search, synced notes, account recovery, and remote sync.
+
 ## Release types
 
 ### JavaScript bundle release

@@ -269,6 +269,7 @@ describe('SQLite workspace store', () => {
       body: 'Body',
       tags: [],
       isPinned: false,
+      isArchived: false,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
@@ -392,6 +393,7 @@ describe('SQLite workspace store', () => {
     const data = await store.load();
 
     expect(data.notes[0].tags).toEqual([]);
+    expect(data.notes[0].isArchived).toBe(false);
   });
 
   it('rejects malformed persisted record payloads', async () => {

@@ -213,3 +213,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `tags` to every note as a unique lowercase string array. Normalize comma-separated input by trimming, lowercasing, removing empty values, and deduplicating. Limit each note to 20 tags and each tag to 40 characters. Migrate schema 10 notes and old SQLite note rows to `tags: []`.
 - Reason: A small typed field keeps the local-first search contract simple, portable through existing JSON/encrypted backups, and deterministic across Android restarts.
 - Consequence: Search currently covers note title, body, and tags only. Attachment filename search, saved searches, global search, and synced indexes remain separate work.
+
+## DEC-032: Keep note lifecycle state local and deterministic
+
+- Context: Notes now need basic lifecycle controls without adding account or sync state.
+- Decision: Add `isArchived` to app schema 12 with `false` as the migration default. Hide archived notes by default, expose an explicit archived view for restore, sort pinned notes first, and require confirmation before deletion. Deleting a note also removes its attachment metadata and private files.
+- Reason: These rules are easy to explain, work offline, and keep the note list useful as it grows. The delete boundary prevents orphaned private files.
+- Consequence: Archive and pin state are local fields. Synced lifecycle conflicts, saved searches, global search, and attachment filename search remain future contracts.

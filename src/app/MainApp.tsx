@@ -40,10 +40,11 @@ import {
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
-import {NOTE_MAX_TAG_LENGTH, NOTE_MAX_TAGS, normalizeNoteTags, noteMatchesQuery, validateNoteTags} from '../shared/noteSearch';
+import {normalizeNoteTags} from '../shared/noteSearch';
+import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -130,7 +131,8 @@ function HomeScreen({
   const expenses = sumMoney(monthMoney, 'expense');
   const income = sumMoney(monthMoney, 'income');
   const openTasks = data.tasks.filter(task => task.status === 'open').length;
-  const recentNotes = data.notes.slice(0, 3);
+  const activeNotes = filterNotes(data.notes, '', false);
+  const recentNotes = activeNotes.slice(0, 3);
   const today = localDateKey(new Date());
   const appTimeSeconds = sumUsage(data.usageSnapshots, new Set([today]));
   const hasUsagePermission = data.usageRead.permission === 'granted';
@@ -165,7 +167,7 @@ function HomeScreen({
         />
         <SummaryCard
           title="Notes"
-          value={`${data.notes.length} saved`}
+          value={`${activeNotes.length} active`}
           detail={recentNotes[0]?.title ?? 'Capture your first thought.'}
           action="Open notes"
           onPress={() => onNavigate('notes')}
@@ -1721,34 +1723,106 @@ function AppTimeScreen({onBack}: {onBack: () => void}) {
 }
 
 function NotesScreen() {
-  const {data, addNote, addAttachment, deleteAttachment} = useAppStore();
+  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [attachmentBusyNoteId, setAttachmentBusyNoteId] = useState<string | null>(null);
+  const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
 
   if (!data) {
     return null;
   }
 
+  const visibleNotes = filterNotes(data.notes, searchQuery, showArchived);
+
   async function save() {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      setError('Give the note a short title.');
-      return;
-    }
-    const normalizedTags = normalizeNoteTags(tags);
-    if (!validateNoteTags(normalizedTags)) {
-      setError(`Use up to ${NOTE_MAX_TAGS} tags with ${NOTE_MAX_TAG_LENGTH} characters each.`);
+    const draft = {title: title.trim(), body: body.trim(), tags: normalizeNoteTags(tags)};
+    const validationError = validateNoteDraft(draft);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setError(null);
-    await addNote({title: trimmedTitle, body: body.trim(), tags: normalizedTags});
+    try {
+      if (editingNoteId) {
+        await updateNote(editingNoteId, draft);
+      } else {
+        await addNote(draft);
+      }
+      cancelEditing();
+    } catch (noteError) {
+      setError(noteError instanceof Error ? noteError.message : 'The note could not be saved.');
+    }
+  }
+
+  function cancelEditing() {
+    setEditingNoteId(null);
     setTitle('');
     setBody('');
     setTags('');
+  }
+
+  function startEditing(note: Note) {
+    setEditingNoteId(note.id);
+    setTitle(note.title);
+    setBody(note.body);
+    setTags(note.tags.join(', '));
+    setError(null);
+  }
+
+  async function togglePinned(note: Note) {
+    setError(null);
+    setBusyNoteId(note.id);
+    try {
+      await toggleNotePinned(note.id);
+    } catch (noteError) {
+      setError(noteError instanceof Error ? noteError.message : 'The note could not be pinned.');
+    } finally {
+      setBusyNoteId(null);
+    }
+  }
+
+  async function changeArchived(note: Note) {
+    setError(null);
+    setBusyNoteId(note.id);
+    try {
+      await setNoteArchived(note.id, !note.isArchived);
+    } catch (noteError) {
+      setError(noteError instanceof Error ? noteError.message : 'The note archive state could not be changed.');
+    } finally {
+      setBusyNoteId(null);
+    }
+  }
+
+  async function removeNote(note: Note) {
+    setError(null);
+    setBusyNoteId(note.id);
+    try {
+      await deleteNote(note.id);
+      if (editingNoteId === note.id) {
+        cancelEditing();
+      }
+    } catch (noteError) {
+      setError(noteError instanceof Error ? noteError.message : 'The note could not be deleted.');
+    } finally {
+      setBusyNoteId(null);
+    }
+  }
+
+  function confirmDeleteNote(note: Note) {
+    const attachmentCount = (data?.attachments ?? []).filter(attachment => attachment.noteId === note.id).length;
+    Alert.alert(
+      'Delete note?',
+      attachmentCount > 0 ? `This also deletes ${attachmentCount} attached file${attachmentCount === 1 ? '' : 's'}. This cannot be undone.` : 'This cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Delete', style: 'destructive', onPress: () => void removeNote(note)},
+      ],
+    );
   }
 
   async function addNoteAttachment(noteId: string) {
@@ -1758,7 +1832,7 @@ function NotesScreen() {
     }
     const createdAt = new Date().toISOString();
     setError(null);
-    setAttachmentBusyNoteId(noteId);
+    setBusyNoteId(noteId);
     try {
       const attachment = await importAttachmentFile(noteId, createId('attachment'), createdAt);
       await addAttachment(noteId, attachment);
@@ -1767,32 +1841,32 @@ function NotesScreen() {
         setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be added.');
       }
     } finally {
-      setAttachmentBusyNoteId(null);
+      setBusyNoteId(null);
     }
   }
 
   async function removeNoteAttachment(attachment: Attachment) {
     setError(null);
-    setAttachmentBusyNoteId(attachment.noteId);
+    setBusyNoteId(attachment.noteId);
     try {
       await deleteAttachmentFile(attachment.id);
       await deleteAttachment(attachment.id);
     } catch (attachmentError) {
       setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be removed.');
     } finally {
-      setAttachmentBusyNoteId(null);
+      setBusyNoteId(null);
     }
   }
 
   async function openNoteAttachment(attachment: Attachment) {
     setError(null);
-    setAttachmentBusyNoteId(attachment.noteId);
+    setBusyNoteId(attachment.noteId);
     try {
       await openAttachmentFile(attachment);
     } catch (attachmentError) {
       setError(attachmentError instanceof Error ? attachmentError.message : 'The attachment could not be opened.');
     } finally {
-      setAttachmentBusyNoteId(null);
+      setBusyNoteId(null);
     }
   }
 
@@ -1802,7 +1876,7 @@ function NotesScreen() {
         <Text style={styles.pageTitle}>Notes</Text>
         <Text style={styles.pageIntro}>Capture first. Organize more later.</Text>
         <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Title</Text>
+          <Text style={styles.formLabel}>{editingNoteId ? 'Edit note' : 'New note'}</Text>
           <TextInput
             accessibilityLabel="Note title"
             placeholder="A thought worth keeping"
@@ -1831,7 +1905,8 @@ function NotesScreen() {
             onChangeText={setTags}
           />
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label="Save note" onPress={save} />
+          <PrimaryButton label={editingNoteId ? 'Update note' : 'Save note'} onPress={() => void save()} />
+          {editingNoteId && <TextButton label="Cancel edit" onPress={cancelEditing} />}
         </View>
         <SectionTitle title="Search notes" />
         <TextInput
@@ -1842,21 +1917,30 @@ function NotesScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <SectionTitle title="All notes" />
+        <TextButton label={showArchived ? 'Hide archived notes' : 'Show archived notes'} onPress={() => setShowArchived(current => !current)} />
+        <SectionTitle title={showArchived ? 'All notes' : 'Active notes'} />
         {data.notes.length === 0 ? (
           <EmptyState text="No notes yet." />
-        ) : data.notes.filter(note => noteMatchesQuery(note, searchQuery)).length === 0 ? (
-          <EmptyState text="No notes match this search." />
+        ) : visibleNotes.length === 0 ? (
+          <EmptyState text={searchQuery.trim() ? 'No notes match this search.' : 'No active notes. Show archived notes to restore one.'} />
           ) : (
-          data.notes.filter(note => noteMatchesQuery(note, searchQuery)).map(note => {
+          visibleNotes.map(note => {
             const noteAttachments = data.attachments.filter(attachment => attachment.noteId === note.id);
-            const isAttachmentBusy = attachmentBusyNoteId === note.id;
+            const isBusy = busyNoteId === note.id;
             return (
               <View key={note.id} style={styles.noteCard}>
                 <Text style={styles.listTitle}>{note.title}</Text>
                 {!!note.body && <Text style={styles.noteBody} numberOfLines={3}>{note.body}</Text>}
                 {note.tags.length > 0 && <Text style={styles.listMeta}>Tags: {note.tags.map(tag => `#${tag}`).join(' ')}</Text>}
+                {note.isPinned && <Text style={styles.successText}>Pinned</Text>}
+                {note.isArchived && <Text style={styles.warningText}>Archived</Text>}
                 <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
+                <View style={styles.noteActions}>
+                  <TextButton label="Edit" disabled={isBusy} onPress={() => startEditing(note)} />
+                  <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
+                  <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
+                  <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
+                </View>
                 {noteAttachments.length > 0 && (
                   <View style={styles.attachmentSection}>
                     <Text style={styles.formLabel}>Attachments</Text>
@@ -1868,13 +1952,13 @@ function NotesScreen() {
                         </View>
                         <TextButton
                           label="Open attachment"
-                          disabled={isAttachmentBusy}
+                          disabled={isBusy}
                           onPress={() => void openNoteAttachment(attachment)}
                         />
                         <TextButton
                           label="Remove attachment"
                           danger
-                          disabled={isAttachmentBusy}
+                          disabled={isBusy}
                           onPress={() => void removeNoteAttachment(attachment)}
                         />
                       </View>
@@ -1882,8 +1966,8 @@ function NotesScreen() {
                   </View>
                 )}
                 <PrimaryButton
-                  label={isAttachmentBusy ? 'Working...' : 'Add attachment'}
-                  disabled={attachmentBusyNoteId !== null}
+                  label={isBusy ? 'Working...' : 'Add attachment'}
+                  disabled={busyNoteId !== null}
                   onPress={() => void addNoteAttachment(note.id)}
                 />
               </View>
@@ -2155,6 +2239,7 @@ const styles = StyleSheet.create({
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
   noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginBottom: 10, padding: 15},
+  noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
   attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
   attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 4},
   attachmentName: {color: colors.text, fontSize: 14, fontWeight: '700'},

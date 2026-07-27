@@ -767,4 +767,39 @@ Emulator smoke     PASS - tagged note created, persisted after restart, title/bo
 Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
 ```
 
-Next pass: note edit/archive/pin/delete or account/device recovery design, with remote sync kept behind the local-first boundary.
+Next pass: account/device recovery design or attachment filename search, with remote sync kept behind the local-first boundary.
+
+## Implementation review: note lifecycle pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 12 with deterministic schema 11 to schema 12 archive-state migration;
+- AsyncStorage and SQLite note reads that default missing archive state to `false`;
+- note edit validation and updates for title, body, and normalized tags;
+- pin/unpin, archive/restore, and confirmed delete actions in the Notes screen;
+- archived notes hidden by default, with an explicit Show archived notes control and pinned-first ordering;
+- confirmed note deletion removes attachment metadata and private attachment files;
+- JSON and encrypted-backup app-schema bounds updated to accept schema 12;
+- focused and full regression coverage for lifecycle rules and migrations.
+
+Known limits:
+
+- attachment filename search, saved searches, global search, synced notes, and remote sync remain planned.
+
+Review evidence is recorded after the final test, build, and device-smoke pass below.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 4 suites, 27 tests
+Full Jest          PASS - 22 suites, 94 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - note created, edited, pinned, archived, shown/restored, confirmed-deleted, and no launch errors
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
