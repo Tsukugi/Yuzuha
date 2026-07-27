@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -54,11 +54,13 @@ import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {validateTaskTemplateDraft, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
 import {QUICK_CAPTURE_OPTIONS} from '../shared/quickCapture';
+import {sharedCaptureTitle, type SharedCapture} from '../shared/shareCapture';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
+import {shareCapture} from '../platform/shareCapture';
 import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
 
@@ -78,12 +80,33 @@ const colors = {
 };
 
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
-  const {data, isLoading, error, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
+  const {data, isLoading, error, addNote, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [sharedCapture, setSharedCapture] = useState<SharedCapture | null>(null);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
+  const lastSharedCaptureKey = useRef<string | null>(null);
+
+  const openSharedCapture = useCallback((capture: SharedCapture) => {
+    const key = `${capture.mimeType ?? ''}\u0000${capture.subject ?? ''}\u0000${capture.text}`;
+    if (lastSharedCaptureKey.current === key) {
+      return;
+    }
+    lastSharedCaptureKey.current = key;
+    setDataToolsOpen(false);
+    setGlobalSearchOpen(false);
+    setSharedCapture(capture);
+  }, []);
+
+  const closeSharedCapture = useCallback((nextTab?: Tab) => {
+    lastSharedCaptureKey.current = null;
+    setSharedCapture(null);
+    if (nextTab) {
+      setTab(nextTab);
+    }
+  }, []);
 
   const openReminderTask = useCallback((taskId: string) => {
     setPendingTaskId(taskId);
@@ -128,6 +151,28 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   }, [handleReminderTarget, openReminderTask]);
 
   useEffect(() => {
+    let mounted = true;
+    const subscription = shareCapture.onCapture(capture => {
+      if (mounted) {
+        openSharedCapture(capture);
+      }
+    });
+    void shareCapture.getInitialCapture().then(capture => {
+      if (mounted && capture) {
+        openSharedCapture(capture);
+      }
+    }).catch(() => {
+      if (mounted) {
+        Alert.alert('Share capture failed', 'The shared text could not be opened.');
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, [openSharedCapture]);
+
+  useEffect(() => {
     if (!data || !pendingReminderAction) {
       return;
     }
@@ -161,7 +206,15 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
       </View>
 
       <View style={styles.content}>
-        {dataToolsOpen ? (
+        {sharedCapture ? (
+          <SharedCaptureScreen
+            capture={sharedCapture}
+            addNote={addNote}
+            addTask={addTask}
+            onDismiss={() => closeSharedCapture()}
+            onSaved={closeSharedCapture}
+          />
+        ) : dataToolsOpen ? (
           <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} />
@@ -183,6 +236,66 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
         <TabButton label="Tasks" icon="✓" selected={tab === 'tasks'} onPress={() => setTab('tasks')} />
       </View>
     </SafeAreaView>
+  );
+}
+
+function SharedCaptureScreen({
+  capture,
+  addNote,
+  addTask,
+  onDismiss,
+  onSaved,
+}: {
+  capture: SharedCapture;
+  addNote: (input: {title: string; body: string; tags: string[]}) => Promise<void>;
+  addTask: (input: {title: string; details: string; dueLocalDate: string | null; priority: 'normal'; listId: string}) => Promise<string>;
+  onDismiss: () => void;
+  onSaved: (tab: Tab) => void;
+}) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const noteTitle = sharedCaptureTitle(capture, 'Shared note');
+  const taskTitle = sharedCaptureTitle(capture, 'Shared task');
+
+  const saveAsNote = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await addNote({title: noteTitle, body: capture.text, tags: []});
+      onSaved('notes');
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message ? error.message : 'The note could not be saved.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveAsTask = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await addTask({title: taskTitle, details: capture.text, dueLocalDate: null, priority: 'normal', listId: TASK_INBOX_LIST_ID});
+      onSaved('tasks');
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message ? error.message : 'The task could not be saved.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Text style={styles.pageTitle}>Shared capture</Text>
+      <Text style={styles.pageIntro}>Review this text before saving it to your local workspace.</Text>
+      <View style={styles.formCard}>
+        {capture.subject && <Text style={styles.cardTitle}>{capture.subject}</Text>}
+        <Text style={styles.noteBody}>{capture.text}</Text>
+      </View>
+      {saveError && <Text style={styles.errorText}>{saveError}</Text>}
+      <PrimaryButton label="Save as note" onPress={() => void saveAsNote()} disabled={isSaving} />
+      <TextButton label="Save as task" onPress={() => void saveAsTask()} disabled={isSaving} />
+      <TextButton label="Dismiss" onPress={onDismiss} disabled={isSaving} />
+    </ScrollView>
   );
 }
 

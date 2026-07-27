@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the quick-capture pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android share-capture pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 36 Jest suites and 159 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 38 Jest suites and 164 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -34,7 +34,9 @@ Status: Current test strategy through the quick-capture pass. Unit tests and And
 - Subtask coverage: same-list parent validation, missing-parent and self-link rejection, cycle rejection, AppStore persistence, JSON/SQLite field validation, and direct-child promotion after parent deletion.
 - Template coverage: strict template lifecycle validation, unique names, archive/delete behavior, active-template task creation, project reference protection, JSON import, encrypted-backup round trip, SQLite persistence, and archived/global-search filtering.
 - Quick-capture coverage: deterministic Money, Notes, and Tasks targets and labels; the menu has no persistence contract.
-- Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
+- Share-capture coverage: normalization, subject-only fallback, first-line title derivation, empty/oversized rejection, Android native bridge compilation, cold-start and warm-app preview, note/task confirmation routing, relaunch persistence, and no filtered fatal or ReactNativeJS errors.
+- Emulator `emulator-5554`: release `ACTION_SEND` smoke showed `Shared capture` with the shared subject/body, saved a note, then accepted a warm share and saved a task; the task was visible after relaunch.
+- Phone `42adce68`: release `ACTION_SEND` smoke showed `Shared capture` with the shared subject/body and no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
 

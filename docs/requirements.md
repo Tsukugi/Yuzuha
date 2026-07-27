@@ -145,7 +145,7 @@ Current implementation extension: the user can create, pause/resume, and delete 
 | NOTIFY-02 | 3 | Reminder actions are idempotent. | Tapping Complete twice does not create two state changes. |
 | AUTO-01 | 3 | User automation rules have one trigger, conditions, and one action. | A rule has enable/disable, preview, and run history. |
 | AUTO-02 | 3 | Automation cannot commit money or delete data silently. | Such actions require a user-confirmed draft or confirmation screen. |
-| INT-01 | 3 | The user can capture through share actions and widgets. | Preview, permission, offline, and revoke states are complete. |
+| INT-01 | 3 | The user can capture through supported share actions and widgets. | Current Android `text/plain` share shows a preview and requires note/task confirmation; widget, file/URI, permission, offline, and revoke contracts remain planned. |
 | INT-02 | 3 | The user can import and export supported formats. | Unsupported fields are visible instead of silently dropped. |
 | INT-03 | 3 | Calendar integration is opt-in. | Revoking permission stops new reads/writes without deleting existing Yuzuha records. |
 
@@ -324,6 +324,8 @@ Current subtask extension: Tasks support one optional same-list parent link. Mis
 Current template extension: Tasks support local templates with unique names, strict title/details/priority/list/project fields, archive/restore, edit/delete, and direct creation of normal tasks. Archived templates cannot be used. Template references keep projects and lists from being deleted, and template data is validated across JSON import, encrypted backup restore, SQLite persistence, and global search.
 
 Current quick-capture extension: Home shows a Quick capture action with Add money, Add note, and Add task targets. Each target opens the existing feature form; no separate capture record, schema field, or background process is added.
+
+Current Android share-capture extension: `ACTION_SEND` text with optional subject is bounded to 20,000 characters before the native bridge and normalized again in shared code. The user must review it before saving as a note or Inbox task. Cold-start and warm-app delivery use the single-task activity and deduplicate the same payload; consumed text and subject extras are cleared. No permission, network request, schema field, or persisted draft is added.
 
 ## Local recovery-key backup implementation review
 

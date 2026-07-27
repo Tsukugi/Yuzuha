@@ -87,6 +87,8 @@ The client encrypts record payloads before upload. The service must not receive 
 
 Treat imported files, pasted JSON, and attachments as untrusted input. Validate type, size, checksum, schema, record references, and parser limits. Do not execute imported content. Provider credentials stay in protected native storage and are deleted on disconnect according to the provider contract. Share sheets and widgets must not leak sensitive content on a locked screen. JSON restore must show a preview and require confirmation before replacing local records.
 
+Current Android share capture accepts only text payloads, rejects empty or over-20,000-character values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral; the user must choose Save as note or Save as task before local storage changes. File/URI shares and widget lock-screen policy remain separate reviews.
+
 ## Privacy review gates for new features
 
 For every feature, record data collected, source, local storage, server transfer, retention, user control, deletion path, permission, and telemetry fields. A feature cannot enter a release phase if one of those fields is unknown.

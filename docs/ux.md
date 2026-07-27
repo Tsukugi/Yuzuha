@@ -1,10 +1,12 @@
 # UX plan
 
-Status: Current Android MVP through the Android reminder-snooze pass.
+Status: Current Android MVP through Android text share capture.
 
 ## Navigation
 
 Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home has a Quick capture action that opens Add money, Add note, or Add task and routes to the existing form without creating a separate capture record.
+
+When Android sends Yuzuha a `text/plain` share, show `Shared capture` with the subject/body preview and `Save as note`, `Save as task`, and `Dismiss`. Saving a note uses the subject or first line as its title. Saving a task uses the same title, stores the full text as details, uses Inbox and Normal priority, and routes to Tasks. Empty or over-limit payloads are ignored with no record. Do not fetch URLs or show shared content on a lock screen before the user opens the app.
 
 ## First run
 

@@ -19,6 +19,8 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home also has a local Quick capture menu. It routes to the existing Money, Notes, and Tasks forms and does not create a separate record type or background process.
 
+Android also accepts `text/plain` share intents. It shows the shared subject/body in a review screen before saving as a note or an Inbox task. The capture is ephemeral until confirmed, limited to 20,000 characters, and does not fetch links or start background work. File shares, widgets, shortcuts, and iOS share handling remain planned.
+
 ## Technology baseline
 
 The current encrypted backup flow can also save and open the current authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes, local saved-search records, app groups, focus sessions, task projects and links, task parent links, task templates, task dependencies, and task manual-order fields. The unreleased build uses current app schema 28 and rejects old app schemas, old SQLite repository schemas, and old encrypted backup schemas because there are no external users to upgrade. Plain JSON exports still carry attachment metadata only. Android opens supported private attachment files through a read-only FileProvider URI and the system chooser. Account recovery, device enrollment, sync, and iOS attachment preview remain planned.

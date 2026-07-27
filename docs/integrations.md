@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Planned full-product capability.
+Status: Android text share capture is current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -12,7 +12,7 @@ An integration is useful only when it makes capture or review faster without wea
 | --- | --- | --- |
 | App icon | Open Home. | MVP. |
 | Global add action | Create money entry, note, or task. | Full product. |
-| Share sheet | Save shared text/link/file as a note or task draft. | Full product. |
+| Share sheet | Android `text/plain`: preview shared subject/body, then save as a note or Inbox task. | Current Android slice. |
 | Widgets | Show selected cards and quick capture. | Full product. |
 | Shortcuts/app actions | Open a feature or start a focus session. | Full product. |
 | Deep links | Open a safe local object or settings page. | Full product. |
@@ -22,7 +22,9 @@ An integration is useful only when it makes capture or review faster without wea
 
 ## Share capture
 
-The user chooses the target type and sees a preview before saving. Shared content is never auto-published. A shared URL is stored as a URL plus title/preview only if the user confirms; the app must not fetch remote page content without a separate network policy.
+Current Android behavior accepts an `ACTION_SEND` `text/plain` intent, plus a missing MIME type when the sender still provides text. The native activity bridge accepts `EXTRA_TEXT` and optional `EXTRA_SUBJECT`, rejects empty or over-20,000-character payloads before the React Native bridge, clears consumed extras, and emits warm launches to `MainApp`. The app shows a review screen; the user can save the bounded text as a note or as an Inbox task, or dismiss it. Nothing is written before confirmation, and no network request is made.
+
+File and URI shares, remote page fetching, widgets, shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy.
 
 ## Widgets
 

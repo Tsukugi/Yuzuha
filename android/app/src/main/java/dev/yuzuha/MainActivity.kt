@@ -18,6 +18,7 @@ class MainActivity : ReactActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     TaskReminderModule.handleActivityIntent(intent)
+    ShareCaptureModule.handleActivityIntent(intent)
   }
 
   /**

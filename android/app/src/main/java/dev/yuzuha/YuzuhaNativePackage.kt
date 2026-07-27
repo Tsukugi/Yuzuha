@@ -11,6 +11,7 @@ class YuzuhaNativePackage : ReactPackage {
       UsageAccessModule(reactContext),
       AttachmentPreviewModule(reactContext),
       TaskReminderModule(reactContext),
+      ShareCaptureModule(reactContext),
     )
   }
 

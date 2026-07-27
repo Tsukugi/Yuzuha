@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android share-capture pass:
+
+- no app schema change; Android `ACTION_SEND` `text/plain` shares now show an ephemeral review screen before saving as a note or Inbox task;
+- native and shared boundaries reject empty or over-20,000-character payloads, clear consumed extras, handle cold and warm activity delivery, and deduplicate one payload;
+- focused share-capture unit coverage, full Jest (38 suites, 164 tests), lint, typecheck, bundle validation, Android debug/release builds, release emulator cold/warm/save/relaunch smoke, and release phone share/launch smoke passed;
+- file/URI shares, widgets, shortcuts, iOS share handling, network fetching, and sync remain planned; both devices were force-stopped after the check and no Gradle/Java process remained.
+
 2026-07-27 Home quick-capture pass:
 
 - no app schema change; Home adds a local Quick capture menu with Add money, Add note, and Add task targets;

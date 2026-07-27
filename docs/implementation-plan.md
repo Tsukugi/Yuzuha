@@ -1647,5 +1647,40 @@ Resource cleanup         PASS - both devices were force-stopped; no Gradle or Ja
 
 Known limits:
 
-- Quick capture is an in-app routing menu only; share intents, widgets, lock-screen capture, and global drafts remain planned;
+- Quick capture is an in-app routing menu only; widgets, lock-screen capture, and global drafts remain planned. Android text share intents are covered by the later share-capture pass;
 - the menu does not preserve a partially entered draft when the user changes targets.
+
+## Implementation review: Android share-capture pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- Android `ACTION_SEND` `text/plain` handling through the existing `singleTask` MainActivity;
+- typed `YuzuhaShareCapture` native module with cold-start getter and warm-app event;
+- native and shared 20,000-character limits, empty-payload rejection, consumed-extra clearing, and duplicate cold/warm suppression;
+- an ephemeral `Shared capture` review screen with Save as note, Save as task, and Dismiss actions;
+- note saves use the existing note lifecycle; task saves create an independent normal-priority Inbox task through the existing AppStore;
+- no app schema, repository record, background worker, network fetch, or legacy compatibility path was added;
+- integrations, requirements, architecture, UX, security, data model, full specification, release, testing, and decision docs record the current boundary.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - share normalization, subject-only fallback, title derivation, and empty/oversized rejection
+Full Jest                PASS - 38 suites, 164 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - cold share preview, note save, warm share preview, task save, and task relaunch persistence
+Phone smoke              PASS - share preview and clean MainActivity launch on 42adce68; touch input remains policy-blocked
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- only text shares are current; file/URI shares, widgets, shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain planned;
+- a share over 20,000 characters is rejected instead of truncated;
+- sharing the same payload again is allowed after the current review is dismissed or saved.

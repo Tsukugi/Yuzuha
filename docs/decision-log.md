@@ -402,3 +402,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a local Quick capture menu with Add money, Add note, and Add task targets. Selecting a target changes the active tab and opens the existing feature form.
 - Reason: The user gets one fast entry point while each feature keeps ownership of its fields, validation, persistence, and errors. The menu is cheap to render and has no background work.
 - Consequence: Share intents, widgets, lock-screen capture, templates across features, and a global draft object remain separate future contracts. No app schema change is needed.
+
+## DEC-059: Keep Android share capture ephemeral and text-only
+
+- Context: Android share entry is useful for fast capture, but accepting files, URLs, or a second draft store would expand the privacy, storage, and restore contract before the product has users.
+- Decision: Accept only `ACTION_SEND` text payloads, with optional subject, and cap each field at 20,000 characters before the native bridge. Show one review screen. On confirmation, save through the existing Note or Inbox Task AppStore methods; otherwise dismiss without persistence. Clear consumed activity extras and deduplicate the same cold/warm payload.
+- Reason: This gives one useful entry point with a bounded memory cost and one source of truth for validation. It does not fetch remote content, add a schema field, run a worker, or create legacy compatibility work.
+- Consequence: File/URI shares, widgets, shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain separate contracts and need their own privacy and platform review.
