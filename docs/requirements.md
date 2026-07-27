@@ -338,7 +338,7 @@ Implemented and verified:
 - app data schema 12 adds note lifecycle state to the normalized tag array already stored on every note;
 - schema 10 AsyncStorage notes and older SQLite note rows migrate to an empty tag array and `isArchived: false` without changing their title or body;
 - tags are trimmed, lowercased, deduplicated, and limited to 20 values of at most 40 characters;
-- Notes search matches title, body, and tags case-insensitively and keeps the query local.
+- Notes search matches title, body, tags, and attachment file names case-insensitively and keeps the query local. It never inspects attachment bytes.
 
 Note lifecycle is implemented and verified:
 
@@ -347,7 +347,7 @@ Note lifecycle is implemented and verified:
 - archived notes are hidden by default, with an explicit Show archived notes control; pinned notes sort first;
 - deleting a note removes its attachment metadata and private attachment files.
 
-Not yet complete: attachment filename search, saved searches, global search, synced notes, and remote sync.
+Not yet complete: saved searches, global search, synced notes, and remote sync.
 
 ## Portable encrypted attachment implementation review
 

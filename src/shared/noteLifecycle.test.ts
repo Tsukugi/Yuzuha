@@ -40,6 +40,17 @@ describe('note lifecycle rules', () => {
     expect(filterNotes(notes, 'old', true).map(note => note.id)).toEqual(['note_archived']);
   });
 
+  it('finds notes by attachment name without changing archive or pin rules', () => {
+    const attachmentNames = new Map([
+      ['note_regular', ['receipt.PDF']],
+      ['note_archived', ['old-plan.txt']],
+    ]);
+
+    expect(filterNotes(notes, 'receipt', false, attachmentNames).map(note => note.id)).toEqual(['note_regular']);
+    expect(filterNotes(notes, 'old-plan', false, attachmentNames)).toEqual([]);
+    expect(filterNotes(notes, 'old-plan', true, attachmentNames).map(note => note.id)).toEqual(['note_archived']);
+  });
+
   it('validates drafts and preserves lifecycle flags when editing', () => {
     expect(validateNoteDraft({title: ' ', body: '', tags: []})).toMatch(/title/i);
     expect(validateNoteDraft({title: 'Updated', body: 'Body', tags: ['work']})).toBeNull();

@@ -803,3 +803,36 @@ Android builds     PASS - debug and release APKs with Java 17
 Emulator smoke     PASS - note created, edited, pinned, archived, shown/restored, confirmed-deleted, and no launch errors
 Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
 ```
+
+Next pass: account/device recovery design or saved searches, with remote sync kept behind the local-first boundary.
+
+## Implementation review: attachment filename search pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- local note search now matches validated attachment file names case-insensitively;
+- search still uses metadata only and never reads attachment bytes;
+- archived-note filtering and pinned-first ordering remain unchanged;
+- Notes search copy now names attachment file names as a searchable field;
+- focused regression coverage proves filename matching and archive/pin behavior;
+- documentation and the release note record the new local search boundary.
+
+Known limits:
+
+- saved searches, global search, synced notes, account recovery, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 2 suites, 7 tests
+Full Jest          PASS - 22 suites, 96 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - `BackupSmoke` found by `yuzuha-attachment.txt`
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```

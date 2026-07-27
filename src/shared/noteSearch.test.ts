@@ -30,4 +30,9 @@ describe('note tags and search', () => {
     expect(noteMatchesQuery(note, 'PLANNING')).toBe(true);
     expect(noteMatchesQuery(note, 'missing')).toBe(false);
   });
+
+  it('matches attachment names case-insensitively when supplied', () => {
+    expect(noteMatchesQuery(note, 'PDF', ['Quarterly-Plan.PDF'])).toBe(true);
+    expect(noteMatchesQuery(note, 'missing', ['Quarterly-Plan.PDF'])).toBe(false);
+  });
 });

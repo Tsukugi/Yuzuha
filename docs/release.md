@@ -13,6 +13,13 @@ Status: Planned release process.
 - no permission or minimum-OS change;
 - known limits remain attachment filename search, saved searches, global search, synced notes, account recovery, and remote sync.
 
+2026-07-27 attachment filename search pass:
+
+- local Notes search now matches validated attachment file names case-insensitively;
+- search uses metadata only and never reads attachment bytes;
+- no schema, permission, or minimum-OS change;
+- known limits remain saved searches, global search, synced notes, account recovery, and remote sync.
+
 ## Release types
 
 ### JavaScript bundle release

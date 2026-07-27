@@ -27,8 +27,13 @@ export function updateNoteRecord(note: Note, draft: NoteDraft, updatedAt: string
   };
 }
 
-export function filterNotes(notes: Note[], query: string, showArchived: boolean): Note[] {
+export function filterNotes(
+  notes: Note[],
+  query: string,
+  showArchived: boolean,
+  attachmentNamesByNoteId: ReadonlyMap<string, readonly string[]> = new Map(),
+): Note[] {
   return notes
-    .filter(note => (showArchived || !note.isArchived) && noteMatchesQuery(note, query))
+    .filter(note => (showArchived || !note.isArchived) && noteMatchesQuery(note, query, attachmentNamesByNoteId.get(note.id) ?? []))
     .sort((left, right) => Number(right.isPinned) - Number(left.isPinned) || right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
 }

@@ -220,3 +220,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `isArchived` to app schema 12 with `false` as the migration default. Hide archived notes by default, expose an explicit archived view for restore, sort pinned notes first, and require confirmation before deletion. Deleting a note also removes its attachment metadata and private files.
 - Reason: These rules are easy to explain, work offline, and keep the note list useful as it grows. The delete boundary prevents orphaned private files.
 - Consequence: Archive and pin state are local fields. Synced lifecycle conflicts, saved searches, global search, and attachment filename search remain future contracts.
+
+## DEC-033: Search attachment names without reading file bytes
+
+- Context: Notes already stores validated attachment names, but local search only covered note title, body, and tags.
+- Decision: Match the existing case-insensitive local query against attachment file names as metadata. Do not inspect attachment bytes, add an index, or send search input anywhere. Keep archived filtering and pinned-first ordering unchanged.
+- Reason: File names are useful local metadata and the existing attachment model already validates them. Searching names adds retrieval value without widening privacy or file-parsing scope.
+- Consequence: Saved searches, global search, and synced attachment indexes remain future contracts.

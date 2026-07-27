@@ -1737,7 +1737,13 @@ function NotesScreen() {
     return null;
   }
 
-  const visibleNotes = filterNotes(data.notes, searchQuery, showArchived);
+  const attachmentNamesByNoteId = new Map<string, string[]>();
+  for (const attachment of data.attachments) {
+    const names = attachmentNamesByNoteId.get(attachment.noteId) ?? [];
+    names.push(attachment.name);
+    attachmentNamesByNoteId.set(attachment.noteId, names);
+  }
+  const visibleNotes = filterNotes(data.notes, searchQuery, showArchived, attachmentNamesByNoteId);
 
   async function save() {
     const draft = {title: title.trim(), body: body.trim(), tags: normalizeNoteTags(tags)};
@@ -1911,7 +1917,7 @@ function NotesScreen() {
         <SectionTitle title="Search notes" />
         <TextInput
           accessibilityLabel="Search notes"
-          placeholder="Title, body, or tag"
+          placeholder="Title, body, tag, or attachment name"
           placeholderTextColor={colors.muted}
           style={styles.input}
           value={searchQuery}

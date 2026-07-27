@@ -21,10 +21,10 @@ export function validateNoteTags(tags: unknown): tags is string[] {
   return true;
 }
 
-export function noteMatchesQuery(note: Note, query: string): boolean {
+export function noteMatchesQuery(note: Note, query: string, attachmentNames: readonly string[] = []): boolean {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) {
     return true;
   }
-  return [note.title, note.body, ...note.tags].some(value => value.toLowerCase().includes(normalizedQuery));
+  return [note.title, note.body, ...note.tags, ...attachmentNames].some(value => value.toLowerCase().includes(normalizedQuery));
 }
