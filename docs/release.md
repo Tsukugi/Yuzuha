@@ -4,6 +4,16 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
+
+2026-07-27 latest-only data-boundary pass:
+
+- the unreleased build accepts app schema 21, export schema 1 with app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2 only;
+- old app JSON, old encrypted backup envelopes, old SQLite repository schema 1, and incomplete current records are rejected with explicit errors instead of receiving guessed defaults;
+- the legacy AsyncStorage product-data store, migration chain, and unused package dependency were removed; fresh SQLite startup seeds current empty data directly;
+- focused and full Jest tests, lint, typecheck, and bundle checks passed before Android build and smoke verification;
+- a public upgrade policy and future migrations remain intentionally deferred until the app has an external release.
+
 2026-07-27 recurring task-reminder pass:
 
 - app data schema 21 adds nullable `taskRecurrenceRule.reminderLocalTime` with strict local `HH:mm` validation; schema 20 rules migrate to no automatic reminder time;

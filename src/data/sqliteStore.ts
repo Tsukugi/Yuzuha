@@ -19,8 +19,9 @@ import type {
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
-import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
+import {isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {isValidTaskRecurrenceReminderLocalTime} from '../shared/taskRecurrence';
+import {validateCurrentAppData} from '../shared/dataImport';
 
 export type SqliteScalar = string | number | boolean | null;
 
@@ -190,7 +191,6 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
 
   constructor(
     private readonly database: SqliteExecutor,
-    private readonly legacyStore: WorkspaceStore,
   ) {}
 
   async load(): Promise<AppData> {
@@ -231,15 +231,7 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
     const result = await this.database.execute('SELECT value FROM repository_meta WHERE key = ?', ['schema_version']);
     const version = readText(result.rows[0]?.value);
     if (version === null) {
-      const legacy = await this.legacyStore.load();
-      await writeAppData(this.database, legacy);
-      return;
-    }
-    if (version === '1') {
-      await this.database.transaction(async tx => {
-        const oldData = await readAppData(tx);
-        await writeAppDataInTransaction(tx, oldData);
-      });
+      await writeAppData(this.database, emptyAppData());
       return;
     }
     if (version !== String(REPOSITORY_SCHEMA_VERSION)) {
@@ -256,12 +248,18 @@ async function readAppData(database: SqliteExecutor): Promise<AppData> {
     'SELECT record_type, record_id, payload_json, updated_at FROM app_records ORDER BY record_type, record_id',
   );
   const normalizedRecords = await readNormalizedRecords(database);
-  return decodeAppData(
+  const data = decodeAppData(
     [...records.rows, ...normalizedRecords],
     readText(currency.rows[0]?.value) ?? 'EUR',
     readText(meta.rows[0]?.value),
     readText(notificationSettings.rows[0]?.value),
   );
+  try {
+    validateCurrentAppData(data);
+  } catch {
+    throw new SqliteDataCorruptError();
+  }
+  return data;
 }
 
 async function readNormalizedRecords(database: SqliteExecutor): Promise<Array<Record<string, unknown>>> {
@@ -389,17 +387,14 @@ export function decodeAppData(
   if (usageReadJson !== null) {
     data.usageRead = parsePayload(usageReadJson) as AppData['usageRead'];
   }
-  if (notificationSettingsJson !== null) {
-    const parsedSettings = parsePayload(notificationSettingsJson);
-    if (!isNotificationSettingsPayload(parsedSettings)) {
-      throw new SqliteDataCorruptError();
-    }
-    data.notificationSettings = {
-      ...parsedSettings,
-      snoozeDurationMinutes: parsedSettings.snoozeDurationMinutes ?? DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES,
-      taskRemindersEnabled: parsedSettings.taskRemindersEnabled ?? true,
-    };
+  if (notificationSettingsJson === null) {
+    throw new SqliteDataCorruptError();
   }
+  const parsedSettings = parsePayload(notificationSettingsJson);
+  if (!isNotificationSettingsPayload(parsedSettings)) {
+    throw new SqliteDataCorruptError();
+  }
+  data.notificationSettings = parsedSettings;
 
   for (const row of rows) {
     const recordType = readText(row.record_type);
@@ -421,15 +416,18 @@ export function decodeAppData(
         break;
       case 'budget': {
         const budget = payload as MoneyBudget;
-        data.budgets.push({...budget, rollover: budget.rollover === 'carry-forward' ? 'carry-forward' : 'none'});
+        if (budget.rollover !== 'none' && budget.rollover !== 'carry-forward') {
+          throw new SqliteDataCorruptError();
+        }
+        data.budgets.push(budget);
         break;
       }
       case 'recurrence': {
         const recurrence = payload as MoneyRecurrenceRule;
-        data.recurrences.push({
-          ...recurrence,
-          missedOccurrencePolicy: recurrence.missedOccurrencePolicy ?? 'all',
-        });
+        if (recurrence.missedOccurrencePolicy !== 'all' && recurrence.missedOccurrencePolicy !== 'one' && recurrence.missedOccurrencePolicy !== 'skip') {
+          throw new SqliteDataCorruptError();
+        }
+        data.recurrences.push(recurrence);
         break;
       }
       case 'account':
@@ -442,14 +440,14 @@ export function decodeAppData(
         if (typeof payload !== 'object' || payload === null) {
           throw new SqliteDataCorruptError();
         }
-        const notePayload = payload as {tags?: unknown; isArchived?: unknown};
-        if (notePayload.tags !== undefined && (!Array.isArray(notePayload.tags) || notePayload.tags.some(tag => typeof tag !== 'string'))) {
+        const notePayload = payload as {tags?: unknown; isPinned?: unknown; isArchived?: unknown};
+        if (!Array.isArray(notePayload.tags) || notePayload.tags.some(tag => typeof tag !== 'string')) {
           throw new SqliteDataCorruptError();
         }
-        if (notePayload.isArchived !== undefined && typeof notePayload.isArchived !== 'boolean') {
+        if (typeof notePayload.isPinned !== 'boolean' || typeof notePayload.isArchived !== 'boolean') {
           throw new SqliteDataCorruptError();
         }
-        data.notes.push({...payload, tags: notePayload.tags ?? [], isArchived: notePayload.isArchived ?? false} as Note);
+        data.notes.push(payload as Note);
         break;
       }
       case 'attachment':
@@ -466,23 +464,22 @@ export function decodeAppData(
           throw new SqliteDataCorruptError();
         }
         const recurrencePayload = payload as Record<string, unknown>;
-        if (recurrencePayload.reminderLocalTime !== undefined && recurrencePayload.reminderLocalTime !== null &&
-            !isValidTaskRecurrenceReminderLocalTime(recurrencePayload.reminderLocalTime)) {
+        if (recurrencePayload.reminderLocalTime !== null && !isValidTaskRecurrenceReminderLocalTime(recurrencePayload.reminderLocalTime)) {
           throw new SqliteDataCorruptError();
         }
-        data.taskRecurrences.push({...recurrencePayload, reminderLocalTime: recurrencePayload.reminderLocalTime ?? null} as TaskRecurrenceRule);
+        data.taskRecurrences.push(recurrencePayload as unknown as TaskRecurrenceRule);
         break;
       }
       case 'task': {
         const taskPayload = payload as Task;
-        data.tasks.push({
-          ...taskPayload,
-          sourceNoteId: taskPayload.sourceNoteId ?? null,
-          priority: taskPayload.priority ?? 'normal',
-          listId: taskPayload.listId ?? 'task_list_inbox',
-          recurrenceRuleId: taskPayload.recurrenceRuleId ?? null,
-          reminderAtMillis: taskPayload.reminderAtMillis ?? null,
-        });
+        if ((taskPayload.sourceNoteId !== null && typeof taskPayload.sourceNoteId !== 'string') ||
+            (taskPayload.priority !== 'low' && taskPayload.priority !== 'normal' && taskPayload.priority !== 'high') ||
+            typeof taskPayload.listId !== 'string' ||
+            (taskPayload.recurrenceRuleId !== null && typeof taskPayload.recurrenceRuleId !== 'string') ||
+            (taskPayload.reminderAtMillis !== null && (!Number.isSafeInteger(taskPayload.reminderAtMillis) || taskPayload.reminderAtMillis <= 0))) {
+          throw new SqliteDataCorruptError();
+        }
+        data.tasks.push(taskPayload);
         break;
       }
       case 'usage_snapshot':
@@ -497,9 +494,6 @@ export function decodeAppData(
       default:
         throw new SqliteDataCorruptError();
     }
-  }
-  if (data.taskLists.length === 0) {
-    data.taskLists = emptyAppData().taskLists;
   }
   return data;
 }
@@ -655,14 +649,9 @@ function isNotificationSettingsPayload(value: unknown): value is NotificationSet
   const start = settings.quietHoursStartLocalTime;
   const end = settings.quietHoursEndLocalTime;
   const snoozeDurationMinutes = settings.snoozeDurationMinutes;
-  if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string')) {
-    return false;
-  }
-  if (snoozeDurationMinutes !== undefined && !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes)) {
-    return false;
-  }
   const taskRemindersEnabled = settings.taskRemindersEnabled;
-  if (taskRemindersEnabled !== undefined && typeof taskRemindersEnabled !== 'boolean') {
+  if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string') ||
+      !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes) || typeof taskRemindersEnabled !== 'boolean') {
     return false;
   }
   const startInput = typeof start === 'string' ? start : '';

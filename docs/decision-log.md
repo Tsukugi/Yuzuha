@@ -325,3 +325,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add nullable `reminderLocalTime` to task recurrence rules in app schema 21. Accept only strict `HH:mm`, copy it to each generated task's local reminder timestamp, and synchronize future generated reminders immediately and during startup/boot. Existing schema 20 rules migrate to `null`; existing tasks are not changed when a rule is later edited or deleted.
 - Reason: The rule remains the single source for future occurrences while each task keeps its own timestamp for completion, snooze, and deletion behavior. The existing category pause and quiet-hours projection continue to control native scheduling.
 - Consequence: A rule can create local task reminders but does not create a separate rule notification. Past occurrence timestamps are not scheduled, invalid date/time combinations such as a local DST gap produce no native schedule, and recurring summaries, sync, and iOS behavior remain separate contracts.
+
+## DEC-048: Use a latest-only data boundary before public release
+
+- Context: Yuzuha has no external users or released data. The repository carried app-schema migrations, a legacy AsyncStorage import, SQLite schema-1 rewriting, and old encrypted-backup readers.
+- Decision: Accept only current app schema 21, export schema 1 carrying app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2. Seed fresh SQLite databases directly from `emptyAppData()`. Reject older or incomplete data with explicit errors. Do not add an upgrade path until a public release creates a real compatibility obligation.
+- Reason: Compatibility code adds resource cost and hides malformed data through defaults. A fresh unreleased product gets a smaller, clearer boundary and can choose an upgrade contract later with real user data and release support.
+- Consequence: Existing development databases, old JSON exports, and old encrypted backups must be recreated. The next public release needs a deliberate migration or reset policy before it ships.

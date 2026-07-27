@@ -30,8 +30,6 @@ flowchart TD
     REPO --> DB[(SQLite product database)]
     USE --> SYS[Native system adapters]
     SYS --> USAGE[Android UsageStatsManager]
-    USE --> PREFS[Installer and UI preferences]
-    PREFS --> ASYNC[AsyncStorage]
 ```
 
 ## Layer rules
@@ -50,7 +48,7 @@ Each feature owns its screens, view models/hooks, validation, and use cases. Fea
 
 ### Data layer
 
-Owns schema, migrations, transactions, repositories, and serialization. Product records belong in SQLite. AsyncStorage is for small preferences and installer metadata only.
+Owns the current schema, transactions, repositories, and serialization. Product records belong in SQLite. There is no AsyncStorage product-data path.
 
 ### Native system adapters
 
@@ -65,7 +63,7 @@ Hide platform APIs behind typed interfaces. The first Android adapter is app usa
 5. Installer checks size, SHA-256, signature, and bundle compatibility.
 6. Installer atomically promotes the verified file and writes the activation record.
 7. JavaScript starts from the selected verified bundle.
-8. `MainApp` opens the local database, runs non-destructive migrations, and renders the first screen.
+8. `MainApp` opens the local database, requires repository schema 2 and app schema 21, and renders the first screen.
 
 If a step fails, the installer returns a named result such as `offline-local`, `invalid-remote`, or `no-verified-bundle`. The UI may explain the result, but it must not silently run an unverified file. See `installer.md`.
 
@@ -80,7 +78,7 @@ src/
     appTime/
     notes/
     tasks/
-  data/                database, migrations, repositories
+  data/                database and repositories
   platform/            Android and iOS adapters
   installer/           JavaScript-side installer bridge and status types
   shared/              validation, dates, formatting, error types
@@ -91,15 +89,15 @@ src/
 - React Native 0.86.0, React 19.2.8, TypeScript 5.9.x, Metro 0.86.x, and CLI 20.2.x are the current implementation baseline. This supersedes the older planning baseline.
 - TypeScript strict mode is required.
 - `@op-engineering/op-sqlite` `17.1.2` is the current product store bridge. The app-owned repository boundary keeps native SQL out of feature UI and uses transactions for full-workspace writes.
-- AsyncStorage is limited to small, non-relational state.
+- Product data does not use AsyncStorage. Preferences and installer metadata need their own explicit owner before they are added.
 - Navigation, SQLite binding, encryption, and analytics packages must be selected from maintained packages during implementation and recorded in `decision-log.md`.
 - No remote sync layer is required for the MVP.
 
 ## Current repository boundary
 
-`SqliteWorkspaceStore` keeps non-financial records, notes, attachments, and recurrence rules as typed JSON rows and stores money entries, transfers, split parents/lines, and budgets in normalized tables. Repository schema 1 is migrated to schema 2 by reading the old rows and rewriting them in one transaction. Legacy AsyncStorage data is imported once on first open. Unsupported SQLite schema versions and malformed payloads block the workspace instead of guessing or discarding data. Money reports, account balances, and budget projections are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows. Split entries are one parent record plus normalized lines and are expanded only in report projections. Budgets count matching expense entries and split lines within their local period; carry-forward adds only the previous period's unused positive balance to the current effective limit. Data tools serialize all supported records as versioned JSON, serialize money entries as versioned CSV, share through Android's system sheet, create password-encrypted or local recovery-key XChaCha20-Poly1305 backups using scrypt and secure random salt/nonce values, save encrypted backup JSON through the system document picker using an app-cache temporary file, open encrypted backup JSON through the document picker, validate pasted or opened JSON/decrypted backup content before preview, replace the workspace only after confirmation, and reset to empty workspace defaults only after confirmation. Recovery keys are generated in memory, confirmed, and never stored. Note attachment files are copied from the system picker into app-private document storage, checked for supported MIME type, size, and SHA-256 checksum, and linked to one note by stable metadata. New encrypted backup schema 2 payloads include each verified attachment file as authenticated base64 with its ID, size, and checksum; schema 1 password/recovery backups remain readable. Plain JSON restore does not accept attachments because it has no file bytes. On Android, Notes passes one validated attachment path and MIME type to a native FileProvider bridge; the bridge keeps the file under the app-private attachments directory and gives the external viewer read access only to that URI. Recurrence rules use local calendar dates, generate due money entries once according to their all/one/skip policy, and advance their next date transactionally before the workspace is shown. Old SQLite recurrence payloads without the new policy are read as `all` and are written in the next normal save.
+`SqliteWorkspaceStore` keeps non-financial records, notes, attachments, and recurrence rules as typed JSON rows and stores money entries, transfers, split parents/lines, and budgets in normalized tables. It opens only repository schema 2 and rejects older or unknown repository schemas. A new database is seeded with the current empty app data; there is no legacy AsyncStorage import. Malformed current records block the workspace instead of guessing or discarding data. Money reports, account balances, and budget projections are rebuildable projections over loaded source records and never combine currencies. Transfers are source records, not income or expense rows. Split entries are one parent record plus normalized lines and are expanded only in report projections. Budgets count matching expense entries and split lines within their local period; carry-forward adds only the previous period's unused positive balance to the current effective limit. Data tools serialize current app schema 21 records as versioned JSON, serialize money entries as versioned CSV, share through Android's system sheet, create password-encrypted or local recovery-key XChaCha20-Poly1305 backups using scrypt and secure random salt/nonce values, save encrypted backup JSON through the system document picker using an app-cache temporary file, open encrypted backup JSON through the document picker, validate current-schema pasted or opened JSON/decrypted backup content before preview, replace the workspace only after confirmation, and reset to empty workspace defaults only after confirmation. Recovery keys are generated in memory, confirmed, and never stored. Note attachment files are copied from the system picker into app-private document storage, checked for supported MIME type, size, and SHA-256 checksum, and linked to one note by stable metadata. Current encrypted backup schema 2 payloads include each verified attachment file as authenticated base64 with its ID, size, and checksum. Plain JSON restore does not accept attachments because it has no file bytes. On Android, Notes passes one validated attachment path and MIME type to a native FileProvider bridge; the bridge keeps the file under the app-private attachments directory and gives the external viewer read access only to that URI. Recurrence rules use local calendar dates, generate due money entries once according to their all/one/skip policy, and advance their next date transactionally before the workspace is shown.
 
-Saved searches are stored as typed `saved_search` JSON rows in `app_records`. Schema 12 data migrates to schema 13 with no saved searches. The Notes screen owns the local name/query/archive-visibility rules and calls the repository through `AppStore`; Apply and Delete do not introduce a global index or sync state.
+Saved searches are stored as typed `saved_search` JSON rows in `app_records` under current app schema 21. The Notes screen owns the local name/query/archive-visibility rules and calls the repository through `AppStore`; Apply and Delete do not introduce a global index or sync state.
 
 Global search is a derived local projection over the loaded `AppData`; it does not add a database table or index. The Search screen searches supported records in memory, hides archived records unless requested, and only searches included app-time snapshots after Usage Access is granted. Deleted records cannot match because deletion removes them from the local collections.
 
@@ -177,4 +175,4 @@ Each capability returns `available`, `permissionRequired`, `restricted`, or `uns
 - Search indexes and notification schedules are rebuildable projections.
 - Attachments are content-addressed by checksum and are not considered committed before the database and file agree.
 - Sync applies remote changes inside a database transaction and writes a conflict record instead of choosing an unsafe merge.
-- A migration must update schema, projections, sync encoding, export schema, and fixtures together.
+- A future migration, if approved after public release, must update schema, projections, sync encoding, export schema, and fixtures together.

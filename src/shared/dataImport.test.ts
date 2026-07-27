@@ -1,6 +1,5 @@
 import {buildJsonExport} from './dataExport';
 import {JsonImportError, parseJsonImport} from './dataImport';
-import {migrateStoredData} from '../data/migrations';
 import {emptyAppData} from '../types/domain';
 
 describe('JSON restore validation', () => {
@@ -128,31 +127,17 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
   });
 
-  it('migrates a supported schema 7 export before validation', () => {
+  it('rejects an old app schema export', () => {
     const data = emptyAppData();
     const legacy: Record<string, unknown> = {...data, schemaVersion: 7};
     delete legacy.recurrences;
 
-    const preview = parseJsonImport(JSON.stringify({
+    expect(() => parseJsonImport(JSON.stringify({
       exportSchemaVersion: 1,
       appSchemaVersion: 7,
       exportedAt: '2026-07-26T12:00:00.000Z',
       data: legacy,
-    }));
-
-    expect(preview.data.schemaVersion).toBe(21);
-    expect(preview.data.recurrences).toEqual([]);
-    expect(preview.data.attachments).toEqual([]);
-  });
-
-  it('migrates schema 9 data to an empty attachment collection', () => {
-    const legacy: Record<string, unknown> = {...emptyAppData(), schemaVersion: 9};
-    delete legacy.attachments;
-
-    const migrated = migrateStoredData(legacy);
-
-    expect(migrated?.schemaVersion).toBe(21);
-    expect(migrated?.attachments).toEqual([]);
+    }))).toThrow(/app data version/i);
   });
 
   it('rejects malformed JSON and duplicate record IDs', () => {
@@ -271,6 +256,6 @@ describe('JSON restore validation', () => {
     });
     (data.notes[0] as unknown as {isArchived: unknown}).isArchived = 'yes';
 
-    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/export data shape is not supported/i);
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/invalid fields/i);
   });
 });

@@ -1296,3 +1296,36 @@ Known limits:
 - no rule-level notification summaries, recurring notification automation, iOS reminders, account recovery, or sync.
 
 Next pass: account/device recovery design or recurring notification policy, with remote sync kept behind its service boundary.
+
+## Implementation review: latest-only data-boundary pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- current app schema 21, JSON export schema 1 with app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2 are the only accepted data versions;
+- old JSON app schemas, old encrypted backup envelopes, and SQLite repository schema 1 are rejected with explicit errors;
+- fresh SQLite startup seeds `emptyAppData()` directly, without a legacy AsyncStorage product-data import;
+- SQLite decode paths no longer fill missing current fields with defaults for notification settings, recurrence policies, note fields, task recurrence reminder times, or task lifecycle fields;
+- the unused AsyncStorage product-data package and migration test/code paths were removed;
+- current-schema rejection tests, full unit tests, lint, typecheck, bundle checks, Android builds, and device smoke were run for this pass.
+
+Known limits:
+
+- no public upgrade path exists yet; the first public release must choose a migration or reset policy before external users receive the app;
+- account recovery, device enrollment, sync, and broader notification automation remain planned.
+
+Review evidence:
+
+```text
+Focused latest-only Jest  PASS - current JSON, encrypted-backup, and SQLite rejection coverage
+Full Jest                PASS - 30 suites, 128 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS
+Android builds           PASS - debug and release APKs with Java 17
+Emulator smoke           PASS - clean install opened MainActivity and current-schema data persisted after relaunch
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: define the first public-release upgrade policy or continue with a bounded local product contract, with remote sync kept behind its service boundary.

@@ -19,13 +19,12 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 ## Technology baseline
 
-The current encrypted backup flow can also save and open the authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes and local saved-search records; old schema-1 backups remain readable. Plain JSON exports still carry attachment metadata only. Android opens supported private attachment files through a read-only FileProvider URI and the system chooser. Account recovery, device enrollment, sync, and iOS attachment preview remain planned.
+The current encrypted backup flow can also save and open the current authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes and local saved-search records. Old app schemas, old SQLite repository schemas, and old encrypted backup schemas are rejected because this unreleased build has no external users to upgrade. Plain JSON exports still carry attachment metadata only. Android opens supported private attachment files through a read-only FileProvider URI and the system chooser. Account recovery, device enrollment, sync, and iOS attachment preview remain planned.
 
 - React Native `0.86.0` (current implementation baseline, verified July 2026)
 - React `19.2.8`
 - TypeScript with strict checking
 - Metro and the React Native CLI
-- AsyncStorage `3.1.x` for small installer metadata and preferences only
 - `@op-engineering/op-sqlite` `17.1.2` for the transactional local product repository
 
 Use locked dependency versions in implementation branches. The current baseline is the newer React Native 0.86 line requested for this project.

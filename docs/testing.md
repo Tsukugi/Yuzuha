@@ -1,13 +1,19 @@
 # Testing strategy
 
-Status: Current test strategy through the recurring task-reminder pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the latest-only data-boundary pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
+## Latest-only schema boundary
+
+- Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
+- The current suite is 30 Jest suites and 128 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- Fresh SQLite startup seeds current app schema 21 data directly; old local database files are rejected by repository schema checks.
+
 ## Task reminder evidence
 
-- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, recurring-rule `HH:mm` validation and generated timestamps, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, schema 17 to 21 migration, invalid import rejection, SQLite round trips, and the create-then-remind, recurring-generated-reminder, quiet-hours rollback, idempotent Complete-action, snooze projection, stale-target, category-pause, and paused-snooze AppStore regressions.
-- Full Jest: 32 suites and 148 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
+- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, recurring-rule `HH:mm` validation and generated timestamps, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, current-schema validation, invalid import rejection, SQLite round trips, and the create-then-remind, recurring-generated-reminder, quiet-hours rollback, idempotent Complete-action, snooze projection, stale-target, category-pause, and paused-snooze AppStore regressions.
+- Historical recurring-reminder evidence: Full Jest ran 32 suites and 148 tests before the latest-only cleanup. Current full-suite evidence is recorded above.
 - Emulator `emulator-5554`: a fresh release install created `SmokeReminder`; the task row showed `Reminder 2026-07-28T09:30`, and `dumpsys alarm` showed the stable `dev.yuzuha.TASK_REMINDER` alarm after force-stop/relaunch.
 - Emulator delivery: a near-term reminder delivered after Android's alarm window on channel `task_reminders`; `dumpsys notification` showed `Yuzuha task reminder`, and the alarm was removed after delivery.
 - Emulator deep link: tapping the delivered notification reopened Tasks with `DeepLinkSmoke` and its saved reminder in edit mode; cold-start and warm-app intent paths produced no filtered app errors.
@@ -27,13 +33,13 @@ Use Jest for pure logic:
 - date and timezone grouping;
 - task state transitions and overdue rules;
 - note search normalization and attachment filename matching;
-- saved-search validation, schema migration, persistence, export/restore, backup round trips, and lifecycle actions;
+- saved-search validation, current-schema persistence, export/restore, backup round trips, and lifecycle actions;
 - global-search matching, stable result ordering, archived-record filtering, and Usage Access visibility rules;
-- note-to-task creation, source preservation, source-link migration, JSON/backup validation, and SQLite round trips;
-- task draft validation, task identity-preserving edits, task deletion rules, date filters, schema 15 migration, JSON/backup validation, and SQLite round trips;
+- note-to-task creation, source preservation, JSON/backup validation, and SQLite round trips;
+- task draft validation, task identity-preserving edits, task deletion rules, date filters, JSON/backup validation, and SQLite round trips;
 - task-list name validation, identity-preserving rename, archive protection, reference-safe deletion for tasks and recurring rules, and import validation;
-- recurring task draft validation, deterministic all/one/skip expansion, pause/delete behavior, schema 15 to 16 migration, JSON validation, and SQLite round trips;
-- task reminder local date-time validation, future timestamp rules, quiet-hours validation and projection, recurring-rule reminder validation and expansion, schema 16 to 17, 17 to 18, 18 to 19, 19 to 20, and 20 to 21 migrations, JSON validation, SQLite round trips, Android permission handling, native schedule/cancel forwarding, cold-start target and warm-app action routing, idempotent Complete handling, selected snooze projection, stale-target no-ops, category pause persistence, paused snooze no-ops, and restore synchronization;
+- recurring task draft validation, deterministic all/one/skip expansion, pause/delete behavior, JSON validation, and SQLite round trips;
+- task reminder local date-time validation, future timestamp rules, quiet-hours validation and projection, recurring-rule reminder validation and expansion, current-schema JSON validation, SQLite round trips, Android permission handling, native schedule/cancel forwarding, cold-start target and warm-app action routing, idempotent Complete handling, selected snooze projection, stale-target no-ops, category pause persistence, paused snooze no-ops, and restore synchronization;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -43,7 +49,7 @@ Use Jest for pure logic:
 
 Use an in-memory or temporary database adapter to test:
 
-- repositories and migrations;
+- repositories and current-schema rejection;
 - save/edit/delete flows;
 - dashboard queries;
 - export followed by delete;
@@ -108,7 +114,7 @@ npm run test -- --runInBand
 npm run check-bundle
 ```
 
-The native CI job must also run a debug Android build, a release build, and the device smoke suite. A release may not proceed with failing installer or migration tests.
+The native CI job must also run a debug Android build, a release build, and the device smoke suite. A release may not proceed with failing installer or current-schema validation tests.
 
 ## Developer note: reproduce first
 

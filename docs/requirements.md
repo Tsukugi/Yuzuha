@@ -311,6 +311,10 @@ Implemented and verified:
 
 Not yet complete: end-of-month anchor preferences, recurring task rules, notifications, sync, and account recovery.
 
+## Latest-only data boundary
+
+This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 21, export schema 1 carrying app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
+
 ## Local recovery-key backup implementation review
 
 Implemented and verified:
@@ -382,6 +386,6 @@ Implemented and verified:
 - new encrypted backup schema 2 payloads include every note attachment's ID, size, checksum, and base64 file bytes inside authenticated ciphertext;
 - backup creation reads each private file and rejects missing, changed, over-limit, or checksum-invalid files before sharing or saving;
 - restore validates the complete attachment set, stages private files, and only then replaces the workspace after user confirmation;
-- schema 1 password and recovery-key backups remain readable, while plain JSON restore rejects attachments because it has no file bytes.
+- encrypted backup schema 2 is the only supported encrypted backup format, while plain JSON restore rejects attachments because it has no file bytes.
 
 Not yet complete: platform backup policy, synced attachments, iOS preview, remote encrypted sync, and password recovery.

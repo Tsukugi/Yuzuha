@@ -91,7 +91,7 @@ describe('encrypted backups', () => {
     expect(preview.encryptedBytes).toBeGreaterThan(16);
   });
 
-  it('reads a schema 1 encrypted backup without attachment bytes', async () => {
+  it('rejects an old encrypted backup schema', async () => {
     const data = emptyAppData();
     data.notes.push({
       id: 'legacy_note',
@@ -138,11 +138,7 @@ describe('encrypted backups', () => {
     const ciphertext = xchacha20poly1305(key, nonce, utf8ToBytes(JSON.stringify(header))).encrypt(utf8ToBytes(buildJsonExport(data, createdAt)));
     const raw = JSON.stringify({header, ciphertextBase64: toBase64(ciphertext)});
 
-    const preview = await decryptEncryptedBackup(raw, password);
-
-    expect(preview.data).toEqual(data);
-    expect(preview.recordCounts.attachments).toBe(1);
-    expect(preview.attachmentFiles).toEqual([]);
+    await expect(decryptEncryptedBackup(raw, password)).rejects.toThrow(/backup schema/i);
   });
 
   it('rejects a wrong password and authenticated tampering', async () => {
@@ -162,6 +158,12 @@ describe('encrypted backups', () => {
     );
 
     await expect(decryptEncryptedBackup('{"header":{},"ciphertextBase64":""}', password)).rejects.toBeInstanceOf(EncryptedBackupError);
+  });
+
+  it('rejects old app data when building a backup', async () => {
+    const oldData = {...emptyAppData(), schemaVersion: 20 as never};
+
+    await expect(buildEncryptedBackup(oldData, password, createdAt, deterministicRandomBytes)).rejects.toThrow(/app data version/i);
   });
 
   it('generates a recovery key and uses it for a separately labeled encrypted backup', async () => {

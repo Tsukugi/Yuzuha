@@ -4,7 +4,7 @@ Status: The local SQLite repository boundary is implemented with app data schema
 
 ## Storage rules
 
-- Product records use SQLite with versioned migrations.
+- Product records use SQLite with the current schema check. The unreleased build does not migrate old product data.
 - Monetary values use integer minor units plus an ISO 4217 currency code.
 - Timestamps are stored as UTC; the user timezone is stored with date-based records where local-day grouping matters.
 - IDs are generated locally as opaque UUIDs.
@@ -194,7 +194,7 @@ Quiet hours may be same-day or overnight. The schedule projection uses the devic
 
 ### Preferences
 
-Small settings may live in AsyncStorage or a settings table:
+Small settings need an explicit current owner before implementation:
 
 - main currency
 - user timezone override, if supported
@@ -203,6 +203,8 @@ Small settings may live in AsyncStorage or a settings table:
 - onboarding completion
 - installer status and last-known-good bundle metadata
 
+The current build does not persist these preference records through AsyncStorage.
+
 ## Derived values
 
 - Money totals are calculated from filtered entries, grouped by currency. Never add different currencies together.
@@ -210,17 +212,16 @@ Small settings may live in AsyncStorage or a settings table:
 - Overdue means `status = open` and `dueLocalDate` is before today in the selected timezone.
 - Home cards show `Not available` when source data or permission is missing; zero is only shown when a valid query returned zero.
 
-## Migration policy
+## Schema policy
 
-1. Every schema change increments a schema version.
-2. Migrations are forward-only and idempotent within one transaction.
-3. Destructive migrations require an export/backup decision and explicit approval.
-4. Each migration has a fixture test for an older schema and a fresh-install test.
-5. A failed migration blocks the product UI and shows a clear support/export path; it must not silently discard records.
+1. The unreleased build has one current app schema and one current SQLite repository schema.
+2. App schema 21 and repository schema 2 are accepted. Older and unknown schemas are rejected clearly.
+3. A future public release may add a forward migration only after a product decision, fixture test, and rollback plan.
+4. A fresh install creates the current empty workspace directly; it does not import old product data.
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 21 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, notification settings, task lists, task recurrence rules, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 20 is migrated into app schema 21 without dropping records and remains the legacy import source for first open. Schema 10 notes receive an empty tag collection, schema 11 notes receive `isArchived: false`, schema 12 data receives an empty saved-search collection, schema 13 tasks receive `sourceNoteId: null`, schema 14 tasks receive `priority: normal` and the seeded `Inbox` list, schema 15 tasks receive `recurrenceRuleId: null` with an empty task-rule collection, schema 16 tasks receive `reminderAtMillis: null`, schema 17 data receives disabled quiet hours, schema 18 data receives the default 60-minute snooze duration, schema 19 data receives `taskRemindersEnabled: true`, and schema 20 task recurrence rules receive `reminderLocalTime: null`. Old SQLite rows without notification settings receive disabled quiet hours, the default duration, and enabled task reminders; old SQLite recurrence rows without `reminderLocalTime` receive null; malformed settings or recurrence reminder times block the workspace. Old SQLite recurrence rows without a policy are read as `all`, old SQLite note rows without tags or archive state receive deterministic defaults, and old SQLite tasks without lifecycle fields receive the same task defaults. JSON restore accepts export schema 1, migrates supported app schemas, validates task-list links, task recurrence links, task priority, task dates, reminder timestamps, notification settings, recurrence reminder times, and all previous record rules, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 21 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, saved searches, notification settings, task lists, task recurrence rules, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. The repository seeds a fresh database with current empty data and rejects old or unknown repository schemas. JSON restore accepts export schema 1 only when its app data is schema 21, validates current task-list links, task recurrence links, task priority, task dates, reminder timestamps, notification settings, recurrence reminder times, and all current record rules, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary. Old app data, old SQLite rows, and old encrypted backup schemas are not upgraded in this unreleased build.
 
 ## Export and deletion
 

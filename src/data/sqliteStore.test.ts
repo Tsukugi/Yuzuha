@@ -1,9 +1,8 @@
-import {emptyAppData, type AppData} from '../types/domain';
+import {emptyAppData} from '../types/domain';
 import {
   SqliteWorkspaceStore,
   type SqliteExecutor,
   type SqliteResult,
-  type WorkspaceStore,
 } from './sqliteStore';
 
 class MemorySqlite implements SqliteExecutor {
@@ -152,38 +151,13 @@ class MemorySqlite implements SqliteExecutor {
   }
 }
 
-function legacyStore(data: AppData): WorkspaceStore {
-  return {
-    load: async () => data,
-    save: async () => undefined,
-  };
-}
-
 describe('SQLite workspace store', () => {
-  it('imports legacy data on first load and preserves it in SQLite records', async () => {
-    const legacy = emptyAppData();
-    legacy.money.push({
-      id: 'money_legacy',
-      kind: 'expense',
-      amountMinor: 1250,
-      currency: 'EUR',
-      accountId: 'account_everyday',
-      categoryId: 'category_food',
-      category: 'Food',
-      note: 'Lunch',
-      occurredAt: '2026-07-26T12:00:00.000Z',
-      createdAt: '2026-07-26T12:00:00.000Z',
-      updatedAt: '2026-07-26T12:00:00.000Z',
-    });
-    legacy.usageExcludedPackages = ['com.example.excluded'];
+  it('starts an empty current workspace on first load', async () => {
     const database = new MemorySqlite();
-    const store = new SqliteWorkspaceStore(database, legacyStore(legacy));
+    const store = new SqliteWorkspaceStore(database);
 
-    await expect(store.load()).resolves.toEqual(legacy);
+    await expect(store.load()).resolves.toEqual(emptyAppData());
     expect(database.schemaVersion).toBe('2');
-    expect(database.moneyEntries.has('money_legacy')).toBe(true);
-    expect(database.records.has('money:money_legacy')).toBe(false);
-    expect(database.records.has('usage_exclusion:com.example.excluded')).toBe(true);
   });
 
   it('round-trips all Phase 3 collections through one transaction', async () => {
@@ -330,33 +304,25 @@ describe('SQLite workspace store', () => {
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true};
     const database = new MemorySqlite();
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
     await store.save(data);
 
     await expect(store.load()).resolves.toEqual(data);
   });
 
-  it('defaults the snooze duration when reading legacy SQLite settings', async () => {
+  it('rejects incomplete current SQLite notification settings', async () => {
     const database = new MemorySqlite();
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
     await store.save(emptyAppData());
     database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
 
-    await expect(store.load()).resolves.toMatchObject({
-      schemaVersion: 21,
-      notificationSettings: {
-        quietHoursStartLocalTime: '22:00',
-        quietHoursEndLocalTime: '07:00',
-        snoozeDurationMinutes: 60,
-        taskRemindersEnabled: true,
-      },
-    });
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 
-  it('defaults a recurring reminder time when reading a legacy SQLite rule', async () => {
+  it('rejects a recurring rule without the current reminder field', async () => {
     const database = new MemorySqlite();
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
     await store.save(emptyAppData());
     database.records.set('task_recurrence:rule_legacy', {
       recordType: 'task_recurrence',
@@ -378,12 +344,10 @@ describe('SQLite workspace store', () => {
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
 
-    await expect(store.load()).resolves.toMatchObject({
-      taskRecurrences: [{id: 'rule_legacy', reminderLocalTime: null}],
-    });
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 
-  it('migrates schema 1 financial records into normalized tables', async () => {
+  it('rejects the old SQLite repository schema', async () => {
     const legacy = emptyAppData();
     legacy.accounts = [];
     legacy.categories = [];
@@ -411,24 +375,21 @@ describe('SQLite workspace store', () => {
       payloadJson: JSON.stringify(legacy.money[0]),
       updatedAt: legacy.money[0].updatedAt,
     });
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
-    await expect(store.load()).resolves.toEqual(legacy);
-    expect(database.schemaVersion).toBe('2');
-    expect(database.moneyEntries.has('money_old')).toBe(true);
-    expect(database.records.has('money:money_old')).toBe(false);
+    await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 1.');
   });
 
   it('rejects unsupported repository versions instead of guessing', async () => {
     const database = new MemorySqlite();
     database.schemaVersion = '3';
     database.meta.set('schema_version', '3');
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
     await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 3.');
   });
 
-  it('upgrades old SQLite recurrence rows to the explicit all policy', async () => {
+  it('rejects old SQLite recurrence rows without the current policy', async () => {
     const database = new MemorySqlite();
     database.schemaVersion = '2';
     database.meta.set('schema_version', '2');
@@ -454,14 +415,12 @@ describe('SQLite workspace store', () => {
       }),
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
-    const data = await store.load();
-
-    expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 
-  it('upgrades old SQLite note rows to an empty tag collection', async () => {
+  it('rejects old SQLite note rows without current fields', async () => {
     const database = new MemorySqlite();
     database.schemaVersion = '2';
     database.meta.set('schema_version', '2');
@@ -479,15 +438,12 @@ describe('SQLite workspace store', () => {
       }),
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
-    const data = await store.load();
-
-    expect(data.notes[0].tags).toEqual([]);
-    expect(data.notes[0].isArchived).toBe(false);
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 
-  it('upgrades old SQLite task rows with a null source-note link', async () => {
+  it('rejects old SQLite task rows without current fields', async () => {
     const database = new MemorySqlite();
     database.schemaVersion = '2';
     database.meta.set('schema_version', '2');
@@ -506,24 +462,36 @@ describe('SQLite workspace store', () => {
       }),
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
 
-    const data = await store.load();
-
-    expect(data.tasks[0].sourceNoteId).toBeNull();
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 
   it('rejects malformed persisted record payloads', async () => {
     const database = new MemorySqlite();
-    database.schemaVersion = '1';
-    database.meta.set('schema_version', '1');
+    database.schemaVersion = '2';
+    database.meta.set('schema_version', '2');
     database.records.set('money:broken', {
       recordType: 'money',
       recordId: 'broken',
       payloadJson: '{not-json',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
-    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+    const store = new SqliteWorkspaceStore(database);
+
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
+  });
+
+  it('rejects an incomplete current money record', async () => {
+    const database = new MemorySqlite();
+    const store = new SqliteWorkspaceStore(database);
+    await store.save(emptyAppData());
+    database.records.set('money:broken', {
+      recordType: 'money',
+      recordId: 'broken',
+      payloadJson: JSON.stringify({id: 'broken', kind: 'expense'}),
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    });
 
     await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });

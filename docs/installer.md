@@ -61,7 +61,7 @@ Keep these records separately:
 - activation record: pointer to the selected verified bundle;
 - last-known-good record: previous verified pointer kept for rollback.
 
-Installer metadata may use AsyncStorage, but the bundle file must use an app-private file path. Writes must be atomic: download to a temporary file, verify, move into place, then write the activation pointer.
+Installer metadata needs an explicitly scoped native or file-backed owner; the current build does not ship an AsyncStorage product-data path. The bundle file must use an app-private file path. Writes must be atomic: download to a temporary file, verify, move into place, then write the activation pointer.
 
 ## Launch decision
 
@@ -103,7 +103,7 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 
 ## Developer note: local data starts after bundle verification
 
-The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, imports legacy AsyncStorage data on first use, expands due money and task rules, copies any recurring-rule local reminder times into generated tasks, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. That synchronization is empty when the schema 20 `taskRemindersEnabled` category flag is off; the flag pauses native alarms without deleting logical reminder timestamps, and turning it back on rebuilds future schedules. A database migration, recurrence-expansion, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; it must never cause the app to run an unverified bundle or silently drop records. Restore also synchronizes the incoming projected reminder set before committing it, subject to the restored category flag.
+The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, requires repository schema 2 and app schema 21, expands due money and task rules, copies any recurring-rule local reminder times into generated tasks, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. That synchronization is empty when the schema 20 `taskRemindersEnabled` category flag is off; the flag pauses native alarms without deleting logical reminder timestamps, and turning it back on rebuilds future schedules. A current-schema validation, recurrence-expansion, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; old schemas are rejected and are not guessed or upgraded. Restore also synchronizes the incoming projected reminder set before committing it, subject to the restored category flag.
 
 ## Developer note
 

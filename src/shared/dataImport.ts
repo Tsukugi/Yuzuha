@@ -1,4 +1,3 @@
-import {migrateStoredData} from '../data/migrations';
 import type {
   AppData,
   Attachment,
@@ -72,19 +71,15 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 21) {
+  if (appSchemaVersion !== 21) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
     throw new JsonImportError('The export timestamp is invalid.');
   }
 
-  const data = migrateStoredData(parsed.data);
-  if (!data) {
-    throw new JsonImportError('The export data shape is not supported.');
-  }
-
-  validateAppData(data);
+  validateCurrentAppData(parsed.data);
+  const data = parsed.data;
   const recordCounts = countRecords(data);
   return {
     data,
@@ -93,10 +88,13 @@ export function parseJsonImport(raw: string): JsonImportPreview {
   };
 }
 
-function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 21 || !isCurrency(data.mainCurrency) || !isValidTaskReminderSnoozeDuration(data.notificationSettings.snoozeDurationMinutes) || typeof data.notificationSettings.taskRemindersEnabled !== 'boolean') {
+export function validateCurrentAppData(value: unknown): asserts value is AppData {
+  const notificationSettings = isRecord(value) ? value.notificationSettings : null;
+  if (!isRecord(value) || value.schemaVersion !== 21 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+      !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
   }
+  const data = value as unknown as AppData;
 
   validateUniqueIds('money entries', data.money);
   validateUniqueIds('transfers', data.transfers);

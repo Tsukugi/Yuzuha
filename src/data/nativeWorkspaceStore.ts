@@ -1,5 +1,4 @@
 import {open} from '@op-engineering/op-sqlite';
-import {LocalStore} from './localStore';
 import {SqliteWorkspaceStore} from './sqliteStore';
 
 export function createNativeWorkspaceStore(): SqliteWorkspaceStore {
@@ -19,5 +18,5 @@ export function createNativeWorkspaceStore(): SqliteWorkspaceStore {
         });
       });
     },
-  }, new LocalStore());
+  });
 }

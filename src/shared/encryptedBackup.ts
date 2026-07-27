@@ -7,7 +7,6 @@ import {buildJsonExport} from './dataExport';
 import {parseJsonImport, type JsonImportPreview} from './dataImport';
 
 export const ENCRYPTED_BACKUP_SCHEMA_VERSION = 2 as const;
-const LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION = 1 as const;
 const ENCRYPTED_BACKUP_PAYLOAD_VERSION = 2 as const;
 export const BACKUP_CIPHER_NAME = 'xchacha20-poly1305' as const;
 export const BACKUP_KDF_NAME = 'scrypt' as const;
@@ -40,7 +39,7 @@ interface EncryptedBackupCipher {
 }
 
 interface EncryptedBackupHeader {
-  backupSchemaVersion: typeof LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION | typeof ENCRYPTED_BACKUP_SCHEMA_VERSION;
+  backupSchemaVersion: typeof ENCRYPTED_BACKUP_SCHEMA_VERSION;
   appSchemaVersion: AppData['schemaVersion'];
   createdAt: string;
   credential: EncryptedBackupCredential;
@@ -101,6 +100,9 @@ async function buildEncryptedBackupWithCredential(
 ): Promise<string> {
   if (credentialType === 'password') {
     validatePassword(credential);
+  }
+  if (data.schemaVersion !== 21) {
+    throw new EncryptedBackupError('Encrypted backup app data version is not supported.');
   }
   if (!isIsoDate(createdAt)) {
     throw new EncryptedBackupError('Backup timestamp is invalid.');
@@ -165,11 +167,9 @@ export async function decryptEncryptedBackup(raw: string, password: string): Pro
     const credential = envelope.header.credential === 'recovery-key' ? normalizeRecoveryKey(password) : password;
     const key = await deriveKey(credential, salt, envelope.header.kdf);
     const plaintext = xchacha20poly1305(key, nonce, utf8ToBytes(JSON.stringify(envelope.header))).decrypt(ciphertext);
-    const payload = parseBackupPayload(decodeUtf8(plaintext), envelope.header.backupSchemaVersion);
+    const payload = parseBackupPayload(decodeUtf8(plaintext));
     const preview = parseJsonImport(payload.exportJson);
-    if (envelope.header.backupSchemaVersion === ENCRYPTED_BACKUP_SCHEMA_VERSION) {
-      validateAttachmentBackupFiles(preview.data.attachments, payload.attachmentFiles);
-    }
+    validateAttachmentBackupFiles(preview.data.attachments, payload.attachmentFiles);
     if (preview.data.schemaVersion !== envelope.header.appSchemaVersion) {
       throw new EncryptedBackupError('Encrypted backup metadata does not match its data.');
     }
@@ -205,14 +205,17 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   const kdf = header.kdf;
   const cipher = header.cipher;
   const credential = header.credential;
+  if (header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION) {
+    throw new EncryptedBackupError('Encrypted backup schema is not supported.');
+  }
+  if (header.appSchemaVersion !== 21) {
+    throw new EncryptedBackupError('Encrypted backup app data version is not supported.');
+  }
   if (
-    (header.backupSchemaVersion !== LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION && header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION) ||
     typeof header.appSchemaVersion !== 'number' ||
     !Number.isInteger(header.appSchemaVersion) ||
-    header.appSchemaVersion < 1 ||
-    header.appSchemaVersion > 21 ||
     !isIsoDate(header.createdAt) ||
-    (credential !== undefined && credential !== 'password' && credential !== 'recovery-key') ||
+    (credential !== 'password' && credential !== 'recovery-key') ||
     !isRecord(kdf) ||
     !isRecord(cipher) ||
     kdf.name !== BACKUP_KDF_NAME ||
@@ -229,15 +232,11 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   }
   return {
     ...parsed,
-    header: {...header, credential: credential ?? 'password'},
+    header: {...header, credential},
   } as unknown as EncryptedBackupEnvelope;
 }
 
-function parseBackupPayload(raw: string, backupSchemaVersion: EncryptedBackupHeader['backupSchemaVersion']): {exportJson: string; attachmentFiles: AttachmentBackupFile[]} {
-  if (backupSchemaVersion === LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION) {
-    return {exportJson: raw, attachmentFiles: []};
-  }
-
+function parseBackupPayload(raw: string): {exportJson: string; attachmentFiles: AttachmentBackupFile[]} {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
