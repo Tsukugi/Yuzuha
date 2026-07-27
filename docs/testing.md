@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the local note attachment storage pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the portable encrypted attachment backup pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -225,6 +225,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Full Jest: 18 suites and 76 tests pass. Lint, strict TypeScript, bundle metadata, Android bundle generation, debug APK build, and release APK build also pass.
 - Emulator `emulator-5554`: release APK created a note, opened DocumentsUI, imported `yuzuha-attachment.txt`, showed the stored name and `3.2 KB` size, then removed the attachment and returned to the note without an attachment row.
 - Encrypted JSON backups include attachment metadata but not attachment bytes. Phone `42adce68`: release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
+
+## Portable encrypted attachment evidence
+
+- Focused Jest: 4 suites and 23 tests pass for encrypted backup, attachment payload, file adapter, and backup-file behavior, including schema 1 compatibility, schema 2 attachment bytes, checksum validation, the 32 MiB limit, staged private-file writes, and cleanup behavior.
+- Full Jest: 19 suites and 82 tests pass. Lint, strict TypeScript, bundle metadata, Android bundle generation, debug APK build, and release APK build also pass.
+- New encrypted backups read private attachment files before encryption. Restore validates the authenticated bytes before staging them; plain JSON restore with attachments is rejected.
+- Emulator `emulator-5554`: release APK saved an encrypted backup through DocumentsUI, reopened it with the password, showed an 11-record preview with 1 attachment, restored it after confirmation, and showed `yuzuha-attachment.txt` at `3.2 KB` in Notes.
+- Phone `42adce68`: release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
 
 ## Recurring money evidence
 

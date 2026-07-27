@@ -192,3 +192,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: In the local pass, allow only images, PDFs, and plain-text files. Copy each selected file into app-private document storage under a validated attachment ID, enforce 10 MiB per file and 10 attachments per note, and store the file size and SHA-256 checksum with the note ID. JSON and encrypted backups carry metadata only until an attachment bundle format is designed and tested.
 - Reason: This gives the user a deterministic local file boundary and keeps the current authenticated JSON backup format unchanged.
 - Consequence: Backup restore can recreate metadata but not attachment files yet. Portable encrypted attachment bytes, previews, synced files, and attachment search remain separate contracts.
+
+## DEC-029: Put verified attachment bytes inside encrypted backup ciphertext
+
+- Context: Local note files now have stable metadata and checksums, but a metadata-only backup cannot recreate the note's file set on another device.
+- Decision: Encrypted backup schema 2 stores each attachment's ID, byte size, SHA-256, and base64 bytes inside the authenticated ciphertext. The total attachment bytes per backup are limited to 32 MiB. Backup creation reads and verifies private files; restore validates all bytes, stages them in app-private storage, and then replaces the workspace. Schema 1 encrypted backups remain readable. Plain JSON export and restore stay metadata-only; a JSON restore with attachments is rejected.
+- Reason: The existing XChaCha20-Poly1305 envelope already authenticates its ciphertext and header. Keeping file bytes inside that boundary avoids a second unauthenticated sidecar format.
+- Consequence: Large attachment sets need a later bundle or sync contract. Attachment previews, synced files, platform backup policy, and password recovery remain separate contracts.

@@ -665,3 +665,36 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: portable encrypted attachment bytes or account/device recovery design, with remote sync kept behind the local-first boundary.
+
+## Implementation review: portable encrypted attachment backup pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- encrypted backup schema 2 payload with authenticated attachment ID, size, SHA-256, and base64 file bytes;
+- 32 MiB total attachment limit and validation of the complete attachment set;
+- private-file read verification before backup creation and staged private-file writes before encrypted restore replacement;
+- schema 1 password/recovery backup compatibility and explicit rejection of metadata-only JSON attachment restore;
+- focused regression coverage for payload validation, checksum failures, file staging, and old encrypted backup reading.
+
+Known limits:
+
+- encrypted backup attachment bytes are bounded to 32 MiB per backup;
+- previews, synced attachments, platform backup policy, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 4 suites, 23 tests
+Full Jest          PASS - 19 suites, 82 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - encrypted file saved, reopened, previewed with 1 attachment, restored, and attachment returned at 3.2 KB
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: account/device recovery design or attachment preview, with remote sync kept behind the local-first boundary.

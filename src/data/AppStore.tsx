@@ -13,6 +13,7 @@ import {
 import {localDateKey} from '../shared/period';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {deleteAttachmentFiles} from '../shared/attachmentFiles';
+import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -54,7 +55,7 @@ interface AppStoreValue {
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
   resetWorkspace: () => Promise<void>;
-  restoreWorkspace: (next: AppData) => Promise<void>;
+  restoreWorkspace: (next: AppData, attachmentStage?: AttachmentRestoreStage) => Promise<void>;
   addMoneyRecurrence: (input: MoneyRecurrenceInput) => Promise<void>;
   deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
@@ -192,9 +193,18 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     await commit(() => emptyAppData());
   }, [commit, data?.attachments]);
 
-  const restoreWorkspace = useCallback(async (next: AppData) => {
-    await deleteAttachmentFiles(data?.attachments ?? []);
-    await commit(() => next);
+  const restoreWorkspace = useCallback(async (next: AppData, attachmentStage?: AttachmentRestoreStage) => {
+    if (next.attachments.length > 0 && !attachmentStage) {
+      throw new Error('Attachment bytes are required to restore a workspace with attachments.');
+    }
+    try {
+      await deleteAttachmentFiles(data?.attachments ?? []);
+      await commit(() => next);
+      await attachmentStage?.commit();
+    } catch (error) {
+      await attachmentStage?.discard();
+      throw error;
+    }
   }, [commit, data?.attachments]);
 
   const addMoneyRecurrence = useCallback(

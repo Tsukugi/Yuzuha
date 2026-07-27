@@ -15,7 +15,7 @@ The current core includes the TypeScript app shell, a transactional SQLite repos
 
 ## Technology baseline
 
-The current encrypted backup flow can also save and open the authenticated JSON envelope through the system document picker. A local recovery-key backup flow and local note attachment storage are implemented. Backup files carry attachment metadata but not attachment bytes yet; account recovery, device enrollment, and sync remain planned.
+The current encrypted backup flow can also save and open the authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes; old schema-1 backups remain readable. Plain JSON exports still carry attachment metadata only. Account recovery, device enrollment, and sync remain planned.
 
 - React Native `0.86.0` (current implementation baseline, verified July 2026)
 - React `19.2.8`

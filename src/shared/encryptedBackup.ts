@@ -2,10 +2,13 @@ import {xchacha20poly1305} from '@noble/ciphers/chacha.js';
 import {scryptAsync} from '@noble/hashes/scrypt.js';
 import {utf8ToBytes} from '@noble/hashes/utils.js';
 import type {AppData} from '../types/domain';
+import {AttachmentBackupError, type AttachmentBackupFile, validateAttachmentBackupFiles} from './attachmentBackup';
 import {buildJsonExport} from './dataExport';
 import {parseJsonImport, type JsonImportPreview} from './dataImport';
 
-export const ENCRYPTED_BACKUP_SCHEMA_VERSION = 1 as const;
+export const ENCRYPTED_BACKUP_SCHEMA_VERSION = 2 as const;
+const LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION = 1 as const;
+const ENCRYPTED_BACKUP_PAYLOAD_VERSION = 2 as const;
 export const BACKUP_CIPHER_NAME = 'xchacha20-poly1305' as const;
 export const BACKUP_KDF_NAME = 'scrypt' as const;
 export const BACKUP_SCRYPT_N = 2 ** 15;
@@ -15,7 +18,7 @@ export const BACKUP_KEY_BYTES = 32;
 export const BACKUP_SALT_BYTES = 16;
 export const BACKUP_NONCE_BYTES = 24;
 export const BACKUP_MIN_PASSWORD_LENGTH = 12;
-export const BACKUP_MAX_PLAINTEXT_BYTES = 16 * 1024 * 1024;
+export const BACKUP_MAX_PLAINTEXT_BYTES = 64 * 1024 * 1024;
 export const RECOVERY_KEY_BYTES = 32;
 export const RECOVERY_KEY_HEX_LENGTH = RECOVERY_KEY_BYTES * 2;
 
@@ -37,7 +40,7 @@ interface EncryptedBackupCipher {
 }
 
 interface EncryptedBackupHeader {
-  backupSchemaVersion: typeof ENCRYPTED_BACKUP_SCHEMA_VERSION;
+  backupSchemaVersion: typeof LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION | typeof ENCRYPTED_BACKUP_SCHEMA_VERSION;
   appSchemaVersion: AppData['schemaVersion'];
   createdAt: string;
   credential: EncryptedBackupCredential;
@@ -56,6 +59,7 @@ export interface EncryptedBackupPreview extends JsonImportPreview {
   createdAt: string;
   encryptedBytes: number;
   credential: EncryptedBackupCredential;
+  attachmentFiles: AttachmentBackupFile[];
 }
 
 export class EncryptedBackupError extends Error {
@@ -72,8 +76,9 @@ export async function buildEncryptedBackup(
   password: string,
   createdAt: string,
   randomBytes: BackupRandomBytes = secureRandomBytes,
+  attachmentFiles: AttachmentBackupFile[] = [],
 ): Promise<string> {
-  return buildEncryptedBackupWithCredential(data, password, createdAt, 'password', randomBytes);
+  return buildEncryptedBackupWithCredential(data, password, createdAt, 'password', randomBytes, attachmentFiles);
 }
 
 export async function buildRecoveryEncryptedBackup(
@@ -81,8 +86,9 @@ export async function buildRecoveryEncryptedBackup(
   recoveryKey: string,
   createdAt: string,
   randomBytes: BackupRandomBytes = secureRandomBytes,
+  attachmentFiles: AttachmentBackupFile[] = [],
 ): Promise<string> {
-  return buildEncryptedBackupWithCredential(data, normalizeRecoveryKey(recoveryKey), createdAt, 'recovery-key', randomBytes);
+  return buildEncryptedBackupWithCredential(data, normalizeRecoveryKey(recoveryKey), createdAt, 'recovery-key', randomBytes, attachmentFiles);
 }
 
 async function buildEncryptedBackupWithCredential(
@@ -91,6 +97,7 @@ async function buildEncryptedBackupWithCredential(
   createdAt: string,
   credentialType: EncryptedBackupCredential,
   randomBytes: BackupRandomBytes,
+  attachmentFiles: AttachmentBackupFile[],
 ): Promise<string> {
   if (credentialType === 'password') {
     validatePassword(credential);
@@ -121,7 +128,21 @@ async function buildEncryptedBackupWithCredential(
     },
   };
   const headerJson = JSON.stringify(header);
-  const plaintext = utf8ToBytes(buildJsonExport(data, createdAt));
+  let plaintext: Uint8Array;
+  try {
+    validateAttachmentBackupFiles(data.attachments, attachmentFiles);
+    const exportEnvelope = JSON.parse(buildJsonExport(data, createdAt)) as unknown;
+    plaintext = utf8ToBytes(JSON.stringify({
+      payloadSchemaVersion: ENCRYPTED_BACKUP_PAYLOAD_VERSION,
+      export: exportEnvelope,
+      attachmentFiles,
+    }));
+  } catch (error) {
+    if (error instanceof AttachmentBackupError) {
+      throw new EncryptedBackupError(error.message);
+    }
+    throw new EncryptedBackupError('The encrypted backup payload could not be created.');
+  }
   if (plaintext.length > BACKUP_MAX_PLAINTEXT_BYTES) {
     throw new EncryptedBackupError('This workspace is too large for a local encrypted backup.');
   }
@@ -144,7 +165,11 @@ export async function decryptEncryptedBackup(raw: string, password: string): Pro
     const credential = envelope.header.credential === 'recovery-key' ? normalizeRecoveryKey(password) : password;
     const key = await deriveKey(credential, salt, envelope.header.kdf);
     const plaintext = xchacha20poly1305(key, nonce, utf8ToBytes(JSON.stringify(envelope.header))).decrypt(ciphertext);
-    const preview = parseJsonImport(decodeUtf8(plaintext));
+    const payload = parseBackupPayload(decodeUtf8(plaintext), envelope.header.backupSchemaVersion);
+    const preview = parseJsonImport(payload.exportJson);
+    if (envelope.header.backupSchemaVersion === ENCRYPTED_BACKUP_SCHEMA_VERSION) {
+      validateAttachmentBackupFiles(preview.data.attachments, payload.attachmentFiles);
+    }
     if (preview.data.schemaVersion !== envelope.header.appSchemaVersion) {
       throw new EncryptedBackupError('Encrypted backup metadata does not match its data.');
     }
@@ -153,10 +178,14 @@ export async function decryptEncryptedBackup(raw: string, password: string): Pro
       createdAt: envelope.header.createdAt,
       encryptedBytes: ciphertext.length,
       credential: envelope.header.credential,
+      attachmentFiles: payload.attachmentFiles,
     };
   } catch (error) {
     if (error instanceof EncryptedBackupError) {
       throw error;
+    }
+    if (error instanceof AttachmentBackupError) {
+      throw new EncryptedBackupError(error.message);
     }
     throw new EncryptedBackupError('The password is wrong or the encrypted backup is damaged.');
   }
@@ -177,7 +206,7 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
   const cipher = header.cipher;
   const credential = header.credential;
   if (
-    header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION ||
+    (header.backupSchemaVersion !== LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION && header.backupSchemaVersion !== ENCRYPTED_BACKUP_SCHEMA_VERSION) ||
     typeof header.appSchemaVersion !== 'number' ||
     !Number.isInteger(header.appSchemaVersion) ||
     header.appSchemaVersion < 1 ||
@@ -202,6 +231,26 @@ function parseEnvelope(raw: string): EncryptedBackupEnvelope {
     ...parsed,
     header: {...header, credential: credential ?? 'password'},
   } as unknown as EncryptedBackupEnvelope;
+}
+
+function parseBackupPayload(raw: string, backupSchemaVersion: EncryptedBackupHeader['backupSchemaVersion']): {exportJson: string; attachmentFiles: AttachmentBackupFile[]} {
+  if (backupSchemaVersion === LEGACY_ENCRYPTED_BACKUP_SCHEMA_VERSION) {
+    return {exportJson: raw, attachmentFiles: []};
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new EncryptedBackupError('Encrypted backup payload is not valid JSON.');
+  }
+  if (!isRecord(parsed) || parsed.payloadSchemaVersion !== ENCRYPTED_BACKUP_PAYLOAD_VERSION || !isRecord(parsed.export) || !Array.isArray(parsed.attachmentFiles)) {
+    throw new EncryptedBackupError('Encrypted backup payload version is not supported.');
+  }
+  return {
+    exportJson: JSON.stringify(parsed.export),
+    attachmentFiles: parsed.attachmentFiles as AttachmentBackupFile[],
+  };
 }
 
 async function deriveKey(password: string, salt: Uint8Array, kdf: EncryptedBackupKdf): Promise<Uint8Array> {

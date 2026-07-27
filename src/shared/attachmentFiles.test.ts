@@ -8,6 +8,8 @@ import {
   deleteAttachmentFile,
   deleteAttachmentFiles,
   importAttachmentFile,
+  readAttachmentBackupFiles,
+  stageAttachmentBackupFiles,
 } from './attachmentFiles';
 import {ATTACHMENT_MAX_BYTES} from './attachment';
 
@@ -25,8 +27,11 @@ jest.mock('react-native-file-access', () => ({
     exists: jest.fn(),
     hash: jest.fn(),
     mkdir: jest.fn(),
+    mv: jest.fn(),
+    readFile: jest.fn(),
     stat: jest.fn(),
     unlink: jest.fn(),
+    writeFile: jest.fn(),
   },
 }));
 
@@ -37,8 +42,11 @@ const fileSystemMock = FileSystem as unknown as {
   exists: jest.Mock;
   hash: jest.Mock;
   mkdir: jest.Mock;
+  mv: jest.Mock;
+  readFile: jest.Mock;
   stat: jest.Mock;
   unlink: jest.Mock;
+  writeFile: jest.Mock;
 };
 
 describe('attachment files', () => {
@@ -145,5 +153,56 @@ describe('attachment files', () => {
       ['/documents/attachments/attachment_1'],
       ['/documents/attachments/attachment_2'],
     ]);
+  });
+
+  it('reads a local attachment and verifies it before backup', async () => {
+    const attachment = {
+      id: 'attachment_1',
+      noteId: 'note_1',
+      name: 'hello.txt',
+      mimeType: 'text/plain',
+      byteSize: 12,
+      sha256: '7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9',
+      createdAt: '2026-07-27T12:00:00.000Z',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    };
+    fileSystemMock.stat.mockResolvedValue({type: 'file', size: 12});
+    fileSystemMock.hash.mockResolvedValue(attachment.sha256);
+    fileSystemMock.readFile.mockResolvedValue('aGVsbG8gd29ybGQh');
+
+    await expect(readAttachmentBackupFiles([attachment])).resolves.toEqual([{
+      id: attachment.id,
+      byteSize: attachment.byteSize,
+      sha256: attachment.sha256,
+      base64: 'aGVsbG8gd29ybGQh',
+    }]);
+    expect(fileSystemMock.readFile).toHaveBeenCalledWith('/documents/attachments/attachment_1', 'base64');
+  });
+
+  it('stages verified attachment bytes and commits them to private storage', async () => {
+    const attachment = {
+      id: 'attachment_1',
+      noteId: 'note_1',
+      name: 'hello.txt',
+      mimeType: 'text/plain',
+      byteSize: 12,
+      sha256: '7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9',
+      createdAt: '2026-07-27T12:00:00.000Z',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    };
+    fileSystemMock.exists.mockResolvedValue(false);
+    fileSystemMock.stat.mockResolvedValue({type: 'file', size: 12});
+    fileSystemMock.hash.mockResolvedValue(attachment.sha256);
+
+    const stage = await stageAttachmentBackupFiles([attachment], [{
+      id: attachment.id,
+      byteSize: attachment.byteSize,
+      sha256: attachment.sha256,
+      base64: 'aGVsbG8gd29ybGQh',
+    }]);
+    await stage.commit();
+
+    expect(fileSystemMock.writeFile).toHaveBeenCalledWith('/documents/attachments/attachment_1.restore', 'aGVsbG8gd29ybGQh', 'base64');
+    expect(fileSystemMock.mv).toHaveBeenCalledWith('/documents/attachments/attachment_1.restore', '/documents/attachments/attachment_1');
   });
 });

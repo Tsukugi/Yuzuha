@@ -7,6 +7,12 @@ import {
   ATTACHMENT_PICKER_TYPES,
   isSupportedAttachmentMimeType,
 } from './attachment';
+import {
+  AttachmentBackupError,
+  type AttachmentBackupFile,
+  type AttachmentRestoreStage,
+  validateAttachmentBackupFiles,
+} from './attachmentBackup';
 
 export const ATTACHMENT_DIRECTORY_NAME = 'attachments';
 
@@ -109,6 +115,90 @@ export async function deleteAttachmentFiles(attachments: Attachment[]): Promise<
   }
 }
 
+export async function readAttachmentBackupFiles(attachments: Attachment[]): Promise<AttachmentBackupFile[]> {
+  const files: AttachmentBackupFile[] = [];
+  try {
+    for (const attachment of attachments) {
+      const path = attachmentFilePath(attachment.id);
+      const stat = await FileSystem.stat(path);
+      if (stat.type !== 'file' || stat.size !== attachment.byteSize) {
+        throw new AttachmentBackupError(`Attachment ${attachment.id} is missing or has the wrong size.`);
+      }
+      const sha256 = (await FileSystem.hash(path, 'SHA-256')).toLowerCase();
+      if (sha256 !== attachment.sha256) {
+        throw new AttachmentBackupError(`Attachment ${attachment.id} failed its checksum check.`);
+      }
+      files.push({
+        id: attachment.id,
+        byteSize: attachment.byteSize,
+        sha256: attachment.sha256,
+        base64: await FileSystem.readFile(path, 'base64'),
+      });
+    }
+    validateAttachmentBackupFiles(attachments, files);
+    return files;
+  } catch (error) {
+    if (error instanceof AttachmentBackupError) {
+      throw error;
+    }
+    throw new AttachmentBackupError('The local attachment files could not be read for backup.');
+  }
+}
+
+export async function stageAttachmentBackupFiles(attachments: Attachment[], files: AttachmentBackupFile[]): Promise<AttachmentRestoreStage> {
+  validateAttachmentBackupFiles(attachments, files);
+  const stagedPaths = files.map(file => attachmentRestorePath(file.id));
+  let committed = false;
+
+  try {
+    await ensureAttachmentDirectory();
+    for (const file of files) {
+      const stagedPath = attachmentRestorePath(file.id);
+      if (await FileSystem.exists(stagedPath)) {
+        await FileSystem.unlink(stagedPath);
+      }
+      await FileSystem.writeFile(stagedPath, file.base64, 'base64');
+      const stat = await FileSystem.stat(stagedPath);
+      const sha256 = (await FileSystem.hash(stagedPath, 'SHA-256')).toLowerCase();
+      if (stat.type !== 'file' || stat.size !== file.byteSize || sha256 !== file.sha256) {
+        throw new AttachmentBackupError(`Attachment ${file.id} failed verification during restore.`);
+      }
+    }
+
+    return {
+      commit: async () => {
+        if (committed) {
+          return;
+        }
+        try {
+          for (const file of files) {
+            const targetPath = attachmentFilePath(file.id);
+            if (await FileSystem.exists(targetPath)) {
+              await FileSystem.unlink(targetPath);
+            }
+            await FileSystem.mv(attachmentRestorePath(file.id), targetPath);
+          }
+          committed = true;
+        } catch (error) {
+          await cleanupAttachmentRestoreFiles(stagedPaths);
+          throw error;
+        }
+      },
+      discard: async () => {
+        if (!committed) {
+          await cleanupAttachmentRestoreFiles(stagedPaths);
+        }
+      },
+    };
+  } catch (error) {
+    await cleanupAttachmentRestoreFiles(stagedPaths);
+    if (error instanceof AttachmentBackupError) {
+      throw error;
+    }
+    throw new AttachmentBackupError('The attachment files could not be prepared for restore.');
+  }
+}
+
 async function selectAttachmentFile() {
   let pickedFiles;
   try {
@@ -136,5 +226,17 @@ async function ensureAttachmentDirectory(): Promise<void> {
   const directory = `${Dirs.DocumentDir}/${ATTACHMENT_DIRECTORY_NAME}`;
   if (!(await FileSystem.exists(directory))) {
     await FileSystem.mkdir(directory);
+  }
+}
+
+function attachmentRestorePath(attachmentId: string): string {
+  return `${attachmentFilePath(attachmentId)}.restore`;
+}
+
+async function cleanupAttachmentRestoreFiles(paths: string[]): Promise<void> {
+  for (const path of paths) {
+    if (await FileSystem.exists(path)) {
+      await FileSystem.unlink(path);
+    }
   }
 }

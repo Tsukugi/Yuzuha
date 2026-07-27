@@ -37,6 +37,7 @@ import {
   saveRecoveryEncryptedBackupFile,
   saveEncryptedBackupFile,
 } from '../shared/encryptedBackupFile';
+import {readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile} from '../shared/attachmentFiles';
@@ -235,7 +236,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     setError(null);
     setBackupBusy(true);
     try {
-      const backup = await buildEncryptedBackup(data, backupPassword, new Date().toISOString());
+      const attachmentFiles = await readAttachmentBackupFiles(data.attachments);
+      const backup = await buildEncryptedBackup(data, backupPassword, new Date().toISOString(), undefined, attachmentFiles);
       await Share.share({
         title: 'Yuzuha encrypted backup',
         message: backup,
@@ -253,7 +255,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     setError(null);
     setBackupBusy(true);
     try {
-      const savedFile = await saveEncryptedBackupFile(data, backupPassword, new Date().toISOString());
+      const attachmentFiles = await readAttachmentBackupFiles(data.attachments);
+      const savedFile = await saveEncryptedBackupFile(data, backupPassword, new Date().toISOString(), attachmentFiles);
       setStatus(`Encrypted backup saved as ${savedFile.name}. The password is not stored on this device.`);
     } catch (backupError) {
       if (!(backupError instanceof EncryptedBackupFileCanceled)) {
@@ -286,7 +289,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
     }
     setBackupBusy(true);
     try {
-      const savedFile = await saveRecoveryEncryptedBackupFile(data, confirmedKey, new Date().toISOString());
+      const attachmentFiles = await readAttachmentBackupFiles(data.attachments);
+      const savedFile = await saveRecoveryEncryptedBackupFile(data, confirmedKey, new Date().toISOString(), attachmentFiles);
       setStatus(`Recovery-key backup saved as ${savedFile.name}. The recovery key is not stored on this device.`);
     } catch (backupError) {
       if (!(backupError instanceof EncryptedBackupFileCanceled)) {
@@ -407,7 +411,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           text: 'Restore',
           style: 'destructive',
           onPress: () => {
-            void restoreWorkspace(backupPreview.data)
+            void restoreEncryptedWorkspace(backupPreview)
               .then(() => {
                 setError(null);
                 setStatus('Workspace restored from the validated encrypted backup.');
@@ -423,6 +427,11 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         },
       ],
     );
+  }
+
+  async function restoreEncryptedWorkspace(preview: EncryptedBackupPreview) {
+    const attachmentStage = await stageAttachmentBackupFiles(preview.data.attachments, preview.attachmentFiles);
+    await restoreWorkspace(preview.data, attachmentStage);
   }
 
   return (

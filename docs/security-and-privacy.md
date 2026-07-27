@@ -24,6 +24,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Local encrypted backups use audited Noble XChaCha20-Poly1305 and scrypt implementations, secure random salt/nonce values, authenticated metadata, and a password that is never stored by Yuzuha.
 - Recovery-key backups use 32 secure random bytes, require in-session re-entry confirmation, and never store the recovery key on the device.
 - File backup save uses an app-cache temporary file and deletes it after the system picker operation. Opened document content remains encrypted until authenticated decryption and validation succeed; file names and provider metadata are not treated as secret storage.
+- Encrypted backup schema 2 keeps attachment IDs, sizes, checksums, and bytes inside authenticated ciphertext. Backup creation verifies private files before encryption, and restore verifies the decoded bytes before staging them. Plain JSON exports do not contain attachment bytes.
 
 ## Android Usage Access
 

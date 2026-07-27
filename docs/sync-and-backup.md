@@ -1,6 +1,6 @@
 # Sync and backup
 
-Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage is implemented. Encrypted attachment byte bundling, account sync, device enrollment, and remote backup remain planned.
+Status: Local password-encrypted and recovery-key backup/restore are implemented for text and document files. Local note attachment storage and portable encrypted attachment bytes are implemented. Account sync, device enrollment, and remote backup remain planned.
 
 ## Goals
 
@@ -73,7 +73,7 @@ The outbox is encrypted at rest and bounded. When full, the app stops adding new
 
 ### Export backup
 
-The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace and attachment metadata. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. Attachment bytes are not included yet. The password is not stored and the backup is never uploaded automatically. The saved file is a portable JSON envelope with the same authenticated header and ciphertext as the text flow.
+The user can create a password-encrypted Yuzuha backup containing the current versioned JSON workspace and verified attachment bytes. New backups use encrypted backup schema 2 and carry attachment ID, size, checksum, and base64 bytes inside the authenticated ciphertext. The total attachment bytes per backup are limited to 32 MiB. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. The password is not stored and the backup is never uploaded automatically. Schema 1 password and recovery-key files remain readable. Plain JSON exports remain metadata-only.
 
 ### Local recovery-key backup
 
@@ -85,7 +85,7 @@ Android and iOS backup behavior is platform-specific. The app must state whether
 
 ### Restore flow
 
-Encrypted restore can use pasted text or a selected JSON file. It derives the key from the entered password, authenticates and decrypts the complete export, runs the existing migration and integrity checks, previews record counts, and commits only after confirmation. If the picker is canceled, the app keeps the current screen; if authentication, validation, or commit fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
+Encrypted restore can use pasted text or a selected JSON file. It derives the key from the entered password, authenticates and decrypts the complete export and attachment bytes, validates every attachment against its stored size and SHA-256 checksum, stages private files, previews record counts, and commits only after confirmation. A plain JSON restore containing attachments is rejected because it has no file bytes. If the picker is canceled, the app keeps the current screen; if authentication, validation, or staging fails, the existing workspace remains unchanged. Restored records retain their stable IDs; duplicate IDs are rejected by the current JSON validation contract.
 
 ## API surface
 

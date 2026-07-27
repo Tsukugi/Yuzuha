@@ -283,7 +283,7 @@ Implemented and verified:
 - the user can decrypt a backup with the password, preview its creation date and record counts, and confirm replacement only after validation;
 - wrong passwords, tampering, weak passwords, unsupported parameters, and plaintext leakage are covered by tests.
 
-Not yet complete: attachment bytes in encrypted backups, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: platform backup policy, remote encrypted sync, and password recovery.
 
 ## Encrypted backup file portability review
 
@@ -294,7 +294,7 @@ Implemented and verified:
 - temporary app-cache files are removed after a successful or failed save operation, and a canceled picker leaves the workspace unchanged;
 - file operations preserve the existing password, crypto, and restore validation rules.
 
-Not yet complete: attachment bytes in encrypted backups, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: platform backup policy, remote encrypted sync, and password recovery.
 
 ## Recurring policy implementation review
 
@@ -318,7 +318,7 @@ Implemented and verified:
 - restore accepts the grouped or ungrouped key, normalizes it from the authenticated envelope marker, and previews the same validated workspace records;
 - malformed recovery keys, wrong keys, and tampered envelopes fail before any workspace write.
 
-Not yet complete: account recovery, device enrollment, encrypted attachment bytes, platform backup policy, remote encrypted sync, and password recovery.
+Not yet complete: account recovery, device enrollment, platform backup policy, remote encrypted sync, and password recovery.
 
 ## Local note attachment implementation review
 
@@ -329,4 +329,15 @@ Implemented and verified:
 - attachment metadata is stored in SQLite-backed app records, included in JSON/encrypted-backup metadata, and validated against its parent note on restore;
 - Notes shows file names and sizes and removes the private file before removing the metadata.
 
-Not yet complete: portable encrypted attachment bytes, synced attachments, previews, and attachment search.
+Not yet complete: synced attachments, previews, and attachment search.
+
+## Portable encrypted attachment implementation review
+
+Implemented and verified:
+
+- new encrypted backup schema 2 payloads include every note attachment's ID, size, checksum, and base64 file bytes inside authenticated ciphertext;
+- backup creation reads each private file and rejects missing, changed, over-limit, or checksum-invalid files before sharing or saving;
+- restore validates the complete attachment set, stages private files, and only then replaces the workspace after user confirmation;
+- schema 1 password and recovery-key backups remain readable, while plain JSON restore rejects attachments because it has no file bytes.
+
+Not yet complete: platform backup policy, synced attachments, previews, remote encrypted sync, and password recovery.

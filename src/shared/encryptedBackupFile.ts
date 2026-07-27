@@ -1,11 +1,13 @@
 import {errorCodes, isErrorWithCode, keepLocalCopy, pick, saveDocuments} from '@react-native-documents/picker';
 import {Dirs, FileSystem} from 'react-native-file-access';
 import type {AppData} from '../types/domain';
+import type {AttachmentBackupFile} from './attachmentBackup';
 import {
   buildEncryptedBackup,
   buildRecoveryEncryptedBackup,
   decryptEncryptedBackup,
   EncryptedBackupError,
+  type BackupRandomBytes,
   type EncryptedBackupPreview,
 } from './encryptedBackup';
 
@@ -35,20 +37,21 @@ export class EncryptedBackupFileCanceled extends EncryptedBackupFileError {
   }
 }
 
-export async function saveEncryptedBackupFile(data: AppData, password: string, createdAt: string): Promise<EncryptedBackupFileResult> {
-  return saveEncryptedBackupFileWithBuilder(data, password, createdAt, buildBackupFileName, buildEncryptedBackup);
+export async function saveEncryptedBackupFile(data: AppData, password: string, createdAt: string, attachmentFiles: AttachmentBackupFile[] = []): Promise<EncryptedBackupFileResult> {
+  return saveEncryptedBackupFileWithBuilder(data, password, createdAt, attachmentFiles, buildBackupFileName, buildEncryptedBackup);
 }
 
-export async function saveRecoveryEncryptedBackupFile(data: AppData, recoveryKey: string, createdAt: string): Promise<EncryptedBackupFileResult> {
-  return saveEncryptedBackupFileWithBuilder(data, recoveryKey, createdAt, buildRecoveryBackupFileName, buildRecoveryEncryptedBackup);
+export async function saveRecoveryEncryptedBackupFile(data: AppData, recoveryKey: string, createdAt: string, attachmentFiles: AttachmentBackupFile[] = []): Promise<EncryptedBackupFileResult> {
+  return saveEncryptedBackupFileWithBuilder(data, recoveryKey, createdAt, attachmentFiles, buildRecoveryBackupFileName, buildRecoveryEncryptedBackup);
 }
 
 async function saveEncryptedBackupFileWithBuilder(
   data: AppData,
   credential: string,
   createdAt: string,
+  attachmentFiles: AttachmentBackupFile[],
   fileNameBuilder: (createdAt: string) => string,
-  buildBackup: (data: AppData, credential: string, createdAt: string) => Promise<string>,
+  buildBackup: (data: AppData, credential: string, createdAt: string, randomBytes?: BackupRandomBytes, attachmentFiles?: AttachmentBackupFile[]) => Promise<string>,
 ): Promise<EncryptedBackupFileResult> {
   const fileName = fileNameBuilder(createdAt);
   const temporaryPath = `${Dirs.CacheDir}/${fileName}`;
@@ -56,7 +59,7 @@ async function saveEncryptedBackupFileWithBuilder(
   let temporaryFileCreated = false;
 
   try {
-    const backup = await buildBackup(data, credential, createdAt);
+    const backup = await buildBackup(data, credential, createdAt, undefined, attachmentFiles);
     await FileSystem.writeFile(temporaryPath, backup, 'utf8');
     temporaryFileCreated = true;
     const savedFiles = await saveDocuments({

@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 10 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, local note attachment metadata/files, and validated JSON restore are live; encrypted attachment bundling, normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 10 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -118,7 +118,7 @@ The implementation must choose one source-of-truth rule for `included` before co
 | `sha256` | lowercase hex | 64-character checksum of the stored file. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. The current backup JSON contains attachment metadata only; portable encrypted attachment bytes are a later pass.
+Attachment bytes are stored in app-private document storage under a path derived from the attachment ID. A note can have at most 10 attachments. Plain JSON exports contain attachment metadata only. New encrypted backup schema 2 payloads include verified attachment bytes, with a 32 MiB total attachment limit.
 
 ### Task
 
@@ -163,7 +163,7 @@ Small settings may live in AsyncStorage or a settings table:
 
 ## Current local storage
 
-The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 10 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 9 is migrated into app schema 10 without dropping records and remains the legacy import source for first open. Schema 9 data receives an empty attachment collection. Old SQLite recurrence rows without a policy are read as `all`. JSON restore accepts export schema 1, migrates supported app schemas, validates record IDs, references, timestamps, currencies, attachment type/size/checksum rules, split totals, recurrence dates, and missed-occurrence policies, then replaces all app collections in one repository save after confirmation.
+The current product data uses `SqliteWorkspaceStore` and the native `@op-engineering/op-sqlite` 17.1.2 bridge. App data is schema 10 and the SQLite repository is schema 2. Accounts, categories, notes, attachments, tasks, usage snapshots, time goals, exclusions, and recurrence rules remain typed JSON rows in `app_records`; money entries, transfers, split parents/lines, and budgets use normalized tables with typed columns. Repository schema 1 is migrated in one transaction by decoding its old financial rows, writing the normalized tables, and removing the old financial rows. AsyncStorage schema 1 through 9 is migrated into app schema 10 without dropping records and remains the legacy import source for first open. Schema 9 data receives an empty attachment collection. Old SQLite recurrence rows without a policy are read as `all`. JSON restore accepts export schema 1, migrates supported app schemas, validates record IDs, references, timestamps, currencies, attachment type/size/checksum rules, split totals, recurrence dates, and missed-occurrence policies, then replaces all app collections in one repository save after confirmation; a JSON restore containing attachments is rejected because JSON has no attachment bytes. Encrypted backup schema 2 restores its validated attachment files through a staged private-file boundary.
 
 ## Export and deletion
 
