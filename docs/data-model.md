@@ -2,7 +2,7 @@
 
 The Android summary widget is a live non-database projection over the current task and note collections. It adds no app or repository schema field.
 
-Current schema boundary: app schema 32 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. `lastMoneyCsvImport` stores only the latest money CSV receipt with its source, import time, and imported entry timestamps. `noteLinks` stores stable note-to-task/project/money/focus-session links. Older schemas are rejected without migration.
+Current schema boundary: app schema 32 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. `lastMoneyCsvImport` stores only the latest money CSV receipt with its source, import time, and imported entry timestamps. `noteLinks` stores stable note-to-task/project/money/focus-session links. Global Search derives linked-target search fields in memory and stores no index. Older schemas are rejected without migration.
 
 The detailed status paragraph below retains earlier schema numbers as historical implementation notes. The current data boundary above is authoritative.
 
@@ -174,7 +174,7 @@ Attachment bytes are stored in app-private document storage under a path derived
 
 Saved searches are local records. JSON exports and encrypted backups include them. Synced indexes and synced saved-search state remain planned.
 
-Global search is a derived view over `AppData` and adds no entity or migration. It searches record fields already stored locally; archived visibility and Usage Access are query-time rules.
+Global search is a derived view over `AppData` and adds no entity or migration. It searches record fields already stored locally, adds current linked target fields to the owning note result, and shows a readable link label. Archived visibility, deleted-target handling, and Usage Access are query-time rules; no search index is stored.
 
 App Time period reports are also derived views over local usage snapshots. The selected Day/Week/Month range is split into local calendar days for reading, then filtered by the same local-date keys for display. Existing usage-read metadata stores the selected range and source read time; changing the report selector does not add a record or migration.
 

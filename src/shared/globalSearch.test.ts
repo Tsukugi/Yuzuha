@@ -178,4 +178,90 @@ describe('global search', () => {
     expect(searchGlobal(data, 'review').filter(result => result.kind === 'task-template').map(result => result.id)).toEqual(['template_active']);
     expect(searchGlobal(data, 'review', {includeArchived: true}).filter(result => result.kind === 'task-template').map(result => result.id)).toEqual(['template_archived', 'template_active']);
   });
+
+  it('searches a note through an active linked target and explains the link', () => {
+    const data = emptyAppData();
+    data.notes.push({
+      id: 'note_linked',
+      title: 'Meeting notes',
+      body: 'Decisions from the meeting.',
+      tags: [],
+      isPinned: false,
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
+    data.tasks.push({
+      id: 'task_linked',
+      title: 'Launch checklist',
+      details: 'Confirm the release steps.',
+      status: 'open',
+      dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
+      parentTaskId: null,
+      sortOrder: 0,
+      projectId: null,
+      sourceNoteId: null,
+      recurrenceRuleId: null,
+      reminderAtMillis: null,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
+    data.noteLinks.push({
+      id: 'note_link_1',
+      noteId: 'note_linked',
+      targetType: 'task',
+      targetId: 'task_linked',
+      createdAt: '2026-07-27T00:00:00.000Z',
+    });
+
+    const noteResult = searchGlobal(data, 'launch checklist').find(result => result.kind === 'note');
+    expect(noteResult).toMatchObject({id: 'note_linked', title: 'Meeting notes'});
+    expect(noteResult?.detail).toContain('Linked task: Launch checklist');
+  });
+
+  it('hides archived linked target text by default and keeps deleted links explicit', () => {
+    const data = emptyAppData();
+    data.notes.push({
+      id: 'note_links',
+      title: 'Reference note',
+      body: '',
+      tags: [],
+      isPinned: false,
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
+    data.projects.push({
+      id: 'project_archived',
+      name: 'Hidden plan',
+      status: 'active',
+      isArchived: true,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
+    data.noteLinks.push(
+      {
+        id: 'note_link_archived',
+        noteId: 'note_links',
+        targetType: 'project',
+        targetId: 'project_archived',
+        createdAt: '2026-07-27T00:00:00.000Z',
+      },
+      {
+        id: 'note_link_deleted',
+        noteId: 'note_links',
+        targetType: 'task',
+        targetId: 'task_deleted',
+        createdAt: '2026-07-27T00:00:00.000Z',
+      },
+    );
+
+    expect(searchGlobal(data, 'hidden plan').some(result => result.kind === 'note')).toBe(false);
+    const archivedNote = searchGlobal(data, 'hidden plan', {includeArchived: true}).find(result => result.kind === 'note');
+    expect(archivedNote?.detail).toContain('Linked project: Hidden plan');
+    expect(searchGlobal(data, 'deleted task').some(result => result.kind === 'note')).toBe(false);
+    expect(searchGlobal(data, 'task').find(result => result.kind === 'note')?.detail).toContain('Linked task: Deleted task');
+  });
 });

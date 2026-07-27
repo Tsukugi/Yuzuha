@@ -552,4 +552,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Context: Notes already create tasks and focus sessions can point back to notes, but the user cannot keep explicit relationships from a note to the other local records. Copying target content into notes would create a second source of truth.
 - Decision: Add `AppData.noteLinks` with one record per note/target pair. Allow target types `task`, `project`, `money`, and `focus-session`. Require both note and target to exist when creating a link, reject duplicates, remove links when their note is deleted, and keep a link after target deletion so the UI can show a deterministic deleted-target label. Persist links as typed SQLite `app_records` and current JSON/encrypted-backup data.
 - Reason: Stable IDs keep links small, local, and cheap to validate. Keeping deleted-target links preserves the user's relationship history without copying sensitive content or inventing tombstones/sync state.
-- Consequence: The current app schema becomes 32. Older app, backup, CSV, and SQLite versions remain rejected. Global-search indexing, link ordering, cross-device merge, and restoring deleted targets remain future contracts.
+- Consequence: The current app schema becomes 32. Older app, backup, CSV, and SQLite versions remain rejected. A persistent or synced search index, link ordering, cross-device merge, and restoring deleted targets remain future contracts.
+
+## DEC-080: Search linked targets through their owning note
+
+- Status: Accepted.
+- Context: Note links are now local stable-ID records, but Global Search could find the target record without finding the note that references it. A separate search index would add storage and invalidation work for a small local dataset.
+- Decision: Keep Global Search as an in-memory projection. Add searchable fields from current linked tasks, projects, money entries, and focus sessions to the owning note result, and append a readable `Linked ...` label to that result. Archived project fields are included only when archived results are enabled. Missing target content is not searchable, while the deleted-target label remains visible when the note itself matches.
+- Reason: This keeps one source of truth, makes the relationship discoverable, respects current archive/delete rules, and adds no schema, worker, network request, or background process.
+- Consequence: Search remains local to loaded AppData. It has no persistent index, cross-device merge, synced search, or target restoration behavior.

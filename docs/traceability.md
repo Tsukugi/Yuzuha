@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android local note-link pass.
+Status: Traceability baseline through the Android linked-target-search pass.
 
 ## Authoritative source by concern
 
@@ -52,6 +52,8 @@ Current week-start evidence: `CORE-04` and `TASK-08` map to `AppData.weekStartsO
 Current money CSV undo evidence: `INT-02` maps to `MoneyCsvImportReceipt`, `AppStore.importMoneyEntries`, `AppStore.undoMoneyCsvImport`, `DataToolsScreen`, JSON/encrypted-backup/SQLite persistence, `src/shared/moneyCsvImportReceipt.test.ts`, AppStore and SQLite regression tests, and the 2026-07-27 money CSV undo release note. Undo is allowed only for the latest unchanged batch; missing or edited rows block it without a write.
 
 Current note-link evidence: `NOTE-05` maps to `NoteLink`, `noteLinks.ts`, `NotesScreen`, AppStore add/remove actions, SQLite `app_records`, JSON/encrypted-backup validation, `src/shared/noteLinks.test.ts`, AppStore/SQLite/restore/backup tests, and the 2026-07-27 note-link release note. New links require current targets, duplicate links are rejected, and deleted targets remain visible as deterministic deleted-target labels.
+
+Current linked-search evidence: `CROSS-02` maps to `searchGlobal`, `GlobalSearchScreen`, linked-target search helpers, `src/shared/globalSearch.test.ts`, and the 2026-07-28 linked-target-search release note. Active linked target fields can match the owning note, note details explain the relationship, archived project fields require the archived-results option, and deleted target content is excluded without adding a persistent index or background work.
 
 ## Open decision register
 

@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android local note-link pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android linked-target-search pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 50 Jest suites and 218 tests. Note-link validation, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 50 Jest suites and 220 tests. Note-link validation, linked-target search rules, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 32 data directly; old local database files and missing current metadata, including the latest-import receipt and note links, are rejected by repository validation.
 
 ## Money filter evidence
@@ -28,6 +28,7 @@ Status: Current test strategy through the Android local note-link pass. Unit tes
 - AppStore tests cover add/remove behavior and keep a link readable after its target task is deleted.
 - SQLite round-trip, malformed-record rejection, JSON restore, and encrypted-backup tests cover the current `noteLinks` collection.
 - Emulator smoke verifies the Notes link editor, target search, saved linked-record label, and deleted-target label. Phone smoke verifies clean startup with no filtered app errors.
+- Global-search tests verify active linked-target matching, readable note-result labels, archived-project gating, and exclusion of deleted target content from search.
 
 ## Week-start preference evidence
 

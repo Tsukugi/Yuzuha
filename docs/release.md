@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android linked-target-search pass:
+
+- Global Search now finds an active note through searchable fields on its linked task, project, money entry, or focus session;
+- note results include readable `Linked ...` labels, archived project target text stays behind the archived-results control, and deleted target content is not searched;
+- the search remains an in-memory projection over loaded AppData with no schema, persistent index, permission, network request, worker, or background process;
+- focused global-search tests, full Jest (50 suites, 220 tests), lint, typecheck, bundle validation, and the Java 17 / two-worker Android release build passed;
+- emulator smoke searched `LinkTask` and showed both the task and linked `LinkNote` with `Linked task: LinkTask`; phone cold-start smoke showed no filtered app errors; both devices were force-stopped and no Yuzuha/Gradle/Java/Node process remained.
+
 2026-07-27 Android local note-link pass:
 
 - Notes can link to tasks, projects, money entries, and focus sessions with stable local IDs;

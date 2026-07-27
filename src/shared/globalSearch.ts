@@ -1,4 +1,4 @@
-import type {AppData} from '../types/domain';
+import type {AppData, NoteLink, NoteLinkTargetType} from '../types/domain';
 
 export type GlobalSearchKind =
   | 'app-group'
@@ -76,6 +76,86 @@ function sortResults(results: Array<{result: GlobalSearchResult; order: number}>
     .map(item => item.result);
 }
 
+function noteLinkTypeLabel(type: NoteLinkTargetType): string {
+  switch (type) {
+    case 'task':
+      return 'task';
+    case 'project':
+      return 'project';
+    case 'money':
+      return 'money';
+    case 'focus-session':
+      return 'focus session';
+  }
+}
+
+function noteLinkSearchInfo(
+  link: NoteLink,
+  maps: {
+    accountNames: Map<string, string>;
+    categoryNames: Map<string, string>;
+    payeeNames: Map<string, string>;
+    tasks: Map<string, AppData['tasks'][number]>;
+    projects: Map<string, AppData['projects'][number]>;
+    money: Map<string, AppData['money'][number]>;
+    focusSessions: Map<string, AppData['focusSessions'][number]>;
+    taskTitles: Map<string, string>;
+    projectNames: Map<string, string>;
+    noteTitles: Map<string, string>;
+    appGroupNames: Map<string, string>;
+  },
+  includeArchived: boolean,
+): {label: string; searchValues: Array<string | number | null | undefined>} {
+  const typeLabel = noteLinkTypeLabel(link.targetType);
+  switch (link.targetType) {
+    case 'task': {
+      const task = maps.tasks.get(link.targetId);
+      return task
+        ? {label: `Linked ${typeLabel}: ${task.title}`, searchValues: [typeLabel, task.title, task.details, task.status, task.dueLocalDate]}
+        : {label: `Linked ${typeLabel}: Deleted task`, searchValues: [typeLabel]};
+    }
+    case 'project': {
+      const project = maps.projects.get(link.targetId);
+      if (!project) {
+        return {label: `Linked ${typeLabel}: Deleted project`, searchValues: [typeLabel]};
+      }
+      return {
+        label: `Linked ${typeLabel}: ${project.name}`,
+        searchValues: isVisible(project.isArchived, includeArchived) ? [typeLabel, project.name, project.status] : [typeLabel],
+      };
+    }
+    case 'money': {
+      const entry = maps.money.get(link.targetId);
+      if (!entry) {
+        return {label: `Linked ${typeLabel}: Deleted entry`, searchValues: [typeLabel]};
+      }
+      const accountName = entry.accountId ? maps.accountNames.get(entry.accountId) : undefined;
+      const categoryName = entry.categoryId ? maps.categoryNames.get(entry.categoryId) : entry.category;
+      const payeeName = entry.payeeId ? maps.payeeNames.get(entry.payeeId) : undefined;
+      const title = `${entry.kind === 'expense' ? 'Expense' : 'Income'} · ${categoryName ?? 'Uncategorized'}${payeeName ? ` · ${payeeName}` : ''}`;
+      return {
+        label: `Linked ${typeLabel}: ${title}`,
+        searchValues: [typeLabel, entry.kind, entry.amountMinor, entry.currency, categoryName, accountName, payeeName, entry.note, entry.occurredAt],
+      };
+    }
+    case 'focus-session': {
+      const session = maps.focusSessions.get(link.targetId);
+      if (!session) {
+        return {label: `Linked ${typeLabel}: Deleted focus session`, searchValues: [typeLabel]};
+      }
+      const taskTitle = session.taskId ? maps.taskTitles.get(session.taskId) ?? 'Deleted task' : null;
+      const projectName = session.projectId ? maps.projectNames.get(session.projectId) ?? 'Deleted project' : null;
+      const noteTitle = session.noteId ? maps.noteTitles.get(session.noteId) ?? 'Deleted note' : null;
+      const appGroupName = session.appGroupId ? maps.appGroupNames.get(session.appGroupId) ?? 'Deleted app group' : null;
+      const date = session.startedAt.slice(0, 10);
+      return {
+        label: `Linked ${typeLabel}: ${date}`,
+        searchValues: [typeLabel, session.status, session.stopReason, session.startedAt, session.endedAt, taskTitle, projectName, noteTitle, appGroupName],
+      };
+    }
+  }
+}
+
 export function searchGlobal(data: AppData, query: string, options: GlobalSearchOptions = {}): GlobalSearchResult[] {
   const normalizedQuery = query.trim();
   if (!normalizedQuery) {
@@ -87,11 +167,22 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
   const accountNames = new Map(data.accounts.map(account => [account.id, account.name]));
   const categoryNames = new Map(data.categories.map(category => [category.id, category.name]));
   const payeeNames = new Map(data.payees.map(payee => [payee.id, payee.name]));
+  const tasks = new Map(data.tasks.map(task => [task.id, task]));
+  const projects = new Map(data.projects.map(project => [project.id, project]));
+  const money = new Map(data.money.map(entry => [entry.id, entry]));
+  const focusSessions = new Map(data.focusSessions.map(session => [session.id, session]));
   const taskTitles = new Map(data.tasks.map(task => [task.id, task.title]));
   const projectNames = new Map(data.projects.map(project => [project.id, project.name]));
   const noteTitles = new Map(data.notes.map(note => [note.id, note.title]));
   const appGroupNames = new Map(data.appGroups.map(appGroup => [appGroup.id, appGroup.name]));
+  const noteLinksByNoteId = new Map<string, NoteLink[]>();
   const attachmentNames = new Map<string, string[]>();
+
+  data.noteLinks.forEach(link => {
+    const links = noteLinksByNoteId.get(link.noteId) ?? [];
+    links.push(link);
+    noteLinksByNoteId.set(link.noteId, links);
+  });
 
   data.attachments.forEach(attachment => {
     const names = attachmentNames.get(attachment.noteId) ?? [];
@@ -121,11 +212,24 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
       return;
     }
     const names = attachmentNames.get(note.id) ?? [];
-    if (includesQuery(normalizedQuery, [note.title, note.body, ...note.tags, ...names, note.updatedAt])) {
+    const linkInfo = (noteLinksByNoteId.get(note.id) ?? []).map(link => noteLinkSearchInfo(link, {
+      accountNames,
+      categoryNames,
+      payeeNames,
+      tasks,
+      projects,
+      money,
+      focusSessions,
+      taskTitles,
+      projectNames,
+      noteTitles,
+      appGroupNames,
+    }, includeArchived));
+    if (includesQuery(normalizedQuery, [note.title, note.body, ...note.tags, ...names, note.updatedAt, ...linkInfo.flatMap(info => info.searchValues)])) {
       add('note', {
         id: note.id,
         title: note.title,
-        detail: [note.body, note.tags.join(', '), names.join(', ')].filter(Boolean).join(' · ') || 'No preview',
+        detail: [note.body, note.tags.join(', '), names.join(', '), ...linkInfo.map(info => info.label)].filter(Boolean).join(' · ') || 'No preview',
         isArchived: note.isArchived,
       });
     }

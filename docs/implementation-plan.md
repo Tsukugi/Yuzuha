@@ -2303,6 +2303,40 @@ Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/
 
 Known limits:
 
-- links are local and are not synced or indexed by global search;
+- links are local and are not persisted or synced as a separate search index; current linked target fields are included in the local owning-note search projection;
 - a deleted target cannot be restored through the link editor;
-- link state is stored locally; remote sync and global-search indexing remain future work.
+- link state is stored locally; remote sync and cross-device search remain future work.
+
+## Implementation review: Android linked-target-search pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- Global Search matches an active note through searchable fields from its linked task, project, money entry, or focus session;
+- note results explain the relationship with readable `Linked ...` labels;
+- archived project target fields are excluded unless archived results are enabled;
+- missing target content is not searchable, while a deleted-target label remains visible when the note matches another field;
+- the projection stays in memory over loaded AppData, with no schema change, persistent index, import/export UI change, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - global-search link, archive, and deleted-target tests
+Full Jest                PASS - 50 suites, 220 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - search for `LinkTask` showed the task and `LinkNote` with `Linked task: LinkTask`
+Phone smoke              PASS - cold release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- search is local to loaded AppData and has no persistent or synced index;
+- archived target rules are currently explicit for archived projects; broader cross-device search and sync remain planned;
+- arbitrary bank CSV mapping and expanded import/export history remain future work and were not changed in this pass.
+
+Next pass: choose the next bounded local product contract after review; keep rich note formatting, attachment search, account/device recovery, and remote sync behind their own decisions.

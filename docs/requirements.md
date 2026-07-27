@@ -323,6 +323,8 @@ Current focus extension: App Time supports local app groups and one manual focus
 
 Current note-link extension: Notes can add or remove stable local links to current tasks, projects, money entries, and focus sessions. New links require both the note and target to exist; target deletion leaves the link so the Notes screen shows a deterministic `Deleted ...` label. Duplicate links are rejected, deleting a note removes its owned links, and JSON/encrypted-backup/SQLite validation preserves the collection under app schema 32. No network request, worker, or background process is added.
 
+Current linked-search extension: Global Search also matches an active note through the searchable fields of its linked task, project, money entry, or focus session and adds a readable `Linked ...` label to the note result. Archived project fields are hidden unless archived results are enabled; deleted target content is not searched, while a deleted-target label remains visible when the note matches another field. The projection uses in-memory AppData only and adds no schema, index, network request, worker, or background process.
+
 Current subtask extension: Tasks support one optional same-list parent link. Missing parents, self-links, cross-list links, and cycles are rejected before save. Deleting a parent promotes its direct children, and the link is validated across JSON import, encrypted backup restore, and SQLite persistence.
 
 Current template extension: Tasks support local templates with unique names, strict title/details/priority/list/project fields, archive/restore, edit/delete, and direct creation of normal tasks. Archived templates cannot be used. Template references keep projects and lists from being deleted, and template data is validated across JSON import, encrypted backup restore, SQLite persistence, and global search.
@@ -408,6 +410,7 @@ Local global-search controls are implemented and verified:
 - Home opens Search and the screen searches supported local money, notes, tasks, saved searches, account/category, transfer/split/budget, recurrence, time-goal, and app-time metadata records;
 - matching is case-insensitive and result order is deterministic;
 - archived notes, accounts, categories, budgets, and time goals stay hidden unless archived results are enabled;
+- note results also match current linked target fields and explain the relationship with a `Linked ...` label; archived linked project fields require the archived filter and deleted target content does not match;
 - app-time results require granted Usage Access and an included snapshot.
 
 Not yet complete: synced search, synced notes, and remote sync.
