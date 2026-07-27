@@ -13,6 +13,7 @@ import type {
   MoneySplit,
   MoneyTransfer,
   Note,
+  NoteLink,
   SavedSearch,
   Task,
   TaskDependency,
@@ -47,6 +48,7 @@ export interface JsonImportRecordCounts {
   categories: number;
   payees: number;
   notes: number;
+  noteLinks: number;
   attachments: number;
   savedSearches: number;
   projects: number;
@@ -89,7 +91,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 31) {
+  if (appSchemaVersion !== 32) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -108,7 +110,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 31 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 32 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -128,6 +130,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('categories', data.categories);
   validateUniqueIds('payees', data.payees);
   validateUniqueIds('notes', data.notes);
+  validateUniqueIds('note links', data.noteLinks);
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
   validateUniqueIds('projects', data.projects);
@@ -169,6 +172,8 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   data.budgets.forEach(budget => validateBudget(budget, categoryIds));
   data.recurrences.forEach(rule => validateRecurrence(rule, accountIds, categoryIds));
   data.notes.forEach(validateNote);
+  const noteLinkKeys = new Set<string>();
+  data.noteLinks.forEach(link => validateNoteLink(link, noteIds, noteLinkKeys));
   const attachmentCounts = new Map<string, number>();
   data.attachments.forEach(attachment => {
     validateAttachment(attachment, noteIds);
@@ -346,6 +351,20 @@ function validateNote(note: Note): void {
       !isIsoDate(note.createdAt) || !isIsoDate(note.updatedAt)) {
     throw new JsonImportError(`Note ${note.id} has invalid fields.`);
   }
+}
+
+function validateNoteLink(link: NoteLink, noteIds: Set<string>, keys: Set<string>): void {
+  validateId(link.id, 'note link');
+  validateReference(link.noteId, noteIds, `Note link ${link.id} note`);
+  if ((link.targetType !== 'task' && link.targetType !== 'project' && link.targetType !== 'money' && link.targetType !== 'focus-session') ||
+      typeof link.targetId !== 'string' || link.targetId.trim() === '' || !isIsoDate(link.createdAt)) {
+    throw new JsonImportError(`Note link ${link.id} has invalid fields.`);
+  }
+  const key = `${link.noteId}:${link.targetType}:${link.targetId}`;
+  if (keys.has(key)) {
+    throw new JsonImportError(`Note link ${link.id} duplicates another link.`);
+  }
+  keys.add(key);
 }
 
 function validateAttachment(attachment: Attachment, noteIds: Set<string>): void {
@@ -613,6 +632,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     categories: data.categories.length,
     payees: data.payees.length,
     notes: data.notes.length,
+    noteLinks: data.noteLinks.length,
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,
     projects: data.projects.length,

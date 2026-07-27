@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android money CSV latest-import undo pass.
+Status: Traceability baseline through the Android local note-link pass.
 
 ## Authoritative source by concern
 
@@ -50,6 +50,8 @@ Current Money report evidence: `MONEY-11` maps to `MoneyReportScreen`, `MoneyRep
 Current week-start evidence: `CORE-04` and `TASK-08` map to `AppData.weekStartsOn`, `getPeriodRange`, Home week-start controls, JSON/SQLite validation, period and Money-filter tests, the 2026-07-27 week-start release note, and emulator weekly-range smoke. Sunday and Monday are the only accepted values.
 
 Current money CSV undo evidence: `INT-02` maps to `MoneyCsvImportReceipt`, `AppStore.importMoneyEntries`, `AppStore.undoMoneyCsvImport`, `DataToolsScreen`, JSON/encrypted-backup/SQLite persistence, `src/shared/moneyCsvImportReceipt.test.ts`, AppStore and SQLite regression tests, and the 2026-07-27 money CSV undo release note. Undo is allowed only for the latest unchanged batch; missing or edited rows block it without a write.
+
+Current note-link evidence: `NOTE-05` maps to `NoteLink`, `noteLinks.ts`, `NotesScreen`, AppStore add/remove actions, SQLite `app_records`, JSON/encrypted-backup validation, `src/shared/noteLinks.test.ts`, AppStore/SQLite/restore/backup tests, and the 2026-07-27 note-link release note. New links require current targets, duplicate links are rejected, and deleted targets remain visible as deterministic deleted-target labels.
 
 ## Open decision register
 

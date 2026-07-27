@@ -42,6 +42,7 @@ import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
 import {createMoneyPayee, validateMoneyPayeeName} from '../shared/moneyPayee';
 import {createMoneyCsvImportReceipt} from '../shared/moneyCsvImportReceipt';
+import {createNoteLinkRecord, validateNoteLinkDraft, type NoteLinkDraft} from '../shared/noteLinks';
 import type {
   AppData,
   MoneyAccount,
@@ -110,6 +111,8 @@ interface AppStoreValue {
   addNote: (input: NoteDraft) => Promise<void>;
   addNoteWithAttachment: (input: NoteDraft, source: AttachmentSource) => Promise<void>;
   updateNote: (noteId: string, input: NoteDraft) => Promise<void>;
+  addNoteLink: (input: NoteLinkDraft) => Promise<void>;
+  deleteNoteLink: (linkId: string) => Promise<void>;
   toggleNotePinned: (noteId: string) => Promise<void>;
   setNoteArchived: (noteId: string, isArchived: boolean) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
@@ -724,11 +727,39 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         return {
           ...current,
           notes: current.notes.filter(note => note.id !== noteId),
+          noteLinks: current.noteLinks.filter(link => link.noteId !== noteId),
           attachments: current.attachments.filter(attachment => attachment.noteId !== noteId),
         };
       });
     },
     [commit, data?.attachments],
+  );
+
+  const addNoteLink = useCallback(
+    async (input: NoteLinkDraft) => {
+      const now = new Date().toISOString();
+      await commit(current => {
+        const validationError = validateNoteLinkDraft(input, current, current.noteLinks);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const link = createNoteLinkRecord(input, createId('note_link'), now);
+        return {...current, noteLinks: [link, ...current.noteLinks]};
+      });
+    },
+    [commit],
+  );
+
+  const deleteNoteLink = useCallback(
+    async (linkId: string) => {
+      await commit(current => {
+        if (!current.noteLinks.some(link => link.id === linkId)) {
+          throw new Error('The note link no longer exists.');
+        }
+        return {...current, noteLinks: current.noteLinks.filter(link => link.id !== linkId)};
+      });
+    },
+    [commit],
   );
 
   const addSavedSearch = useCallback(
@@ -1527,6 +1558,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addNote,
       addNoteWithAttachment,
       updateNote,
+      addNoteLink,
+      deleteNoteLink,
       toggleNotePinned,
       setNoteArchived,
       deleteNote,
@@ -1594,6 +1627,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addNote,
       addNoteWithAttachment,
       updateNote,
+      addNoteLink,
+      deleteNoteLink,
       toggleNotePinned,
       setNoteArchived,
       deleteNote,

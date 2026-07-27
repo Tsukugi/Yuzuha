@@ -545,3 +545,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `AppData.lastMoneyCsvImport` with the source name, import time, and each imported entry's ID, `createdAt`, and `updatedAt`. Persist it in JSON, encrypted backups, and SQLite metadata. Allow undo only for that latest receipt, and only when every recorded entry still exists with matching timestamps. If an entry is missing or edited, reject the entire undo without writing. A later import replaces the receipt.
 - Reason: The rule is small, local, deterministic, and bounded. Timestamp checks stop undo from deleting a user's later edit; missing entries are reported instead of guessed or recreated. One receipt avoids an unbounded import-history store and background cleanup.
 - Consequence: The current app schema becomes 31. Older app, backup, CSV, and SQLite versions remain rejected. Multi-import history, arbitrary bank mapping, and recovery of changed/deleted entries remain future contracts.
+
+## DEC-079: Store note links as local stable-ID records
+
+- Status: Accepted.
+- Context: Notes already create tasks and focus sessions can point back to notes, but the user cannot keep explicit relationships from a note to the other local records. Copying target content into notes would create a second source of truth.
+- Decision: Add `AppData.noteLinks` with one record per note/target pair. Allow target types `task`, `project`, `money`, and `focus-session`. Require both note and target to exist when creating a link, reject duplicates, remove links when their note is deleted, and keep a link after target deletion so the UI can show a deterministic deleted-target label. Persist links as typed SQLite `app_records` and current JSON/encrypted-backup data.
+- Reason: Stable IDs keep links small, local, and cheap to validate. Keeping deleted-target links preserves the user's relationship history without copying sensitive content or inventing tombstones/sync state.
+- Consequence: The current app schema becomes 32. Older app, backup, CSV, and SQLite versions remain rejected. Global-search indexing, link ordering, cross-device merge, and restoring deleted targets remain future contracts.

@@ -129,6 +129,52 @@ describe('AppStore task reminders', () => {
     });
   });
 
+  it('adds note links and keeps a deleted-target link readable', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await value!.addNote({title: 'Link note', body: '', tags: []});
+      await value!.addTask({title: 'Linked task', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox', projectId: null, parentTaskId: null});
+    });
+    const noteId = saved.notes[0]?.id;
+    const taskId = saved.tasks[0]?.id;
+    expect(noteId).toBeTruthy();
+    expect(taskId).toBeTruthy();
+
+    await act(async () => {
+      await value!.addNoteLink({noteId: noteId!, targetType: 'task', targetId: taskId!});
+    });
+    expect(saved.noteLinks).toHaveLength(1);
+    await act(async () => {
+      await value!.deleteTask(taskId!);
+    });
+    expect(saved.noteLinks[0]?.targetId).toBe(taskId);
+    await act(async () => {
+      await value!.deleteNoteLink(saved.noteLinks[0]!.id);
+    });
+    expect(saved.noteLinks).toEqual([]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
   it('saves a shared attachment with its note in one workspace commit', async () => {
     const attachmentFiles = jest.requireMock('../shared/attachmentFiles') as {importAttachmentFileFromSource: jest.Mock};
     const attachment = {

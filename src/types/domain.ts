@@ -127,6 +127,16 @@ export interface Note {
   updatedAt: string;
 }
 
+export type NoteLinkTargetType = 'task' | 'project' | 'money' | 'focus-session';
+
+export interface NoteLink {
+  id: string;
+  noteId: string;
+  targetType: NoteLinkTargetType;
+  targetId: string;
+  createdAt: string;
+}
+
 export interface Attachment {
   id: string;
   noteId: string;
@@ -292,7 +302,7 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 31;
+  schemaVersion: 32;
   mainCurrency: string;
   weekStartsOn: WeekStartDay;
   lastMoneyCsvImport: MoneyCsvImportReceipt | null;
@@ -305,6 +315,7 @@ export interface AppData {
   categories: MoneyCategory[];
   payees: MoneyPayee[];
   notes: Note[];
+  noteLinks: NoteLink[];
   attachments: Attachment[];
   savedSearches: SavedSearch[];
   projects: TaskProject[];
@@ -333,7 +344,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 31,
+  schemaVersion: 32,
   mainCurrency: 'EUR',
   weekStartsOn: 1,
   lastMoneyCsvImport: null,
@@ -354,6 +365,7 @@ export const emptyAppData = (): AppData => ({
   categories: createDefaultCategories(),
   payees: [],
   notes: [],
+  noteLinks: [],
   attachments: [],
   savedSearches: [],
   projects: [],

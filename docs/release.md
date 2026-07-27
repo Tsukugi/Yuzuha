@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android local note-link pass:
+
+- Notes can link to tasks, projects, money entries, and focus sessions with stable local IDs;
+- Notes shows linked target labels, supports removal, rejects duplicate links, and keeps a `Deleted ...` label when a target is later removed;
+- links persist through AppStore, SQLite `app_records`, current JSON, and encrypted backup; app schema is now 32 and repository schema remains 3;
+- no import/export UI expansion, legacy migration, network request, worker, or background process was added;
+- focused note-link/AppStore/SQLite/restore/backup tests, full Jest (50 suites, 218 tests), lint, typecheck, bundle validation, release APK build, emulator Notes smoke, and phone startup smoke passed; both devices were force-stopped after testing.
+
 2026-07-27 Android money CSV latest-import undo pass:
 
 - Data tools now persist only the latest money CSV import receipt: source name, import time, and each imported entry's ID plus creation/update timestamps;

@@ -56,6 +56,8 @@ Current Money list behavior: Money history can be filtered by All/Day/Week/Month
 
 Current Money payee behavior: An entry may select one active local payee or `No payee`. Payee names are trimmed and case-insensitively unique; archived payees remain valid for existing entries but cannot be selected for new entries. The reference is stable across current JSON, encrypted backup, SQLite, CSV, and global search paths.
 
+Current note-link behavior: Notes can link to tasks, projects, money entries, and focus sessions. The Notes screen uses stable local IDs, shows the linked target label, supports remove, and shows `Deleted ...` when a target was deleted later. A note cannot link to the same target twice; deleting the note removes its links. The link collection is local and persists through current JSON, encrypted backup, and SQLite.
+
 Current Money report behavior: The report screen offers Day, Week, and Month local ranges plus All/Expense/Income, category, and account filters. It shows the exact range and active filters, says that transfers and out-of-range entries are excluded, keeps currencies in separate cards, and applies category filters to split lines by stable line category ID. Filter state is local screen state only.
 
 Current date behavior: Home offers a `Week starts on` control with Sunday and Monday choices. The selected value is saved locally and drives every current week-based Home, Review, Money, App Time, and budget range. It does not change task due dates or start background work.

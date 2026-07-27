@@ -1,10 +1,10 @@
 # Architecture
 
-Current schema boundary: the latest Android slice accepts app schema 31 and repository schema 3 only. The money CSV undo pass adds the latest import receipt and deterministic unchanged-entry check; older schemas remain rejected without migration.
+Current schema boundary: the latest Android slice accepts app schema 32 and repository schema 3 only. The note-link pass adds stable local links from notes to tasks, projects, money entries, and focus sessions; older schemas remain rejected without migration.
 
-Status: Core implementation through the Android money CSV latest-import undo pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, reminders, projects, templates, focus sessions, tasks, notes, attachments, share/capture adapters, launcher/widget/deep-link adapters, current-format imports/restores, selected App Time/Home/Review periods, Money filters/totals/reports, the persisted week-start setting, and latest-import undo exist. The accepted latest-only data boundary is app schema 31 and repository schema 3. Selected timezone, calendar reads/event IDs, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
+Status: Core implementation through the Android local note-link pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, reminders, projects, templates, focus sessions, tasks, notes, attachments, share/capture adapters, launcher/widget/deep-link adapters, current-format imports/restores, selected App Time/Home/Review periods, Money filters/totals/reports, the persisted week-start setting, latest-import undo, and note links exist. The accepted latest-only data boundary is app schema 32 and repository schema 3. Selected timezone, calendar reads/event IDs, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
 
-Current pass addition: Data tools support bounded strict current-format money CSV import, a persisted latest-import receipt with deterministic undo, current JSON export file restore, and pre-read bounds for encrypted backup files through the existing document-picker boundary. See the file adapter notes below.
+Current pass addition: Notes support stable links to tasks, projects, money entries, and focus sessions. Data tools keep their bounded current-format import, latest-import receipt/undo, JSON restore, and encrypted-backup file boundaries unchanged apart from carrying the new current workspace collection.
 
 Current App Time addition: the Android report can select Today, This week, or This month. `getLocalDayRanges` splits the selected local period into one native query per local day. Queries run sequentially, snapshots are aggregated with the queried day as their local date, and `replaceUsageSnapshots` runs once after all queries succeed. The selected range is a derived view and adds no schema, worker, timer, or polling loop.
 
@@ -20,9 +20,11 @@ Current Payee addition: `MoneyScreen` offers optional payee selection, local pay
 
 Current Money report addition: `MoneyReportScreen` applies one derived local period/type/category/account filter to source entries and split lines. It discloses the exact range, selected filters, transfer/out-of-range exclusions, and per-currency scope. Category matching uses stable category IDs, while the report adds no stored filter state or background operation.
 
-Detailed schema numbers in older implementation paragraphs below are historical pass notes. The current boundary above is authoritative: app schema 31 and repository schema 3 only.
+Detailed schema numbers in older implementation paragraphs below are historical pass notes. The current boundary above is authoritative: app schema 32 and repository schema 3 only.
 
 Current week-start addition: Home saves Sunday or Monday as `AppData.weekStartsOn`. Home, Review, Money entry filters, Money reports, App Time, and budget projections pass that value to the shared local-period helper. The setting is persisted as current local data; it adds no worker or network request.
+
+Current note-link addition: `AppData.noteLinks` stores one stable local link record per note/target pair. `AppStore` requires the note and target to exist when creating a link, but keeps a link when a target is later deleted so Notes can show `Deleted ...`. Deleting the note removes its owned links. JSON validation, encrypted backup, and SQLite `app_records` persistence carry the collection under app schema 32; no global index, sync object, worker, or network request is added.
 
 The detailed system-shape paragraphs below retain earlier pass wording where noted; the current schema and startup rules above are authoritative.
 
@@ -112,7 +114,7 @@ Hide platform APIs behind typed interfaces. The first Android adapter is app usa
 5. Installer checks size, SHA-256, signature, and bundle compatibility.
 6. Installer atomically promotes the verified file and writes the activation record.
 7. JavaScript starts from the selected verified bundle.
-8. `MainApp` opens the local database, requires repository schema 3 and app schema 31, and renders the first screen.
+8. `MainApp` opens the local database, requires repository schema 3 and app schema 32, and renders the first screen.
 
 If a step fails, the installer returns a named result such as `offline-local`, `invalid-remote`, or `no-verified-bundle`. The UI may explain the result, but it must not silently run an unverified file. See `installer.md`.
 

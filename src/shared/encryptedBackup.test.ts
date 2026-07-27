@@ -116,6 +116,13 @@ describe('encrypted backups', () => {
       createdAt: '2026-07-26T11:00:00.000Z',
       updatedAt: '2026-07-26T11:30:00.000Z',
     });
+    data.noteLinks.push({
+      id: 'note_link_secret',
+      noteId: 'note_secret',
+      targetType: 'focus-session',
+      targetId: 'focus_secret',
+      createdAt,
+    });
 
     const attachmentFiles = [{
       id: 'attachment_secret',
@@ -130,6 +137,7 @@ describe('encrypted backups', () => {
     expect(preview.data).toEqual(data);
     expect(preview.recordCounts.notes).toBe(1);
     expect(preview.recordCounts.attachments).toBe(1);
+    expect(preview.recordCounts.noteLinks).toBe(1);
     expect(preview.attachmentFiles).toEqual(attachmentFiles);
     expect(preview.createdAt).toBe(createdAt);
     expect(preview.encryptedBytes).toBeGreaterThan(16);

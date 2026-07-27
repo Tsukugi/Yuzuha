@@ -70,6 +70,8 @@ When a note query is non-empty, Notes can save it under a local name. Saving als
 
 Each note has a `Make task` action. It creates a new open task using the note title and body, leaves the note unchanged, and shows the source note title in Tasks. If the note is later deleted, the task shows `Deleted note` instead of losing the task.
 
+Each note also has a `Link record` action. The user chooses Task, Project, Money, or Focus, searches the local target list, and confirms one link. Existing links show the target label and a `Remove link` action. If the target is deleted later, the note keeps the link and shows `Deleted task`, `Deleted project`, `Deleted money`, or `Deleted focus` so the relationship is not silently hidden.
+
 ### Search the workspace
 
 Home opens a local Search screen. The screen searches supported money, notes, tasks, saved searches, accounts, categories, transfers, splits, budgets, recurring rules, time goals, and app-time metadata. Search is case-insensitive and shows a result kind, title, and detail. Archived results are hidden by default and can be included with one explicit control. App-time results appear only when Usage Access is granted and the snapshot is included. An empty query explains how to start, and a query with no matches shows `No matches in the selected records.`

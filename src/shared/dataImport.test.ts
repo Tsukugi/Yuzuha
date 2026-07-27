@@ -35,6 +35,13 @@ describe('JSON restore validation', () => {
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
+    data.noteLinks.push({
+      id: 'note_link_1',
+      noteId: 'note_1',
+      targetType: 'task',
+      targetId: 'deleted_task',
+      createdAt: '2026-07-26T12:00:00.000Z',
+    });
     data.tasks.push({
       id: 'task_1',
       title: 'Follow up',
@@ -60,8 +67,9 @@ describe('JSON restore validation', () => {
     expect(preview.recordCounts.attachments).toBe(1);
     expect(preview.recordCounts.accounts).toBe(1);
     expect(preview.recordCounts.savedSearches).toBe(1);
+    expect(preview.recordCounts.noteLinks).toBe(1);
     expect(preview.recordCounts.taskLists).toBe(1);
-    expect(preview.totalRecords).toBe(13);
+    expect(preview.totalRecords).toBe(14);
   });
 
   it('rejects current data without the recurring reminder setting', () => {

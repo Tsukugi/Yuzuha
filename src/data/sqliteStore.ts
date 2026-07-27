@@ -179,6 +179,7 @@ type RecordType =
   | 'category'
   | 'payee'
   | 'note'
+  | 'note_link'
   | 'attachment'
   | 'saved_search'
   | 'project'
@@ -496,6 +497,19 @@ export function decodeAppData(
         data.notes.push(payload as Note);
         break;
       }
+      case 'note_link': {
+        if (typeof payload !== 'object' || payload === null) {
+          throw new SqliteDataCorruptError();
+        }
+        const linkPayload = payload as Record<string, unknown>;
+        if (typeof linkPayload.id !== 'string' || typeof linkPayload.noteId !== 'string' ||
+            (linkPayload.targetType !== 'task' && linkPayload.targetType !== 'project' && linkPayload.targetType !== 'money' && linkPayload.targetType !== 'focus-session') ||
+            typeof linkPayload.targetId !== 'string' || typeof linkPayload.createdAt !== 'string') {
+          throw new SqliteDataCorruptError();
+        }
+        data.noteLinks.push(linkPayload as unknown as AppData['noteLinks'][number]);
+        break;
+      }
       case 'attachment':
         data.attachments.push(payload as Attachment);
         break;
@@ -711,6 +725,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.categories.map(category => record('category', category.id, category)),
     ...data.payees.map(payee => record('payee', payee.id, payee, payee.updatedAt)),
     ...data.notes.map(note => record('note', note.id, note, note.updatedAt)),
+    ...data.noteLinks.map(link => record('note_link', link.id, link, link.createdAt)),
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),
     ...data.projects.map(project => record('project', project.id, project, project.updatedAt)),

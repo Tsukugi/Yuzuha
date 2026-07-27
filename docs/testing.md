@@ -1,14 +1,14 @@
 # Testing strategy
 
-Status: Current test strategy through the Android money CSV latest-import undo pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android local note-link pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 49 Jest suites and 214 tests. Receipt validation, AppStore latest-import undo, SQLite receipt persistence, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
-- Fresh SQLite startup seeds current app schema 31 data directly; old local database files and missing current metadata, including the latest-import receipt, are rejected by repository validation.
+- The current suite is 50 Jest suites and 218 tests. Note-link validation, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- Fresh SQLite startup seeds current app schema 32 data directly; old local database files and missing current metadata, including the latest-import receipt and note links, are rejected by repository validation.
 
 ## Money filter evidence
 
@@ -19,8 +19,15 @@ Status: Current test strategy through the Android money CSV latest-import undo p
 ## Money payee evidence
 
 - Focused payee tests cover trimmed records, blank names, case-insensitive duplicate rejection, and same-record validation.
-- SQLite round-trip coverage stores a payee record, a money-entry `payeeId`, `weekStartsOn`, and the latest money CSV import receipt; JSON and CSV tests use current schema 31 data and current payee columns.
+- SQLite round-trip coverage stores a payee record, a money-entry `payeeId`, `weekStartsOn`, the latest money CSV import receipt, and a note link; JSON and CSV tests use current schema 32 data and current payee columns.
 - Global-search coverage finds a money entry by its payee name and includes that name in the result title.
+
+## Note-link evidence
+
+- Focused note-link tests cover all four target types, missing targets, duplicate links, and stable link keys.
+- AppStore tests cover add/remove behavior and keep a link readable after its target task is deleted.
+- SQLite round-trip, malformed-record rejection, JSON restore, and encrypted-backup tests cover the current `noteLinks` collection.
+- Emulator smoke verifies the Notes link editor, target search, saved linked-record label, and deleted-target label. Phone smoke verifies clean startup with no filtered app errors.
 
 ## Week-start preference evidence
 

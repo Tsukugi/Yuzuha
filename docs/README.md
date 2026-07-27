@@ -2,7 +2,7 @@
 
 This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, selected App Time period reports, selected Home dashboard periods, read-only period Reviews, local Money entry filters and filtered totals, and the native verified-remote-bundle startup gate, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
-The latest current-schema pass adds a persisted latest money CSV import receipt and deterministic undo after the week-start pass. It uses app schema 31 and repository schema 3; old versions remain intentionally rejected.
+The latest current-schema pass adds local note links to tasks, projects, money entries, and focus sessions after the latest money CSV receipt pass. It uses app schema 32 and repository schema 3; old versions remain intentionally rejected.
 
 The current Money report pass adds derived period, type, category, and account filters with an explicit scope disclosure. Split-line categories are matched by stable IDs, transfers stay out of reports, and currencies remain separate.
 

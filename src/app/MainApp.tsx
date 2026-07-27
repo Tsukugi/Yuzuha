@@ -53,6 +53,7 @@ import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, open
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {normalizeNoteTags} from '../shared/noteSearch';
+import {NOTE_LINK_TARGET_TYPES} from '../shared/noteLinks';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
@@ -80,7 +81,7 @@ import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -1175,6 +1176,7 @@ function formatImportPreview(preview: JsonImportPreview): string {
     ['accounts', 'accounts'],
     ['categories', 'categories'],
     ['notes', 'notes'],
+    ['noteLinks', 'note links'],
     ['attachments', 'attachments'],
     ['savedSearches', 'saved searches'],
     ['projects', 'projects'],
@@ -2679,7 +2681,7 @@ function FocusSessionPanel({data}: {data: AppData}) {
 }
 
 function NotesScreen() {
-  const {data, addNote, updateNote, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
+  const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
@@ -2690,6 +2692,10 @@ function NotesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
   const [busySavedSearchId, setBusySavedSearchId] = useState<string | null>(null);
+  const [linkingNoteId, setLinkingNoteId] = useState<string | null>(null);
+  const [linkTargetType, setLinkTargetType] = useState<NoteLinkTargetType>('task');
+  const [linkTargetId, setLinkTargetId] = useState<string | null>(null);
+  const [linkTargetSearch, setLinkTargetSearch] = useState('');
 
   if (!data) {
     return null;
@@ -2736,6 +2742,58 @@ function NotesScreen() {
     setBody(note.body);
     setTags(note.tags.join(', '));
     setError(null);
+  }
+
+  function startLinking(note: Note) {
+    if (!data) {
+      return;
+    }
+    const nextType: NoteLinkTargetType = 'task';
+    setLinkingNoteId(note.id);
+    setLinkTargetType(nextType);
+    setLinkTargetSearch('');
+    const linkedTargetIds = new Set(data.noteLinks.filter(link => link.noteId === note.id && link.targetType === nextType).map(link => link.targetId));
+    setLinkTargetId(noteLinkOptions(nextType, data, '').find(option => !linkedTargetIds.has(option.id))?.id ?? null);
+    setError(null);
+  }
+
+  function changeLinkTargetType(nextType: NoteLinkTargetType) {
+    if (!data) {
+      return;
+    }
+    setLinkTargetType(nextType);
+    setLinkTargetSearch('');
+    setLinkTargetId(noteLinkOptions(nextType, data, '')[0]?.id ?? null);
+  }
+
+  async function saveNoteLink(note: Note) {
+    if (!linkTargetId) {
+      setError('Choose a record to link.');
+      return;
+    }
+    setError(null);
+    setBusyNoteId(note.id);
+    try {
+      await addNoteLink({noteId: note.id, targetType: linkTargetType, targetId: linkTargetId});
+      setLinkingNoteId(null);
+      setLinkTargetId(null);
+    } catch (linkError) {
+      setError(linkError instanceof Error ? linkError.message : 'The note link could not be saved.');
+    } finally {
+      setBusyNoteId(null);
+    }
+  }
+
+  async function removeNoteLink(link: NoteLink) {
+    setError(null);
+    setBusyNoteId(link.noteId);
+    try {
+      await deleteNoteLink(link.id);
+    } catch (linkError) {
+      setError(linkError instanceof Error ? linkError.message : 'The note link could not be removed.');
+    } finally {
+      setBusyNoteId(null);
+    }
   }
 
   async function togglePinned(note: Note) {
@@ -2969,7 +3027,9 @@ function NotesScreen() {
           ) : (
           visibleNotes.map(note => {
             const noteAttachments = data.attachments.filter(attachment => attachment.noteId === note.id);
+            const noteLinks = data.noteLinks.filter(link => link.noteId === note.id);
             const isBusy = busyNoteId === note.id;
+            const currentLinkOptions = linkingNoteId === note.id ? noteLinkOptions(linkTargetType, data, linkTargetSearch) : [];
             return (
               <View key={note.id} style={styles.noteCard}>
                 <Text style={styles.listTitle}>{note.title}</Text>
@@ -2978,13 +3038,56 @@ function NotesScreen() {
                 {note.isPinned && <Text style={styles.successText}>Pinned</Text>}
                 {note.isArchived && <Text style={styles.warningText}>Archived</Text>}
                 <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
+                {noteLinks.length > 0 && (
+                  <View style={styles.linkSection}>
+                    <Text style={styles.formLabel}>Linked records</Text>
+                    {noteLinks.map(link => (
+                      <View key={link.id} style={styles.linkRow}>
+                        <Text style={styles.listMeta}>{formatNoteLinkTarget(link, data)}</Text>
+                        <TextButton label="Remove link" danger disabled={isBusy} onPress={() => void removeNoteLink(link)} />
+                      </View>
+                    ))}
+                  </View>
+                )}
                 <View style={styles.noteActions}>
                   <TextButton label="Edit" disabled={isBusy} onPress={() => startEditing(note)} />
                   <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
                   <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
                   <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
+                  <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
                   <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
                 </View>
+                {linkingNoteId === note.id && (
+                  <View style={styles.linkEditor}>
+                    <Text style={styles.formLabel}>Link type</Text>
+                    <View style={styles.chipWrap}>
+                      {NOTE_LINK_TARGET_TYPES.map(type => (
+                        <ChipButton key={type} label={noteLinkTypeLabel(type)} selected={linkTargetType === type} onPress={() => changeLinkTargetType(type)} />
+                      ))}
+                    </View>
+                    <TextInput
+                      accessibilityLabel="Search link targets"
+                      placeholder="Search records"
+                      placeholderTextColor={colors.muted}
+                      style={styles.input}
+                      value={linkTargetSearch}
+                      onChangeText={value => {
+                        setLinkTargetSearch(value);
+                        const first = noteLinkOptions(linkTargetType, data, value)[0];
+                        if (first) {
+                          setLinkTargetId(first.id);
+                        }
+                      }}
+                    />
+                    <View style={styles.chipWrap}>
+                      {currentLinkOptions.slice(0, 20).map(option => (
+                        <ChipButton key={option.id} label={option.label} selected={linkTargetId === option.id} onPress={() => setLinkTargetId(option.id)} />
+                      ))}
+                    </View>
+                    {currentLinkOptions.length === 0 && <Text style={styles.emptyState}>No matching records.</Text>}
+                    <PrimaryButton label="Save link" onPress={() => void saveNoteLink(note)} disabled={isBusy || linkTargetId === null} />
+                  </View>
+                )}
                 {noteAttachments.length > 0 && (
                   <View style={styles.attachmentSection}>
                     <Text style={styles.formLabel}>Attachments</Text>
@@ -3021,6 +3124,44 @@ function NotesScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+function noteLinkTypeLabel(type: NoteLinkTargetType): string {
+  switch (type) {
+    case 'task':
+      return 'Task';
+    case 'project':
+      return 'Project';
+    case 'money':
+      return 'Money';
+    case 'focus-session':
+      return 'Focus';
+  }
+}
+
+function noteLinkOptions(type: NoteLinkTargetType, data: AppData, query: string): Array<{id: string; label: string}> {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  let options: Array<{id: string; label: string}>;
+  switch (type) {
+    case 'task':
+      options = data.tasks.map(task => ({id: task.id, label: task.title}));
+      break;
+    case 'project':
+      options = data.projects.map(project => ({id: project.id, label: project.isArchived ? `${project.name} (archived)` : project.name}));
+      break;
+    case 'money':
+      options = data.money.map(entry => ({id: entry.id, label: `${formatMoney(entry.amountMinor, entry.currency)} · ${formatDate(entry.occurredAt)}`}));
+      break;
+    case 'focus-session':
+      options = data.focusSessions.map(session => ({id: session.id, label: `Focus · ${formatDate(session.startedAt)}`}));
+      break;
+  }
+  return normalizedQuery ? options.filter(option => option.label.toLocaleLowerCase().includes(normalizedQuery)) : options;
+}
+
+function formatNoteLinkTarget(link: NoteLink, data: AppData): string {
+  const option = noteLinkOptions(link.targetType, data, '').find(item => item.id === link.targetId);
+  return `${noteLinkTypeLabel(link.targetType)}: ${option?.label ?? `Deleted ${noteLinkTypeLabel(link.targetType).toLocaleLowerCase()}`}`;
 }
 
 function formatBytes(byteSize: number): string {
@@ -4157,6 +4298,9 @@ const styles = StyleSheet.create({
   searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: 14},
   searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase'},
   importPreview: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
+  linkSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 10, paddingTop: 4},
+  linkRow: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 8},
+  linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
   segmentRow: {flexDirection: 'row', gap: 8},

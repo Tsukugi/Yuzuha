@@ -103,6 +103,8 @@ Android calendar drafts do not request `READ_CALENDAR` or `WRITE_CALENDAR` and d
 
 Money CSV import reads one user-selected file into a bounded cache copy, validates it locally, and deletes the cache copy after preview. It sends no file or row content to a service, writes no data before confirmation, and rejects broken references, duplicates, split-linked rows, invalid values, and oversized files. After confirmation, only the latest import receipt is retained; undo checks entry IDs and timestamps locally and never removes an edited or missing row. JSON or encrypted backup remains the complete workspace portability path.
 
+Note links store only local stable IDs and a creation timestamp. They contain no copied note, task, money, project, or focus-session content, add no network path, and remain readable as a deleted-target label after the target is removed. The Notes link editor shows current local target labels only.
+
 JSON export file restore reads one user-selected current export into a bounded cache copy, validates it locally, deletes the cache copy after the read, and writes no workspace data before destructive confirmation. It sends no file content to a service and rejects unsupported, oversized, malformed, old, or incomplete exports.
 
 Encrypted backup file opening rejects files over 96 MiB using picker metadata before copying when available, then checks the cached file stat before reading. An oversized cached file is deleted in the cleanup path. This limits memory and decryption work without changing the current encrypted backup schema or credential flow.

@@ -2273,3 +2273,36 @@ Known limits:
 - only the latest import is undoable; there is no multi-import history;
 - undo does not restore an entry that was deleted or edited after import;
 - arbitrary bank CSV mapping and split-row import remain future work.
+
+## Implementation review: Android local note-link pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- stable local links from notes to tasks, projects, money entries, and focus sessions;
+- duplicate-link rejection and current-target validation on creation;
+- readable `Deleted ...` labels when a linked target is later removed;
+- note-owned link deletion when a note is deleted;
+- AppStore, SQLite, JSON restore, and encrypted-backup persistence under app schema 32;
+- no import/export UI expansion, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - note-link, AppStore, SQLite, restore, export, and backup tests
+Full Jest                PASS - 50 suites, 218 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - Notes link editor showed Task/Project/Money/Focus targets and saved `Task: LinkTask`
+Phone smoke              PASS - release startup with no filtered app errors
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java process remained
+```
+
+Known limits:
+
+- links are local and are not synced or indexed by global search;
+- a deleted target cannot be restored through the link editor;
+- link state is stored locally; remote sync and global-search indexing remain future work.

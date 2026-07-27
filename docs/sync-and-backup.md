@@ -81,9 +81,9 @@ The user can generate a separate recovery-key backup from Data tools. The key is
 
 ### Platform backup
 
-The current money CSV undo pass uses app schema 31 and repository schema 3. Backup and restore preserve payee records, nullable money-entry payee IDs, `weekStartsOn`, and `lastMoneyCsvImport`; old schemas remain rejected.
+The current local note-link pass uses app schema 32 and repository schema 3. Backup and restore preserve payee records, nullable money-entry payee IDs, `weekStartsOn`, `lastMoneyCsvImport`, and `noteLinks`; old schemas remain rejected.
 
-Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 31 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
+Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 32 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
 
 ### Restore flow
 

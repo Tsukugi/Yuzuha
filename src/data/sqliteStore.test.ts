@@ -264,6 +264,13 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.noteLinks.push({
+      id: 'note_link_1',
+      noteId: 'note_1',
+      targetType: 'money',
+      targetId: 'money_split_parent',
+      createdAt: '2026-07-26T12:30:00.000Z',
+    });
     data.attachments.push({
       id: 'attachment_1',
       noteId: 'note_1',
@@ -402,6 +409,20 @@ describe('SQLite workspace store', () => {
     const store = new SqliteWorkspaceStore(database);
     await store.save(emptyAppData());
     database.meta.set('notification_settings', JSON.stringify({quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00'}));
+
+    await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
+  });
+
+  it('rejects malformed current SQLite note links', async () => {
+    const database = new MemorySqlite();
+    const store = new SqliteWorkspaceStore(database);
+    await store.save(emptyAppData());
+    database.records.set('note_link:broken', {
+      recordType: 'note_link',
+      recordId: 'broken',
+      payloadJson: JSON.stringify({id: 'broken', noteId: 'missing', targetType: 'unknown', targetId: 'missing', createdAt: 'not-a-date'}),
+      updatedAt: '2026-07-30T12:00:00.000Z',
+    });
 
     await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
