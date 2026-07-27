@@ -42,6 +42,11 @@ import {
   openMoneyCsvImportFile,
   type MoneyCsvImportFilePreview,
 } from '../shared/moneyCsvImportFile';
+import {
+  JsonImportFileCanceled,
+  openJsonImportFile,
+  type JsonImportFilePreview,
+} from '../shared/jsonImportFile';
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
@@ -573,6 +578,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
   const [moneyCsvPreview, setMoneyCsvPreview] = useState<MoneyCsvImportFilePreview | null>(null);
   const [moneyCsvBusy, setMoneyCsvBusy] = useState(false);
+  const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
+  const [jsonFileBusy, setJsonFileBusy] = useState(false);
 
   async function shareJson() {
     try {
@@ -747,11 +754,32 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   function previewRestore() {
     setStatus(null);
     setError(null);
+    setJsonFilePreview(null);
     try {
       setImportPreview(parseJsonImport(importText));
     } catch (restoreError) {
       setImportPreview(null);
       setError(restoreError instanceof Error ? restoreError.message : 'The JSON export could not be validated.');
+    }
+  }
+
+  async function openJsonImportFileFromDevice() {
+    setStatus(null);
+    setError(null);
+    setImportPreview(null);
+    setJsonFilePreview(null);
+    setJsonFileBusy(true);
+    try {
+      const preview = await openJsonImportFile();
+      setJsonFilePreview(preview);
+      setImportPreview(preview);
+      setStatus(`${preview.name} is validated. Review the records before restoring.`);
+    } catch (fileError) {
+      if (!(fileError instanceof JsonImportFileCanceled)) {
+        setError(fileError instanceof Error ? fileError.message : 'The JSON export could not be opened.');
+      }
+    } finally {
+      setJsonFileBusy(false);
     }
   }
 
@@ -774,6 +802,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
                 setStatus('Workspace restored from the validated JSON export.');
                 setImportText('');
                 setImportPreview(null);
+                setJsonFilePreview(null);
               })
               .catch(() => {
                 setStatus(null);
@@ -919,7 +948,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       </View>
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Restore JSON export</Text>
-        <Text style={styles.cardDetail}>Paste a Yuzuha JSON export here. Nothing changes until you review the count and confirm the replacement.</Text>
+        <Text style={styles.cardDetail}>Choose or paste a current Yuzuha JSON export. Nothing changes until you review the count and confirm the replacement.</Text>
+        <PrimaryButton label={jsonFileBusy ? 'Opening JSON export...' : 'Choose JSON export file'} onPress={openJsonImportFileFromDevice} disabled={jsonFileBusy || backupBusy} />
         <TextInput
           accessibilityLabel="JSON restore text"
           autoCapitalize="none"
@@ -928,6 +958,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           onChangeText={value => {
             setImportText(value);
             setImportPreview(null);
+            setJsonFilePreview(null);
             setStatus(null);
           }}
           placeholder="Paste JSON export"
@@ -939,7 +970,7 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         {importPreview && (
           <View style={styles.importPreview}>
             <Text style={styles.cardTitle}>Validated preview</Text>
-            <Text style={styles.cardDetail}>{formatImportPreview(importPreview)}</Text>
+            <Text style={styles.cardDetail}>{jsonFilePreview ? `${jsonFilePreview.name}\n\n${formatImportPreview(importPreview)}` : formatImportPreview(importPreview)}</Text>
             <PrimaryButton label="Restore this workspace" onPress={confirmRestore} />
           </View>
         )}

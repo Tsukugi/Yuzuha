@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android money-CSV-import pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android JSON-file-restore pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 44 Jest suites and 182 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV import has its own strict parser and picker tests.
+- The current suite is 45 Jest suites and 186 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import have strict parser/adapter tests.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -55,6 +55,9 @@ Status: Current test strategy through the Android money-CSV-import pass. Unit te
 - Cold-intent regression: before the native fix, an unknown `ACTION_VIEW` was cleared by the launcher-action module and a cold `yuzuha://open/tasks` smoke stayed on Home. After the fix, the same release smoke opened Tasks; the launcher bridge now clears only recognized launcher actions.
 - Money CSV import coverage: current header/schema validation, quoted commas/newlines, currency totals, duplicate IDs, missing account/category references, split-linked rejection, malformed rows, bounded picker files, cache cleanup, picker cancellation, transactional store append, and duplicate-batch rejection.
 - Emulator `emulator-5554`: release Data tools chose `money-import-smoke.csv`, showed one row and EUR 4.25 expense in preview, confirmed the append, and showed the imported `-EUR 4.25` entry after force-stop/relaunch; no filtered fatal or ReactNativeJS errors appeared.
+- Phone `42adce68`: latest release installed and cold-launched `MainActivity` with no filtered fatal or ReactNativeJS errors; touch automation remains unavailable by device policy.
+- JSON file restore coverage: current JSON export validation, bounded picker files, cache cleanup, picker cancellation, and reuse of the existing record-count preview and destructive restore path.
+- Emulator `emulator-5554`: release Data tools chose `json-restore-smoke.json`, showed the current record-count preview, confirmed replacement, and showed the restored note after force-stop/relaunch with no filtered fatal or ReactNativeJS errors.
 - Phone `42adce68`: latest release installed and cold-launched `MainActivity` with no filtered fatal or ReactNativeJS errors; touch automation remains unavailable by device policy.
 
 ### Unit tests

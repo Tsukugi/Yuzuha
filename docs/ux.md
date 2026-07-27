@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android money-CSV-import pass.
+Status: Current Android MVP through the Android JSON-file-restore pass.
 
 ## Navigation
 
@@ -80,7 +80,7 @@ Each saved note has a comma-separated optional tag field and an `Add attachment`
 
 ### Export and delete local data
 
-The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The user can also choose a current Yuzuha money CSV for import. The screen previews row count, currency totals, duplicate/reference/format errors, and the append action before any write. A confirmation adds valid rows to the existing workspace; delete uses a destructive confirmation with a clear list of affected local records. After deletion, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
+The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The user can also choose a current Yuzuha money CSV for append import or a current JSON export file for replacement restore. CSV previews row count, currency totals, duplicate/reference/format errors, and the append action; JSON previews record counts and the replacement action before any write. Confirmations are required for both paths, and delete uses a destructive confirmation with a clear list of affected local records. After deletion, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
 
 ### Create a recurring money rule
 
@@ -88,7 +88,7 @@ Money includes a recurring-rule form for expense or income, amount, category, ac
 
 ### Restore local data
 
-Data tools accepts a pasted Yuzuha JSON export. Preview shows the total and record groups before any write. Restore is destructive: the user confirms the replacement, and invalid JSON or invalid records leave the current workspace unchanged.
+Data tools accepts a pasted Yuzuha JSON export or a current JSON export file from the system picker. Preview shows the total and record groups before any write. Restore is destructive: the user confirms the replacement, and invalid JSON, invalid records, picker cancellation, or an oversized file leave the current workspace unchanged.
 
 ### Create or restore an encrypted backup
 

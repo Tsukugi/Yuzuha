@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, one-way task calendar drafts, and current-format money CSV import are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, the summary widget, strict local deep links, one-way task calendar drafts, current-format money CSV import, and current JSON export file restore are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -18,7 +18,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Deep links | Open one of four existing Android tabs through a strict local `yuzuha://open/...` route. | Current Android slice. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Open a dated task in the Android system calendar editor as a user-confirmed draft; no read, event ID, or calendar permission. | Current Android slice; two-way read/write remains full product, optional. |
-| File picker | Import/export backups and attachments; import current Yuzuha money CSV with preview and confirmation. | Current Android money import; broader full import remains planned. |
+| File picker | Import/export backups and attachments; import current Yuzuha money CSV or JSON export with preview and confirmation. | Current Android money/JSON import; broader full import remains planned. |
 
 ## Share capture
 
@@ -46,7 +46,7 @@ Two-way calendar reads, event reconciliation, focus-session export, selected cal
 
 ## Import formats
 
-Current Android import accepts one strict format: the current Yuzuha money CSV export. It is copied to cache, bounded, validated, previewed, and appended only after confirmation. It requires current account/category references and rejects split-linked rows; JSON or encrypted backup is required to restore the whole workspace.
+Current Android import accepts two strict formats: the current Yuzuha money CSV export and the current Yuzuha JSON export. CSV is copied to cache, bounded, validated, previewed, and appended only after confirmation. JSON is copied to cache, bounded, validated, previewed by record count, and replaces the workspace only after destructive confirmation. Both paths reject old or incomplete schemas and make no network request.
 
 Later supported import formats should be versioned:
 

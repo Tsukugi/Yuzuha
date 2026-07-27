@@ -1889,3 +1889,35 @@ Known limits:
 - the input must be a current Yuzuha money CSV; arbitrary bank CSV mapping is not implemented;
 - split-linked money rows require JSON export or encrypted backup because CSV has no split-line payload;
 - import history, undo, multi-file import, sync restore, and legacy CSV versions remain planned.
+
+## Implementation review: Android JSON file restore pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- a strict current JSON export file adapter with a bounded 5 MB file size, current MIME checks, system picker cancellation mapping, cache-copy cleanup, and one read before validation;
+- Data tools support for choosing a JSON export file alongside paste, with the existing current-schema parser, record-count preview, and destructive restore confirmation reused without a new data model;
+- invalid, old, incomplete, unsupported, or oversized files leave the current workspace unchanged, and no network request, import record, migration, or background work is added;
+- updated product, architecture, data, UX, security, integration, requirements, testing, release, traceability, and decision documentation.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - JSON file adapter, current JSON validation, picker cancellation, and cache cleanup
+Full Jest                PASS - 45 suites, 186 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - picker, current-schema preview, destructive confirm, restore, and restored note after relaunch
+Phone smoke              PASS - release MainActivity cold launch with no filtered app errors; UI root unavailable by device policy
+Resource cleanup         PASS - temporary JSON fixture removed and both devices force-stopped
+```
+
+Known limits:
+
+- the input must be a current Yuzuha JSON export; encrypted backups use their separate password/recovery-key path;
+- plain JSON exports remain metadata-only for attachments, so complete attachment portability still requires an encrypted backup;
+- arbitrary JSON mapping, merge restore, sync restore, and legacy JSON versions remain planned.

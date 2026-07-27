@@ -8,6 +8,8 @@ Android task calendar drafts are external editor input only. A dated task suppli
 
 Money CSV import is also external file input only. It preserves current money entry IDs and timestamps, requires current account/category references, rejects split-linked rows, and appends validated rows to the existing `money` collection only after confirmation. It adds no import session, schema field, export field, or legacy format.
 
+JSON export file restore is external file input only. It preserves the validated current export data, adds no import session or schema field, and replaces the workspace only after the existing destructive confirmation. The file is bounded and copied to cache only for validation, then removed.
+
 ## Storage rules
 
 - Product records use SQLite with the current schema check. The unreleased build does not migrate old product data.

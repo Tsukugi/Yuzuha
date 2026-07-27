@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android JSON-file-restore pass:
+
+- no app or repository schema change; Data tools now choose one current Yuzuha JSON export through the system picker, copy it to cache, bound and validate it, and reuse the existing record-count preview before replacement;
+- picker cancellation, unsupported or oversized files, malformed JSON, old schemas, and incomplete current records leave the workspace unchanged; destructive confirmation is still required before the replacement save;
+- focused JSON parser/picker coverage, full Jest (45 suites, 186 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator picker/preview/confirm/relaunch smoke, and phone clean-launch smoke passed;
+- current JSON only is supported; encrypted backups remain a separate credential/decryption path, and sync, arbitrary imports, and legacy JSON versions remain out of scope; both devices were force-stopped after testing and the temporary fixture was removed.
+
 2026-07-27 Android money-CSV-import pass:
 
 - no app or repository schema change; Data tools now choose one current Yuzuha money CSV through the system picker, copy it to cache, validate it, and preview row errors and currency totals;

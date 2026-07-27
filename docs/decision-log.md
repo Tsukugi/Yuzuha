@@ -458,3 +458,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Accept only the current Yuzuha money CSV header and app schema. Bound the file to 5 MB and 5,000 rows, parse quoted fields, preserve IDs/timestamps, require current account/category references and matching account currency, reject split-linked rows and duplicates, preview errors/totals, and append only after confirmation in one local save.
 - Reason: The contract gives current users a useful local merge path while keeping JSON/encrypted backup as the complete workspace format. Bounded parsing keeps memory and UI work predictable.
 - Consequence: Arbitrary bank CSV mapping, missing-reference repair, split-row import, import history/undo, multi-file import, sync restore, and legacy CSV versions remain separate future contracts.
+
+## DEC-067: Restore current JSON exports through the system picker
+
+- Context: JSON restore already validates a complete current workspace, previews record counts, and requires destructive confirmation, but the first UI accepted only pasted text. File selection should not force large exports through the clipboard or add a second restore contract.
+- Decision: Accept one `application/json` or `text/json` file through the system picker, copy it to the app cache, enforce a 5 MB bound, read it once, pass it to the existing current-schema parser, remove the cache copy, and reuse the existing preview and confirmed replacement path.
+- Reason: This adds practical local portability with bounded memory and no new data model. The current parser remains the only JSON schema authority, so old or incomplete exports are rejected instead of migrated or guessed.
+- Consequence: Encrypted backups remain on their credential/decryption path. Merge restore, arbitrary JSON mapping, multi-file selection, sync restore, and legacy JSON versions remain separate future contracts.

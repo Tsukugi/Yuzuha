@@ -170,7 +170,7 @@ Add rich notes, links, attachments, saved searches, global capture, reminders, t
 
 ### Phase 4 - Continuity and portability
 
-Add optional encrypted sync, device enrollment, conflict resolution, encrypted backup, recovery, import tools, and data portability. The current Android slice already has a strict current-format money CSV append path; arbitrary bank mapping, import history, and sync restore remain future work.
+Add optional encrypted sync, device enrollment, conflict resolution, encrypted backup, recovery, import tools, and data portability. The current Android slice already has strict current-format money CSV append and current JSON export file restore paths; arbitrary bank mapping, import history, and sync restore remain future work.
 
 ### Phase 5 - Platform and product maturity
 
