@@ -59,6 +59,16 @@ describe('JSON restore validation', () => {
     expect(preview.totalRecords).toBe(13);
   });
 
+  it('rejects current data without the recurring reminder setting', () => {
+    const data = emptyAppData();
+    const envelope = JSON.parse(buildJsonExport(data, '2026-07-26T12:00:00.000Z')) as Record<string, unknown>;
+    const currentData = envelope.data as Record<string, unknown>;
+    const notificationSettings = currentData.notificationSettings as Record<string, unknown>;
+    delete notificationSettings.recurringTaskRemindersEnabled;
+
+    expect(() => parseJsonImport(JSON.stringify(envelope))).toThrow(/app header/i);
+  });
+
   it('rejects saved searches that are not stored in normalized form', () => {
     const data = emptyAppData();
     data.savedSearches.push({

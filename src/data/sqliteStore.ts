@@ -650,8 +650,10 @@ function isNotificationSettingsPayload(value: unknown): value is NotificationSet
   const end = settings.quietHoursEndLocalTime;
   const snoozeDurationMinutes = settings.snoozeDurationMinutes;
   const taskRemindersEnabled = settings.taskRemindersEnabled;
+  const recurringTaskRemindersEnabled = settings.recurringTaskRemindersEnabled;
   if ((start !== null && typeof start !== 'string') || (end !== null && typeof end !== 'string') ||
-      !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes) || typeof taskRemindersEnabled !== 'boolean') {
+      !isValidTaskReminderSnoozeDuration(snoozeDurationMinutes) || typeof taskRemindersEnabled !== 'boolean' ||
+      typeof recurringTaskRemindersEnabled !== 'boolean') {
     return false;
   }
   const startInput = typeof start === 'string' ? start : '';

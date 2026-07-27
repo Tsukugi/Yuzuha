@@ -2260,6 +2260,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [quietHoursEndLocalTime, setQuietHoursEndLocalTime] = useState('');
   const [snoozeDurationMinutes, setSnoozeDurationMinutes] = useState<TaskReminderSnoozeDurationMinutes>(DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES);
   const [taskRemindersEnabled, setTaskRemindersEnabled] = useState(true);
+  const [recurringTaskRemindersEnabled, setRecurringTaskRemindersEnabled] = useState(true);
   const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
   const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
   const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
@@ -2293,7 +2294,8 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setQuietHoursEndLocalTime(data.notificationSettings.quietHoursEndLocalTime ?? '');
     setSnoozeDurationMinutes(data.notificationSettings.snoozeDurationMinutes);
     setTaskRemindersEnabled(data.notificationSettings.taskRemindersEnabled);
-  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime, data?.notificationSettings.snoozeDurationMinutes, data?.notificationSettings.taskRemindersEnabled]);
+    setRecurringTaskRemindersEnabled(data.notificationSettings.recurringTaskRemindersEnabled);
+  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime, data?.notificationSettings.snoozeDurationMinutes, data?.notificationSettings.taskRemindersEnabled, data?.notificationSettings.recurringTaskRemindersEnabled]);
 
   if (!data) {
     return null;
@@ -2446,7 +2448,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     setNotificationSettingsError(null);
     setNotificationSettingsMessage(null);
     try {
-      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime, snoozeDurationMinutes, taskRemindersEnabled);
+      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime, snoozeDurationMinutes, taskRemindersEnabled, recurringTaskRemindersEnabled);
       setNotificationSettingsMessage(taskRemindersEnabled ? (quietHoursStartLocalTime.trim() ? 'Notification settings saved.' : 'Notification settings saved; quiet hours disabled.') : 'Task reminders paused. Reminder times remain saved.');
     } catch (settingsError) {
       setNotificationSettingsError(settingsError instanceof Error ? settingsError.message : 'Notification settings could not be saved.');
@@ -2584,6 +2586,12 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
             <SegmentButton label="Off" selected={!taskRemindersEnabled} onPress={() => setTaskRemindersEnabled(false)} />
           </View>
           <Text style={styles.cardDetail}>Off removes native reminder alarms but keeps reminder times on your tasks.</Text>
+          <Text style={styles.formLabel}>Recurring task reminders</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="On" selected={recurringTaskRemindersEnabled} onPress={() => setRecurringTaskRemindersEnabled(true)} />
+            <SegmentButton label="Off" selected={!recurringTaskRemindersEnabled} onPress={() => setRecurringTaskRemindersEnabled(false)} />
+          </View>
+          <Text style={styles.cardDetail}>Off pauses reminders on tasks created from recurring rules. One-off task reminders stay active.</Text>
           <Text style={styles.searchAccessNote}>Reminders that fall inside quiet hours are delivered at the quiet-hours end.</Text>
           <View style={styles.segmentRow}>
             <TextInput accessibilityLabel="Quiet hours start" placeholder="Start HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} autoCapitalize="none" />

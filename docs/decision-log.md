@@ -332,3 +332,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Accept only current app schema 21, export schema 1 carrying app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2. Seed fresh SQLite databases directly from `emptyAppData()`. Reject older or incomplete data with explicit errors. Do not add an upgrade path until a public release creates a real compatibility obligation.
 - Reason: Compatibility code adds resource cost and hides malformed data through defaults. A fresh unreleased product gets a smaller, clearer boundary and can choose an upgrade contract later with real user data and release support.
 - Consequence: Existing development databases, old JSON exports, and old encrypted backups must be recreated. The next public release needs a deliberate migration or reset policy before it ships.
+
+## DEC-049: Pause recurring-task reminders independently in schema 22
+
+- Context: The global Task reminders switch pauses every task reminder, but recurring-task reminders are a distinct source of interruptions. The app has no public users or released data, so this setting can be added without carrying a compatibility path.
+- Decision: Add required `notificationSettings.recurringTaskRemindersEnabled` to app schema 22, default fresh workspaces to `true`, and expose a separate local On/Off setting in Tasks. Native scheduling is allowed only when the global Task reminders flag is enabled and either the task has no recurrence rule or the recurring-task flag is enabled. Keep logical reminder timestamps when the recurring category is paused.
+- Reason: One deterministic predicate controls startup, restore, recurrence expansion, reminder creation, snooze, task reopen, and rollback behavior. One-off task reminders remain useful when only recurring interruptions are paused.
+- Consequence: Schema 21 data is rejected rather than upgraded. The current policy is local and Android-focused; recurring summaries, timezone rules, iOS reminders, and sync remain separate contracts.

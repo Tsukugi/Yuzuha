@@ -1329,3 +1329,37 @@ Phone smoke              PASS - release APK installed and MainActivity resumed o
 ```
 
 Next pass: define the first public-release upgrade policy or continue with a bounded local product contract, with remote sync kept behind its service boundary.
+
+## Implementation review: recurring-task reminder policy pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 22 adds required `notificationSettings.recurringTaskRemindersEnabled`, defaulting fresh workspaces to `true`;
+- Tasks exposes separate global and recurring-task reminder switches;
+- one deterministic AppStore predicate controls startup, restore, recurrence expansion, reminder creation, snooze, task reopen, and rollback scheduling;
+- turning recurring-task reminders off keeps logical reminder timestamps, clears only linked recurring-task native alarms, and leaves one-off task alarms active;
+- current JSON, encrypted backup, and SQLite boundaries require schema 22 and the new setting; no schema 21 upgrade path was added;
+- implementation, focused policy tests, full tests, lint, typecheck, bundle checks, Android builds, and device smoke were completed.
+
+Known limits:
+
+- no public upgrade path exists yet; the first public release must choose a migration or reset policy before external users receive the app;
+- recurring notification summaries, iOS reminders, account recovery, device enrollment, sync, and broader automation remain planned.
+
+Review evidence is recorded below after the final verification run.
+
+Review evidence:
+
+```text
+Focused policy Jest      PASS - 6 suites, 49 tests
+Full Jest                PASS - 30 suites, 131 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS
+Android builds           PASS - debug and release APKs with Java 17
+Emulator smoke           PASS - clean release install launched MainActivity; Tasks showed the separate recurring-task switch and it remained Off after save/relaunch
+Phone smoke              PASS - clean release install launched MainActivity on 42adce68; touch input remains policy-blocked
+Resource cleanup         PASS - no Gradle/Java build processes or Yuzuha app processes remained after checks
+```

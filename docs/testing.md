@@ -1,18 +1,18 @@
 # Testing strategy
 
-Status: Current test strategy through the latest-only data-boundary pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the recurring-task reminder policy pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 30 Jest suites and 128 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
-- Fresh SQLite startup seeds current app schema 21 data directly; old local database files are rejected by repository schema checks.
+- The current suite is 30 Jest suites and 131 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- Fresh SQLite startup seeds current app schema 22 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
 
-- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, recurring-rule `HH:mm` validation and generated timestamps, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, current-schema validation, invalid import rejection, SQLite round trips, and the create-then-remind, recurring-generated-reminder, quiet-hours rollback, idempotent Complete-action, snooze projection, stale-target, category-pause, and paused-snooze AppStore regressions.
+- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, quiet-hours same-day and overnight projection, quiet-hours validation, recurring-rule `HH:mm` validation and generated timestamps, Android permission handling, schedule/cancel/sync forwarding, cold-start task targets, warm-app task-open and action subscriptions, current-schema validation, invalid import rejection, SQLite round trips, and the create-then-remind, recurring-generated-reminder, quiet-hours rollback, idempotent Complete-action, snooze projection, stale-target, global category-pause, recurring-category filtering, and paused-snooze AppStore regressions.
 - Historical recurring-reminder evidence: Full Jest ran 32 suites and 148 tests before the latest-only cleanup. Current full-suite evidence is recorded above.
 - Emulator `emulator-5554`: a fresh release install created `SmokeReminder`; the task row showed `Reminder 2026-07-28T09:30`, and `dumpsys alarm` showed the stable `dev.yuzuha.TASK_REMINDER` alarm after force-stop/relaunch.
 - Emulator delivery: a near-term reminder delivered after Android's alarm window on channel `task_reminders`; `dumpsys notification` showed `Yuzuha task reminder`, and the alarm was removed after delivery.
@@ -23,6 +23,7 @@ Status: Current test strategy through the latest-only data-boundary pass. Unit t
 - Emulator snooze-duration smoke: Tasks saved `30m`; the delivered notification showed generic `Snooze`, and tapping it removed the notification and scheduled a new alarm about 30 minutes later.
 - Emulator category-pause smoke: Tasks saved Task reminders `Off`; the logical reminder time stayed on the task, `sync([])` removed native schedules, and a stale snooze action did not create a new alarm.
 - Emulator recurring-reminder smoke: the recurring-task form showed an optional `HH:mm` reminder field; a rule-created future task retained its generated reminder and the native alarm projection was visible after save/relaunch.
+- Emulator recurring-category smoke: a clean release install showed separate global and recurring-task reminder switches; turning recurring reminders off persisted the Off state through save and relaunch.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
@@ -61,7 +62,7 @@ Current evidence for the Android snooze-duration policy pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
-- emulator UI dump showed the schema 21 task form, Inbox list, priority controls, due-date and reminder fields, Task reminders On/Off, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed the schema 22 task form, Inbox list, priority controls, due-date and reminder fields, Task reminders On/Off, Recurring task reminders On/Off, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;

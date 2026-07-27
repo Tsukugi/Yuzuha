@@ -130,6 +130,7 @@ describe('AppStore task reminders', () => {
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 30,
         taskRemindersEnabled: true,
+        recurringTaskRemindersEnabled: true,
       },
       tasks: [existingTask],
     } as AppData;
@@ -186,6 +187,7 @@ describe('AppStore task reminders', () => {
         quietHoursEndLocalTime: formatHour(endHour),
         snoozeDurationMinutes: 60,
         taskRemindersEnabled: true,
+        recurringTaskRemindersEnabled: true,
       },
       tasks: [existingTask],
     } as AppData;
@@ -267,6 +269,7 @@ describe('AppStore task reminders', () => {
         quietHoursEndLocalTime: '07:00',
         snoozeDurationMinutes: 30,
         taskRemindersEnabled: true,
+        recurringTaskRemindersEnabled: true,
       },
       tasks: [task],
     } as AppData;
@@ -409,6 +412,109 @@ describe('AppStore task reminders', () => {
     });
     expect(saved.tasks[0]?.reminderAtMillis).toBe(replacementReminderAt);
     expect((store.save as jest.Mock).mock.calls.length).toBe(saveCalls);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
+  it('pauses recurring-task reminders without pausing one-off reminders', async () => {
+    const recurringTask = createTaskRecord(
+      {title: 'Recurring reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_recurring_policy',
+      new Date().toISOString(),
+    );
+    recurringTask.recurrenceRuleId = 'rule_recurring_policy';
+    recurringTask.reminderAtMillis = Date.now() + 60_000;
+    const oneOffTask = createTaskRecord(
+      {title: 'One-off reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_one_off_policy',
+      new Date().toISOString(),
+    );
+    oneOffTask.reminderAtMillis = Date.now() + 120_000;
+    const saved = {
+      ...emptyAppData(),
+      tasks: [recurringTask, oneOffTask],
+      notificationSettings: {
+        ...emptyAppData().notificationSettings,
+        recurringTaskRemindersEnabled: false,
+      },
+    } as AppData;
+    const store = {
+      load: async () => saved,
+      save: async () => undefined,
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(() => null)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(taskReminders.sync).toHaveBeenLastCalledWith([{taskId: oneOffTask.id, triggerAtMillis: oneOffTask.reminderAtMillis}]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
+  it('keeps recurring reminder times saved while the recurring category is paused', async () => {
+    const recurringTask = createTaskRecord(
+      {title: 'Paused recurring reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_recurring_policy_edit',
+      new Date().toISOString(),
+    );
+    recurringTask.recurrenceRuleId = 'rule_recurring_policy_edit';
+    recurringTask.reminderAtMillis = Date.now() + 60_000;
+    const oneOffTask = createTaskRecord(
+      {title: 'Active one-off reminder', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_one_off_policy_edit',
+      new Date().toISOString(),
+    );
+    oneOffTask.reminderAtMillis = Date.now() + 120_000;
+    let saved = {...emptyAppData(), tasks: [recurringTask, oneOffTask]} as AppData;
+    const save = jest.fn(async (next: AppData) => {
+      saved = next;
+    });
+    const store = {
+      load: async () => saved,
+      save,
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const sync = taskReminders.sync as jest.Mock;
+    const schedule = taskReminders.schedule as jest.Mock;
+    sync.mockClear();
+    schedule.mockClear();
+    await act(async () => {
+      await value!.setNotificationQuietHours('', '', 60, true, false);
+    });
+
+    expect(saved.notificationSettings.recurringTaskRemindersEnabled).toBe(false);
+    expect(sync).toHaveBeenLastCalledWith([{taskId: oneOffTask.id, triggerAtMillis: oneOffTask.reminderAtMillis}]);
+
+    const replacementReminderAt = Date.now() + 180_000;
+    await act(async () => {
+      await value!.setTaskReminder(recurringTask.id, replacementReminderAt);
+    });
+    expect(saved.tasks.find(task => task.id === recurringTask.id)?.reminderAtMillis).toBe(replacementReminderAt);
+    expect(schedule).not.toHaveBeenCalled();
+
+    const saveCount = save.mock.calls.length;
+    await act(async () => {
+      await value!.snoozeTaskFromReminder(recurringTask.id);
+    });
+    expect(save.mock.calls.length).toBe(saveCount);
     await act(async () => {
       renderer?.unmount();
     });

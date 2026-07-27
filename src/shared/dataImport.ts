@@ -71,7 +71,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 21) {
+  if (appSchemaVersion !== 22) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -90,8 +90,9 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 21 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
-      !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean') {
+  if (!isRecord(value) || value.schemaVersion !== 22 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+      !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
+      typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
   }
   const data = value as unknown as AppData;

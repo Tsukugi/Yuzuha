@@ -6,9 +6,18 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 recurring-task reminder policy pass:
+
+- app data schema 22 adds required `notificationSettings.recurringTaskRemindersEnabled`, defaulting fresh workspaces to `true`;
+- Tasks now has separate global and recurring-task reminder switches; turning the recurring switch off clears native alarms only for tasks linked to recurring rules, keeps their logical reminder times, and leaves one-off task alarms active;
+- reminder creation, snooze, task reopen, startup, restore, and recurrence expansion all use the same deterministic category rule;
+- JSON import, encrypted backup validation, SQLite persistence, and strict current-record checks require the new setting; old schemas remain rejected because the app has no public users;
+- focused policy tests, full unit tests, lint, typecheck, bundle checks, Android debug/release builds, emulator UI smoke, and phone launch smoke passed;
+- broader notification automation, iOS reminders, and sync remain planned.
+
 2026-07-27 latest-only data-boundary pass:
 
-- the unreleased build accepts app schema 21, export schema 1 with app schema 21 data, encrypted backup schema 2, and SQLite repository schema 2 only;
+- the unreleased build accepts app schema 22, export schema 1 with app schema 22 data, encrypted backup schema 2, and SQLite repository schema 2 only;
 - old app JSON, old encrypted backup envelopes, old SQLite repository schema 1, and incomplete current records are rejected with explicit errors instead of receiving guessed defaults;
 - the legacy AsyncStorage product-data store, migration chain, and unused package dependency were removed; fresh SQLite startup seeds current empty data directly;
 - focused and full Jest tests, lint, typecheck, and bundle checks passed before Android build and smoke verification;
