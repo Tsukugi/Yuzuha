@@ -18,6 +18,7 @@ import type {
   TaskList,
   TaskProject,
   TaskRecurrenceRule,
+  TaskTemplate,
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
@@ -32,6 +33,7 @@ import {validateTaskDependencyDraft} from './taskDependency';
 import {TASK_PROJECT_MAX_NAME_LENGTH} from './projectLifecycle';
 import {validateAppGroupDraft} from './appGroupLifecycle';
 import {validateTaskParentLink} from './taskSubtask';
+import {validateTaskTemplateDraft} from './taskTemplateLifecycle';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -45,6 +47,7 @@ export interface JsonImportRecordCounts {
   attachments: number;
   savedSearches: number;
   projects: number;
+  templates: number;
   taskLists: number;
   taskRecurrences: number;
   tasks: number;
@@ -83,7 +86,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 27) {
+  if (appSchemaVersion !== 28) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -102,7 +105,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 27 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 28 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -120,6 +123,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
   validateUniqueIds('projects', data.projects);
+  validateUniqueIds('task templates', data.templates);
   validateUniqueIds('task lists', data.taskLists);
   validateUniqueIds('task recurrence rules', data.taskRecurrences);
   validateUniqueIds('tasks', data.tasks);
@@ -167,6 +171,15 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
     projectNames.add(normalizedName);
   });
   const projectIds = new Set(data.projects.map(project => project.id));
+  const templateNames = new Set<string>();
+  data.templates.forEach(template => {
+    validateTaskTemplate(template, taskListIds, projectIds);
+    const normalizedName = template.name.toLocaleLowerCase();
+    if (templateNames.has(normalizedName)) {
+      throw new JsonImportError(`Task template ${template.id} duplicates another template name.`);
+    }
+    templateNames.add(normalizedName);
+  });
   const taskListNames = new Set<string>();
   data.taskLists.forEach(taskList => {
     validateTaskList(taskList);
@@ -377,6 +390,22 @@ function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: S
   }
 }
 
+function validateTaskTemplate(template: TaskTemplate, taskListIds: Set<string>, projectIds: Set<string>): void {
+  validateId(template.id, 'task template');
+  const validationError = validateTaskTemplateDraft({
+    name: template.name,
+    title: template.title,
+    details: template.details,
+    priority: template.priority,
+    listId: template.listId,
+    projectId: template.projectId,
+  }, taskListIds, projectIds);
+  if (validationError || template.name.trim() !== template.name || template.title.trim() !== template.title || template.details.trim() !== template.details ||
+      typeof template.isArchived !== 'boolean' || !isIsoDate(template.createdAt) || !isIsoDate(template.updatedAt)) {
+    throw new JsonImportError(`Task template ${template.id} has invalid fields.`);
+  }
+}
+
 function validateTaskDependency(
   dependency: TaskDependency,
   taskIds: Set<string>,
@@ -555,6 +584,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,
     projects: data.projects.length,
+    templates: data.templates.length,
     taskLists: data.taskLists.length,
     taskRecurrences: data.taskRecurrences.length,
     tasks: data.tasks.length,

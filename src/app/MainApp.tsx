@@ -52,13 +52,14 @@ import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {validateAppGroupDraft} from '../shared/appGroupLifecycle';
 import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
+import {validateTaskTemplateDraft, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
 import type {TaskReminderTarget} from '../platform/taskReminders';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -336,6 +337,8 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
       return 'Project';
     case 'task':
       return 'Task';
+    case 'task-template':
+      return 'Task template';
     case 'task-list':
       return 'Task list';
     case 'account':
@@ -2411,7 +2414,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
 }
 
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
-  const {data, addProject, updateProject, setProjectArchived, deleteProject, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
+  const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2436,6 +2439,16 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
   const [busyProjectId, setBusyProjectId] = useState<string | null>(null);
+  const [templateName, setTemplateName] = useState('');
+  const [templateTitle, setTemplateTitle] = useState('');
+  const [templateDetails, setTemplateDetails] = useState('');
+  const [templatePriority, setTemplatePriority] = useState<TaskPriority>('normal');
+  const [templateListId, setTemplateListId] = useState(TASK_INBOX_LIST_ID);
+  const [templateProjectId, setTemplateProjectId] = useState<string | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [templateMessage, setTemplateMessage] = useState<string | null>(null);
+  const [busyTemplateId, setBusyTemplateId] = useState<string | null>(null);
   const [ruleTitle, setRuleTitle] = useState('');
   const [ruleDetails, setRuleDetails] = useState('');
   const [rulePriority, setRulePriority] = useState<TaskPriority>('normal');
@@ -2690,6 +2703,110 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     Alert.alert('Delete project?', `Delete "${project.name}"? Projects with tasks cannot be deleted.`, [
       {text: 'Cancel', style: 'cancel'},
       {text: 'Delete', style: 'destructive', onPress: () => void removeProject(project.id)},
+    ]);
+  }
+
+  function startEditingTemplate(template: TaskTemplate) {
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setTemplateTitle(template.title);
+    setTemplateDetails(template.details);
+    setTemplatePriority(template.priority);
+    setTemplateListId(template.listId);
+    setTemplateProjectId(template.projectId);
+    setTemplateError(null);
+    setTemplateMessage(null);
+  }
+
+  function resetTemplateForm() {
+    setEditingTemplateId(null);
+    setTemplateName('');
+    setTemplateTitle('');
+    setTemplateDetails('');
+    setTemplatePriority('normal');
+    setTemplateListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID && !taskList.isArchived)?.id ?? currentData.taskLists.find(taskList => !taskList.isArchived)?.id ?? TASK_INBOX_LIST_ID);
+    setTemplateProjectId(null);
+    setTemplateError(null);
+  }
+
+  async function saveTemplate() {
+    const draft: TaskTemplateDraft = {
+      name: templateName,
+      title: templateTitle,
+      details: templateDetails,
+      priority: templatePriority,
+      listId: templateListId,
+      projectId: templateProjectId,
+    };
+    const validationError = validateTaskTemplateDraft(draft, taskListIds, projectIds);
+    if (validationError) {
+      setTemplateError(validationError);
+      return;
+    }
+    setTemplateError(null);
+    setTemplateMessage(null);
+    try {
+      if (editingTemplateId) {
+        await updateTaskTemplate(editingTemplateId, draft);
+      } else {
+        await addTaskTemplate(draft);
+      }
+      resetTemplateForm();
+    } catch (saveError) {
+      setTemplateError(saveError instanceof Error ? saveError.message : 'The task template could not be saved.');
+    }
+  }
+
+  async function useTemplate(template: TaskTemplate) {
+    setBusyTemplateId(template.id);
+    setTemplateError(null);
+    setTemplateMessage(null);
+    try {
+      await createTaskFromTemplate(template.id);
+      setTemplateMessage(`Created task from ${template.name}.`);
+    } catch (useError) {
+      setTemplateError(useError instanceof Error ? useError.message : 'The task template could not be used.');
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  async function toggleTemplateArchived(template: TaskTemplate) {
+    setBusyTemplateId(template.id);
+    setTemplateError(null);
+    setTemplateMessage(null);
+    try {
+      await setTaskTemplateArchived(template.id, !template.isArchived);
+      if (!template.isArchived && editingTemplateId === template.id) {
+        resetTemplateForm();
+      }
+    } catch (archiveError) {
+      setTemplateError(archiveError instanceof Error ? archiveError.message : 'The task template archive state could not be changed.');
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  async function removeTemplate(templateId: string) {
+    setBusyTemplateId(templateId);
+    setTemplateError(null);
+    setTemplateMessage(null);
+    try {
+      await deleteTaskTemplate(templateId);
+      if (editingTemplateId === templateId) {
+        resetTemplateForm();
+      }
+    } catch (deleteError) {
+      setTemplateError(deleteError instanceof Error ? deleteError.message : 'The task template could not be deleted.');
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  function confirmDeleteTemplate(template: TaskTemplate) {
+    Alert.alert('Delete task template?', `Delete "${template.name}"? Existing tasks stay.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeTemplate(template.id)},
     ]);
   }
 
@@ -3066,6 +3183,51 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
                 <TextButton label="Edit" onPress={() => startEditingProject(project)} disabled={busyProjectId !== null} />
                 <TextButton label={project.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleProjectArchived(project)} disabled={busyProjectId !== null} />
                 <TextButton label="Delete" danger onPress={() => confirmDeleteProject(project)} disabled={busyProjectId !== null} />
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>{editingTemplateId ? 'Edit task template' : 'Task templates'}</Text>
+          <TextInput accessibilityLabel="Task template name" placeholder="Template name" placeholderTextColor={colors.muted} style={styles.input} value={templateName} onChangeText={setTemplateName} />
+          <TextInput accessibilityLabel="Task template title" placeholder="Task title" placeholderTextColor={colors.muted} style={styles.input} value={templateTitle} onChangeText={setTemplateTitle} />
+          <TextInput accessibilityLabel="Task template details" placeholder="Details (optional)" placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={templateDetails} onChangeText={setTemplateDetails} multiline />
+          <Text style={styles.formLabel}>Priority</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Low" selected={templatePriority === 'low'} onPress={() => setTemplatePriority('low')} />
+            <SegmentButton label="Normal" selected={templatePriority === 'normal'} onPress={() => setTemplatePriority('normal')} />
+            <SegmentButton label="High" selected={templatePriority === 'high'} onPress={() => setTemplatePriority('high')} />
+          </View>
+          <Text style={styles.formLabel}>List</Text>
+          <View style={styles.segmentRow}>
+            {currentData.taskLists.filter(taskList => !taskList.isArchived || taskList.id === templateListId).map(taskList => (
+              <SegmentButton key={taskList.id} label={taskList.name} selected={templateListId === taskList.id} onPress={() => setTemplateListId(taskList.id)} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Project (optional)</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="No project" selected={templateProjectId === null} onPress={() => setTemplateProjectId(null)} />
+            {currentData.projects.filter(project => !project.isArchived || project.id === templateProjectId).map(project => (
+              <SegmentButton key={project.id} label={project.name} selected={templateProjectId === project.id} onPress={() => setTemplateProjectId(project.id)} />
+            ))}
+          </View>
+          {templateError && <Text style={styles.errorText}>{templateError}</Text>}
+          {templateMessage && <Text style={styles.successText}>{templateMessage}</Text>}
+          <PrimaryButton label={editingTemplateId ? 'Update template' : 'Add template'} onPress={() => void saveTemplate()} />
+          {editingTemplateId && <TextButton label="Cancel template edit" onPress={resetTemplateForm} />}
+          {currentData.templates.length === 0 ? (
+            <Text style={styles.cardDetail}>No task templates yet.</Text>
+          ) : currentData.templates.map(template => (
+            <View key={template.id} style={styles.taskListRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{template.name}</Text>
+                <Text style={styles.listMeta}>{template.title} · {template.priority}{template.isArchived ? ' · Archived' : ''}</Text>
+              </View>
+              <View style={styles.taskListActions}>
+                {!template.isArchived && <TextButton label="Use" onPress={() => void useTemplate(template)} disabled={busyTemplateId !== null} />}
+                <TextButton label="Edit" onPress={() => startEditingTemplate(template)} disabled={busyTemplateId !== null} />
+                <TextButton label={template.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleTemplateArchived(template)} disabled={busyTemplateId !== null} />
+                <TextButton label="Delete" danger onPress={() => confirmDeleteTemplate(template)} disabled={busyTemplateId !== null} />
               </View>
             </View>
           ))}

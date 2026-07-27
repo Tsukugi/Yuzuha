@@ -66,6 +66,18 @@ describe('encrypted backups', () => {
       createdAt,
       updatedAt: createdAt,
     });
+    data.templates.push({
+      id: 'template_secret',
+      name: 'Private template',
+      title: 'Review private note',
+      details: 'Keep the source link.',
+      priority: 'normal',
+      listId: 'task_list_inbox',
+      projectId: null,
+      isArchived: false,
+      createdAt,
+      updatedAt: createdAt,
+    });
     data.appGroups.push({
       id: 'app_group_secret',
       name: 'Private apps',

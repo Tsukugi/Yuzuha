@@ -136,4 +136,37 @@ describe('global search', () => {
     data.usageRead.permission = 'granted';
     expect(searchGlobal(data, 'secret', {includeArchived: true}).map(result => result.kind)).toEqual(['note', 'time-goal', 'usage']);
   });
+
+  it('searches active and archived task templates with the archived filter', () => {
+    const data = emptyAppData();
+    data.templates.push(
+      {
+        id: 'template_active',
+        name: 'Morning review',
+        title: 'Review today',
+        details: 'Choose one next action.',
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        projectId: null,
+        isArchived: false,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      },
+      {
+        id: 'template_archived',
+        name: 'Archived review',
+        title: 'Review later',
+        details: '',
+        priority: 'low',
+        listId: 'task_list_inbox',
+        projectId: null,
+        isArchived: true,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      },
+    );
+
+    expect(searchGlobal(data, 'review').filter(result => result.kind === 'task-template').map(result => result.id)).toEqual(['template_active']);
+    expect(searchGlobal(data, 'review', {includeArchived: true}).filter(result => result.kind === 'task-template').map(result => result.id)).toEqual(['template_archived', 'template_active']);
+  });
 });

@@ -388,3 +388,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add schema 27 `Task.parentTaskId`. Allow one optional parent in the same task list, reject missing parents, self-links, and cycles, and promote direct children when a parent is deleted.
 - Reason: A single typed link keeps storage and UI small, supports nested subtasks through the same rule, and gives deletion a deterministic result without preserving a deleted record.
 - Consequence: Cross-list subtasks, templates, recurring subtask trees, cross-device hierarchy merges, and sync remain separate future contracts. Schema 26 data is rejected rather than upgraded.
+
+## DEC-057: Keep task templates local and task-shaped
+
+- Context: Repeated task capture is useful, but a full template engine would need cross-feature payloads, variables, recurrence ownership, and sync conflict rules.
+- Decision: Add schema 28 `TaskTemplate` records with a unique name, task title/details, priority, list, and optional project. Allow edit, archive/restore, delete, and direct creation of a normal task from an active template.
+- Reason: The contract removes repeated typing while keeping one clear source of truth: templates are reusable inputs, and created tasks are ordinary independent records.
+- Consequence: Templates do not copy reminders, due dates, parents, recurrence rules, source-note links, or dynamic variables. Cross-feature templates, template version history, recurring template expansion, and sync remain future contracts. Schema 27 data is rejected rather than upgraded.

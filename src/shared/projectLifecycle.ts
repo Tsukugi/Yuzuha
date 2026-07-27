@@ -1,4 +1,4 @@
-import type {Task, TaskProject, TaskProjectStatus} from '../types/domain';
+import type {Task, TaskProject, TaskProjectStatus, TaskTemplate} from '../types/domain';
 
 export const TASK_PROJECT_MAX_NAME_LENGTH = 80;
 
@@ -51,12 +51,15 @@ export function updateProjectRecord(project: TaskProject, draft: ProjectDraft, t
   return {...project, name: draft.name.trim(), status: draft.status, updatedAt: timestamp};
 }
 
-export function deleteProjectRecord(projects: TaskProject[], tasks: readonly Task[], projectId: string): TaskProject[] {
+export function deleteProjectRecord(projects: TaskProject[], tasks: readonly Task[], projectId: string, templates: readonly TaskTemplate[] = []): TaskProject[] {
   if (!projects.some(project => project.id === projectId)) {
     throw new Error('The project no longer exists.');
   }
   if (tasks.some(task => task.projectId === projectId)) {
     throw new Error('Projects with tasks cannot be deleted.');
+  }
+  if (templates.some(template => template.projectId === projectId)) {
+    throw new Error('Projects with task templates cannot be deleted.');
   }
   return projects.filter(project => project.id !== projectId);
 }

@@ -147,6 +147,19 @@ export interface TaskProject {
   updatedAt: string;
 }
 
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  title: string;
+  details: string;
+  priority: TaskPriority;
+  listId: string;
+  projectId: string | null;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -257,7 +270,7 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 27;
+  schemaVersion: 28;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -270,6 +283,7 @@ export interface AppData {
   attachments: Attachment[];
   savedSearches: SavedSearch[];
   projects: TaskProject[];
+  templates: TaskTemplate[];
   taskLists: TaskList[];
   taskRecurrences: TaskRecurrenceRule[];
   tasks: Task[];
@@ -294,7 +308,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 27,
+  schemaVersion: 28,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -315,6 +329,7 @@ export const emptyAppData = (): AppData => ({
   attachments: [],
   savedSearches: [],
   projects: [],
+  templates: [],
   taskLists: [
     {
       id: 'task_list_inbox',

@@ -1,4 +1,4 @@
-import type {Task, TaskList, TaskRecurrenceRule} from '../types/domain';
+import type {Task, TaskList, TaskRecurrenceRule, TaskTemplate} from '../types/domain';
 import {TASK_INBOX_LIST_ID} from './taskLifecycle';
 
 export {TASK_INBOX_LIST_ID};
@@ -74,7 +74,7 @@ export function setTaskListArchived(lists: TaskList[], listId: string, isArchive
   return lists.map(item => item.id === listId ? {...item, isArchived, updatedAt: timestamp} : item);
 }
 
-export function deleteTaskListRecord(lists: TaskList[], tasks: Task[], listId: string, taskRecurrences: TaskRecurrenceRule[] = []): TaskList[] {
+export function deleteTaskListRecord(lists: TaskList[], tasks: Task[], listId: string, taskRecurrences: TaskRecurrenceRule[] = [], templates: readonly TaskTemplate[] = []): TaskList[] {
   if (listId === TASK_INBOX_LIST_ID) {
     throw new Error('Inbox cannot be deleted.');
   }
@@ -86,6 +86,9 @@ export function deleteTaskListRecord(lists: TaskList[], tasks: Task[], listId: s
   }
   if (taskRecurrences.some(rule => rule.listId === listId)) {
     throw new Error('Recurring tasks use this list. Delete or move them before deleting it.');
+  }
+  if (templates.some(template => template.listId === listId)) {
+    throw new Error('Task templates use this list. Delete or move them before deleting it.');
   }
   return lists.filter(list => list.id !== listId);
 }

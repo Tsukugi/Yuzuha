@@ -121,7 +121,7 @@ Current implementation extension: the user can create, pause/resume, and delete 
 
 | ID | Phase | Requirement | Acceptance condition |
 | --- | --- | --- | --- |
-| TASK-04 | 2 | The user can create projects, subtasks, and dependencies. | Cyclic parent links and dependencies are rejected before save. |
+| TASK-04 | 2 | The user can create projects, subtasks, templates, and dependencies. | Cyclic parent links and dependencies are rejected before save; archived templates cannot create tasks. |
 | TASK-05 | 2 | The user can create recurring task rules. | The missed-occurrence policy is shown and tested. |
 | TASK-06 | 3 | The user can reschedule or snooze reminders. | The old schedule is removed before the new one is stored. |
 | TASK-07 | 3 | The user can create task templates. | Template edits do not mutate already-created tasks. |
@@ -313,13 +313,15 @@ Not yet complete: end-of-month anchor preferences, recurring task rules, notific
 
 ## Latest-only data boundary
 
-This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 27, export schema 1 carrying app schema 27 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
+This section supersedes compatibility claims in the earlier phase-review sections below and above it; those entries record what earlier code did before the latest-only change. The unreleased build accepts app schema 28, export schema 1 carrying app schema 28 data, encrypted backup schema 2, and SQLite repository schema 2 only. Fresh SQLite startup seeds current empty data. Old app data, old encrypted backups, old repository schema 1, and incomplete current records are rejected with explicit errors; no legacy AsyncStorage product-data import or migration chain is shipped. A public release must define an upgrade or reset policy before external users receive the app.
 
 Current task extension: local projects support active/completed status, archive/restore, and reference-safe deletion. Tasks can carry one optional project link, and JSON, encrypted backup, SQLite, and global search preserve and validate that link.
 
 Current focus extension: App Time supports local app groups and one manual focus session at a time. Sessions can link to a task, project, note, and app group, record completed/manual stop state, persist through JSON, encrypted backup, and SQLite, and appear in global search. App groups label package names only; they do not block apps or inspect app content.
 
 Current subtask extension: Tasks support one optional same-list parent link. Missing parents, self-links, cross-list links, and cycles are rejected before save. Deleting a parent promotes its direct children, and the link is validated across JSON import, encrypted backup restore, and SQLite persistence.
+
+Current template extension: Tasks support local templates with unique names, strict title/details/priority/list/project fields, archive/restore, edit/delete, and direct creation of normal tasks. Archived templates cannot be used. Template references keep projects and lists from being deleted, and template data is validated across JSON import, encrypted backup restore, SQLite persistence, and global search.
 
 ## Local recovery-key backup implementation review
 

@@ -85,6 +85,7 @@ Each card opens the source feature. The home screen must not invent a value when
 - Mark a task complete and undo that action.
 - Sort by due date, priority, or manual order.
 - Show overdue, today, upcoming, and completed views.
+- Save local task templates and use active templates to create ordinary tasks.
 - Android supports one optional local reminder per open task, optional local `HH:mm` reminder times on recurring task rules, local daily quiet hours, separate Task reminders and recurring-task reminder category settings, task dependencies with completed-prerequisite blocking, and `Open`/`Complete`/`Snooze` notification actions with a 15/30/60/120-minute policy; broader notification automation and sync remain planned.
 
 ## Success measures

@@ -73,7 +73,7 @@ The outbox is encrypted at rest and bounded. When full, the app stops adding new
 
 ### Export backup
 
-The user can create a password-encrypted Yuzuha backup containing the current app-schema-27 JSON workspace, app groups, focus sessions, task projects and links, task parent links, task dependencies, and verified attachment bytes. Backups use encrypted backup schema 2 and carry attachment ID, size, checksum, and base64 bytes inside the authenticated ciphertext. The total attachment bytes per backup are limited to 32 MiB. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. The password is not stored and the backup is never uploaded automatically. Older encrypted backup schemas are rejected. Plain JSON exports remain metadata-only.
+The user can create a password-encrypted Yuzuha backup containing the current app-schema-28 JSON workspace, app groups, focus sessions, task projects and links, task templates, task parent links, task dependencies, and verified attachment bytes. Backups use encrypted backup schema 2 and carry attachment ID, size, checksum, and base64 bytes inside the authenticated ciphertext. The total attachment bytes per backup are limited to 32 MiB. The app can share the encrypted text through the Android system sheet or save an encrypted JSON file through the system document picker. The password is not stored and the backup is never uploaded automatically. Older encrypted backup schemas are rejected. Plain JSON exports remain metadata-only.
 
 ### Local recovery-key backup
 
@@ -81,7 +81,7 @@ The user can generate a separate recovery-key backup from Data tools. The key is
 
 ### Platform backup
 
-Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 27 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
+Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 28 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
 
 ### Restore flow
 

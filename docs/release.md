@@ -6,6 +6,15 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 local-task-template pass:
+
+- app data schema 28 adds local task templates with strict task-shaped fields; schema 27 data remains rejected because the app has no external users;
+- Tasks can add, edit, archive/restore, delete, and use templates; using one creates an independent open task without a due date, parent, recurrence, reminder, or source-note link;
+- project and task-list deletion remains reference-safe while templates point to those records;
+- JSON import, encrypted backups, SQLite persistence, current-record validation, global search, UX, architecture, requirements, decision, release, and testing docs include the current template contract;
+- focused template/store/boundary tests, full Jest (36 suites, 159 tests), lint, typecheck, bundle validation, Android debug/release builds, clean emulator UI smoke, and clean phone launch smoke passed;
+- clean emulator smoke showed `Task templates`, `Template name`, `Add template`, `Parent task (optional)`, and `No parent`; both devices were force-stopped after the check, with no Gradle/Java processes left running.
+
 2026-07-27 local-task-subtask pass:
 
 - app data schema 27 adds one optional same-list `Task.parentTaskId`; schema 26 data remains rejected because the app has no external users;

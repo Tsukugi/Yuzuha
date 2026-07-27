@@ -1585,3 +1585,36 @@ Known limits:
 
 - subtasks are local same-list links only; cross-list hierarchy, templates, recurring subtask trees, cross-device merges, and sync remain planned;
 - there is no dedicated hierarchy view yet; the current Tasks list shows the parent label and direct-child count.
+
+## Implementation review: local task-template pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 28 adds `TaskTemplate`; no schema 27 upgrade path was added;
+- templates store a unique name, task title/details, priority, list, optional project, archive state, and timestamps;
+- Tasks can add, edit, archive/restore, delete, and use active templates;
+- using a template creates an independent open task with no due date, parent, recurrence, reminder, or source-note link;
+- project and task-list deletion checks template references;
+- JSON import, encrypted backup, SQLite persistence, global search, UX, architecture, requirements, decision, release, and testing docs include the current template contract.
+
+Review evidence:
+
+```text
+Failing test first       PASS - task-template lifecycle import was reproduced as a missing module before implementation
+Focused Jest             PASS - 6 suites, 58 tests for template lifecycle, store, JSON, backup, SQLite, and search behavior
+Full Jest                PASS - 36 suites, 159 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release showed Task templates, Template name, Add template, Parent task (optional), and No parent
+Phone smoke              PASS - clean release opened MainActivity with no fatal or ReactNativeJS error
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- templates are local task-shaped inputs only; dynamic variables, due-date/reminder copying, recurrence ownership, cross-feature templates, version history, and sync remain planned;
+- using a template creates the task immediately; there is no preview or undo action yet.

@@ -741,4 +741,45 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('persists task templates and creates tasks from active templates', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    let templateId = '';
+    let taskId = '';
+    await act(async () => {
+      const projectId = await value!.addProject({name: 'Reviews', status: 'active'});
+      templateId = await value!.addTaskTemplate({name: 'Weekly review', title: 'Review the week', details: 'Choose one next action.', priority: 'high', listId: 'task_list_inbox', projectId});
+      await expect(value!.deleteProject(projectId)).rejects.toThrow(/templates/i);
+      taskId = await value!.createTaskFromTemplate(templateId);
+    });
+    expect(saved.tasks.find(task => task.id === taskId)).toMatchObject({title: 'Review the week', details: 'Choose one next action.', priority: 'high', listId: 'task_list_inbox', projectId: expect.any(String), parentTaskId: null});
+    await act(async () => {
+      await value!.setTaskTemplateArchived(templateId, true);
+      await expect(value!.createTaskFromTemplate(templateId)).rejects.toThrow(/archived/i);
+      await value!.deleteTaskTemplate(templateId);
+    });
+    expect(saved.templates).toEqual([]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

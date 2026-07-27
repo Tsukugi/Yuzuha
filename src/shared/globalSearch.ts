@@ -13,6 +13,7 @@ export type GlobalSearchKind =
   | 'saved-search'
   | 'split'
   | 'task'
+  | 'task-template'
   | 'task-list'
   | 'time-goal'
   | 'transfer'
@@ -47,6 +48,7 @@ const KIND_ORDER: Record<GlobalSearchKind, number> = {
   recurrence: 13,
   'time-goal': 14,
   usage: 15,
+  'task-template': 16,
 };
 
 function includesQuery(query: string, values: Array<string | number | null | undefined>): boolean {
@@ -165,6 +167,17 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         id: task.id,
         title: task.title,
         detail: [task.status, task.details, task.dueLocalDate].filter(Boolean).join(' · '),
+      });
+    }
+  });
+
+  data.templates.forEach(template => {
+    if (isVisible(template.isArchived, includeArchived) && includesQuery(normalizedQuery, [template.name, template.title, template.details, template.priority])) {
+      add('task-template', {
+        id: template.id,
+        title: template.name,
+        detail: `${template.title} · ${template.priority} task template`,
+        isArchived: template.isArchived,
       });
     }
   });

@@ -195,6 +195,27 @@ describe('JSON restore validation', () => {
     expect(preview.recordCounts.projects).toBe(1);
   });
 
+  it('imports a task template and counts it', () => {
+    const data = emptyAppData();
+    data.templates.push({
+      id: 'template_1',
+      name: 'Weekly review',
+      title: 'Review the week',
+      details: 'Choose one next action.',
+      priority: 'high',
+      listId: 'task_list_inbox',
+      projectId: null,
+      isArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
+
+    expect(preview.data.templates).toEqual(data.templates);
+    expect(preview.recordCounts.templates).toBe(1);
+  });
+
   it('imports app groups and a completed focus session with links', () => {
     const data = emptyAppData();
     data.appGroups.push({

@@ -19,6 +19,7 @@ import type {
   TaskDependency,
   TaskList,
   TaskProject,
+  TaskTemplate,
   TaskRecurrenceRule,
   TimeGoal,
   UsageSnapshot,
@@ -177,6 +178,7 @@ type RecordType =
   | 'attachment'
   | 'saved_search'
   | 'project'
+  | 'task_template'
   | 'task_list'
   | 'task_recurrence'
   | 'task'
@@ -387,6 +389,7 @@ export function decodeAppData(
   data.attachments = [];
   data.savedSearches = [];
   data.projects = [];
+  data.templates = [];
   data.taskLists = [];
   data.taskRecurrences = [];
   data.tasks = [];
@@ -476,6 +479,18 @@ export function decodeAppData(
           throw new SqliteDataCorruptError();
         }
         data.projects.push(projectPayload);
+        break;
+      }
+      case 'task_template': {
+        const templatePayload = payload as TaskTemplate;
+        if (typeof templatePayload.name !== 'string' || typeof templatePayload.title !== 'string' || typeof templatePayload.details !== 'string' ||
+            (templatePayload.priority !== 'low' && templatePayload.priority !== 'normal' && templatePayload.priority !== 'high') ||
+            typeof templatePayload.listId !== 'string' ||
+            (templatePayload.projectId !== null && typeof templatePayload.projectId !== 'string') ||
+            typeof templatePayload.isArchived !== 'boolean') {
+          throw new SqliteDataCorruptError();
+        }
+        data.templates.push(templatePayload);
         break;
       }
       case 'task_list':
@@ -661,6 +676,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.attachments.map(attachment => record('attachment', attachment.id, attachment, attachment.updatedAt)),
     ...data.savedSearches.map(savedSearch => record('saved_search', savedSearch.id, savedSearch, savedSearch.updatedAt)),
     ...data.projects.map(project => record('project', project.id, project, project.updatedAt)),
+    ...data.templates.map(template => record('task_template', template.id, template, template.updatedAt)),
     ...data.taskLists.map(taskList => record('task_list', taskList.id, taskList, taskList.updatedAt)),
     ...data.taskRecurrences.map(rule => record('task_recurrence', rule.id, rule, rule.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),

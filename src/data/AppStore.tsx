@@ -18,6 +18,7 @@ import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/not
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createProjectRecord, deleteProjectRecord, setProjectArchived, updateProjectRecord, validateProjectDraft, validateProjectName, type ProjectDraft} from '../shared/projectLifecycle';
+import {createTaskFromTemplateRecord, createTaskTemplateRecord, deleteTaskTemplateRecord, setTaskTemplateArchived, updateTaskTemplateRecord, validateTaskTemplateDraft, validateTaskTemplateName, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
 import {createAppGroupRecord, deleteAppGroupRecord, setAppGroupArchived, updateAppGroupRecord, validateAppGroupDraft, validateAppGroupName, type AppGroupDraft} from '../shared/appGroupLifecycle';
 import {createFocusSessionRecord, finishFocusSession as finishFocusSessionRecord, validateFocusSessionDraft, type FocusSessionDraft, type FocusSessionFinishAction} from '../shared/focusSessionLifecycle';
 import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
@@ -106,6 +107,10 @@ interface AppStoreValue {
   updateProject: (projectId: string, input: ProjectDraft) => Promise<void>;
   setProjectArchived: (projectId: string, isArchived: boolean) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  addTaskTemplate: (input: TaskTemplateDraft) => Promise<string>;
+  updateTaskTemplate: (templateId: string, input: TaskTemplateDraft) => Promise<void>;
+  setTaskTemplateArchived: (templateId: string, isArchived: boolean) => Promise<void>;
+  deleteTaskTemplate: (templateId: string) => Promise<void>;
   addAppGroup: (input: AppGroupDraft) => Promise<string>;
   updateAppGroup: (groupId: string, input: AppGroupDraft) => Promise<void>;
   setAppGroupArchived: (groupId: string, isArchived: boolean) => Promise<void>;
@@ -115,6 +120,7 @@ interface AppStoreValue {
   deleteFocusSession: (sessionId: string) => Promise<void>;
   addTask: (input: TaskDraft) => Promise<string>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
+  createTaskFromTemplate: (templateId: string) => Promise<string>;
   moveTask: (taskId: string, direction: 'up' | 'down') => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   setTaskReminder: (taskId: string, triggerAtMillis: number) => Promise<void>;
@@ -687,7 +693,58 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const deleteProject = useCallback(
     async (projectId: string) => {
-      await commit(current => ({...current, projects: deleteProjectRecord(current.projects, current.tasks, projectId)}));
+      await commit(current => ({...current, projects: deleteProjectRecord(current.projects, current.tasks, projectId, current.templates)}));
+    },
+    [commit],
+  );
+
+  const addTaskTemplate = useCallback(
+    async (input: TaskTemplateDraft): Promise<string> => {
+      const templateId = createId('task_template');
+      await commit(current => {
+        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+        const projectIds = new Set(current.projects.map(project => project.id));
+        const validationError = validateTaskTemplateDraft(input, listIds, projectIds) ?? validateTaskTemplateName(current.templates, input);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const template = createTaskTemplateRecord(input, templateId, new Date().toISOString(), current.templates, listIds, projectIds);
+        return {...current, templates: [template, ...current.templates]};
+      });
+      return templateId;
+    },
+    [commit],
+  );
+
+  const updateTaskTemplate = useCallback(
+    async (templateId: string, input: TaskTemplateDraft) => {
+      await commit(current => {
+        const template = current.templates.find(item => item.id === templateId);
+        if (!template) {
+          throw new Error('The task template no longer exists.');
+        }
+        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+        const projectIds = new Set(current.projects.map(project => project.id));
+        const validationError = validateTaskTemplateDraft(input, listIds, projectIds) ?? validateTaskTemplateName(current.templates, input, templateId);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        return {...current, templates: current.templates.map(item => item.id === templateId ? updateTaskTemplateRecord(template, input, new Date().toISOString(), current.templates, listIds, projectIds) : item)};
+      });
+    },
+    [commit],
+  );
+
+  const setTaskTemplateArchivedAction = useCallback(
+    async (templateId: string, isArchived: boolean) => {
+      await commit(current => ({...current, templates: setTaskTemplateArchived(current.templates, templateId, isArchived, new Date().toISOString())}));
+    },
+    [commit],
+  );
+
+  const deleteTaskTemplate = useCallback(
+    async (templateId: string) => {
+      await commit(current => ({...current, templates: deleteTaskTemplateRecord(current.templates, templateId)}));
     },
     [commit],
   );
@@ -890,6 +947,34 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const createTaskFromTemplate = useCallback(
+    async (templateId: string): Promise<string> => {
+      const taskId = createId('task');
+      const now = new Date().toISOString();
+      await commit(current => {
+        const template = current.templates.find(item => item.id === templateId);
+        if (!template) {
+          throw new Error('The task template no longer exists.');
+        }
+        if (template.isArchived) {
+          throw new Error('Archived task templates cannot be used.');
+        }
+        const taskList = current.taskLists.find(item => item.id === template.listId);
+        if (!taskList) {
+          throw new Error('The template task list no longer exists.');
+        }
+        if (taskList.isArchived) {
+          throw new Error('The template task list is archived.');
+        }
+        const projectIds = new Set(current.projects.map(project => project.id));
+        const task = createTaskFromTemplateRecord(template, taskId, now, nextTaskSortOrder(current.tasks, template.listId), projectIds);
+        return {...current, tasks: [task, ...current.tasks]};
+      });
+      return taskId;
+    },
+    [commit],
+  );
+
   const setTaskReminder = useCallback(
     async (taskId: string, triggerAtMillis: number) => {
       const current = dataRef.current;
@@ -1082,7 +1167,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const deleteTaskList = useCallback(
     async (listId: string) => {
-      await commit(current => ({...current, taskLists: deleteTaskListRecord(current.taskLists, current.tasks, listId, current.taskRecurrences)}));
+      await commit(current => ({...current, taskLists: deleteTaskListRecord(current.taskLists, current.tasks, listId, current.taskRecurrences, current.templates)}));
     },
     [commit],
   );
@@ -1298,6 +1383,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateProject,
       setProjectArchived: setProjectArchivedAction,
       deleteProject,
+      addTaskTemplate,
+      updateTaskTemplate,
+      setTaskTemplateArchived: setTaskTemplateArchivedAction,
+      deleteTaskTemplate,
       addAppGroup,
       updateAppGroup,
       setAppGroupArchived: setAppGroupArchivedAction,
@@ -1309,6 +1398,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateTask,
       moveTask,
       deleteTask,
+      createTaskFromTemplate,
       setTaskReminder,
       deleteTaskReminder,
       completeTaskFromReminder,
@@ -1355,6 +1445,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateProject,
       setProjectArchivedAction,
       deleteProject,
+      addTaskTemplate,
+      updateTaskTemplate,
+      setTaskTemplateArchivedAction,
+      deleteTaskTemplate,
       addAppGroup,
       updateAppGroup,
       setAppGroupArchivedAction,
@@ -1366,6 +1460,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       updateTask,
       moveTask,
       deleteTask,
+      createTaskFromTemplate,
       setTaskReminder,
       deleteTaskReminder,
       completeTaskFromReminder,

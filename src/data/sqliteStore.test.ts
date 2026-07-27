@@ -280,6 +280,18 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.templates.push({
+      id: 'template_work',
+      name: 'Work follow-up',
+      title: 'Follow up with the team',
+      details: 'Use the next action.',
+      priority: 'normal',
+      listId: 'task_list_work',
+      projectId: 'project_work',
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.appGroups.push({
       id: 'app_group_work',
       name: 'Work apps',
@@ -400,7 +412,6 @@ describe('SQLite workspace store', () => {
       }),
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
-
     await expect(store.load()).rejects.toThrow('Yuzuha SQLite data is corrupt.');
   });
 

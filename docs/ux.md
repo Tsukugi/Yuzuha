@@ -42,6 +42,8 @@ Tasks can optionally link to a local project. The Tasks screen can create, renam
 
 Tasks can also have one optional parent task from the same list. The parent selector is hidden for the task being edited, and the save is rejected if the link would cross lists or create a cycle. Task rows show the parent title and direct subtask count. Deleting a parent promotes its direct children; deeper subtasks keep their existing parent links.
 
+The Tasks screen also manages local task templates. A template has a unique name, task title/details, priority, list, and optional project. The user can add, edit, archive/restore, delete, or use an active template. Using one creates a normal open task without a due date, parent, recurrence, reminder, or source-note link. Archived templates stay visible but have no Use action.
+
 The recurring-task form asks for a title, details, first due date, optional local reminder time in `HH:mm`, interval, day/week/month cadence, priority, list, and missed-occurrence policy. Saving stores a local rule. On startup, due rules create open tasks with deterministic rule/date IDs, copy the optional reminder time into each generated task, then advance the next date. All creates every due task, One creates the first due task, and Skip creates none. Rules can be paused/resumed or deleted; deleting a rule keeps existing tasks and clears their rule link. A generated reminder whose local date/time is already past is not scheduled.
 
 The Task view has List and Agenda modes. Agenda shows dated tasks grouped for the next 14 device-local calendar days and keeps completed tasks in their date group. Undated tasks stay in List mode. List mode can sort by Manual, Due date, or Priority. Manual order is stored per task list; the All list view exposes Up and Down controls when Manual sorting is selected, while Due date puts undated tasks last and Priority puts High before Normal before Low. The current agenda does not expose a timezone or week-start preference; those settings are a later product contract.
@@ -139,7 +141,7 @@ The review is a sequence of source-backed cards. Each card can open the source l
 | Home | Dashboard, daily review, weekly review, card settings. |
 | Money | Transactions, entry form, accounts, categories, budgets, goals, reports, imports. |
 | App time | Summary, app groups, goals, focus sessions, permission details. |
-| Notes | Note list, editor, folders, tags, templates, saved searches, attachment picker. |
+| Notes | Note list, editor, folders, tags, saved searches, attachment picker. |
 | Tasks | Inbox, lists, project, calendar, agenda, recurrence rules, templates. |
 | Search | Global search, filters, saved searches, command results. |
 | Settings | Appearance, locale, notifications, permissions, integrations, sync/devices, export/delete, support. |

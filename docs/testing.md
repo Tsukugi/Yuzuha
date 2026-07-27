@@ -1,14 +1,14 @@
 # Testing strategy
 
-Status: Current test strategy through the subtask pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the task-template pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 35 Jest suites and 154 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
-- Fresh SQLite startup seeds current app schema 27 data directly; old local database files are rejected by repository schema checks.
+- The current suite is 36 Jest suites and 159 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
 
@@ -32,6 +32,7 @@ Status: Current test strategy through the subtask pass. Unit tests and Android s
 - Focus coverage: app-group package validation, one-active-session enforcement, link validation, completion/manual-stop states, elapsed duration, AppStore lifecycle, SQLite/JSON/encrypted-backup persistence, and global search.
 - Emulator focus smoke: clean release opened App Time, showed the focus link selectors and app-group controls, started a session without crashing, completed it, and showed the completed session after force-stop/relaunch.
 - Subtask coverage: same-list parent validation, missing-parent and self-link rejection, cycle rejection, AppStore persistence, JSON/SQLite field validation, and direct-child promotion after parent deletion.
+- Template coverage: strict template lifecycle validation, unique names, archive/delete behavior, active-template task creation, project reference protection, JSON import, encrypted-backup round trip, SQLite persistence, and archived/global-search filtering.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
@@ -70,7 +71,7 @@ Current evidence for the Android snooze-duration policy pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
-- emulator UI dump showed the schema 27 task form, Inbox list, priority controls, due-date and reminder fields, project selection, optional parent-task selection, Task reminders On/Off, Recurring task reminders On/Off, dependency controls, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed the schema 28 task form, Inbox list, priority controls, due-date and reminder fields, project selection, optional parent-task selection, task-template controls, Task reminders On/Off, Recurring task reminders On/Off, dependency controls, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;
