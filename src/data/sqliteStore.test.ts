@@ -301,6 +301,28 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.tasks.push({
+      id: 'task_dependent',
+      title: 'Dependent task',
+      details: '',
+      status: 'open',
+      dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_work',
+      sourceNoteId: null,
+      recurrenceRuleId: null,
+      reminderAtMillis: null,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
+    data.taskDependencies.push({
+      id: 'dependency_1',
+      sourceTaskId: 'task_from_note',
+      dependentTaskId: 'task_dependent',
+      dependencyType: 'completed',
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.timeGoals.push({id: 'goal_1', name: 'Focus', period: 'week', targetSeconds: 3600, isArchived: false});
     data.notificationSettings = {quietHoursStartLocalTime: '22:00', quietHoursEndLocalTime: '07:00', snoozeDurationMinutes: 60, taskRemindersEnabled: true, recurringTaskRemindersEnabled: true};
     const database = new MemorySqlite();

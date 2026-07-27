@@ -151,6 +151,17 @@ export interface Task {
   updatedAt: string;
 }
 
+export type TaskDependencyType = 'completed';
+
+export interface TaskDependency {
+  id: string;
+  sourceTaskId: string;
+  dependentTaskId: string;
+  dependencyType: TaskDependencyType;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TaskRecurrenceRule {
   id: string;
   title: string;
@@ -206,7 +217,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 22;
+  schemaVersion: 23;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -221,6 +232,7 @@ export interface AppData {
   taskLists: TaskList[];
   taskRecurrences: TaskRecurrenceRule[];
   tasks: Task[];
+  taskDependencies: TaskDependency[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
   usageExcludedPackages: string[];
@@ -239,7 +251,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 22,
+  schemaVersion: 23,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -270,6 +282,7 @@ export const emptyAppData = (): AppData => ({
   ],
   taskRecurrences: [],
   tasks: [],
+  taskDependencies: [],
   usageSnapshots: [],
   usageRead: {
     permission: 'unknown',

@@ -28,6 +28,7 @@ import {
 } from '../shared/taskRecurrence';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {validateTaskReminderTimestamp} from '../shared/taskReminder';
+import {createTaskDependencyRecord, deleteTaskDependencyRecord, getBlockingTaskIds, validateTaskDependencyDraft} from '../shared/taskDependency';
 import {adjustTaskReminderForQuietHours, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {taskReminders} from '../platform/taskReminders';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
@@ -104,6 +105,8 @@ interface AppStoreValue {
   deleteTaskReminder: (taskId: string) => Promise<void>;
   completeTaskFromReminder: (taskId: string) => Promise<void>;
   snoozeTaskFromReminder: (taskId: string) => Promise<void>;
+  addTaskDependency: (sourceTaskId: string, dependentTaskId: string) => Promise<void>;
+  deleteTaskDependency: (dependencyId: string) => Promise<void>;
   setNotificationQuietHours: (startLocalTime: string, endLocalTime: string, snoozeDurationMinutes?: number, taskRemindersEnabled?: boolean, recurringTaskRemindersEnabled?: boolean) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
@@ -678,7 +681,11 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         await taskReminders.cancel(taskId);
       }
       try {
-        await commit(current => ({...current, tasks: deleteTaskRecord(current.tasks, taskId)}));
+        await commit(current => ({
+          ...current,
+          tasks: deleteTaskRecord(current.tasks, taskId),
+          taskDependencies: current.taskDependencies.filter(dependency => dependency.sourceTaskId !== taskId && dependency.dependentTaskId !== taskId),
+        }));
       } catch (error) {
         if (current && previousReminderAtMillis !== null && previousReminderAtMillis > Date.now() && canScheduleTaskReminder(current, task)) {
           await taskReminders.schedule(taskId, adjustTaskReminderForQuietHours(previousReminderAtMillis, notificationSettings));
@@ -762,6 +769,9 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       if (!current || !task || task.status === 'completed') {
         return;
       }
+      if (getBlockingTaskIds(taskId, current.tasks, current.taskDependencies).length > 0) {
+        return;
+      }
       const reminderAtMillis = task.reminderAtMillis;
       if (reminderAtMillis !== null) {
         await taskReminders.cancel(taskId);
@@ -777,6 +787,31 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         }
         throw error;
       }
+    },
+    [commit],
+  );
+
+  const addTaskDependency = useCallback(
+    async (sourceTaskId: string, dependentTaskId: string) => {
+      const current = dataRef.current;
+      if (!current) {
+        throw new Error('App data is not ready.');
+      }
+      const draft = {sourceTaskId, dependentTaskId};
+      const validationError = validateTaskDependencyDraft(draft, current.tasks, current.taskDependencies);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const timestamp = new Date().toISOString();
+      const dependency = createTaskDependencyRecord(draft, createId('task_dependency'), timestamp);
+      await commit(workspace => ({...workspace, taskDependencies: [dependency, ...workspace.taskDependencies]}));
+    },
+    [commit],
+  );
+
+  const deleteTaskDependency = useCallback(
+    async (dependencyId: string) => {
+      await commit(current => ({...current, taskDependencies: deleteTaskDependencyRecord(current.taskDependencies, dependencyId)}));
     },
     [commit],
   );
@@ -934,6 +969,9 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       const now = new Date().toISOString();
       const completing = task.status === 'open';
       const reminderAtMillis = task.reminderAtMillis;
+      if (completing && getBlockingTaskIds(taskId, current.tasks, current.taskDependencies).length > 0) {
+        throw new Error('Task is blocked by an incomplete dependency.');
+      }
       if (completing && reminderAtMillis !== null) {
         await taskReminders.cancel(taskId);
       } else if (!completing && reminderAtMillis !== null && reminderAtMillis > Date.now() && canScheduleTaskReminder(current, task)) {
@@ -1069,6 +1107,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteTaskReminder,
       completeTaskFromReminder,
       snoozeTaskFromReminder,
+      addTaskDependency,
+      deleteTaskDependency,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,
@@ -1112,6 +1152,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteTaskReminder,
       completeTaskFromReminder,
       snoozeTaskFromReminder,
+      addTaskDependency,
+      deleteTaskDependency,
       setNotificationQuietHours,
       addTaskList,
       updateTaskList,

@@ -14,6 +14,7 @@ import type {
   NotificationSettings,
   SavedSearch,
   Task,
+  TaskDependency,
   TaskList,
   TaskRecurrenceRule,
   TimeGoal,
@@ -175,6 +176,7 @@ type RecordType =
   | 'task_list'
   | 'task_recurrence'
   | 'task'
+  | 'task_dependency'
   | 'usage_snapshot'
   | 'time_goal'
   | 'usage_exclusion';
@@ -381,6 +383,7 @@ export function decodeAppData(
   data.taskLists = [];
   data.taskRecurrences = [];
   data.tasks = [];
+  data.taskDependencies = [];
   data.usageSnapshots = [];
   data.usageExcludedPackages = [];
   data.timeGoals = [];
@@ -480,6 +483,14 @@ export function decodeAppData(
           throw new SqliteDataCorruptError();
         }
         data.tasks.push(taskPayload);
+        break;
+      }
+      case 'task_dependency': {
+        const dependencyPayload = payload as TaskDependency;
+        if (dependencyPayload.dependencyType !== 'completed' || typeof dependencyPayload.sourceTaskId !== 'string' || typeof dependencyPayload.dependentTaskId !== 'string') {
+          throw new SqliteDataCorruptError();
+        }
+        data.taskDependencies.push(dependencyPayload);
         break;
       }
       case 'usage_snapshot':
@@ -608,6 +619,7 @@ function collectNonMoneyRecords(data: AppData): PersistedRecord[] {
     ...data.taskLists.map(taskList => record('task_list', taskList.id, taskList, taskList.updatedAt)),
     ...data.taskRecurrences.map(rule => record('task_recurrence', rule.id, rule, rule.updatedAt)),
     ...data.tasks.map(task => record('task', task.id, task, task.updatedAt)),
+    ...data.taskDependencies.map(dependency => record('task_dependency', dependency.id, dependency, dependency.updatedAt)),
     ...data.usageSnapshots.map(snapshot => record('usage_snapshot', snapshot.id, snapshot, snapshot.sourceReadAt)),
     ...data.timeGoals.map(goal => record('time_goal', goal.id, goal)),
     ...data.recurrences.map(rule => record('recurrence', rule.id, rule, rule.updatedAt)),

@@ -1,6 +1,7 @@
 import {buildJsonExport} from './dataExport';
 import {JsonImportError, parseJsonImport} from './dataImport';
 import {emptyAppData} from '../types/domain';
+import {createTaskDependencyRecord} from './taskDependency';
 
 describe('JSON restore validation', () => {
   it('parses a current export and reports record counts', () => {
@@ -67,6 +68,58 @@ describe('JSON restore validation', () => {
     delete notificationSettings.recurringTaskRemindersEnabled;
 
     expect(() => parseJsonImport(JSON.stringify(envelope))).toThrow(/app header/i);
+  });
+
+  it('imports a valid task dependency and counts it', () => {
+    const data = emptyAppData();
+    data.tasks.push(
+      {
+        id: 'task_source',
+        title: 'Source',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        sourceNoteId: null,
+        recurrenceRuleId: null,
+        reminderAtMillis: null,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      },
+      {
+        id: 'task_dependent',
+        title: 'Dependent',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        sourceNoteId: null,
+        recurrenceRuleId: null,
+        reminderAtMillis: null,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      },
+    );
+    data.taskDependencies.push(createTaskDependencyRecord(
+      {sourceTaskId: 'task_source', dependentTaskId: 'task_dependent'},
+      'dependency_1',
+      '2026-07-26T00:00:00.000Z',
+    ));
+
+    const preview = parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'));
+
+    expect(preview.data.taskDependencies).toEqual(data.taskDependencies);
+    expect(preview.recordCounts.taskDependencies).toBe(1);
+  });
+
+  it('rejects current data without the task dependency collection', () => {
+    const data = emptyAppData();
+    const envelope = JSON.parse(buildJsonExport(data, '2026-07-26T12:00:00.000Z')) as {data: Record<string, unknown>};
+    delete envelope.data.taskDependencies;
+
+    expect(() => parseJsonImport(JSON.stringify({...envelope, exportSchemaVersion: 1, appSchemaVersion: data.schemaVersion, exportedAt: '2026-07-26T12:00:00.000Z'}))).toThrow(/task dependencies/i);
   });
 
   it('rejects saved searches that are not stored in normalized form', () => {

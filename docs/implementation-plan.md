@@ -1363,3 +1363,36 @@ Emulator smoke           PASS - clean release install launched MainActivity; Tas
 Phone smoke              PASS - clean release install launched MainActivity on 42adce68; touch input remains policy-blocked
 Resource cleanup         PASS - no Gradle/Java build processes or Yuzuha app processes remained after checks
 ```
+
+## Implementation review: task-dependency pass
+
+Status: Completed on 2026-07-27.
+
+Scope:
+
+- app schema 23 adds `taskDependencies` with a prerequisite task, dependent task, and `completed` condition;
+- the Tasks screen can add and remove dependency links;
+- self-links, duplicate links, missing task references, and cycles fail before save or restore;
+- an incomplete prerequisite blocks completion while keeping the dependent task open;
+- deleting a task removes its dependency edges in the same local save;
+- JSON, encrypted backup, SQLite, full tests, Android smoke, and release notes were updated in this pass.
+
+Review evidence:
+
+```text
+Failing tests first      PASS - missing dependency module and AppStore action reproduced before implementation
+Focused dependency Jest  PASS - dependency, AppStore, SQLite, import/export, and backup coverage
+Full Jest                PASS - 31 suites, 136 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator dependency     PASS - clean release install created tasks, saved a prerequisite link, and showed the dependent task as blocked
+Phone smoke              PASS - clean release install and MainActivity resumed on 42adce68; touch input remains policy-blocked
+Resource cleanup         PASS - no Gradle/Java build processes or Yuzuha app processes remained after checks
+```
+
+Known limits:
+
+- only the `completed` dependency condition is supported; projects, richer dependency types, sync, and calendar behavior remain planned;
+- no public upgrade path exists; schema 22 data is rejected until a release policy exists.

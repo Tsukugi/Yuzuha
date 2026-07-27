@@ -12,6 +12,7 @@ import type {
   Note,
   SavedSearch,
   Task,
+  TaskDependency,
   TaskList,
   TaskRecurrenceRule,
   TimeGoal,
@@ -24,6 +25,7 @@ import {validateSavedSearchDraft} from './savedSearch';
 import {TASK_LIST_MAX_NAME_LENGTH} from './taskListLifecycle';
 import {isValidTaskReminderSnoozeDuration} from './notificationSettings';
 import {isValidTaskRecurrenceReminderLocalTime} from './taskRecurrence';
+import {validateTaskDependencyDraft} from './taskDependency';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -39,6 +41,7 @@ export interface JsonImportRecordCounts {
   taskLists: number;
   taskRecurrences: number;
   tasks: number;
+  taskDependencies: number;
   usageSnapshots: number;
   timeGoals: number;
 }
@@ -71,7 +74,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 22) {
+  if (appSchemaVersion !== 23) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -90,7 +93,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 22 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 23 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -110,6 +113,7 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   validateUniqueIds('task lists', data.taskLists);
   validateUniqueIds('task recurrence rules', data.taskRecurrences);
   validateUniqueIds('tasks', data.tasks);
+  validateUniqueIds('task dependencies', data.taskDependencies);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
 
@@ -152,6 +156,8 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   });
   data.taskRecurrences.forEach(rule => validateTaskRecurrence(rule, taskListIds));
   data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds));
+  const taskIds = new Set(data.tasks.map(task => task.id));
+  data.taskDependencies.forEach((dependency, index) => validateTaskDependency(dependency, taskIds, data.tasks, data.taskDependencies.slice(0, index)));
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
   data.timeGoals.forEach(validateTimeGoal);
@@ -318,6 +324,27 @@ function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: S
   }
 }
 
+function validateTaskDependency(
+  dependency: TaskDependency,
+  taskIds: Set<string>,
+  tasks: Task[],
+  previousDependencies: TaskDependency[],
+): void {
+  validateId(dependency.id, 'task dependency');
+  if (!taskIds.has(dependency.sourceTaskId) || !taskIds.has(dependency.dependentTaskId) ||
+      dependency.dependencyType !== 'completed' || !isIsoDate(dependency.createdAt) || !isIsoDate(dependency.updatedAt)) {
+    throw new JsonImportError(`Task dependency ${dependency.id} has invalid fields.`);
+  }
+  const validationError = validateTaskDependencyDraft(
+    {sourceTaskId: dependency.sourceTaskId, dependentTaskId: dependency.dependentTaskId},
+    tasks,
+    previousDependencies,
+  );
+  if (validationError) {
+    throw new JsonImportError(`Task dependency ${dependency.id} is invalid: ${validationError}`);
+  }
+}
+
 function validateUsageSnapshot(snapshot: UsageSnapshot): void {
   validateId(snapshot.id, 'usage snapshot');
   if (typeof snapshot.packageName !== 'string' || typeof snapshot.displayName !== 'string' ||
@@ -443,6 +470,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     taskLists: data.taskLists.length,
     taskRecurrences: data.taskRecurrences.length,
     tasks: data.tasks.length,
+    taskDependencies: data.taskDependencies.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,
   };

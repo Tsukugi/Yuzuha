@@ -339,3 +339,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add required `notificationSettings.recurringTaskRemindersEnabled` to app schema 22, default fresh workspaces to `true`, and expose a separate local On/Off setting in Tasks. Native scheduling is allowed only when the global Task reminders flag is enabled and either the task has no recurrence rule or the recurring-task flag is enabled. Keep logical reminder timestamps when the recurring category is paused.
 - Reason: One deterministic predicate controls startup, restore, recurrence expansion, reminder creation, snooze, task reopen, and rollback behavior. One-off task reminders remain useful when only recurring interruptions are paused.
 - Consequence: Schema 21 data is rejected rather than upgraded. The current policy is local and Android-focused; recurring summaries, timezone rules, iOS reminders, and sync remain separate contracts.
+
+## DEC-050: Store completed-prerequisite task dependencies in schema 23
+
+- Context: Tasks need a small ordering contract before projects and richer workflows. A dependency must be local, inspectable, and safe to validate without adding a project or sync model.
+- Decision: Add `taskDependencies` to app schema 23. Each record names a prerequisite task and a dependent task and uses the only current condition, `completed`. Reject missing references, self-links, duplicate links, and cycles. Keep a dependent task open while any prerequisite is incomplete; delete dependency edges when either task is deleted.
+- Reason: A single condition and deterministic graph rule provide useful blocking behavior without pretending to implement projects, subtasks, or remote conflict handling. The source task and dependent task remain ordinary task records.
+- Consequence: Schema 22 data is rejected rather than upgraded. Richer dependency types, projects, cross-feature links, sync, and calendar behavior remain separate contracts.

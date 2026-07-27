@@ -45,6 +45,7 @@ import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
+import {getBlockingTaskIds} from '../shared/taskDependency';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
@@ -2229,7 +2230,7 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
-  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
+  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2264,6 +2265,10 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
   const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
   const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
+  const [dependencySourceTaskId, setDependencySourceTaskId] = useState<string | null>(null);
+  const [dependencyDependentTaskId, setDependencyDependentTaskId] = useState<string | null>(null);
+  const [dependencyError, setDependencyError] = useState<string | null>(null);
+  const [busyDependencyId, setBusyDependencyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!focusTaskId || !data) {
@@ -2457,6 +2462,45 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
   }
 
+  async function saveDependency() {
+    if (!dependencySourceTaskId || !dependencyDependentTaskId) {
+      setDependencyError('Choose the task that must finish and the task that waits.');
+      return;
+    }
+    setBusyDependencyId('new');
+    setDependencyError(null);
+    try {
+      await addTaskDependency(dependencySourceTaskId, dependencyDependentTaskId);
+      setDependencySourceTaskId(null);
+      setDependencyDependentTaskId(null);
+    } catch (dependencySaveError) {
+      setDependencyError(dependencySaveError instanceof Error ? dependencySaveError.message : 'The task dependency could not be saved.');
+    } finally {
+      setBusyDependencyId(null);
+    }
+  }
+
+  async function removeDependency(dependencyId: string) {
+    setBusyDependencyId(dependencyId);
+    setDependencyError(null);
+    try {
+      await deleteTaskDependency(dependencyId);
+    } catch (dependencyDeleteError) {
+      setDependencyError(dependencyDeleteError instanceof Error ? dependencyDeleteError.message : 'The task dependency could not be deleted.');
+    } finally {
+      setBusyDependencyId(null);
+    }
+  }
+
+  async function toggleTaskFromList(taskId: string) {
+    setError(null);
+    try {
+      await toggleTask(taskId);
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : 'The task could not be updated.');
+    }
+  }
+
   async function toggleRule(rule: typeof currentData.taskRecurrences[number]) {
     setBusyRuleId(rule.id);
     setTaskRecurrenceError(null);
@@ -2608,6 +2652,39 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           <PrimaryButton label={savingNotificationSettings ? 'Saving...' : 'Save notification settings'} onPress={() => void saveNotificationSettings()} disabled={savingNotificationSettings} />
         </View>
         <View style={styles.formCard}>
+          <Text style={styles.formLabel}>Task dependencies</Text>
+          <Text style={styles.cardDetail}>Make one task wait until another task is completed. Cycles are rejected.</Text>
+          <Text style={styles.formLabel}>Must finish first</Text>
+          <View style={styles.chipWrap}>
+            {currentData.tasks.map(task => (
+              <ChipButton key={`source-${task.id}`} label={task.title} selected={dependencySourceTaskId === task.id} onPress={() => {setDependencySourceTaskId(task.id); setDependencyError(null);}} />
+            ))}
+          </View>
+          <Text style={styles.formLabel}>Task that waits</Text>
+          <View style={styles.chipWrap}>
+            {currentData.tasks.filter(task => task.id !== dependencySourceTaskId).map(task => (
+              <ChipButton key={`dependent-${task.id}`} label={task.title} selected={dependencyDependentTaskId === task.id} onPress={() => {setDependencyDependentTaskId(task.id); setDependencyError(null);}} />
+            ))}
+          </View>
+          {dependencyError && <Text style={styles.errorText}>{dependencyError}</Text>}
+          <PrimaryButton label={busyDependencyId === 'new' ? 'Saving...' : 'Add dependency'} onPress={() => void saveDependency()} disabled={busyDependencyId !== null || dependencySourceTaskId === null || dependencyDependentTaskId === null} />
+          {currentData.taskDependencies.length === 0 ? (
+            <Text style={styles.cardDetail}>No task dependencies yet.</Text>
+          ) : currentData.taskDependencies.map(dependency => {
+            const sourceTask = currentData.tasks.find(task => task.id === dependency.sourceTaskId);
+            const dependentTask = currentData.tasks.find(task => task.id === dependency.dependentTaskId);
+            return (
+              <View key={dependency.id} style={styles.taskListRow}>
+                <View style={styles.listBody}>
+                  <Text style={styles.listTitle}>{dependentTask?.title ?? 'Deleted task'} waits for {sourceTask?.title ?? 'Deleted task'}</Text>
+                  <Text style={styles.listMeta}>The prerequisite must be completed first.</Text>
+                </View>
+                <TextButton label="Delete" danger onPress={() => void removeDependency(dependency.id)} disabled={busyDependencyId !== null} />
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>
           <TextInput
             accessibilityLabel="Task list name"
@@ -2698,7 +2775,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           const taskList = data.taskLists.find(taskListItem => taskListItem.id === task.listId);
           return (
             <View key={task.id} style={styles.taskRow}>
-              <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTask(task.id)}>
+              <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
                 <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
                   {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
                 </View>
@@ -2707,6 +2784,10 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
                   {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
                   <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
                   {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
+                  {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
+                    const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
+                    return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
+                  })}
                 </View>
               </Pressable>
               <View style={styles.taskActions}>

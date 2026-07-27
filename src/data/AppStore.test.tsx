@@ -519,4 +519,62 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('persists dependencies and blocks completion until the prerequisite is complete', async () => {
+    const sourceTask = createTaskRecord(
+      {title: 'Prerequisite', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_dependency_source',
+      new Date().toISOString(),
+    );
+    const dependentTask = createTaskRecord(
+      {title: 'Dependent', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'},
+      'task_dependency_dependent',
+      new Date().toISOString(),
+    );
+    let saved = {...emptyAppData(), tasks: [sourceTask, dependentTask]} as AppData;
+    const save = jest.fn(async (next: AppData) => {
+      saved = next;
+    });
+    const store = {load: async () => saved, save};
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await value!.addTaskDependency(sourceTask.id, dependentTask.id);
+    });
+    expect(saved.taskDependencies).toHaveLength(1);
+    expect(saved.taskDependencies[0]).toMatchObject({sourceTaskId: sourceTask.id, dependentTaskId: dependentTask.id, dependencyType: 'completed'});
+
+    await act(async () => {
+      await expect(value!.toggleTask(dependentTask.id)).rejects.toThrow(/blocked/i);
+    });
+    expect(saved.tasks.find(task => task.id === dependentTask.id)?.status).toBe('open');
+
+    await act(async () => {
+      await value!.toggleTask(sourceTask.id);
+      await value!.toggleTask(dependentTask.id);
+    });
+    expect(saved.tasks.find(task => task.id === dependentTask.id)?.status).toBe('completed');
+
+    const dependencyId = saved.taskDependencies[0]?.id;
+    expect(dependencyId).toBeDefined();
+    await act(async () => {
+      await value!.deleteTaskDependency(dependencyId as string);
+    });
+    expect(saved.taskDependencies).toEqual([]);
+    expect(save).toHaveBeenCalled();
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });
