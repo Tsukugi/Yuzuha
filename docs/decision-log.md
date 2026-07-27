@@ -346,3 +346,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `taskDependencies` to app schema 23. Each record names a prerequisite task and a dependent task and uses the only current condition, `completed`. Reject missing references, self-links, duplicate links, and cycles. Keep a dependent task open while any prerequisite is incomplete; delete dependency edges when either task is deleted.
 - Reason: A single condition and deterministic graph rule provide useful blocking behavior without pretending to implement projects, subtasks, or remote conflict handling. The source task and dependent task remain ordinary task records.
 - Consequence: Schema 22 data is rejected rather than upgraded. Richer dependency types, projects, cross-feature links, sync, and calendar behavior remain separate contracts.
+
+## DEC-051: Keep the first task agenda device-local and derived
+
+- Context: Tasks already store validated local due dates, but the List view makes dated work harder to scan. A full calendar needs timezone, week-start, integration, and preference contracts that are not yet selected.
+- Decision: Add a derived Agenda mode that groups tasks with due dates for the next 14 device-local calendar days. Include open and completed tasks in their date group, leave undated tasks in List mode, and do not add a schema field or persisted projection.
+- Reason: The user gets a useful planning view without duplicating task data or inventing timezone behavior. The fixed bounded window is easy to test and keeps rendering work small.
+- Consequence: Selected timezone/week-start preferences, month/week navigation, calendar integration, and remote agenda state remain planned.

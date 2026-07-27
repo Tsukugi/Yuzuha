@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the task-dependency pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the device-local task-agenda pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 31 Jest suites and 136 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 32 Jest suites and 138 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 23 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -25,6 +25,7 @@ Status: Current test strategy through the task-dependency pass. Unit tests and A
 - Emulator recurring-reminder smoke: the recurring-task form showed an optional `HH:mm` reminder field; a rule-created future task retained its generated reminder and the native alarm projection was visible after save/relaunch.
 - Emulator recurring-category smoke: a clean release install showed separate global and recurring-task reminder switches; turning recurring reminders off persisted the Off state through save and relaunch.
 - Emulator dependency smoke: a clean release install created prerequisite and dependent tasks, saved the dependency, and showed `Blocked by PrereqSmoke` while the dependent remained open.
+- Emulator agenda smoke: a clean release install opened Tasks, switched to Agenda, and showed the device-local dated-task agenda.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests

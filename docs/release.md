@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 device-local task-agenda pass:
+
+- no app schema change; the Agenda mode is a derived view over existing task `dueLocalDate` values;
+- the Tasks screen groups dated open and completed tasks for the next 14 device-local calendar days and leaves undated tasks in List mode;
+- unit tests cover local-window grouping, stable task order, invalid dates, and bounded window length;
+- focused and full Jest tests, lint, typecheck, bundle checks, Android debug/release builds, emulator UI smoke, and phone launch smoke passed;
+- selected timezone/week-start preferences, month navigation, calendar integration, and sync remain planned.
+
 2026-07-27 task-dependency pass:
 
 - app data schema 23 adds `taskDependencies` with the `completed` prerequisite condition;

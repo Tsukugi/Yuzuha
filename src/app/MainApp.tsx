@@ -46,6 +46,7 @@ import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
 import {getBlockingTaskIds} from '../shared/taskDependency';
+import {buildTaskAgenda} from '../shared/taskAgenda';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
@@ -2229,6 +2230,14 @@ function formatBytes(byteSize: number): string {
   return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string {
+  if (localDate === todayLocalDate) {
+    return 'Today';
+  }
+  const [year, month, day] = localDate.split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, {weekday: 'long', month: 'short', day: 'numeric'}).format(new Date(year, month - 1, day));
+}
+
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
   const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
@@ -2239,6 +2248,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskFilter>('all');
+  const [showAgenda, setShowAgenda] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -2308,7 +2318,9 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
 
   const currentData = data;
   const taskListIds = new Set(currentData.taskLists.map(taskList => taskList.id));
-  const visibleTasks = filterTasks(currentData.tasks, filter, localDateKey(new Date()));
+  const todayLocalDate = localDateKey(new Date());
+  const visibleTasks = filterTasks(currentData.tasks, filter, todayLocalDate);
+  const agendaDays = buildTaskAgenda(currentData.tasks, todayLocalDate, 14);
 
   function resetForm() {
     setTitle('');
@@ -2592,6 +2604,34 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     ]);
   }
 
+  function renderTaskRow(task: Task) {
+    const sourceLabel = getTaskSourceLabel(task, currentData.notes);
+    const taskList = currentData.taskLists.find(taskListItem => taskListItem.id === task.listId);
+    return (
+      <View key={task.id} style={styles.taskRow}>
+        <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
+          <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
+            {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <View style={styles.listBody}>
+            <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
+            {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
+            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
+            {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
+            {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
+              const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
+              return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
+            })}
+          </View>
+        </Pressable>
+        <View style={styles.taskActions}>
+          <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
+          <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -2762,41 +2802,35 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
         </View>
         <SectionTitle title="Task view" />
         <View style={styles.segmentRow}>
-          <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
-          <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
-          <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
-          <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
+          <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
+          <SegmentButton label="Agenda" selected={showAgenda} onPress={() => setShowAgenda(true)} />
         </View>
-        {visibleTasks.length === 0 ? (
-          <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
-        ) : visibleTasks.map(task => {
-          const sourceLabel = getTaskSourceLabel(task, data.notes);
-          const taskList = data.taskLists.find(taskListItem => taskListItem.id === task.listId);
-          return (
-            <View key={task.id} style={styles.taskRow}>
-              <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
-                <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
-                  {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <View style={styles.listBody}>
-                  <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
-                  {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
-                  <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
-                  {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
-                  {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
-                    const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
-                    return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
-                  })}
-                </View>
-              </Pressable>
-              <View style={styles.taskActions}>
-                <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
-                <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
+        {showAgenda ? (
+          <View>
+            <Text style={styles.searchAccessNote}>Due tasks for the next 14 device-local calendar days.</Text>
+            {agendaDays.length === 0 ? (
+              <EmptyState text="No dated tasks in the next 14 days." />
+            ) : agendaDays.map(day => (
+              <View key={day.localDate}>
+                <SectionTitle title={formatTaskAgendaDay(day.localDate, todayLocalDate)} />
+                {day.tasks.map(renderTaskRow)}
               </View>
+            ))}
+          </View>
+        ) : (
+          <View>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
+              <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
+              <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
+              <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
+              <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
             </View>
-          );
-        })}
+            {visibleTasks.length === 0 ? (
+              <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
+            ) : visibleTasks.map(renderTaskRow)}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

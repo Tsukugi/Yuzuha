@@ -1396,3 +1396,33 @@ Known limits:
 
 - only the `completed` dependency condition is supported; projects, richer dependency types, sync, and calendar behavior remain planned;
 - no public upgrade path exists; schema 22 data is rejected until a release policy exists.
+
+## Implementation review: device-local task-agenda pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- added a derived Agenda mode to Tasks;
+- grouped open and completed tasks with due dates for the next 14 device-local calendar days;
+- kept undated tasks in List mode and preserved source task order within each date;
+- added bounded local-window unit tests without changing app schema 23;
+- updated the task UX, data model, architecture, requirements, decision log, release notes, and testing evidence.
+
+Review evidence:
+
+```text
+Failing tests first      PASS - missing agenda module reproduced before implementation
+Full Jest                PASS - 32 suites, 138 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator agenda smoke    PASS - clean release install opened Tasks, Agenda mode, and the local agenda UI
+Phone smoke              PASS - clean release install and MainActivity resumed on 42adce68; touch input remains policy-blocked
+Resource cleanup         PASS - no Gradle/Java build processes or Yuzuha app processes remained after checks
+```
+
+Known limits:
+
+- no timezone or week-start preference, month navigation, calendar integration, or sync is included in this bounded pass.

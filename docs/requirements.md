@@ -377,7 +377,7 @@ Note-to-task conversion is implemented and verified:
 - deleting the source note leaves the task and its source ID, so the task can show `Deleted note`;
 - schema 13 tasks migrate to schema 14 with `sourceNoteId: null`.
 
-Task lifecycle basics are implemented and verified: create, edit, complete/reopen, delete after confirmation, due date, priority, Inbox list, and All/Overdue/Today/Upcoming/Completed views. Recurring task rules, task dependencies with cycle rejection and completed-prerequisite blocking, one-off Android local reminders, the local 15/30/60/120-minute snooze setting, separate global and recurring-task reminder categories, and the local `Open`/`Complete`/`Snooze` reminder actions are implemented; broader notification automation and remote sync remain planned.
+Task lifecycle basics are implemented and verified: create, edit, complete/reopen, delete after confirmation, due date, priority, Inbox list, All/Overdue/Today/Upcoming/Completed views, and a device-local 14-day Agenda view. Recurring task rules, task dependencies with cycle rejection and completed-prerequisite blocking, one-off Android local reminders, the local 15/30/60/120-minute snooze setting, separate global and recurring-task reminder categories, and the local `Open`/`Complete`/`Snooze` reminder actions are implemented; selected timezone/week-start settings, broader notification automation, and remote sync remain planned.
 
 ## Portable encrypted attachment implementation review
 
