@@ -1067,4 +1067,37 @@ Known limits:
 
 - no quiet hours, snooze, notification actions, recurring-rule notifications, iOS reminders, account recovery, or sync.
 
-Next pass: review and commit the reminder pass.
+Next pass: reminder deep-link handling, with broader notification automation and account/device recovery kept behind separate contracts.
+
+## Implementation review: task-reminder deep-link pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- typed JavaScript bridge methods for the initial task ID and warm-app task-open events;
+- Android native notification intents carrying the stable task ID;
+- one-time cold-start intent consumption and warm `MainActivity.onNewIntent` event delivery;
+- MainApp routing to Tasks and task-form loading for the matching task;
+- missing task IDs ignored without changing workspace data;
+- no schema, permission, or minimum-OS change.
+
+Review evidence:
+
+```text
+Focused bridge tests     PASS - cold-start getter and warm-app subscription coverage
+Full Jest                PASS - 31 suites, 127 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator tap smoke       PASS - delivered notification reopened DeepLinkSmoke in edit mode with its reminder
+Emulator cold start      PASS - explicit task intent routed to Tasks without app errors
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- iOS notification intents, quiet hours, snooze, notification actions, recurring-rule notifications, account recovery, and sync remain planned.
+
+Next pass: account/device recovery design or the next local notification contract, with remote sync kept behind its service boundary.

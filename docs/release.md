@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 task-reminder deep-link pass:
+
+- notification content intents carry the stable task ID;
+- cold starts read and consume the initial task ID, while warm Android launches emit the task ID to JavaScript;
+- tapping a task reminder opens the matching task in the Tasks edit form;
+- no schema, permission, or minimum-OS change;
+- iOS notification intents, quiet hours, snooze, action buttons, recurring-rule notifications, and sync remain planned.
+
 2026-07-27 task-reminder pass:
 
 - app data schema 17 adds nullable task `reminderAtMillis`, with schema 16 tasks migrating to no reminder;

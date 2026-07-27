@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -50,6 +50,7 @@ import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/t
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
+import {taskReminders} from '../platform/taskReminders';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -72,6 +73,32 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+
+  const openReminderTask = useCallback((taskId: string) => {
+    setPendingTaskId(taskId);
+    setDataToolsOpen(false);
+    setGlobalSearchOpen(false);
+    setTab('tasks');
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const subscription = taskReminders.onTaskReminderOpened(taskId => {
+      if (mounted) {
+        openReminderTask(taskId);
+      }
+    });
+    void taskReminders.getPendingTaskId().then(taskId => {
+      if (mounted && taskId) {
+        openReminderTask(taskId);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, [openReminderTask]);
 
   if (isLoading || !data) {
     return <LoadingScreen message="Opening your local workspace..." />;
@@ -101,7 +128,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
             {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} />}
             {tab === 'money' && <MoneyScreen />}
             {tab === 'notes' && <NotesScreen />}
-            {tab === 'tasks' && <TasksScreen />}
+            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} onFocusHandled={() => setPendingTaskId(null)} />}
             {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} />}
           </>
         )}
@@ -2166,7 +2193,7 @@ function formatBytes(byteSize: number): string {
   return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function TasksScreen() {
+function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
   const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -2193,6 +2220,27 @@ function TasksScreen() {
   const [rulePolicy, setRulePolicy] = useState<MissedOccurrencePolicy>('all');
   const [taskRecurrenceError, setTaskRecurrenceError] = useState<string | null>(null);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusTaskId || !data) {
+      return;
+    }
+    const task = data.tasks.find(item => item.id === focusTaskId);
+    if (!task) {
+      onFocusHandled();
+      return;
+    }
+    setFilter('all');
+    setTitle(task.title);
+    setDetails(task.details);
+    setDueLocalDate(task.dueLocalDate ?? '');
+    setReminderAtLocalDateTime(task.reminderAtMillis === null ? '' : formatTaskReminderLocalDateTime(task.reminderAtMillis));
+    setPriority(task.priority);
+    setListId(task.listId);
+    setEditingTaskId(task.id);
+    setError(null);
+    onFocusHandled();
+  }, [data, focusTaskId, onFocusHandled]);
 
   if (!data) {
     return null;

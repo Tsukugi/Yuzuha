@@ -40,7 +40,7 @@ The form asks for a title and optional details, local due date, priority, and li
 
 The recurring-task form asks for a title, details, first due date, interval, day/week/month cadence, priority, list, and missed-occurrence policy. Saving stores a local rule. On startup, due rules create open tasks with deterministic rule/date IDs, then advance the next date. All creates every due task, One creates the first due task, and Skip creates none. Rules can be paused/resumed or deleted; deleting a rule keeps existing tasks and clears their rule link.
 
-The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder, and the notification uses generic text rather than task details.
+The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder. The notification uses generic text rather than task details; tapping it opens the matching task in edit mode.
 
 ### Search notes
 

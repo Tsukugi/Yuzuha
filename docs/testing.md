@@ -6,10 +6,11 @@ Status: Current test strategy through the Android task-reminder pass. Unit tests
 
 ## Task reminder evidence
 
-- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, Android permission handling, schedule/cancel/sync forwarding, schema 16 to 17 migration, invalid import rejection, SQLite round trips, and the create-then-remind AppStore regression.
-- Full Jest: 31 suites and 126 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
+- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, Android permission handling, schedule/cancel/sync forwarding, cold-start task ID reads, warm-app task-open subscriptions, schema 16 to 17 migration, invalid import rejection, SQLite round trips, and the create-then-remind AppStore regression.
+- Full Jest: 31 suites and 127 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
 - Emulator `emulator-5554`: a fresh release install created `SmokeReminder`; the task row showed `Reminder 2026-07-28T09:30`, and `dumpsys alarm` showed the stable `dev.yuzuha.TASK_REMINDER` alarm after force-stop/relaunch.
 - Emulator delivery: a near-term reminder delivered after Android's alarm window on channel `task_reminders`; `dumpsys notification` showed `Yuzuha task reminder`, and the alarm was removed after delivery.
+- Emulator deep link: tapping the delivered notification reopened Tasks with `DeepLinkSmoke` and its saved reminder in edit mode; cold-start and warm-app intent paths produced no filtered app errors.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests

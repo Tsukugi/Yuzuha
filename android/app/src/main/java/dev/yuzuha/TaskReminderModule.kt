@@ -5,8 +5,14 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.modules.core.DeviceEventManagerModule
+import android.content.Intent
 
 class TaskReminderModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+  init {
+    current = this
+  }
+
   override fun getName(): String = "YuzuhaTaskReminders"
 
   @ReactMethod
@@ -56,6 +62,38 @@ class TaskReminderModule(private val context: ReactApplicationContext) : ReactCo
       promise.resolve(true)
     } catch (error: Exception) {
       promise.reject("TASK_REMINDER_SYNC_FAILED", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun getInitialTaskReminderId(promise: Promise) {
+    val activity = getReactApplicationContext().getCurrentActivity()
+    val taskId = activity?.intent?.getStringExtra(TASK_REMINDER_ID_EXTRA)
+    activity?.intent?.removeExtra(TASK_REMINDER_ID_EXTRA)
+    promise.resolve(taskId?.takeIf { it.isNotBlank() })
+  }
+
+  override fun invalidate() {
+    if (current === this) {
+      current = null
+    }
+    super.invalidate()
+  }
+
+  private fun emitTaskReminderOpened(taskId: String) {
+    context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(TASK_REMINDER_OPENED_EVENT, taskId)
+  }
+
+  companion object {
+    const val TASK_REMINDER_ID_EXTRA = "taskId"
+    const val TASK_REMINDER_OPENED_EVENT = "YuzuhaTaskReminderOpened"
+    private var current: TaskReminderModule? = null
+
+    fun handleActivityIntent(intent: Intent) {
+      val taskId = intent.getStringExtra(TASK_REMINDER_ID_EXTRA)?.takeIf { it.isNotBlank() } ?: return
+      intent.removeExtra(TASK_REMINDER_ID_EXTRA)
+      current?.emitTaskReminderOpened(taskId)
     }
   }
 }

@@ -1,4 +1,4 @@
-import {NativeModules, PermissionsAndroid} from 'react-native';
+import {DeviceEventEmitter, NativeModules, PermissionsAndroid} from 'react-native';
 import {beforeEach} from '@jest/globals';
 import {TaskReminderError, taskReminders} from './taskReminders';
 
@@ -8,7 +8,11 @@ jest.mock('react-native', () => ({
       scheduleTaskReminder: jest.fn(),
       cancelTaskReminder: jest.fn(),
       syncTaskReminders: jest.fn(),
+      getInitialTaskReminderId: jest.fn(),
     },
+  },
+  DeviceEventEmitter: {
+    addListener: jest.fn(() => ({remove: jest.fn()})),
   },
   PermissionsAndroid: {
     PERMISSIONS: {POST_NOTIFICATIONS: 'android.permission.POST_NOTIFICATIONS'},
@@ -23,6 +27,7 @@ const native = NativeModules.YuzuhaTaskReminders as {
   scheduleTaskReminder: jest.Mock;
   cancelTaskReminder: jest.Mock;
   syncTaskReminders: jest.Mock;
+  getInitialTaskReminderId: jest.Mock;
 };
 
 describe('task reminder bridge', () => {
@@ -33,6 +38,7 @@ describe('task reminder bridge', () => {
     native.scheduleTaskReminder.mockResolvedValue(true);
     native.cancelTaskReminder.mockResolvedValue(true);
     native.syncTaskReminders.mockResolvedValue(true);
+    native.getInitialTaskReminderId.mockResolvedValue(null);
   });
 
   it('requests notification permission before scheduling', async () => {
@@ -56,5 +62,16 @@ describe('task reminder bridge', () => {
 
     expect(native.cancelTaskReminder).toHaveBeenCalledWith('task_1');
     expect(native.syncTaskReminders).toHaveBeenCalledWith([{taskId: 'task_2', triggerAtMillis: 1780000000000}]);
+  });
+
+  it('reads a pending task ID and subscribes to warm-app task opens', async () => {
+    native.getInitialTaskReminderId.mockResolvedValue('task_3');
+    await expect(taskReminders.getPendingTaskId()).resolves.toBe('task_3');
+
+    const listener = jest.fn();
+    const subscription = taskReminders.onTaskReminderOpened(listener);
+
+    expect(DeviceEventEmitter.addListener).toHaveBeenCalledWith('YuzuhaTaskReminderOpened', listener);
+    expect(subscription).toHaveProperty('remove');
   });
 });

@@ -59,7 +59,7 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | TASK-03 | The user can view overdue, today, upcoming, and completed tasks. | Each view uses one documented timezone and completion rule. |
 | TASK-04 | The user can create, rename, archive, restore, and delete custom task lists. | Inbox cannot be archived/deleted, and a list with tasks cannot be deleted. |
 
-Current implementation extension: the user can create, pause/resume, and delete date-based recurring task rules. Startup creates due open tasks using the stored All, One, or Skip missed-occurrence policy. A task list with a rule cannot be deleted. An open task can have one optional future Android local reminder; permission is explicit, and completing, deleting, clearing, or replacing the reminder removes the old native schedule.
+Current implementation extension: the user can create, pause/resume, and delete date-based recurring task rules. Startup creates due open tasks using the stored All, One, or Skip missed-occurrence policy. A task list with a rule cannot be deleted. An open task can have one optional future Android local reminder; permission is explicit, completing, deleting, clearing, or replacing the reminder removes the old native schedule, and tapping the notification opens the matching task in edit mode.
 
 ## Quality requirements
 

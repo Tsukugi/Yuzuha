@@ -4,7 +4,7 @@ Status: Android task reminders are implemented; broader notification and automat
 
 ## Current Android scope
 
-The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe and opens Yuzuha; quiet hours, snooze, action buttons, recurring-rule notifications, and sync are not implemented.
+The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe, and tapping it opens the matching task in edit mode on Android. Quiet hours, snooze, action buttons, recurring-rule notifications, and sync are not implemented.
 
 ## Principles
 
@@ -30,11 +30,11 @@ The current release supports one optional local reminder on each open task. The 
 
 ## Task reminders
 
-Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data.
+Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data. The notification content intent carries the stable task ID; cold starts use the initial-intent getter, and warm app launches use a native event before the Tasks form loads that task.
 
 The full-product target adds explicit timezone, notification category, snooze policy, quiet hours, and action buttons. Those fields are not in schema 17.
 
-Actions are `Complete`, `Snooze`, and `Open`. Actions must verify the task still exists and is in the expected state before applying.
+The full-product target actions are `Complete`, `Snooze`, and `Open`. Actions must verify the task still exists and is in the expected state before applying; the current Android pass ships only the notification tap-to-open path.
 
 ## Recurring work
 

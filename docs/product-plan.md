@@ -85,7 +85,7 @@ Each card opens the source feature. The home screen must not invent a value when
 - Mark a task complete and undo that action.
 - Sort by due date, priority, or manual order.
 - Show overdue, today, upcoming, and completed views.
-- Reminders are planned after the basic task flow is stable.
+- Android supports one optional local reminder per open task after the basic task flow; broader notification actions, quiet hours, and sync remain planned.
 
 ## Success measures
 

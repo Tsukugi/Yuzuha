@@ -18,14 +18,13 @@ class TaskReminderReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     when (intent.action) {
       ACTION_BOOT_COMPLETED -> rescheduleAll(context)
-      ACTION_TASK_REMINDER -> intent.getStringExtra(EXTRA_TASK_ID)?.let { showReminder(context, it) }
+      ACTION_TASK_REMINDER -> intent.getStringExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA)?.let { showReminder(context, it) }
     }
   }
 
   companion object {
     private const val PREFS_NAME = "yuzuha_task_reminders"
     private const val CHANNEL_ID = "task_reminders"
-    private const val EXTRA_TASK_ID = "taskId"
     const val ACTION_TASK_REMINDER = "dev.yuzuha.TASK_REMINDER"
     const val ACTION_BOOT_COMPLETED = "android.intent.action.BOOT_COMPLETED"
 
@@ -83,7 +82,7 @@ class TaskReminderReceiver : BroadcastReceiver() {
     private fun pendingIntent(context: Context, taskId: String): PendingIntent {
       val intent = Intent(context, TaskReminderReceiver::class.java).apply {
         action = ACTION_TASK_REMINDER
-        putExtra(EXTRA_TASK_ID, taskId)
+        putExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA, taskId)
       }
       return PendingIntent.getBroadcast(
         context,
@@ -102,7 +101,7 @@ class TaskReminderReceiver : BroadcastReceiver() {
       createChannel(context)
       val openIntent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        putExtra(EXTRA_TASK_ID, taskId)
+        putExtra(TaskReminderModule.TASK_REMINDER_ID_EXTRA, taskId)
       }
       val openPendingIntent = PendingIntent.getActivity(
         context,

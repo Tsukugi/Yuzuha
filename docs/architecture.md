@@ -105,7 +105,7 @@ Global search is a derived local projection over the loaded `AppData`; it does n
 
 Tasks created from notes store `sourceNoteId` in the task record. The source note is not changed, and a missing source ID remains valid so the Tasks screen can show `Deleted note` after the source is removed.
 
-Recurring tasks store their own title, details, priority, list, local cadence, interval, next date, missed-occurrence policy, and pause state. Startup expansion creates open task records for due dates and advances the rule beyond every missed date in one repository save. Open tasks can store one future local reminder timestamp. The Android adapter schedules it with a stable task ID, cancels it on completion/delete/clear, posts privacy-safe notification text, and rebuilds alarms after boot. Broader notification settings, background automation, templates, and series editing remain planned.
+Recurring tasks store their own title, details, priority, list, local cadence, interval, next date, missed-occurrence policy, and pause state. Startup expansion creates open task records for due dates and advances the rule beyond every missed date in one repository save. Open tasks can store one future local reminder timestamp. The Android adapter schedules it with a stable task ID, cancels it on completion/delete/clear, posts privacy-safe notification text, rebuilds alarms after boot, and passes the task ID through cold-start and warm-app notification intents so the Tasks screen opens the matching task in edit mode. Broader notification settings, background automation, templates, and series editing remain planned.
 
 ## Error boundaries
 

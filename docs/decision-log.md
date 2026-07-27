@@ -276,3 +276,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Store one nullable future local timestamp on each task. Request Android notification permission only when the user sets a reminder. Schedule with a stable task ID through `AlarmManager`, cancel before replacing or clearing, cancel when a task is completed or deleted, and rebuild the future open-task set at startup and boot.
 - Reason: One reminder per task keeps the data model small and the schedule deterministic. Generic notification text avoids exposing task details on a locked screen. Native alarms survive process death without requiring a server.
 - Consequence: The current pass has no quiet hours, snooze, action buttons, recurring-rule notifications, iOS implementation, or sync. Schema 16 tasks migrate with `reminderAtMillis: null`.
+
+## DEC-041: Route task reminder taps through the stable task ID
+
+- Context: A native reminder can outlive the React Native process, and opening only the Home screen would make the reminder hard to act on.
+- Decision: Put the task ID in the Android notification content intent. The native module consumes it once on cold start and emits it on warm `MainActivity` intents. MainApp switches to Tasks and loads the matching task into edit mode; a missing ID is ignored without changing workspace data.
+- Reason: The existing task ID is already the schedule identity, so no new schema field or sensitive notification text is needed. The rule works after process death and keeps the notification payload privacy-safe.
+- Consequence: Android task deep links are local-only. iOS intents, notification actions, snooze, quiet hours, and synced notification state remain separate contracts.

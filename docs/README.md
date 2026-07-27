@@ -1,6 +1,6 @@
 # Yuzuha documentation
 
-This is the product and engineering baseline for Yuzuha. Core code exists through local Android task reminders, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
+This is the product and engineering baseline for Yuzuha. Core code exists through local Android task-reminder deep links, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
 ## Read in this order
 
