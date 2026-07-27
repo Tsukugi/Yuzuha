@@ -44,7 +44,7 @@ import {normalizeNoteTags} from '../shared/noteSearch';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
-import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
+import {filterTasks, sortTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter, type TaskSort} from '../shared/taskLifecycle';
 import {getBlockingTaskIds} from '../shared/taskDependency';
 import {buildTaskAgenda} from '../shared/taskAgenda';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
@@ -2239,7 +2239,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
 }
 
 function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null; onFocusHandled: () => void}) {
-  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
+  const {data, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2248,6 +2248,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskFilter>('all');
+  const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2319,7 +2320,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
   const currentData = data;
   const taskListIds = new Set(currentData.taskLists.map(taskList => taskList.id));
   const todayLocalDate = localDateKey(new Date());
-  const visibleTasks = filterTasks(currentData.tasks, filter, todayLocalDate);
+  const visibleTasks = sortTasks(filterTasks(currentData.tasks, filter, todayLocalDate), taskSort);
   const agendaDays = buildTaskAgenda(currentData.tasks, todayLocalDate, 14);
 
   function resetForm() {
@@ -2513,6 +2514,15 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     }
   }
 
+  async function moveTaskFromList(taskId: string, direction: 'up' | 'down') {
+    setError(null);
+    try {
+      await moveTask(taskId, direction);
+    } catch (moveError) {
+      setError(moveError instanceof Error ? moveError.message : 'The task order could not be changed.');
+    }
+  }
+
   async function toggleRule(rule: typeof currentData.taskRecurrences[number]) {
     setBusyRuleId(rule.id);
     setTaskRecurrenceError(null);
@@ -2604,7 +2614,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
     ]);
   }
 
-  function renderTaskRow(task: Task) {
+  function renderTaskRow(task: Task, allowManualMove: boolean) {
     const sourceLabel = getTaskSourceLabel(task, currentData.notes);
     const taskList = currentData.taskLists.find(taskListItem => taskListItem.id === task.listId);
     return (
@@ -2625,6 +2635,8 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
           </View>
         </Pressable>
         <View style={styles.taskActions}>
+          {allowManualMove && <TextButton label="Up" onPress={() => void moveTaskFromList(task.id, 'up')} />}
+          {allowManualMove && <TextButton label="Down" onPress={() => void moveTaskFromList(task.id, 'down')} />}
           <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
           <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
         </View>
@@ -2813,7 +2825,7 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
             ) : agendaDays.map(day => (
               <View key={day.localDate}>
                 <SectionTitle title={formatTaskAgendaDay(day.localDate, todayLocalDate)} />
-                {day.tasks.map(renderTaskRow)}
+                {day.tasks.map(task => renderTaskRow(task, false))}
               </View>
             ))}
           </View>
@@ -2826,9 +2838,15 @@ function TasksScreen({focusTaskId, onFocusHandled}: {focusTaskId: string | null;
               <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
               <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
             </View>
+            <Text style={styles.formLabel}>Sort list</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="Manual" selected={taskSort === 'manual'} onPress={() => setTaskSort('manual')} />
+              <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
+              <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
+            </View>
             {visibleTasks.length === 0 ? (
               <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
-            ) : visibleTasks.map(renderTaskRow)}
+            ) : visibleTasks.map(task => renderTaskRow(task, filter === 'all' && taskSort === 'manual'))}
           </View>
         )}
       </ScrollView>

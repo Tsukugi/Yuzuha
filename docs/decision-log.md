@@ -360,3 +360,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Remove the dead commented screen. Keep historical migration and release notes as audit history, but keep only the current implementation in source files.
 - Reason: Unused code increases review and maintenance cost without helping a user or a supported runtime path.
 - Consequence: No schema or runtime behavior changes. Future compatibility work must be added only when a public release creates a real upgrade contract.
+
+## DEC-053: Persist task order and keep list sorting local
+
+- Context: The task contract requires manual, due-date, and priority sorting, but the current Task record had no persisted manual order and the UI preserved insertion order only.
+- Decision: Add required non-negative `Task.sortOrder` in app schema 24. Allocate the next order within a list for new, note-linked, moved-list, and recurring tasks. List mode offers Manual, Due date, and Priority sorting; the All view swaps adjacent manual orders through Up and Down controls when Manual sorting is selected. Due-date sorting places undated tasks last; priority sorting uses High, Normal, then Low. Agenda keeps its existing source order within each local date.
+- Reason: Manual order must survive restart, export, backup, and restore. Derived sort modes should not rewrite source records, and the fixed tie rules keep results deterministic without a separate index or sync contract.
+- Consequence: Schema 23 data is rejected rather than upgraded. Cross-device ordering, selected timezone/week-start rules, bulk reorder, and sync remain separate contracts.

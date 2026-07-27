@@ -577,4 +577,44 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('allocates and persists manual task order through the store', async () => {
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    let firstId = '';
+    let secondId = '';
+    await act(async () => {
+      firstId = await value!.addTask({title: 'First', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'});
+      secondId = await value!.addTask({title: 'Second', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'});
+    });
+
+    expect(saved.tasks.find(task => task.id === firstId)?.sortOrder).toBe(0);
+    expect(saved.tasks.find(task => task.id === secondId)?.sortOrder).toBe(1);
+    await act(async () => {
+      await value!.moveTask(secondId, 'up');
+    });
+    expect(saved.tasks.find(task => task.id === secondId)?.sortOrder).toBe(0);
+    expect(saved.tasks.find(task => task.id === firstId)?.sortOrder).toBe(1);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

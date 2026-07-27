@@ -2,6 +2,7 @@ import {buildJsonExport} from './dataExport';
 import {JsonImportError, parseJsonImport} from './dataImport';
 import {emptyAppData} from '../types/domain';
 import {createTaskDependencyRecord} from './taskDependency';
+import {createTaskRecord} from './taskLifecycle';
 
 describe('JSON restore validation', () => {
   it('parses a current export and reports record counts', () => {
@@ -42,6 +43,7 @@ describe('JSON restore validation', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      sortOrder: 0,
       sourceNoteId: 'note_missing',
       recurrenceRuleId: null,
       reminderAtMillis: null,
@@ -81,6 +83,7 @@ describe('JSON restore validation', () => {
         dueLocalDate: null,
         priority: 'normal',
         listId: 'task_list_inbox',
+        sortOrder: 0,
         sourceNoteId: null,
         recurrenceRuleId: null,
         reminderAtMillis: null,
@@ -95,6 +98,7 @@ describe('JSON restore validation', () => {
         dueLocalDate: null,
         priority: 'normal',
         listId: 'task_list_inbox',
+        sortOrder: 1,
         sourceNoteId: null,
         recurrenceRuleId: null,
         reminderAtMillis: null,
@@ -149,6 +153,16 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/task list/i);
   });
 
+  it('rejects duplicate manual task order within one list', () => {
+    const data = emptyAppData();
+    data.tasks = [
+      createTaskRecord({title: 'First', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'}, 'task_first', '2026-07-26T00:00:00.000Z', null, 0),
+      createTaskRecord({title: 'Second', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'}, 'task_second', '2026-07-26T00:00:00.000Z', null, 0),
+    ];
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/manual order/i);
+  });
+
   it('rejects task reminders that are not positive safe integers', () => {
     const data = emptyAppData();
     data.tasks.push({
@@ -159,6 +173,7 @@ describe('JSON restore validation', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      sortOrder: 0,
       sourceNoteId: null,
       recurrenceRuleId: null,
       reminderAtMillis: -1,

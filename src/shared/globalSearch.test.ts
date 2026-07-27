@@ -32,6 +32,7 @@ describe('global search', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      sortOrder: 0,
       sourceNoteId: null,
       recurrenceRuleId: null,
       reminderAtMillis: null,

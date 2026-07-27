@@ -74,7 +74,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 23) {
+  if (appSchemaVersion !== 24) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -93,7 +93,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 23 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 24 || !isCurrency(value.mainCurrency) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -156,6 +156,14 @@ export function validateCurrentAppData(value: unknown): asserts value is AppData
   });
   data.taskRecurrences.forEach(rule => validateTaskRecurrence(rule, taskListIds));
   data.tasks.forEach(task => validateTask(task, taskListIds, taskRecurrenceIds));
+  const sortOrdersByList = new Set<string>();
+  data.tasks.forEach(task => {
+    const key = `${task.listId}:${task.sortOrder}`;
+    if (sortOrdersByList.has(key)) {
+      throw new JsonImportError(`Task ${task.id} duplicates a manual order in its list.`);
+    }
+    sortOrdersByList.add(key);
+  });
   const taskIds = new Set(data.tasks.map(task => task.id));
   data.taskDependencies.forEach((dependency, index) => validateTaskDependency(dependency, taskIds, data.tasks, data.taskDependencies.slice(0, index)));
   data.usageSnapshots.forEach(validateUsageSnapshot);
@@ -316,6 +324,7 @@ function validateTask(task: Task, taskListIds: Set<string>, taskRecurrenceIds: S
       (task.dueLocalDate !== null && !isValidLocalDate(task.dueLocalDate)) ||
       (task.priority !== 'low' && task.priority !== 'normal' && task.priority !== 'high') ||
       !taskListIds.has(task.listId) ||
+      !Number.isSafeInteger(task.sortOrder) || task.sortOrder < 0 ||
       (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||
       (task.recurrenceRuleId !== null && !taskRecurrenceIds.has(task.recurrenceRuleId)) ||
       (task.reminderAtMillis !== null && (!Number.isSafeInteger(task.reminderAtMillis) || task.reminderAtMillis <= 0)) ||

@@ -21,6 +21,14 @@ The latest-only entry below supersedes compatibility statements in older histori
 - full Jest, lint, typecheck, bundle validation, Android debug/release builds, emulator Tasks/Agenda smoke, and phone launch smoke passed;
 - historical migration notes remain release history only and do not describe supported runtime behavior.
 
+2026-07-27 task-order pass:
+
+- app data schema 24 adds required per-task `sortOrder`; old app schema 23 data remains rejected because the app has no external users;
+- Tasks now sort List mode by Manual, Due date, or Priority, and the All view can move a task Up or Down within its list;
+- JSON restore, encrypted backups, SQLite persistence, and current-record validation include strict non-negative per-list sort order;
+- focused and full Jest tests, lint, typecheck, bundle validation, Android debug/release builds, emulator Tasks smoke, and phone launch smoke passed;
+- Agenda remains a derived device-local 14-day view and is not changed by the list sort control.
+
 2026-07-27 task-dependency pass:
 
 - app data schema 23 adds `taskDependencies` with the `completed` prerequisite condition;

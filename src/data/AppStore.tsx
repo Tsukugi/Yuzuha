@@ -16,7 +16,7 @@ import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
-import {createTaskRecord, deleteTaskRecord, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
+import {createTaskRecord, deleteTaskRecord, moveTaskRecord, nextTaskSortOrder, TASK_INBOX_LIST_ID, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
 import {
   createTaskRecurrenceRecord,
@@ -100,6 +100,7 @@ interface AppStoreValue {
   deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: TaskDraft) => Promise<string>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
+  moveTask: (taskId: string, direction: 'up' | 'down') => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   setTaskReminder: (taskId: string, triggerAtMillis: number) => Promise<void>;
   deleteTaskReminder: (taskId: string) => Promise<void>;
@@ -639,7 +640,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
           throw new Error(validationError);
         }
         const now = new Date().toISOString();
-        const task = createTaskRecord(input, taskId, now);
+        const task = createTaskRecord(input, taskId, now, null, nextTaskSortOrder(current.tasks, input.listId));
         return {...current, tasks: [task, ...current.tasks]};
       });
       return taskId;
@@ -659,9 +660,30 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         if (validationError) {
           throw new Error(validationError);
         }
+        const updatedTask = updateTaskRecord(task, input, new Date().toISOString());
         return {
           ...current,
-          tasks: current.tasks.map(item => item.id === taskId ? updateTaskRecord(task, input, new Date().toISOString()) : item),
+          tasks: current.tasks.map(item => item.id === taskId
+            ? {...updatedTask, sortOrder: input.listId === task.listId ? task.sortOrder : nextTaskSortOrder(current.tasks, input.listId)}
+            : item),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const moveTask = useCallback(
+    async (taskId: string, direction: 'up' | 'down') => {
+      await commit(current => {
+        const moved = moveTaskRecord(current.tasks, taskId, direction);
+        if (moved === current.tasks) {
+          return current;
+        }
+        const changedTaskIds = new Set(moved.filter((task, index) => task.sortOrder !== current.tasks[index]?.sortOrder).map(task => task.id));
+        const updatedAt = new Date().toISOString();
+        return {
+          ...current,
+          tasks: moved.map(task => changedTaskIds.has(task.id) ? {...task, updatedAt} : task),
         };
       });
     },
@@ -952,7 +974,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         }
         return {
           ...current,
-          tasks: [createTaskFromNoteRecord(note, createId('task'), now), ...current.tasks],
+          tasks: [createTaskFromNoteRecord(note, createId('task'), now, nextTaskSortOrder(current.tasks, TASK_INBOX_LIST_ID)), ...current.tasks],
         };
       });
     },
@@ -1102,6 +1124,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteAttachment,
       addTask,
       updateTask,
+      moveTask,
       deleteTask,
       setTaskReminder,
       deleteTaskReminder,
@@ -1147,6 +1170,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       deleteAttachment,
       addTask,
       updateTask,
+      moveTask,
       deleteTask,
       setTaskReminder,
       deleteTaskReminder,

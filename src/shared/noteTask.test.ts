@@ -23,6 +23,7 @@ describe('note to task conversion', () => {
       dueLocalDate: null,
       priority: 'normal',
       listId: 'task_list_inbox',
+      sortOrder: 0,
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
       reminderAtMillis: null,

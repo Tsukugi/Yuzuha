@@ -1456,3 +1456,35 @@ Known limits:
 
 - historical migration notes remain in the documentation for audit context; they are not supported runtime paths;
 - a public upgrade policy remains intentionally deferred until an external release creates real user data.
+
+## Implementation review: task-order pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app schema 24 adds required non-negative per-list `Task.sortOrder`; no schema 23 upgrade path was added;
+- new, note-linked, moved-list, and recurring tasks receive deterministic per-list order values;
+- List mode exposes Manual, Due date, and Priority sorting; the All view exposes Up and Down controls when Manual sorting is selected, swapping adjacent manual order values;
+- Due date places undated tasks last, Priority uses High/Normal/Low, and all ties fall back to manual order without mutating source arrays;
+- JSON restore, encrypted backup, SQLite persistence, current-record validation, UX, architecture, requirements, decision, release, and testing docs were updated.
+
+Review evidence:
+
+```text
+Failing test first       PASS - missing sort functions and sortOrder were reproduced in taskLifecycle coverage
+Focused Jest             PASS - 5 suites, 50 tests for lifecycle, store, JSON, backup, and SQLite order behavior
+Full Jest                PASS - 32 suites, 141 tests
+npm run lint              PASS
+npm run typecheck         PASS
+npm run check-bundle      PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - clean release opened MainActivity, Tasks, Manual/Due date/Priority controls, and selected Priority
+Phone smoke              PASS - clean release opened MainActivity on 42adce68
+Resource cleanup          PASS - no Gradle/Java build processes or Yuzuha app processes remained
+```
+
+Known limits:
+
+- Agenda keeps source order within a date and is not a calendar with timezone or week-start preferences;
+- bulk reorder, cross-device order reconciliation, and sync remain planned.

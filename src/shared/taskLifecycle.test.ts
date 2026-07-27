@@ -1,5 +1,5 @@
 import type {Task} from '../types/domain';
-import {createTaskRecord, deleteTaskRecord, filterTasks, updateTaskRecord, validateTaskDraft} from './taskLifecycle';
+import {createTaskRecord, deleteTaskRecord, filterTasks, moveTaskRecord, sortTasks, updateTaskRecord, validateTaskDraft} from './taskLifecycle';
 
 describe('task lifecycle rules', () => {
   it('validates and creates a task with scheduling fields', () => {
@@ -23,6 +23,7 @@ describe('task lifecycle rules', () => {
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
       reminderAtMillis: null,
+      sortOrder: 0,
       createdAt: '2026-07-27T12:00:00.000Z',
       updatedAt: '2026-07-27T12:00:00.000Z',
     });
@@ -71,5 +72,24 @@ describe('task lifecycle rules', () => {
 
     expect(deleteTaskRecord([first, second], first.id)).toEqual([second]);
     expect(() => deleteTaskRecord([first], 'missing')).toThrow(/no longer exists/i);
+  });
+
+  it('sorts task views without mutating source order and moves manual order', () => {
+    const tasks = [
+      createTaskRecord({title: 'Manual zero', details: '', dueLocalDate: '2026-07-29', priority: 'normal', listId: 'task_list_inbox'}, 'manual_0', '2026-07-27T00:00:00.000Z', null, 0),
+      createTaskRecord({title: 'Manual one', details: '', dueLocalDate: '2026-07-27', priority: 'low', listId: 'task_list_inbox'}, 'manual_1', '2026-07-27T00:00:00.000Z', null, 1),
+      createTaskRecord({title: 'Manual two', details: '', dueLocalDate: null, priority: 'high', listId: 'task_list_inbox'}, 'manual_2', '2026-07-27T00:00:00.000Z', null, 2),
+      createTaskRecord({title: 'Manual three', details: '', dueLocalDate: '2026-07-28', priority: 'normal', listId: 'task_list_inbox'}, 'manual_3', '2026-07-27T00:00:00.000Z', null, 3),
+    ];
+
+    expect(sortTasks(tasks, 'manual').map(task => task.id)).toEqual(['manual_0', 'manual_1', 'manual_2', 'manual_3']);
+    expect(sortTasks(tasks, 'due').map(task => task.id)).toEqual(['manual_1', 'manual_3', 'manual_0', 'manual_2']);
+    expect(sortTasks(tasks, 'priority').map(task => task.id)).toEqual(['manual_2', 'manual_0', 'manual_3', 'manual_1']);
+    expect(tasks.map(task => task.id)).toEqual(['manual_0', 'manual_1', 'manual_2', 'manual_3']);
+
+    const moved = moveTaskRecord(tasks, 'manual_2', 'up');
+    expect(sortTasks(moved, 'manual').map(task => task.id)).toEqual(['manual_0', 'manual_2', 'manual_1', 'manual_3']);
+    expect(moved.find(task => task.id === 'manual_2')?.sortOrder).toBe(1);
+    expect(moved.find(task => task.id === 'manual_1')?.sortOrder).toBe(2);
   });
 });

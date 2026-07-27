@@ -144,6 +144,7 @@ export interface Task {
   dueLocalDate: string | null;
   priority: TaskPriority;
   listId: string;
+  sortOrder: number;
   sourceNoteId: string | null;
   recurrenceRuleId: string | null;
   reminderAtMillis: number | null;
@@ -217,7 +218,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 23;
+  schemaVersion: 24;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -251,7 +252,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 23,
+  schemaVersion: 24,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

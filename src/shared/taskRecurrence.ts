@@ -1,6 +1,7 @@
 import type {AppData, MissedOccurrencePolicy, RecurrenceCadence, Task, TaskPriority, TaskRecurrenceRule} from '../types/domain';
 import {addRecurrenceDate, isValidLocalDate} from './moneyRecurrence';
 import {parseTaskReminderLocalDateTime} from './taskReminder';
+import {nextTaskSortOrder} from './taskLifecycle';
 
 export interface TaskRecurrenceDraft {
   title: string;
@@ -87,6 +88,12 @@ export function expandDueTaskRecurrences(data: AppData, todayLocalDate: string, 
     throw new Error('Recurring task expansion requires a valid local date.');
   }
   const generatedTasks: Task[] = [];
+  const nextSortOrders = new Map<string, number>();
+  const allocateSortOrder = (listId: string): number => {
+    const next = nextSortOrders.get(listId) ?? nextTaskSortOrder(data.tasks, listId);
+    nextSortOrders.set(listId, next + 1);
+    return next;
+  };
   const recurrences = data.taskRecurrences.map(rule => {
     if (rule.isPaused || rule.nextOccurrenceLocalDate > todayLocalDate) {
       return rule;
@@ -118,6 +125,7 @@ export function expandDueTaskRecurrences(data: AppData, todayLocalDate: string, 
           dueLocalDate: occurrenceLocalDate,
           priority: rule.priority,
           listId: rule.listId,
+          sortOrder: allocateSortOrder(rule.listId),
           sourceNoteId: null,
           recurrenceRuleId: rule.id,
           reminderAtMillis,

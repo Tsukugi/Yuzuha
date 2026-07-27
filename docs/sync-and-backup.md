@@ -81,7 +81,7 @@ The user can generate a separate recovery-key backup from Data tools. The key is
 
 ### Platform backup
 
-Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 23 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
+Android and iOS backup behavior is platform-specific. The app must state whether backups include records, encryption keys, usage snapshots, and cached bundles. A platform restore must validate current schema 24 and integrity checks before opening the main UI; no old-schema migration is provided in the unreleased build.
 
 ### Restore flow
 

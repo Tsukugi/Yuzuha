@@ -1,14 +1,14 @@
 # Testing strategy
 
-Status: Current test strategy through the device-local task-agenda pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the task-order pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 32 Jest suites and 138 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
-- Fresh SQLite startup seeds current app schema 23 data directly; old local database files are rejected by repository schema checks.
+- The current suite is 32 Jest suites and 141 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- Fresh SQLite startup seeds current app schema 24 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
 
@@ -26,6 +26,8 @@ Status: Current test strategy through the device-local task-agenda pass. Unit te
 - Emulator recurring-category smoke: a clean release install showed separate global and recurring-task reminder switches; turning recurring reminders off persisted the Off state through save and relaunch.
 - Emulator dependency smoke: a clean release install created prerequisite and dependent tasks, saved the dependency, and showed `Blocked by PrereqSmoke` while the dependent remained open.
 - Emulator agenda smoke: a clean release install opened Tasks, switched to Agenda, and showed the device-local dated-task agenda.
+- Task-order unit coverage: manual, due-date, and priority sorting preserve deterministic tie order; Up/Down swaps persisted per-list sort order without mutating the source array.
+- Task-order store coverage: new tasks receive the next per-list order and moving a task persists the swapped order through AppStore.
 - Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
@@ -64,7 +66,7 @@ Current evidence for the Android snooze-duration policy pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
-- emulator UI dump showed the schema 23 task form, Inbox list, priority controls, due-date and reminder fields, Task reminders On/Off, Recurring task reminders On/Off, dependency controls, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed the schema 24 task form, Inbox list, priority controls, due-date and reminder fields, Task reminders On/Off, Recurring task reminders On/Off, dependency controls, recurring-rule `HH:mm` reminder time, quiet-hours settings, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;
