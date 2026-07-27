@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-28 Android task-search-focus pass:
+
+- Global Search task results now pass their stable ID through the existing Tasks focus path and open the matching task in edit mode;
+- note, money, project, app-group, focus, goal, and other results keep the owning-tab-only behavior from the prior pass;
+- no schema, permission, import/export UI, network request, worker, or background process changed;
+- focused task-navigation tests, full Jest (51 suites, 227 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator task-focus smoke, and phone cold-start smoke passed; both devices were force-stopped.
+
 2026-07-28 Android search-navigation pass:
 
 - Global Search result rows are now tappable and route to the owning Money, Notes, Tasks, or App Time tab;

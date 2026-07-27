@@ -577,3 +577,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Make each result row a local button and map its kind deterministically to Money, Notes, Tasks, or App Time. Tapping closes Search and opens only the owning tab; it does not claim to open or edit an exact record.
 - Reason: This adds a clear next action with no data mutation, no new route state, and no platform dependency. A single kind-to-tab map is easy to test and keeps unsupported exact-record navigation honest.
 - Consequence: Search result selection remains local tab navigation. Exact record focus, cross-screen filter transfer, deep links with IDs, and synced navigation remain separate contracts.
+
+## DEC-083: Focus task results from global search
+
+- Status: Accepted.
+- Context: The Tasks screen already has a tested `pendingTaskId` path for reminder navigation. A task result can use that path safely, while other result kinds do not yet share a common exact-record editor contract.
+- Decision: When a Global Search result kind is `task`, carry its stable ID into `pendingTaskId`. Close Search, open Tasks, and load the existing task into edit mode. All other kinds keep the owning-tab-only behavior from DEC-082.
+- Reason: This gives task search a useful exact destination without adding a second task form, route table, or data state. The stable ID is resolved against current local data and missing IDs are ignored by the existing task screen.
+- Consequence: Exact focus for notes, money, projects, app groups, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.

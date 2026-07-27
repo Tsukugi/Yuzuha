@@ -2407,3 +2407,37 @@ Known limits:
 - import/export behavior was not expanded in this pass.
 
 Next pass: choose the next bounded local product contract after review; keep exact-record navigation, account/device recovery, and remote sync behind their own decisions.
+
+## Implementation review: Android task-search-focus pass
+
+Status: Completed on 2026-07-28.
+
+Delivered:
+
+- task search results carry their stable task ID through `globalSearchNavigation`;
+- Search closes and the existing `pendingTaskId` path opens Tasks in edit mode for that task;
+- other result kinds keep the prior owning-tab-only behavior;
+- no exact focus promise for notes, money, projects, app groups, focus sessions, or time goals;
+- no schema, import/export UI, network request, worker, or background process.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - task focus ID and tab-only result mapping tests
+Full Jest                PASS - 51 suites, 227 tests
+npm run typecheck        PASS
+npm run lint             PASS
+Bundle validation        PASS - Android metadata valid
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - tapping `Open Task LinkTask` opened `Edit task` with title `LinkTask`
+Phone smoke              PASS - cold release startup with installer and React Native logs, no fatal errors
+Resource cleanup         PASS - both devices force-stopped and no Yuzuha/Gradle/Java/Node process remained
+```
+
+Known limits:
+
+- exact focus remains to be added separately for notes, money, projects, app groups, focus sessions, and time goals;
+- search does not transfer filters or create ID-bearing deep links;
+- import/export behavior was not expanded in this pass.
+
+Next pass: choose the next bounded exact-record navigation contract after review; keep account/device recovery and remote sync behind their own decisions.

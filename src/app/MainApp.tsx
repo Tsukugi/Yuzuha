@@ -56,7 +56,7 @@ import {normalizeNoteTags} from '../shared/noteSearch';
 import {applyNoteMarkup, parseNoteMarkup, type NoteMarkupAction, type NoteTextSelection} from '../shared/noteMarkup';
 import {NOTE_LINK_TARGET_TYPES} from '../shared/noteLinks';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
-import {globalSearchDestination, searchGlobal, type GlobalSearchDestination, type GlobalSearchKind} from '../shared/globalSearch';
+import {globalSearchNavigation, searchGlobal, type GlobalSearchKind, type GlobalSearchNavigation} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, sortTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter, type TaskSort} from '../shared/taskLifecycle';
 import {validateProjectDraft, type ProjectDraft} from '../shared/projectLifecycle';
@@ -109,6 +109,12 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
+
+  const openGlobalSearchResult = useCallback((navigation: GlobalSearchNavigation) => {
+    setPendingTaskId(navigation.focusTaskId);
+    setGlobalSearchOpen(false);
+    setTab(navigation.destination);
+  }, []);
 
   const openSharedCapture = useCallback((capture: SharedCapture) => {
     const key = `${capture.mimeType ?? ''}\u0000${capture.subject ?? ''}\u0000${capture.text}`;
@@ -296,7 +302,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
         ) : dataToolsOpen ? (
           <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
         ) : globalSearchOpen ? (
-          <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={setTab} />
+          <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={openGlobalSearchResult} />
         ) : reviewOpen ? (
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
@@ -580,7 +586,7 @@ function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => 
   );
 }
 
-function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (destination: GlobalSearchDestination) => void}) {
+function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (navigation: GlobalSearchNavigation) => void}) {
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
   const results = searchGlobal(data, query, {includeArchived});
@@ -618,7 +624,7 @@ function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: 
                 accessibilityRole="button"
                 style={({pressed}) => [styles.searchResultRow, pressed && styles.pressed]}
                 onPress={() => {
-                  onNavigate(globalSearchDestination(result.kind));
+                  onNavigate(globalSearchNavigation(result));
                   onBack();
                 }}>
                 <Text style={styles.searchResultKind}>{globalSearchKindLabel(result.kind)}</Text>

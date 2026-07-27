@@ -59,6 +59,18 @@ export function globalSearchDestination(kind: GlobalSearchKind): GlobalSearchDes
   }
 }
 
+export interface GlobalSearchNavigation {
+  destination: GlobalSearchDestination;
+  focusTaskId: string | null;
+}
+
+export function globalSearchNavigation(result: Pick<GlobalSearchResult, 'kind' | 'id'>): GlobalSearchNavigation {
+  return {
+    destination: globalSearchDestination(result.kind),
+    focusTaskId: result.kind === 'task' ? result.id : null,
+  };
+}
+
 const KIND_ORDER: Record<GlobalSearchKind, number> = {
   money: 0,
   note: 1,

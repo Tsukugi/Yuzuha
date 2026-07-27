@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android search-navigation pass.
+Status: Traceability baseline through the Android task-search-focus pass.
 
 ## Authoritative source by concern
 
@@ -58,6 +58,8 @@ Current linked-search evidence: `CROSS-02` maps to `searchGlobal`, `GlobalSearch
 Current rich-note evidence: `NOTE-04` maps to `noteMarkup.ts`, `NotesScreen`, the formatting toolbar and `NoteBodyPreview`, `src/shared/noteMarkup.test.ts`, the current body/search/backup persistence paths, and the 2026-07-28 rich-note release note. Supported markers render locally, unsupported or incomplete markers remain readable, and the body remains a plain string with no schema or dependency change.
 
 Current search-navigation evidence: `CROSS-02` also maps to `globalSearchDestination`, tappable `GlobalSearchScreen` result rows, the result-kind mapping test in `src/shared/globalSearch.test.ts`, and the 2026-07-28 search-navigation release note. All supported kinds route to an existing tab, close Search, and add no data or route record.
+
+Current task-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingTaskId`, the existing `TasksScreen` focus effect, the task-focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 task-search-focus release note. Task results load the current task in edit mode; other results remain tab-only.
 
 ## Open decision register
 

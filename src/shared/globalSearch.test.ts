@@ -1,5 +1,5 @@
 import {emptyAppData} from '../types/domain';
-import {globalSearchDestination, searchGlobal} from './globalSearch';
+import {globalSearchDestination, globalSearchNavigation, searchGlobal} from './globalSearch';
 
 describe('global search', () => {
   it('matches supported local records by their searchable text', () => {
@@ -275,5 +275,10 @@ describe('global search', () => {
       'money', 'notes', 'tasks', 'appTime', 'notes', 'tasks', 'tasks', 'appTime',
       'money', 'money', 'money', 'money', 'money', 'money', 'appTime', 'appTime', 'tasks',
     ]);
+  });
+
+  it('focuses task results while keeping other results tab-only', () => {
+    expect(globalSearchNavigation({kind: 'task', id: 'task_focus'})).toEqual({destination: 'tasks', focusTaskId: 'task_focus'});
+    expect(globalSearchNavigation({kind: 'note', id: 'note_focus'})).toEqual({destination: 'notes', focusTaskId: null});
   });
 });
