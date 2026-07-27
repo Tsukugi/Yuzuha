@@ -12,6 +12,7 @@ export function createTaskFromNote(note: Note, id: string, timestamp: string): T
     listId: TASK_INBOX_LIST_ID,
     sourceNoteId: note.id,
     recurrenceRuleId: null,
+    reminderAtMillis: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

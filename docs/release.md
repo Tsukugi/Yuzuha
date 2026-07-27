@@ -4,6 +4,16 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 task-reminder pass:
+
+- app data schema 17 adds nullable task `reminderAtMillis`, with schema 16 tasks migrating to no reminder;
+- open tasks can set one future local Android reminder using strict `YYYY-MM-DDTHH:mm` input;
+- Android uses explicit `POST_NOTIFICATIONS` permission, stable task IDs, `AlarmManager`, a privacy-safe notification, and boot rescheduling;
+- startup and confirmed restore synchronize future open-task reminders; completing, deleting, clearing, or replacing a reminder cancels the old schedule;
+- JSON, encrypted backup, SQLite, and legacy AsyncStorage paths validate and persist the new field;
+- native release metadata now includes `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED`; minimum OS is unchanged;
+- quiet hours, snooze, notification actions, recurring-rule notifications, and sync remain planned.
+
 2026-07-27 recurring-task pass:
 
 - app data schema 16 adds task recurrence rules and nullable task `recurrenceRuleId` links;

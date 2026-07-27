@@ -1,8 +1,16 @@
 # Testing strategy
 
-Status: Current test strategy through the recurring-task pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the Android task-reminder pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
+
+## Task reminder evidence
+
+- Focused Jest covers strict local date-time parsing, impossible dates and DST gaps, future-time validation, Android permission handling, schedule/cancel/sync forwarding, schema 16 to 17 migration, invalid import rejection, SQLite round trips, and the create-then-remind AppStore regression.
+- Full Jest: 31 suites and 126 tests pass. Lint, strict TypeScript, bundle metadata, and Android debug/release builds pass with Java 17.
+- Emulator `emulator-5554`: a fresh release install created `SmokeReminder`; the task row showed `Reminder 2026-07-28T09:30`, and `dumpsys alarm` showed the stable `dev.yuzuha.TASK_REMINDER` alarm after force-stop/relaunch.
+- Emulator delivery: a near-term reminder delivered after Android's alarm window on channel `task_reminders`; `dumpsys notification` showed `Yuzuha task reminder`, and the alarm was removed after delivery.
+- Phone `42adce68`: release APK installed and `MainActivity` resumed with no filtered app errors. Touch automation remains blocked by device policy.
 
 ### Unit tests
 
@@ -18,6 +26,7 @@ Use Jest for pure logic:
 - task draft validation, task identity-preserving edits, task deletion rules, date filters, schema 15 migration, JSON/backup validation, and SQLite round trips;
 - task-list name validation, identity-preserving rename, archive protection, reference-safe deletion for tasks and recurring rules, and import validation;
 - recurring task draft validation, deterministic all/one/skip expansion, pause/delete behavior, schema 15 to 16 migration, JSON validation, and SQLite round trips;
+- task reminder local date-time validation, future timestamp rules, schema 16 to 17 migration, JSON validation, SQLite round trips, Android permission handling, native schedule/cancel forwarding, and restore synchronization;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -35,11 +44,11 @@ Use an in-memory or temporary database adapter to test:
 
 ### Android device tests
 
-Current evidence for the recurring-task pass:
+Current evidence for the task-reminder pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
-- emulator UI dump showed the schema 16 task form, Inbox list, priority controls, due-date field, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
+- emulator UI dump showed the schema 17 task form, Inbox list, priority controls, due-date and reminder fields, recurring-task controls, and All/Overdue/Today/Upcoming/Completed filters;
 - emulator ADB smoke created a `Work` list, then showed its active controls and its `Archived`/`Restore` state;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;

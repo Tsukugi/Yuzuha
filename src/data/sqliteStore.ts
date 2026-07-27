@@ -455,6 +455,7 @@ export function decodeAppData(
           priority: taskPayload.priority ?? 'normal',
           listId: taskPayload.listId ?? 'task_list_inbox',
           recurrenceRuleId: taskPayload.recurrenceRuleId ?? null,
+          reminderAtMillis: taskPayload.reminderAtMillis ?? null,
         });
         break;
       }

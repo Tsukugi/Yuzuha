@@ -47,6 +47,7 @@ import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
 import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
+import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
@@ -2166,10 +2167,11 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen() {
-  const {data, addTask, updateTask, deleteTask, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
+  const {data, addTask, updateTask, deleteTask, setTaskReminder, deleteTaskReminder, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
+  const [reminderAtLocalDateTime, setReminderAtLocalDateTime] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -2204,6 +2206,7 @@ function TasksScreen() {
     setTitle('');
     setDetails('');
     setDueLocalDate('');
+    setReminderAtLocalDateTime('');
     setPriority('normal');
     setListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
     setEditingTaskId(null);
@@ -2213,6 +2216,7 @@ function TasksScreen() {
     setTitle(task.title);
     setDetails(task.details);
     setDueLocalDate(task.dueLocalDate ?? '');
+    setReminderAtLocalDateTime(task.reminderAtMillis === null ? '' : formatTaskReminderLocalDateTime(task.reminderAtMillis));
     setPriority(task.priority);
     setListId(task.listId);
     setEditingTaskId(task.id);
@@ -2232,12 +2236,30 @@ function TasksScreen() {
       setError(validationError);
       return;
     }
+    const reminderInput = reminderAtLocalDateTime.trim();
+    let reminderAtMillis: number | null = null;
+    if (reminderInput) {
+      const reminderError = validateTaskReminderDraft(reminderInput);
+      if (reminderError) {
+        setError(reminderError);
+        return;
+      }
+      reminderAtMillis = parseTaskReminderLocalDateTime(reminderInput);
+    }
     setError(null);
     try {
       if (editingTaskId) {
         await updateTask(editingTaskId, draft);
+        if (reminderAtMillis === null) {
+          await deleteTaskReminder(editingTaskId);
+        } else {
+          await setTaskReminder(editingTaskId, reminderAtMillis);
+        }
       } else {
-        await addTask(draft);
+        const taskId = await addTask(draft);
+        if (reminderAtMillis !== null) {
+          await setTaskReminder(taskId, reminderAtMillis);
+        }
       }
       resetForm();
     } catch (saveError) {
@@ -2419,6 +2441,8 @@ function TasksScreen() {
           <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
           <Text style={styles.formLabel}>Due date (optional)</Text>
           <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} autoCapitalize="none" />
+          <Text style={styles.formLabel}>Reminder (optional)</Text>
+          <TextInput accessibilityLabel="Task reminder time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} autoCapitalize="none" />
           <Text style={styles.formLabel}>Priority</Text>
           <View style={styles.segmentRow}>
             <SegmentButton label="Low" selected={priority === 'low'} onPress={() => setPriority('low')} />
@@ -2531,7 +2555,7 @@ function TasksScreen() {
                 <View style={styles.listBody}>
                   <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
                   {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
-                  <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date'].join(' · ')}</Text>
+                  <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
                   {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
                 </View>
               </Pressable>

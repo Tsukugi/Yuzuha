@@ -131,7 +131,7 @@ interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches' | 't
   tasks: StoredLegacyTask[];
 }
 
-type StoredLegacyTask = Omit<AppData['tasks'][number], 'sourceNoteId' | 'priority' | 'listId' | 'recurrenceRuleId'>;
+type StoredLegacyTask = Omit<AppData['tasks'][number], 'sourceNoteId' | 'priority' | 'listId' | 'recurrenceRuleId' | 'reminderAtMillis'>;
 type StoredTaskV13 = StoredLegacyTask;
 
 interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
@@ -139,18 +139,25 @@ interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists
   tasks: StoredTaskV13[];
 }
 
-type StoredTaskV14 = Omit<AppData['tasks'][number], 'priority' | 'listId' | 'recurrenceRuleId'>;
+type StoredTaskV14 = Omit<AppData['tasks'][number], 'priority' | 'listId' | 'recurrenceRuleId' | 'reminderAtMillis'>;
 
 interface StoredV14 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists' | 'taskRecurrences'> {
   schemaVersion: 14;
   tasks: StoredTaskV14[];
 }
 
-type StoredTaskV15 = Omit<AppData['tasks'][number], 'recurrenceRuleId'>;
+type StoredTaskV15 = Omit<AppData['tasks'][number], 'recurrenceRuleId' | 'reminderAtMillis'>;
 
 interface StoredV15 extends Omit<AppData, 'schemaVersion' | 'taskRecurrences' | 'tasks'> {
   schemaVersion: 15;
   tasks: StoredTaskV15[];
+}
+
+type StoredTaskV16 = Omit<AppData['tasks'][number], 'reminderAtMillis'>;
+
+interface StoredV16 extends Omit<AppData, 'schemaVersion' | 'tasks'> {
+  schemaVersion: 16;
+  tasks: StoredTaskV16[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -391,7 +398,7 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16, requireTaskSourceNoteId: boolean): boolean {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15 | 16 | 17, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
     value.schemaVersion === schemaVersion &&
@@ -453,7 +460,7 @@ export function isStoredV15(value: unknown): value is StoredV15 {
   return isStoredV13Shape(value, 15, true) && hasTaskListsAndTaskFields(value);
 }
 
-export function isStoredV16(value: unknown): value is AppData {
+export function isStoredV16(value: unknown): value is StoredV16 {
   if (!isStoredV13Shape(value, 16, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
       !Array.isArray(value.taskRecurrences) || !Array.isArray(value.tasks)) {
     return false;
@@ -465,6 +472,21 @@ export function isStoredV16(value: unknown): value is AppData {
       (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
       typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
     value.tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null))
+}
+
+export function isStoredV17(value: unknown): value is AppData {
+  if (!isStoredV13Shape(value, 17, true) || !hasTaskListsAndTaskFields(value) || !isRecord(value) ||
+      !Array.isArray(value.taskRecurrences) || !Array.isArray(value.tasks)) {
+    return false;
+  }
+  return value.taskRecurrences.every(rule => isRecord(rule) && typeof rule.id === 'string' && typeof rule.title === 'string' &&
+      typeof rule.details === 'string' && typeof rule.priority === 'string' && typeof rule.listId === 'string' &&
+      (rule.cadence === 'day' || rule.cadence === 'week' || rule.cadence === 'month') && Number.isSafeInteger(rule.interval) &&
+      typeof rule.nextOccurrenceLocalDate === 'string' &&
+      (rule.missedOccurrencePolicy === 'all' || rule.missedOccurrencePolicy === 'one' || rule.missedOccurrencePolicy === 'skip') &&
+      typeof rule.isPaused === 'boolean' && isIsoDate(rule.createdAt) && isIsoDate(rule.updatedAt)) &&
+    value.tasks.every(task => isRecord(task) && (typeof task.recurrenceRuleId === 'string' || task.recurrenceRuleId === null) &&
+      (task.reminderAtMillis === null || (typeof task.reminderAtMillis === 'number' && Number.isSafeInteger(task.reminderAtMillis) && task.reminderAtMillis > 0)));
 }
 
 function legacyCategoryId(name: string): string {
@@ -621,12 +643,20 @@ export function migrateV14ToV15(value: StoredV14): StoredV15 {
   };
 }
 
-export function migrateV15ToV16(value: StoredV15): AppData {
+export function migrateV15ToV16(value: StoredV15): StoredV16 {
   return {
     ...value,
     schemaVersion: 16,
     taskRecurrences: [],
     tasks: value.tasks.map(task => ({...task, recurrenceRuleId: null})),
+  };
+}
+
+export function migrateV16ToV17(value: StoredV16): AppData {
+  return {
+    ...value,
+    schemaVersion: 17,
+    tasks: value.tasks.map(task => ({...task, reminderAtMillis: null})),
   };
 }
 
@@ -638,52 +668,59 @@ function migrateV12ToV15(value: StoredV12): StoredV15 {
   return migrateV14ToV15(migrateV12ToV14(value));
 }
 
-function migrateV12ToV16(value: StoredV12): AppData {
+function migrateV12ToV16(value: StoredV12): StoredV16 {
   return migrateV15ToV16(migrateV12ToV15(value));
 }
 
+function migrateV12ToV17(value: StoredV12): AppData {
+  return migrateV16ToV17(migrateV12ToV16(value));
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV16(value)) {
+  if (isStoredV17(value)) {
     return value;
   }
+  if (isStoredV16(value)) {
+    return migrateV16ToV17(value);
+  }
   if (isStoredV15(value)) {
-    return migrateV15ToV16(value);
+    return migrateV16ToV17(migrateV15ToV16(value));
   }
   if (isStoredV14(value)) {
-    return migrateV15ToV16(migrateV14ToV15(value));
+    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(value)));
   }
   if (isStoredV13(value)) {
-    return migrateV15ToV16(migrateV14ToV15(migrateV13ToV14(value)));
+    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV13ToV14(value))));
   }
   if (isStoredV12(value)) {
-    return migrateV12ToV16(value);
+    return migrateV12ToV17(value);
   }
   if (isStoredV11(value)) {
-    return migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(value))));
+    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(value)))));
   }
   if (isStoredV10(value)) {
-    return migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(value)))));
+    return migrateV16ToV17(migrateV15ToV16(migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(value))))));
   }
   if (isStoredV9(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
   }
   if (isStoredV8(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
   }
   if (isStoredV7(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
   }
   if (isStoredV6(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
   }
   if (isStoredV5(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
   }
   if (isStoredV4(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
   }
   if (isStoredV3(value)) {
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
   }
   if (isStoredV2(value)) {
     const v3 = migrateV2ToV3(value);
@@ -694,7 +731,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   if (isStoredV1(value)) {
     const v2 = migrateV1ToV2(value);
@@ -706,7 +743,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV16(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV17(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   return null;
 }

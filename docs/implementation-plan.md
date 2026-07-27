@@ -1033,3 +1033,38 @@ Phone smoke              PASS - release APK installed and MainActivity resumed o
 ```
 
 Next pass: account/device recovery design, with notifications and remote sync kept behind separate contracts.
+
+## Implementation review: task-reminder pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 17 with nullable `reminderAtMillis` and schema 16 to 17 migration;
+- strict local `YYYY-MM-DDTHH:mm` parsing, impossible-date/DST-gap rejection, and future-time validation;
+- one optional reminder field in the Tasks form, with permission denial shown as an explicit error;
+- typed Android bridge for notification permission, schedule, cancel, and full reminder synchronization;
+- stable task-ID AlarmManager schedules, notification-channel creation, privacy-safe notification text, and boot rescheduling;
+- AppStore rules that cancel on complete/delete/clear, replace schedules deterministically, and synchronize startup/restore sets;
+- JSON, encrypted-backup, SQLite, and legacy AsyncStorage persistence and validation for schema 17;
+- focused tests for reminder validation, bridge behavior, schema migration, invalid import data, and SQLite round trips.
+
+Review evidence so far:
+
+```text
+Focused reminder tests  PASS - 5 suites, 38 tests
+Full Jest                PASS - 31 suites, 126 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator UI smoke        PASS - task row showed Reminder 2026-07-28T09:30 and the stable alarm survived force-stop/relaunch
+Emulator delivery        PASS - near-term reminder appeared on channel task_reminders after Android's delivery window
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- no quiet hours, snooze, notification actions, recurring-rule notifications, iOS reminders, account recovery, or sync.
+
+Next pass: review and commit the reminder pass.

@@ -322,6 +322,7 @@ describe('SQLite workspace store', () => {
       listId: 'task_list_work',
       sourceNoteId: 'note_1',
       recurrenceRuleId: null,
+      reminderAtMillis: 1780000000000,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });

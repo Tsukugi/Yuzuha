@@ -1,6 +1,10 @@
 # Notifications and automation
 
-Status: Planned full-product capability.
+Status: Android task reminders are implemented; broader notification and automation capability remains planned.
+
+## Current Android scope
+
+The current release supports one optional local reminder on each open task. The user enters `YYYY-MM-DDTHH:mm`, grants Android notification permission when needed, and the app schedules one stable task ID with `AlarmManager`. Startup and device boot rebuild future schedules. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. The notification text is privacy-safe and opens Yuzuha; quiet hours, snooze, action buttons, recurring-rule notifications, and sync are not implemented.
 
 ## Principles
 
@@ -26,7 +30,9 @@ Status: Planned full-product capability.
 
 ## Task reminders
 
-A task reminder has task ID, trigger time, timezone, notification category, and snooze policy. Editing a due date cancels the old schedule and creates one new schedule. Completing or deleting a task cancels pending reminders. A device restart reschedules from stored rules.
+Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data.
+
+The full-product target adds explicit timezone, notification category, snooze policy, quiet hours, and action buttons. Those fields are not in schema 17.
 
 Actions are `Complete`, `Snooze`, and `Open`. Actions must verify the task still exists and is in the expected state before applying.
 
@@ -66,4 +72,3 @@ Android and iOS background limits can delay work. The product must show `Schedul
 ## Notification testing
 
 Test timezone changes, daylight-saving changes, reboot, process death, permission denial, duplicate scheduling, edit/delete races, quiet hours, locale changes, and stale source data.
-

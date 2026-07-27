@@ -44,6 +44,7 @@ describe('JSON restore validation', () => {
       listId: 'task_list_inbox',
       sourceNoteId: 'note_missing',
       recurrenceRuleId: null,
+      reminderAtMillis: null,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
     });
@@ -86,6 +87,26 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/task list/i);
   });
 
+  it('rejects task reminders that are not positive safe integers', () => {
+    const data = emptyAppData();
+    data.tasks.push({
+      id: 'task_1',
+      title: 'Follow up',
+      details: '',
+      status: 'open',
+      dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
+      sourceNoteId: null,
+      recurrenceRuleId: null,
+      reminderAtMillis: -1,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
+  });
+
   it('migrates a supported schema 7 export before validation', () => {
     const data = emptyAppData();
     const legacy: Record<string, unknown> = {...data, schemaVersion: 7};
@@ -98,7 +119,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(16);
+    expect(preview.data.schemaVersion).toBe(17);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -109,7 +130,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(16);
+    expect(migrated?.schemaVersion).toBe(17);
     expect(migrated?.attachments).toEqual([]);
   });
 

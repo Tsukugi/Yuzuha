@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the recurring-task pass.
+Status: Current Android MVP through the task-reminder pass.
 
 ## Navigation
 
@@ -38,7 +38,9 @@ The permission explanation appears before the system settings page. After return
 
 The form asks for a title and optional details, local due date, priority, and list. The current release seeds one `Inbox` list and lets the user add, rename, archive/restore, and delete unused custom lists. Inbox cannot be archived or deleted. Edit loads the same fields into the form. Complete/reopen is a direct status toggle. Delete always asks for confirmation. Task views are All, Overdue, Today, Upcoming, and Completed. Overdue means an open task whose local due date is before today; completed tasks stay out of the open-date views.
 
-The recurring-task form asks for a title, details, first due date, interval, day/week/month cadence, priority, list, and missed-occurrence policy. Saving stores a local rule. On startup, due rules create open tasks with deterministic rule/date IDs, then advance the next date. All creates every due task, One creates the first due task, and Skip creates none. Rules can be paused/resumed or deleted; deleting a rule keeps existing tasks and clears their rule link. Notifications and background scheduling are not part of this pass.
+The recurring-task form asks for a title, details, first due date, interval, day/week/month cadence, priority, list, and missed-occurrence policy. Saving stores a local rule. On startup, due rules create open tasks with deterministic rule/date IDs, then advance the next date. All creates every due task, One creates the first due task, and Skip creates none. Rules can be paused/resumed or deleted; deleting a rule keeps existing tasks and clears their rule link.
+
+The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder, and the notification uses generic text rather than task details.
 
 ### Search notes
 

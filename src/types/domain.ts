@@ -146,6 +146,7 @@ export interface Task {
   listId: string;
   sourceNoteId: string | null;
   recurrenceRuleId: string | null;
+  reminderAtMillis: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -194,7 +195,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 16;
+  schemaVersion: 17;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -226,7 +227,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 16,
+  schemaVersion: 17,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

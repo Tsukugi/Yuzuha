@@ -101,6 +101,7 @@ export function expandDueTaskRecurrences(data: AppData, todayLocalDate: string, 
           listId: rule.listId,
           sourceNoteId: null,
           recurrenceRuleId: rule.id,
+          reminderAtMillis: null,
           createdAt: generatedAt,
           updatedAt: generatedAt,
         });

@@ -1,5 +1,5 @@
 import type {PropsWithChildren} from 'react';
-import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {createId} from '../shared/id';
 import {type MoneyBudgetInput, validateMoneyBudget} from '../shared/moneyBudget';
 import {createMoneySplit, type MoneySplitInput, validateMoneySplit} from '../shared/moneySplit';
@@ -27,6 +27,8 @@ import {
   type TaskRecurrenceDraft,
 } from '../shared/taskRecurrence';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
+import {validateTaskReminderTimestamp} from '../shared/taskReminder';
+import {taskReminders} from '../platform/taskReminders';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -94,9 +96,11 @@ interface AppStoreValue {
   deleteSavedSearch: (savedSearchId: string) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
-  addTask: (input: TaskDraft) => Promise<void>;
+  addTask: (input: TaskDraft) => Promise<string>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  setTaskReminder: (taskId: string, triggerAtMillis: number) => Promise<void>;
+  deleteTaskReminder: (taskId: string) => Promise<void>;
   addTaskList: (input: TaskListDraft) => Promise<void>;
   updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
   setTaskListArchived: (listId: string, isArchived: boolean) => Promise<void>;
@@ -120,10 +124,19 @@ interface AppStoreValue {
 const AppStoreContext = createContext<AppStoreValue | null>(null);
 const defaultWorkspaceStore = createNativeWorkspaceStore();
 
+function activeTaskReminderEntries(workspace: AppData): Array<{taskId: string; triggerAtMillis: number}> {
+  const now = Date.now();
+  return workspace.tasks
+    .filter(task => task.status === 'open' && task.reminderAtMillis !== null && task.reminderAtMillis > now)
+    .map(task => ({taskId: task.id, triggerAtMillis: task.reminderAtMillis as number}));
+}
+
 export function AppStoreProvider({children, store = defaultWorkspaceStore}: PropsWithChildren<{store?: WorkspaceStore}>) {
   const [data, setData] = useState<AppData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const dataRef = useRef<AppData | null>(null);
+  dataRef.current = data;
 
   useEffect(() => {
     let mounted = true;
@@ -136,6 +149,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         if (taskExpanded.data !== loaded) {
           await store.save(taskExpanded.data);
         }
+        await taskReminders.sync(activeTaskReminderEntries(taskExpanded.data));
         if (mounted) {
           setData(taskExpanded.data);
           setIsLoading(false);
@@ -155,14 +169,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const commit = useCallback(
     async (update: (current: AppData) => AppData) => {
-      if (!data) {
+      const current = dataRef.current;
+      if (!current) {
         throw new Error('App data is not ready.');
       }
-      const next = update(data);
+      const next = update(current);
       await store.save(next);
+      dataRef.current = next;
       setData(next);
     },
-    [data, store],
+    [store],
   );
 
   const addMoney = useCallback(
@@ -220,6 +236,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const resetWorkspace = useCallback(async () => {
     await deleteAttachmentFiles(data?.attachments ?? []);
+    await taskReminders.sync([]);
     await commit(() => emptyAppData());
   }, [commit, data?.attachments]);
 
@@ -228,14 +245,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       throw new Error('Attachment bytes are required to restore a workspace with attachments.');
     }
     try {
+      await taskReminders.sync(activeTaskReminderEntries(next));
       await deleteAttachmentFiles(data?.attachments ?? []);
       await commit(() => next);
       await attachmentStage?.commit();
     } catch (error) {
+      await taskReminders.sync(activeTaskReminderEntries(data ?? emptyAppData()));
       await attachmentStage?.discard();
       throw error;
     }
-  }, [commit, data?.attachments]);
+  }, [commit, data]);
 
   const addMoneyRecurrence = useCallback(
     async (input: MoneyRecurrenceInput) => {
@@ -555,7 +574,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const addTask = useCallback(
-    async (input: TaskDraft) => {
+    async (input: TaskDraft): Promise<string> => {
+      const taskId = createId('task');
       await commit(current => {
         const listIds = new Set(current.taskLists.map(taskList => taskList.id));
         const validationError = validateTaskDraft(input, listIds);
@@ -563,9 +583,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
           throw new Error(validationError);
         }
         const now = new Date().toISOString();
-        const task = createTaskRecord(input, createId('task'), now);
+        const task = createTaskRecord(input, taskId, now);
         return {...current, tasks: [task, ...current.tasks]};
       });
+      return taskId;
     },
     [commit],
   );
@@ -593,9 +614,81 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const deleteTask = useCallback(
     async (taskId: string) => {
-      await commit(current => {
-        return {...current, tasks: deleteTaskRecord(current.tasks, taskId)};
-      });
+      const task = dataRef.current?.tasks.find(item => item.id === taskId);
+      if (!task) {
+        throw new Error('The task no longer exists.');
+      }
+      const previousReminderAtMillis = task.reminderAtMillis;
+      if (previousReminderAtMillis !== null) {
+        await taskReminders.cancel(taskId);
+      }
+      try {
+        await commit(current => ({...current, tasks: deleteTaskRecord(current.tasks, taskId)}));
+      } catch (error) {
+        if (previousReminderAtMillis !== null && previousReminderAtMillis > Date.now()) {
+          await taskReminders.schedule(taskId, previousReminderAtMillis);
+        }
+        throw error;
+      }
+    },
+    [commit],
+  );
+
+  const setTaskReminder = useCallback(
+    async (taskId: string, triggerAtMillis: number) => {
+      const task = dataRef.current?.tasks.find(item => item.id === taskId);
+      if (!task) {
+        throw new Error('The task no longer exists.');
+      }
+      if (task.status === 'completed') {
+        throw new Error('Complete tasks cannot have an active reminder.');
+      }
+      const validationError = validateTaskReminderTimestamp(triggerAtMillis);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const previousReminderAtMillis = task.reminderAtMillis;
+      await taskReminders.requestPermission();
+      await taskReminders.schedule(taskId, triggerAtMillis);
+      try {
+        await commit(current => ({
+          ...current,
+          tasks: current.tasks.map(item => item.id === taskId ? {...item, reminderAtMillis: triggerAtMillis, updatedAt: new Date().toISOString()} : item),
+        }));
+      } catch (error) {
+        if (previousReminderAtMillis !== null && previousReminderAtMillis > Date.now()) {
+          await taskReminders.schedule(taskId, previousReminderAtMillis);
+        } else {
+          await taskReminders.cancel(taskId);
+        }
+        throw error;
+      }
+    },
+    [commit],
+  );
+
+  const deleteTaskReminder = useCallback(
+    async (taskId: string) => {
+      const task = dataRef.current?.tasks.find(item => item.id === taskId);
+      if (!task) {
+        throw new Error('The task no longer exists.');
+      }
+      if (task.reminderAtMillis === null) {
+        return;
+      }
+      const previousReminderAtMillis = task.reminderAtMillis;
+      await taskReminders.cancel(taskId);
+      try {
+        await commit(current => ({
+          ...current,
+          tasks: current.tasks.map(item => item.id === taskId ? {...item, reminderAtMillis: null, updatedAt: new Date().toISOString()} : item),
+        }));
+      } catch (error) {
+        if (previousReminderAtMillis > Date.now()) {
+          await taskReminders.schedule(taskId, previousReminderAtMillis);
+        }
+        throw error;
+      }
     },
     [commit],
   );
@@ -703,15 +796,38 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const toggleTask = useCallback(
     async (taskId: string) => {
+      const task = dataRef.current?.tasks.find(item => item.id === taskId);
+      if (!task) {
+        throw new Error('The task no longer exists.');
+      }
       const now = new Date().toISOString();
-      await commit(current => ({
-        ...current,
-        tasks: current.tasks.map(task =>
-          task.id === taskId
-            ? {...task, status: task.status === 'open' ? 'completed' : 'open', updatedAt: now}
-            : task,
-        ),
-      }));
+      const completing = task.status === 'open';
+      const reminderAtMillis = task.reminderAtMillis;
+      if (completing && reminderAtMillis !== null) {
+        await taskReminders.cancel(taskId);
+      } else if (!completing && reminderAtMillis !== null && reminderAtMillis > Date.now()) {
+        await taskReminders.requestPermission();
+        await taskReminders.schedule(taskId, reminderAtMillis);
+      }
+      try {
+        await commit(current => ({
+          ...current,
+          tasks: current.tasks.map(item =>
+            item.id === taskId
+              ? {...item, status: completing ? 'completed' : 'open', updatedAt: now}
+              : item,
+          ),
+        }));
+      } catch (error) {
+        if (reminderAtMillis !== null && reminderAtMillis > Date.now()) {
+          if (completing) {
+            await taskReminders.schedule(taskId, reminderAtMillis);
+          } else {
+            await taskReminders.cancel(taskId);
+          }
+        }
+        throw error;
+      }
     },
     [commit],
   );
@@ -818,6 +934,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addTask,
       updateTask,
       deleteTask,
+      setTaskReminder,
+      deleteTaskReminder,
       addTaskList,
       updateTaskList,
       setTaskListArchived: setTaskListArchivedAction,
@@ -856,6 +974,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addTask,
       updateTask,
       deleteTask,
+      setTaskReminder,
+      deleteTaskReminder,
       addTaskList,
       updateTaskList,
       setTaskListArchivedAction,

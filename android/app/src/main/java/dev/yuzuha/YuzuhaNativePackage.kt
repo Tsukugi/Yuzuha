@@ -10,6 +10,7 @@ class YuzuhaNativePackage : ReactPackage {
     return listOf(
       UsageAccessModule(reactContext),
       AttachmentPreviewModule(reactContext),
+      TaskReminderModule(reactContext),
     )
   }
 

@@ -269,3 +269,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a separate task recurrence rule with a title, details, priority, list link, day/week/month cadence, interval, next local date, pause state, and explicit `all`, `one`, or `skip` missed-occurrence policy. Expand due rules on startup and rule creation using deterministic `task_<rule>_<date>` IDs. Deleting a rule keeps generated tasks and clears their rule links.
 - Reason: Date-only expansion is testable across restarts and does not require notification permission, background execution, an account, or a server. Stable IDs make re-opening idempotent.
 - Consequence: Notifications, background scheduling, series editing, templates, task occurrence history, sync, account recovery, and device enrollment remain separate work.
+
+## DEC-040: Keep task reminders one-off and Android-local in schema 17
+
+- Context: Open tasks now need a useful reminder, but quiet hours, snooze, notification actions, and cross-device sync need larger product contracts.
+- Decision: Store one nullable future local timestamp on each task. Request Android notification permission only when the user sets a reminder. Schedule with a stable task ID through `AlarmManager`, cancel before replacing or clearing, cancel when a task is completed or deleted, and rebuild the future open-task set at startup and boot.
+- Reason: One reminder per task keeps the data model small and the schedule deterministic. Generic notification text avoids exposing task details on a locked screen. Native alarms survive process death without requiring a server.
+- Consequence: The current pass has no quiet hours, snooze, action buttons, recurring-rule notifications, iOS implementation, or sync. Schema 16 tasks migrate with `reminderAtMillis: null`.

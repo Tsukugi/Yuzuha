@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(16);
+    expect(data?.schemaVersion).toBe(17);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(16);
+    expect(data?.schemaVersion).toBe(17);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(16);
+    expect(data?.schemaVersion).toBe(17);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
     expect(data?.tasks[0].priority).toBe('normal');
@@ -325,8 +325,33 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(16);
+    expect(data?.schemaVersion).toBe(17);
     expect(data?.taskRecurrences).toEqual([]);
     expect(data?.tasks[0].recurrenceRuleId).toBeNull();
+  });
+
+  it('adds an empty reminder field when opening schema 16 tasks', () => {
+    const legacy = {
+      ...emptyAppData(),
+      schemaVersion: 16 as const,
+      tasks: [{
+        id: 'task_1',
+        title: 'Legacy task',
+        details: '',
+        status: 'open',
+        dueLocalDate: null,
+        priority: 'normal',
+        listId: 'task_list_inbox',
+        sourceNoteId: null,
+        recurrenceRuleId: null,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      }],
+    } as never;
+
+    const data = migrateStoredData(legacy);
+
+    expect(data?.schemaVersion).toBe(17);
+    expect(data?.tasks[0].reminderAtMillis).toBeNull();
   });
 });
