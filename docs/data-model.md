@@ -1,6 +1,6 @@
 # Data model
 
-Status: The local SQLite repository boundary is implemented with app data schema 15 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
+Status: The local SQLite repository boundary is implemented with app data schema 15 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money rules with missed-occurrence policy, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, and validated JSON restore are live; normalized report and sync tables remain future work.
 
 ## Storage rules
 
@@ -159,7 +159,7 @@ Global search is a derived view over `AppData` and adds no entity or migration. 
 | `isArchived` | boolean | Archived lists are not offered for new tasks. Existing tasks remain readable. |
 | `createdAt` / `updatedAt` | UTC datetime | Required. |
 
-The current task UI uses the seeded `Inbox` list. The data model allows more lists without changing task shape.
+The current task UI supports custom lists. The seeded `Inbox` list cannot be archived or deleted. Other lists can be archived and remain readable; deletion is allowed only when no task references the list.
 
 ### Preferences
 

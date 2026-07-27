@@ -21,6 +21,7 @@ import {ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_NAME_LENGTH, ATTACHMENT_MAX_PER_NOT
 import {isValidLocalDate} from './moneyRecurrence';
 import {validateNoteTags} from './noteSearch';
 import {validateSavedSearchDraft} from './savedSearch';
+import {TASK_LIST_MAX_NAME_LENGTH} from './taskListLifecycle';
 
 export interface JsonImportRecordCounts {
   money: number;
@@ -135,7 +136,15 @@ function validateAppData(data: AppData): void {
     }
   });
   data.savedSearches.forEach(validateSavedSearch);
-  data.taskLists.forEach(validateTaskList);
+  const taskListNames = new Set<string>();
+  data.taskLists.forEach(taskList => {
+    validateTaskList(taskList);
+    const normalizedName = taskList.name.toLocaleLowerCase();
+    if (taskListNames.has(normalizedName)) {
+      throw new JsonImportError(`Task list ${taskList.id} duplicates another list name.`);
+    }
+    taskListNames.add(normalizedName);
+  });
   data.tasks.forEach(task => validateTask(task, taskListIds));
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
@@ -267,7 +276,8 @@ function validateSavedSearch(savedSearch: SavedSearch): void {
 
 function validateTaskList(taskList: TaskList): void {
   validateId(taskList.id, 'task list');
-  if (typeof taskList.name !== 'string' || taskList.name.trim() === '' || typeof taskList.isArchived !== 'boolean' ||
+  if (typeof taskList.name !== 'string' || taskList.name.trim() === '' || taskList.name !== taskList.name.trim() || taskList.name.length > TASK_LIST_MAX_NAME_LENGTH ||
+      typeof taskList.isArchived !== 'boolean' ||
       !isIsoDate(taskList.createdAt) || !isIsoDate(taskList.updatedAt)) {
     throw new JsonImportError(`Task list ${taskList.id} has invalid fields.`);
   }

@@ -45,6 +45,7 @@ import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
 import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
+import {validateTaskListDraft} from '../shared/taskListLifecycle';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
@@ -260,6 +261,8 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
       return 'Note';
     case 'task':
       return 'Task';
+    case 'task-list':
+      return 'Task list';
     case 'account':
       return 'Account';
     case 'category':
@@ -2162,7 +2165,7 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen() {
-  const {data, addTask, updateTask, deleteTask, toggleTask} = useAppStore();
+  const {data, addTask, updateTask, deleteTask, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -2172,6 +2175,11 @@ function TasksScreen() {
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [newListName, setNewListName] = useState('');
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editingListName, setEditingListName] = useState('');
+  const [taskListError, setTaskListError] = useState<string | null>(null);
+  const [busyListId, setBusyListId] = useState<string | null>(null);
 
   if (!data) {
     return null;
@@ -2248,6 +2256,79 @@ function TasksScreen() {
     ]);
   }
 
+  function startEditingList(taskList: typeof currentData.taskLists[number]) {
+    setEditingListId(taskList.id);
+    setEditingListName(taskList.name);
+    setTaskListError(null);
+  }
+
+  function resetListForm() {
+    setNewListName('');
+    setEditingListId(null);
+    setEditingListName('');
+    setTaskListError(null);
+  }
+
+  async function saveList() {
+    const draft = {name: editingListId ? editingListName : newListName};
+    const validationError = validateTaskListDraft(draft, currentData.taskLists, editingListId);
+    if (validationError) {
+      setTaskListError(validationError);
+      return;
+    }
+    setTaskListError(null);
+    try {
+      if (editingListId) {
+        await updateTaskList(editingListId, draft);
+      } else {
+        await addTaskList(draft);
+      }
+      resetListForm();
+    } catch (listError) {
+      setTaskListError(listError instanceof Error ? listError.message : 'The task list could not be saved.');
+    }
+  }
+
+  async function toggleListArchived(taskList: typeof currentData.taskLists[number]) {
+    setBusyListId(taskList.id);
+    setTaskListError(null);
+    try {
+      await setTaskListArchived(taskList.id, !taskList.isArchived);
+      if (!taskList.isArchived && listId === taskList.id && !editingTaskId) {
+        resetForm();
+      }
+    } catch (listError) {
+      setTaskListError(listError instanceof Error ? listError.message : 'The task list archive state could not be changed.');
+    } finally {
+      setBusyListId(null);
+    }
+  }
+
+  async function removeList(listIdToRemove: string) {
+    setBusyListId(listIdToRemove);
+    setTaskListError(null);
+    try {
+      await deleteTaskList(listIdToRemove);
+      if (listId === listIdToRemove) {
+        resetForm();
+      }
+      if (editingListId === listIdToRemove) {
+        resetListForm();
+      }
+    } catch (listError) {
+      setTaskListError(listError instanceof Error ? listError.message : 'The task list could not be deleted.');
+    } finally {
+      setBusyListId(null);
+    }
+  }
+
+  function confirmDeleteList(taskList: typeof currentData.taskLists[number]) {
+    Alert.alert('Delete task list?', `Delete "${taskList.name}"? Lists with tasks cannot be deleted.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeList(taskList.id)},
+    ]);
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -2275,6 +2356,33 @@ function TasksScreen() {
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
           {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
+        </View>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>
+          <TextInput
+            accessibilityLabel="Task list name"
+            placeholder="New list name"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={editingListId ? editingListName : newListName}
+            onChangeText={editingListId ? setEditingListName : setNewListName}
+          />
+          {taskListError && <Text style={styles.errorText}>{taskListError}</Text>}
+          <PrimaryButton label={editingListId ? 'Rename list' : 'Add list'} onPress={() => void saveList()} />
+          {editingListId && <TextButton label="Cancel rename" onPress={resetListForm} />}
+          {currentData.taskLists.map(taskList => (
+            <View key={taskList.id} style={styles.taskListRow}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{taskList.name}</Text>
+                <Text style={styles.listMeta}>{taskList.isArchived ? 'Archived' : 'Active'}{taskList.id === TASK_INBOX_LIST_ID ? ' · Default' : ''}</Text>
+              </View>
+              <View style={styles.taskListActions}>
+                <TextButton label="Rename" onPress={() => startEditingList(taskList)} disabled={busyListId !== null} />
+                <TextButton label={taskList.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleListArchived(taskList)} disabled={busyListId !== null} />
+                {taskList.id !== TASK_INBOX_LIST_ID && <TextButton label="Delete" danger onPress={() => confirmDeleteList(taskList)} disabled={busyListId !== null} />}
+              </View>
+            </View>
+          ))}
         </View>
         <SectionTitle title="Task view" />
         <View style={styles.segmentRow}>
@@ -2582,6 +2690,8 @@ const styles = StyleSheet.create({
   taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
   taskActions: {alignItems: 'center', flexDirection: 'row'},
+  taskListRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 10},
+  taskListActions: {alignItems: 'center', flexDirection: 'row'},
   checkbox: {alignItems: 'center', borderColor: colors.muted, borderRadius: 6, borderWidth: 1, height: 23, justifyContent: 'center', marginRight: 12, width: 23},
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},

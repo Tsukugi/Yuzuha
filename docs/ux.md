@@ -36,7 +36,7 @@ The permission explanation appears before the system settings page. After return
 
 ### Manage tasks
 
-The form asks for a title and optional details, local due date, priority, and list. The current release seeds one `Inbox` list. Edit loads the same fields into the form. Complete/reopen is a direct status toggle. Delete always asks for confirmation. Task views are All, Overdue, Today, Upcoming, and Completed. Overdue means an open task whose local due date is before today; completed tasks stay out of the open-date views.
+The form asks for a title and optional details, local due date, priority, and list. The current release seeds one `Inbox` list and lets the user add, rename, archive/restore, and delete unused custom lists. Inbox cannot be archived or deleted. Edit loads the same fields into the form. Complete/reopen is a direct status toggle. Delete always asks for confirmation. Task views are All, Overdue, Today, Upcoming, and Completed. Overdue means an open task whose local due date is before today; completed tasks stay out of the open-date views.
 
 ### Search notes
 

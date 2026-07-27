@@ -57,13 +57,20 @@ describe('global search', () => {
       createdAt: '2026-07-27T00:00:00.000Z',
       updatedAt: '2026-07-27T00:00:00.000Z',
     });
+    data.taskLists.push({
+      id: 'task_list_project',
+      name: 'Project work',
+      isArchived: false,
+      createdAt: '2026-07-27T00:00:00.000Z',
+      updatedAt: '2026-07-27T00:00:00.000Z',
+    });
 
     const results = searchGlobal(data, 'CONTRACT');
     expect(results.map(result => result.kind)).toEqual(['note']);
     expect(results[0]).toMatchObject({id: 'note_work', title: 'Planning'});
 
     const workResults = searchGlobal(data, 'work');
-    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'saved-search', 'task']);
+    expect(workResults.map(result => result.kind)).toEqual(['money', 'note', 'saved-search', 'task', 'task-list']);
   });
 
   it('hides archived records and inaccessible app-time data by default', () => {

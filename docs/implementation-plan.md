@@ -966,3 +966,35 @@ Known limits:
 - custom task-list management, recurring task rules, reminders, synced links, account recovery, and remote sync remain planned.
 
 Next pass: custom task-list management or account/device recovery design, with remote sync kept behind the local-first boundary.
+
+## Implementation review: task-list management pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- local task-list create, rename, archive/restore, and delete actions;
+- trimmed, case-insensitive unique names with a 60-character limit;
+- protected Inbox list and reference-safe deletion for custom lists;
+- Tasks UI controls for list management and active-list selection;
+- JSON restore validation and SQLite round-trip coverage for custom task lists;
+- no schema, permission, or minimum-OS change.
+
+Review evidence:
+
+```text
+Focused list tests       PASS - 2 suites, 13 tests
+Full Jest                PASS - 27 suites, 114 tests
+npm run lint             PASS
+npm run typecheck        PASS
+Bundle check             PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator list smoke      PASS - ADB created `Work`, then archive state showed `Archived` and `Restore`
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- moving tasks in bulk, recurring task rules, reminders, account recovery, and remote sync remain planned.
+
+Next pass: account/device recovery design behind the local-first boundary.

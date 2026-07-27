@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the task-lifecycle pass. This document is not a legal privacy policy.
+Status: Security baseline through the task-list management pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -32,6 +32,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - Global search runs over loaded local records in memory. It does not read attachment bytes, require a new permission, send query text to a service, or write query text to telemetry. App-time results obey the existing Usage Access and included-snapshot boundary.
 - Note-to-task conversion copies note title/body into a local task and stores only the stable local source-note ID. It does not send the note or task to a service.
 - Task due dates, priorities, list links, status, and details remain local workspace data. Task delete is confirmed in the UI and removes the local task record only.
+- Task-list names and archive state are local workspace data. Deleting a list is confirmed and is rejected when tasks still reference it.
 
 ## Android Usage Access
 

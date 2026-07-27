@@ -255,3 +255,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add `priority` and a required `listId` to tasks, seed one `Inbox` list, and keep due dates as validated `YYYY-MM-DD` strings. Implement create, edit, complete/reopen, confirmed delete, and deterministic All/Overdue/Today/Upcoming/Completed filters locally.
 - Reason: Date-only values avoid timezone surprises, the Inbox default keeps creation simple, and the lifecycle is testable without a notification or sync service.
 - Consequence: Custom list management, recurring tasks, reminders, synced links, account recovery, and remote sync remain future work.
+
+## DEC-038: Make task-list deletion reference-safe
+
+- Context: The schema already has task lists, but the first UI exposed only the seeded Inbox list.
+- Decision: Allow local custom list create, rename, archive/restore, and delete. Normalize names by trim and case-insensitive uniqueness, cap names at 60 characters, protect Inbox from archive/delete, and reject deletion while any task references the list.
+- Reason: These rules keep task links valid without moving tasks silently or adding a recovery workflow. Archived lists remain readable so existing tasks do not lose context.
+- Consequence: Moving tasks between lists, recurring task lists, synced list changes, account recovery, and remote sync remain separate work.

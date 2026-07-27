@@ -291,6 +291,13 @@ describe('SQLite workspace store', () => {
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
     });
+    data.taskLists.push({
+      id: 'task_list_work',
+      name: 'Work',
+      isArchived: false,
+      createdAt: '2026-07-26T12:00:00.000Z',
+      updatedAt: '2026-07-26T12:00:00.000Z',
+    });
     data.tasks.push({
       id: 'task_from_note',
       title: 'A note',
@@ -298,7 +305,7 @@ describe('SQLite workspace store', () => {
       status: 'open',
       dueLocalDate: null,
       priority: 'normal',
-      listId: 'task_list_inbox',
+      listId: 'task_list_work',
       sourceNoteId: 'note_1',
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',

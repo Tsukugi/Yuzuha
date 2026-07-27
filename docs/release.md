@@ -4,13 +4,22 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 task-list management pass:
+
+- Tasks can create, rename, archive/restore, and delete custom lists locally;
+- list names are trimmed, case-insensitive unique, and limited to 60 characters;
+- Inbox cannot be archived or deleted, and lists with tasks cannot be deleted;
+- JSON restore and SQLite persistence keep task-list records and validate task references;
+- no schema, permission, or minimum-OS change;
+- known limits remain recurring task rules, reminders, account recovery, and remote sync.
+
 2026-07-27 task-lifecycle pass:
 
 - app data schema 15 adds task priority and required task-list links, with the seeded `Inbox` list;
 - Tasks support create, edit, complete/reopen, delete after confirmation, and All/Overdue/Today/Upcoming/Completed views;
 - schema 14 tasks migrate with `normal` priority and the `Inbox` list; SQLite and all portable data paths validate the new fields;
 - no permission or minimum-OS change;
-- known limits remain custom list management, recurring task rules, reminders, synced notes, account recovery, and remote sync.
+- known limits remain recurring task rules, reminders, synced notes, account recovery, and remote sync.
 
 2026-07-27 note-to-task pass:
 

@@ -17,6 +17,7 @@ import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
 import {createTaskRecord, deleteTaskRecord, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
+import {createTaskListRecord, deleteTaskListRecord, setTaskListArchived, updateTaskListRecord, validateTaskListDraft, type TaskListDraft} from '../shared/taskListLifecycle';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -88,6 +89,10 @@ interface AppStoreValue {
   addTask: (input: TaskDraft) => Promise<void>;
   updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  addTaskList: (input: TaskListDraft) => Promise<void>;
+  updateTaskList: (listId: string, input: TaskListDraft) => Promise<void>;
+  setTaskListArchived: (listId: string, isArchived: boolean) => Promise<void>;
+  deleteTaskList: (listId: string) => Promise<void>;
   createTaskFromNote: (noteId: string) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   setUsagePermission: (permission: UsagePermissionState, errorCode?: string | null) => Promise<void>;
@@ -582,6 +587,50 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
     [commit],
   );
 
+  const addTaskList = useCallback(
+    async (input: TaskListDraft) => {
+      await commit(current => {
+        const list = createTaskListRecord(input, createId('task_list'), new Date().toISOString(), current.taskLists);
+        return {...current, taskLists: [...current.taskLists, list]};
+      });
+    },
+    [commit],
+  );
+
+  const updateTaskList = useCallback(
+    async (listId: string, input: TaskListDraft) => {
+      await commit(current => {
+        const list = current.taskLists.find(item => item.id === listId);
+        if (!list) {
+          throw new Error('The task list no longer exists.');
+        }
+        const validationError = validateTaskListDraft(input, current.taskLists, listId);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        return {
+          ...current,
+          taskLists: current.taskLists.map(item => item.id === listId ? updateTaskListRecord(list, input, new Date().toISOString(), current.taskLists) : item),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const setTaskListArchivedAction = useCallback(
+    async (listId: string, isArchived: boolean) => {
+      await commit(current => ({...current, taskLists: setTaskListArchived(current.taskLists, listId, isArchived)}));
+    },
+    [commit],
+  );
+
+  const deleteTaskList = useCallback(
+    async (listId: string) => {
+      await commit(current => ({...current, taskLists: deleteTaskListRecord(current.taskLists, current.tasks, listId)}));
+    },
+    [commit],
+  );
+
   const createTaskFromNote = useCallback(
     async (noteId: string) => {
       const now = new Date().toISOString();
@@ -716,6 +765,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addTask,
       updateTask,
       deleteTask,
+      addTaskList,
+      updateTaskList,
+      setTaskListArchived: setTaskListArchivedAction,
+      deleteTaskList,
       createTaskFromNote,
       toggleTask,
       setUsagePermission,
@@ -747,6 +800,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addTask,
       updateTask,
       deleteTask,
+      addTaskList,
+      updateTaskList,
+      setTaskListArchivedAction,
+      deleteTaskList,
       createTaskFromNote,
       data,
       error,

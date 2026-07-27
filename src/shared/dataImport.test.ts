@@ -72,6 +72,19 @@ describe('JSON restore validation', () => {
     expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(JsonImportError);
   });
 
+  it('rejects task lists that are not stored in normalized form', () => {
+    const data = emptyAppData();
+    data.taskLists.push({
+      id: 'task_list_work',
+      name: ' Inbox ',
+      isArchived: false,
+      createdAt: '2026-07-26T00:00:00.000Z',
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+
+    expect(() => parseJsonImport(buildJsonExport(data, '2026-07-26T12:00:00.000Z'))).toThrow(/task list/i);
+  });
+
   it('migrates a supported schema 7 export before validation', () => {
     const data = emptyAppData();
     const legacy: Record<string, unknown> = {...data, schemaVersion: 7};

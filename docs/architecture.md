@@ -4,6 +4,8 @@ Status: Core implementation through the task-lifecycle pass with the full-produc
 
 ## System shape
 
+Task-list actions stay in the local AppStore boundary. List names are validated before save; list deletion checks task references before changing the workspace.
+
 Yuzuha uses a local-first feature architecture. The installer is a native-shell concern and runs before the JavaScript product shell is shown.
 
 ```mermaid

@@ -10,6 +10,7 @@ export type GlobalSearchKind =
   | 'saved-search'
   | 'split'
   | 'task'
+  | 'task-list'
   | 'time-goal'
   | 'transfer'
   | 'usage';
@@ -31,14 +32,15 @@ const KIND_ORDER: Record<GlobalSearchKind, number> = {
   note: 1,
   'saved-search': 2,
   task: 3,
-  account: 4,
-  category: 5,
-  transfer: 6,
-  split: 7,
-  budget: 8,
-  recurrence: 9,
-  'time-goal': 10,
-  usage: 11,
+  'task-list': 4,
+  account: 5,
+  category: 6,
+  transfer: 7,
+  split: 8,
+  budget: 9,
+  recurrence: 10,
+  'time-goal': 11,
+  usage: 12,
 };
 
 function includesQuery(query: string, values: Array<string | number | null | undefined>): boolean {
@@ -131,6 +133,17 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         id: task.id,
         title: task.title,
         detail: [task.status, task.details, task.dueLocalDate].filter(Boolean).join(' · '),
+      });
+    }
+  });
+
+  data.taskLists.forEach(taskList => {
+    if (isVisible(taskList.isArchived, includeArchived) && includesQuery(normalizedQuery, [taskList.name, taskList.isArchived ? 'archived' : 'active'])) {
+      add('task-list', {
+        id: taskList.id,
+        title: taskList.name,
+        detail: `${taskList.isArchived ? 'Archived' : 'Active'} task list`,
+        isArchived: taskList.isArchived,
       });
     }
   });

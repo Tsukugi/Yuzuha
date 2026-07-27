@@ -57,6 +57,7 @@ Status: Planned. Requirement IDs are stable references for issues, tests, and re
 | TASK-01 | The user can create, edit, complete, reopen, and delete tasks. | State changes are persisted and reversible where stated. |
 | TASK-02 | Tasks support due date, priority, list, and details. | Invalid dates and blank titles are rejected with inline errors. |
 | TASK-03 | The user can view overdue, today, upcoming, and completed tasks. | Each view uses one documented timezone and completion rule. |
+| TASK-04 | The user can create, rename, archive, restore, and delete custom task lists. | Inbox cannot be archived/deleted, and a list with tasks cannot be deleted. |
 
 ## Quality requirements
 
