@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the task-dependency pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android summary-widget pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -87,9 +87,11 @@ The client encrypts record payloads before upload. The service must not receive 
 
 Treat imported files, pasted JSON, and attachments as untrusted input. Validate type, size, checksum, schema, record references, and parser limits. Do not execute imported content. Provider credentials stay in protected native storage and are deleted on disconnect according to the provider contract. Share sheets and widgets must not leak sensitive content on a locked screen. JSON restore must show a preview and require confirmation before replacing local records.
 
-Current Android share capture accepts text and supported file payloads, rejects empty, unsupported, or over-limit values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral. Text can save as a note/task; files are copied only after the user chooses Save as note, then size and SHA-256 are verified before the note/attachment commit. A sender must grant read access to its URI. Unsupported file types, file provider errors, and widget lock-screen policy remain separate reviews.
+Current Android share capture accepts text and supported file payloads, rejects empty, unsupported, or over-limit values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral. Text can save as a note/task; files are copied only after the user chooses Save as note, then size and SHA-256 are verified before the note/attachment commit. A sender must grant read access to its URI. Unsupported file types and file provider errors remain separate reviews.
 
 Android launcher shortcuts contain only fixed action IDs and labels. They do not expose note bodies, money values, task text, or app-time data in launcher metadata; they only route into the app after launch.
+
+The Android summary widget contains only two aggregate counts: open tasks and active notes. It stores those counts in app-private preferences, never receives note/task text or money/app-time values, does not show raw content on the launcher, and updates only after the JavaScript store loads or commits data. The widget has no periodic worker and its tap action opens Yuzuha.
 
 ## Privacy review gates for new features
 

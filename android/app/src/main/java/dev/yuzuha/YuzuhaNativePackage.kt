@@ -13,6 +13,7 @@ class YuzuhaNativePackage : ReactPackage {
       TaskReminderModule(reactContext),
       ShareCaptureModule(reactContext),
       LaunchActionsModule(reactContext),
+      YuzuhaWidgetModule(reactContext),
     )
   }
 

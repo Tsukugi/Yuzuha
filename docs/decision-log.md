@@ -423,3 +423,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Accept only image/jpeg, image/png, image/gif, image/webp, application/pdf, and text/plain streams. Require a provider display name, reject known sizes over 10 MiB, show metadata in the existing review screen, and offer Save as note or Dismiss. Copy through the existing local-file path and commit the new note plus attachment together. Keep text shares on the existing note/task actions.
 - Reason: This reuses the tested attachment boundary, keeps native payloads to URI metadata rather than bytes, and gives one deterministic destination for a file without adding a new record type or migration.
 - Consequence: Unsupported file types, file-to-task links, remote URL fetching, persisted share drafts, widgets, iOS share handling, and sync remain separate contracts. The sending app must grant URI read access for the review/save window.
+
+## DEC-062: Keep the first Android widget as a count-only projection
+
+- Context: A home-screen widget can shorten review time, but exposing note text, task text, money values, or app-time rows would create a lock-screen privacy contract and more refresh work before public users exist.
+- Decision: Add one Android summary widget that shows only open-task and non-archived-note counts. Refresh it after the JavaScript store loads or commits workspace data, store only the two counts in app-private preferences, use `updatePeriodMillis=0`, and open `MainActivity` when tapped.
+- Reason: The count summary is useful, bounded, cheap to update, and does not require a worker, new schema, new record type, or raw content on the launcher.
+- Consequence: SQLite remains authoritative if the projection is unavailable. User-selected cards, quick actions, dynamic widgets, lock-screen controls, iOS widgets, and sync remain separate contracts.

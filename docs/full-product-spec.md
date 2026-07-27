@@ -48,7 +48,7 @@ Home is a configurable view, not a second source of truth. Cards read from featu
 
 Cards are reorderable and hideable. A reset action restores the default layout. The default layout has money, app time, tasks, and notes.
 
-Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral review screen, and supported image/PDF/plain-text file shares open the same screen with attachment metadata. Text can save as a note or Inbox task; a file can save as a note attachment after checksum verification. Static launcher shortcuts open Money, Notes, Tasks, or App Time. The full product may add unsupported file types, widgets, dynamic shortcuts, and other entry points after their privacy and platform contracts are defined.
+Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral review screen, and supported image/PDF/plain-text file shares open the same screen with attachment metadata. Text can save as a note or Inbox task; a file can save as a note attachment after checksum verification. Static launcher shortcuts open Money, Notes, Tasks, or App Time. The current Android widget shows only open-task and active-note counts and opens Yuzuha on tap. The full product may add unsupported file types, dynamic shortcuts, user-selected widget cards, and other entry points after their privacy and platform contracts are defined.
 
 ### Review behavior
 

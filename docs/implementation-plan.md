@@ -1753,3 +1753,37 @@ Known limits:
 - file-only shares save as notes; tasks do not yet have attachment links;
 - only the six existing attachment MIME types are accepted, and a provider must grant URI read access;
 - unsupported files, remote URL previews, widgets, dynamic shortcuts, iOS share handling, and sync remain planned.
+
+## Implementation review: Android summary-widget pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- typed `WidgetSummary` projection for open tasks and non-archived notes;
+- Android `AppWidgetProvider` with a fixed 3x2 layout, pluralized count text, and a tap action to `MainActivity`;
+- native bridge that stores only two counts in app-private preferences and refreshes placed widgets;
+- `updatePeriodMillis=0`, no worker, no schema change, and no raw record content in widget resources or metadata;
+- AppStore update after initial workspace load and every committed workspace change;
+- architecture, data-model, integrations, requirements, UX, security, full specification, release, testing, and decision docs record the current boundary.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - widget projection and singular/plural summary contract
+Full Jest                PASS - 40 suites, 172 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - widget placement, empty summary, tap navigation, and live update after task save
+Phone smoke              PASS - widget provider registration, clean MainActivity launch, and no filtered app errors; UI placement unavailable by device policy
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- the first widget is a fixed count summary; user-selected cards, quick actions, dynamic widgets, lock-screen policy controls, iOS widgets, and sync remain planned;
+- the widget projection is optional and non-authoritative; SQLite remains the only product-data source;
+- the widget does not show note bodies, task text, money values, or app-time rows.

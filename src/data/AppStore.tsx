@@ -36,6 +36,7 @@ import {createTaskDependencyRecord, deleteTaskDependencyRecord, getBlockingTaskI
 import {promoteSubtasksAfterDelete, validateTaskParentLink} from '../shared/taskSubtask';
 import {adjustTaskReminderForQuietHours, isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
 import {taskReminders} from '../platform/taskReminders';
+import {widgetSummary} from '../platform/widgetSummary';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -51,6 +52,7 @@ import type {
   UsagePermissionState,
   UsageSnapshot,
 } from '../types/domain';
+import {buildWidgetSummary} from '../shared/widgetSummary';
 
 interface AppStoreValue {
   data: AppData | null;
@@ -202,6 +204,12 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       mounted = false;
     };
   }, [store]);
+
+  useEffect(() => {
+    if (data) {
+      void widgetSummary.update(buildWidgetSummary(data));
+    }
+  }, [data]);
 
   const commit = useCallback(
     async (update: (current: AppData) => AppData) => {

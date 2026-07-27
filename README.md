@@ -19,9 +19,11 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home also has a local Quick capture menu. It routes to the existing Money, Notes, and Tasks forms and does not create a separate record type or background process.
 
-Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work. Widgets, dynamic shortcuts, and iOS share handling remain planned.
+Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work.
 
 Android launcher shortcuts now open the existing Money, Notes, Tasks, and App Time screens. They are static navigation entries only: they create no record, store no shortcut state, and start no background work.
+
+The Android summary widget shows only the number of open tasks and active notes. It updates after committed workspace changes, uses no periodic worker, stores no record text, and opens Yuzuha when tapped. Dynamic shortcuts and iOS share/widget handling remain planned.
 
 ## Technology baseline
 

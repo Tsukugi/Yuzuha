@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture and static launcher shortcuts are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, and the summary widget are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -13,7 +13,7 @@ An integration is useful only when it makes capture or review faster without wea
 | App icon | Open Home. | MVP. |
 | Global add action | Create money entry, note, or task. | Full product. |
 | Share sheet | Android text: preview and save as note/task; supported image/PDF/plain-text files: preview and save as note attachment. | Current Android slice. |
-| Widgets | Show selected cards and quick capture. | Full product. |
+| Widgets | Android summary of open tasks and active notes; tap opens Yuzuha. | Current Android slice. |
 | Shortcuts/app actions | Android static shortcuts open Money, Notes, Tasks, or App Time. | Current Android slice. |
 | Deep links | Open a safe local object or settings page. | Full product. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
@@ -24,15 +24,15 @@ An integration is useful only when it makes capture or review faster without wea
 
 Current Android behavior accepts an `ACTION_SEND` text intent or a supported `EXTRA_STREAM` file. Text accepts optional subject, rejects over-20,000-character content, clears consumed extras, and shows a review before saving as a note or Inbox task. Files must be image/jpeg, image/png, image/gif, image/webp, application/pdf, or text/plain; native metadata rejects missing names and known sizes over 10 MiB, and the JS/private-file path verifies the final size and SHA-256 checksum. A file share shows a review and saves only as a note attachment after confirmation. Warm launches emit to `MainApp`; cold launches use the initial getter. Nothing is written before confirmation, and no network request is made.
 
-Remote page fetching, unsupported file types, widgets, dynamic shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy. The sending app must grant read access to the shared URI for the review/save window.
+Remote page fetching, unsupported file types, dynamic shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy. The sending app must grant read access to the shared URI for the review/save window.
 
 ## Android launcher shortcuts
 
-The Android manifest exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. They open the current blank form or screen through the same `singleTask` activity used by reminders and share capture. Cold starts use the typed initial-action getter; warm launches use the native event. Shortcut actions carry no record data, do not require a new permission, and do not start background work. Dynamic, user-configured, widget, and iOS shortcuts remain planned.
+The Android manifest exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. They open the current blank form or screen through the same `singleTask` activity used by reminders and share capture. Cold starts use the typed initial-action getter; warm launches use the native event. Shortcut actions carry no record data, do not require a new permission, and do not start background work. Dynamic, user-configured, and iOS shortcuts remain planned.
 
 ## Widgets
 
-Widgets expose only user-selected, low-risk summaries. Sensitive note bodies and transaction descriptions are not shown on a locked screen by default. A widget has a tap action, an update policy, and a placeholder state when the app database is locked or unavailable.
+The current Android widget exposes only two low-risk counts: open tasks and active notes. It has a fixed `Yuzuha` layout, shows `0 open tasks · 0 active notes` before any workspace records exist, updates only after the app loads or commits workspace data, and opens `MainActivity` when tapped. `updatePeriodMillis=0` means Android does not poll it. Sensitive note bodies, task text, money values, app-time rows, and transaction descriptions are not placed in the widget. Dynamic widgets, user-selected cards, lock-screen policy controls, and iOS widgets remain planned.
 
 ## Calendar
 

@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android summary-widget pass:
+
+- no app or repository schema change; Android registers a 3x2 summary widget for open-task and active-note counts;
+- the widget updates only after the JavaScript store loads or commits workspace data, uses app-private count preferences, has no periodic worker, and opens `MainActivity` on tap;
+- focused widget-summary coverage, full Jest (40 suites, 172 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator placement/live-update/tap smoke, and phone provider-registration/launch smoke passed;
+- no raw task, note, money, or app-time content is placed in the widget; dynamic shortcuts, user-selected widget cards, iOS widgets, and sync remain planned; both devices were force-stopped after the check and no Gradle or Java process remained.
+
 2026-07-27 Android file-share pass:
 
 - no app schema change; Android accepts supported image, PDF, and plain-text `EXTRA_STREAM` files through the existing share review;

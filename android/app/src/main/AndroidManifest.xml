@@ -36,6 +36,16 @@
           <action android:name="dev.yuzuha.TASK_REMINDER" />
         </intent-filter>
       </receiver>
+      <receiver
+        android:name=".YuzuhaSummaryWidgetProvider"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/yuzuha_widget_info" />
+      </receiver>
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

@@ -1,5 +1,7 @@
 # Data model
 
+The Android summary widget is a live non-database projection over the current task and note collections. It adds no app or repository schema field.
+
 Status: The local SQLite repository boundary is implemented with app data schema 28 and repository schema 2. Transfer records, account-balance projections, exact-sum split entries, normalized financial tables, budget projections, one-period carry-forward, recurring money and task rules with missed-occurrence policy, optional local reminder times on recurring task rules, task projects and optional task-to-project links, task templates with archive controls and direct task creation, task parent links with cycle rejection and child promotion, app groups and manual focus sessions with optional record links, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a derived device-local 14-day task agenda, one Android local reminder per open task, local daily quiet-hours settings and alarm projection, separate global and recurring-task reminder category pauses, Android `Open`, idempotent `Complete`, and configurable `Snooze` reminder actions, note tags and local title/body/tag/attachment-name search, note lifecycle controls, local saved searches, local global search, note-to-task conversion, task lifecycle controls, task-list lifecycle controls, local note attachment metadata/files, portable encrypted attachment bytes, validated JSON restore, and ephemeral Android text-share capture are live; selected timezone/week-start settings, broader notification automation, file/URI share records, app blocking, normalized report, and sync tables remain future work.
 
 ## Storage rules
@@ -12,6 +14,7 @@ Status: The local SQLite repository boundary is implemented with app data schema
 - No raw note content or transaction description is written to logs.
 - Android share text is held only in the in-memory review screen until the user confirms a note or task save; the share bridge does not add a repository record.
 - Android shared files are copied into the existing private attachment directory and committed with a new note in one workspace save; no share-specific record or schema field is stored.
+- The Android summary widget is not product data. It projects open-task and active-note counts into app-private preferences for `RemoteViews`; SQLite remains authoritative, and no widget text or count is included in JSON, CSV, or encrypted backup payloads.
 
 ## Entities
 

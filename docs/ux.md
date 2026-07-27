@@ -1,12 +1,14 @@
 # UX plan
 
-Status: Current Android MVP through Android text share capture.
+Status: Current Android MVP through the Android summary widget.
 
 ## Navigation
 
 Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home has a Quick capture action that opens Add money, Add note, or Add task and routes to the existing form without creating a separate capture record.
 
-When Android sends Yuzuha text, show `Shared capture` with the subject/body preview and `Save as note`, `Save as task`, and `Dismiss`. Saving a note uses the subject or first line as its title. Saving a task uses the same title, stores the full text as details, uses Inbox and Normal priority, and routes to Tasks. When Android sends a supported image, PDF, or plain-text file, show its name, MIME type, and known size; offer `Save as note` and `Dismiss`, then store the file as a note attachment after checksum verification. Empty, unsupported, or over-limit payloads create no record. Do not fetch URLs or show shared content on a lock screen before the user opens the app. Launcher shortcuts labeled Add money, Add note, Add task, and App time open the matching existing screen without creating a record.
+When Android sends Yuzuha text, show `Shared capture` with the subject/body preview and `Save as note`, `Save as task`, and `Dismiss`. Saving a note uses the subject or first line as its title. Saving a task uses the same title, stores the full text as details, uses Inbox and Normal priority, and routes to Tasks. When Android sends a supported image, PDF, or plain-text file, show its name, MIME type, and known size; offer `Save as note` and `Dismiss`, then store the file as a note attachment after checksum verification. Empty, unsupported, or over-limit payloads create no record. Do not fetch URLs or show shared content on a lock screen before the user opens the app. Launcher shortcuts labeled Add money, Add note, Add task, and App time open the matching existing screen without creating a record. The Android summary widget shows only open-task and active-note counts, updates after committed workspace changes, and opens Yuzuha on tap.
+
+The widget has no setup flow. Its empty state is `0 open tasks · 0 active notes`; it never shows note bodies, task text, money values, or app-time rows. Android does not poll it because its update period is zero.
 
 ## First run
 
