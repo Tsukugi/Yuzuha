@@ -87,7 +87,7 @@ The client encrypts record payloads before upload. The service must not receive 
 
 Treat imported files, pasted JSON, and attachments as untrusted input. Validate type, size, checksum, schema, record references, and parser limits. Do not execute imported content. Provider credentials stay in protected native storage and are deleted on disconnect according to the provider contract. Share sheets and widgets must not leak sensitive content on a locked screen. JSON restore must show a preview and require confirmation before replacing local records.
 
-Current Android share capture accepts only text payloads, rejects empty or over-20,000-character values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral; the user must choose Save as note or Save as task before local storage changes. File/URI shares and widget lock-screen policy remain separate reviews.
+Current Android share capture accepts text and supported file payloads, rejects empty, unsupported, or over-limit values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral. Text can save as a note/task; files are copied only after the user chooses Save as note, then size and SHA-256 are verified before the note/attachment commit. A sender must grant read access to its URI. Unsupported file types, file provider errors, and widget lock-screen policy remain separate reviews.
 
 Android launcher shortcuts contain only fixed action IDs and labels. They do not expose note bodies, money values, task text, or app-time data in launcher metadata; they only route into the app after launch.
 

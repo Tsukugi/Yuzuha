@@ -12,7 +12,7 @@ import {
 } from '../shared/moneyRecurrence';
 import {localDateKey} from '../shared/period';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
-import {deleteAttachmentFiles} from '../shared/attachmentFiles';
+import {deleteAttachmentFiles, importAttachmentFileFromSource, type AttachmentSource} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
@@ -95,6 +95,7 @@ interface AppStoreValue {
   archiveMoneyAccount: (accountId: string) => Promise<void>;
   archiveMoneyCategory: (categoryId: string) => Promise<void>;
   addNote: (input: NoteDraft) => Promise<void>;
+  addNoteWithAttachment: (input: NoteDraft, source: AttachmentSource) => Promise<void>;
   updateNote: (noteId: string, input: NoteDraft) => Promise<void>;
   toggleNotePinned: (noteId: string) => Promise<void>;
   setNoteArchived: (noteId: string, isArchived: boolean) => Promise<void>;
@@ -510,6 +511,42 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
         updatedAt: now,
       };
       await commit(current => ({...current, notes: [note, ...current.notes]}));
+    },
+    [commit],
+  );
+
+  const addNoteWithAttachment = useCallback(
+    async (input: NoteDraft, source: AttachmentSource) => {
+      const validationError = validateNoteDraft(input);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      const now = new Date().toISOString();
+      const noteId = createId('note');
+      const attachmentId = createId('attachment');
+      const attachment = await importAttachmentFileFromSource(noteId, attachmentId, now, source);
+      const note: Note = {
+        ...input,
+        id: noteId,
+        isPinned: false,
+        isArchived: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      try {
+        await commit(current => ({
+          ...current,
+          notes: [note, ...current.notes],
+          attachments: [attachment, ...current.attachments],
+        }));
+      } catch (error) {
+        try {
+          await deleteAttachmentFiles([attachment]);
+        } catch {
+          throw new Error('The note could not be saved and the imported attachment could not be cleaned up.');
+        }
+        throw error;
+      }
     },
     [commit],
   );
@@ -1371,6 +1408,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       archiveMoneyAccount,
       archiveMoneyCategory,
       addNote,
+      addNoteWithAttachment,
       updateNote,
       toggleNotePinned,
       setNoteArchived,
@@ -1433,6 +1471,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addMoneyBudget,
       deleteMoneyBudget,
       addNote,
+      addNoteWithAttachment,
       updateNote,
       toggleNotePinned,
       setNoteArchived,

@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android launcher-shortcut pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android file-share pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 39 Jest suites and 166 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 39 Jest suites and 170 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -40,6 +40,9 @@ Status: Current test strategy through the Android launcher-shortcut pass. Unit t
 - Launcher-action coverage: supported Money, Notes, Tasks, and App Time actions map only to existing tabs; unknown actions are rejected.
 - Emulator `emulator-5554`: release cold and warm launcher-action intents opened Money, Notes, Tasks, and App Time with no filtered fatal or ReactNativeJS errors; the release manifest/resource inspection found all four static shortcut IDs and action filters.
 - Phone `42adce68`: release cold and warm launcher-action intents were accepted and delivered to `MainActivity` with no filtered app errors. MIUI returned no UI automation root, so target-screen text was verified on the emulator; touch automation remains blocked by device policy.
+- File-share coverage: shared attachment normalization, supported MIME/name/size rejection, direct-source private copy, checksum metadata, one-commit AppStore note/attachment save, text-share regression, and source-extra clearing.
+- Emulator `emulator-5554`: release `content://` file share showed `shared.txt`, `text/plain`, and `6 bytes`; Save as note created the attachment, and the note/attachment remained after force-stop/relaunch with no filtered fatal or ReactNativeJS errors.
+- Phone `42adce68`: release text share still launched `MainActivity` with no filtered app errors; file UI interaction remains emulator-based because the phone returns no UI automation root.
 
 ### Unit tests
 

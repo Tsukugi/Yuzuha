@@ -416,3 +416,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add four static shortcuts: Add money, Add note, Add task, and App time. Each carries only a fixed action ID into `MainActivity`; the typed native bridge handles cold and warm delivery and `MainApp` routes to an existing screen. Do not store shortcut state or run background refresh.
 - Reason: This gives fast access while reusing the current forms and keeps launcher metadata free of money, note, task, and app-time content. The action contract is small and testable on both an emulator and phone.
 - Consequence: Dynamic/user-configured shortcuts, widgets, lock-screen content, iOS shortcuts, and shortcut actions that prefill a record remain separate future contracts. No app schema change is needed.
+
+## DEC-061: Save supported shared files as note attachments only
+
+- Context: Android can share content URIs, and Yuzuha already has a private attachment store with size, MIME, and checksum validation. A task has no attachment field, so offering a task action for a file would silently discard the file.
+- Decision: Accept only image/jpeg, image/png, image/gif, image/webp, application/pdf, and text/plain streams. Require a provider display name, reject known sizes over 10 MiB, show metadata in the existing review screen, and offer Save as note or Dismiss. Copy through the existing local-file path and commit the new note plus attachment together. Keep text shares on the existing note/task actions.
+- Reason: This reuses the tested attachment boundary, keeps native payloads to URI metadata rather than bytes, and gives one deterministic destination for a file without adding a new record type or migration.
+- Consequence: Unsupported file types, file-to-task links, remote URL fetching, persisted share drafts, widgets, iOS share handling, and sync remain separate contracts. The sending app must grant URI read access for the review/save window.

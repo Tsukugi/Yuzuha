@@ -8,6 +8,7 @@ import {
   deleteAttachmentFile,
   deleteAttachmentFiles,
   importAttachmentFile,
+  importAttachmentFileFromSource,
   openAttachmentFile,
   readAttachmentBackupFiles,
   stageAttachmentBackupFiles,
@@ -108,6 +109,33 @@ describe('attachment files', () => {
 
     await expect(importAttachmentFile('note_1', 'attachment_1', '2026-07-27T12:00:00.000Z')).rejects.toBeInstanceOf(AttachmentFileError);
     expect(keepLocalCopyMock).not.toHaveBeenCalled();
+  });
+
+  it('imports a validated shared source without opening the picker', async () => {
+    keepLocalCopyMock.mockResolvedValue([{sourceUri: 'content://source', localUri: '/cache/shared.pdf', status: 'success'}]);
+    fileSystemMock.stat
+      .mockResolvedValueOnce({type: 'file', size: 1024})
+      .mockResolvedValueOnce({type: 'file', size: 1024});
+    fileSystemMock.exists.mockResolvedValueOnce(false);
+    fileSystemMock.hash.mockResolvedValue('B'.repeat(64));
+
+    await expect(importAttachmentFileFromSource('note_1', 'attachment_shared', '2026-07-27T12:00:00.000Z', {
+      uri: 'content://source',
+      name: 'shared.pdf',
+      type: 'application/pdf',
+    })).resolves.toMatchObject({
+      id: 'attachment_shared',
+      noteId: 'note_1',
+      name: 'shared.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 1024,
+      sha256: 'b'.repeat(64),
+    });
+    expect(pickMock).not.toHaveBeenCalled();
+    expect(keepLocalCopyMock).toHaveBeenCalledWith({
+      files: [{uri: 'content://source', fileName: 'shared.pdf'}],
+      destination: 'cachesDirectory',
+    });
   });
 
   it('maps picker cancellation to a distinct result', async () => {

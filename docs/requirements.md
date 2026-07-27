@@ -145,7 +145,7 @@ Current implementation extension: the user can create, pause/resume, and delete 
 | NOTIFY-02 | 3 | Reminder actions are idempotent. | Tapping Complete twice does not create two state changes. |
 | AUTO-01 | 3 | User automation rules have one trigger, conditions, and one action. | A rule has enable/disable, preview, and run history. |
 | AUTO-02 | 3 | Automation cannot commit money or delete data silently. | Such actions require a user-confirmed draft or confirmation screen. |
-| INT-01 | 3 | The user can capture through supported share actions, shortcuts, and widgets. | Current Android `text/plain` share shows a preview and requires note/task confirmation; static Money/Notes/Tasks/App Time shortcuts open existing screens; widget, file/URI, permission, offline, and revoke contracts remain planned. |
+| INT-01 | 3 | The user can capture through supported share actions, shortcuts, and widgets. | Current Android text shares show a preview and require note/task confirmation; supported image/PDF/plain-text file shares show a preview and save as a note attachment; static Money/Notes/Tasks/App Time shortcuts open existing screens; widget, unsupported-file, permission, offline, and revoke contracts remain planned. |
 | INT-02 | 3 | The user can import and export supported formats. | Unsupported fields are visible instead of silently dropped. |
 | INT-03 | 3 | Calendar integration is opt-in. | Revoking permission stops new reads/writes without deleting existing Yuzuha records. |
 
@@ -325,7 +325,7 @@ Current template extension: Tasks support local templates with unique names, str
 
 Current quick-capture extension: Home shows a Quick capture action with Add money, Add note, and Add task targets. Each target opens the existing feature form; no separate capture record, schema field, or background process is added.
 
-Current Android share-capture extension: `ACTION_SEND` text with optional subject is bounded to 20,000 characters before the native bridge and normalized again in shared code. The user must review it before saving as a note or Inbox task. Cold-start and warm-app delivery use the single-task activity and deduplicate the same payload; consumed text and subject extras are cleared. No permission, network request, schema field, or persisted draft is added.
+Current Android share-capture extension: `ACTION_SEND` text with optional subject is bounded to 20,000 characters before the native bridge and normalized again in shared code. Supported `EXTRA_STREAM` image, PDF, and plain-text files require a readable provider name and are bounded to 10 MiB before private copy/checksum verification. Text can save as a note or Inbox task; file shares save as a note attachment only. The user must review before any save. Cold-start and warm-app delivery use the single-task activity and deduplicate the same payload; consumed text, subject, and stream extras are cleared. No app schema, network request, or persisted draft is added.
 
 Current Android launcher extension: four static shortcuts map to Money, Notes, Tasks, and App Time. Cold and warm actions are normalized by a native module and route to existing screens. The action and shortcut metadata are not stored in AppData, and no background process runs.
 

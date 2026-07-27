@@ -82,7 +82,7 @@ const colors = {
 };
 
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
-  const {data, isLoading, error, addNote, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
+  const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
@@ -238,6 +238,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
           <SharedCaptureScreen
             capture={sharedCapture}
             addNote={addNote}
+            addNoteWithAttachment={addNoteWithAttachment}
             addTask={addTask}
             onDismiss={() => closeSharedCapture()}
             onSaved={closeSharedCapture}
@@ -270,26 +271,35 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
 function SharedCaptureScreen({
   capture,
   addNote,
+  addNoteWithAttachment,
   addTask,
   onDismiss,
   onSaved,
 }: {
   capture: SharedCapture;
   addNote: (input: {title: string; body: string; tags: string[]}) => Promise<void>;
+  addNoteWithAttachment: (input: {title: string; body: string; tags: string[]}, source: {uri: string; name?: string | null; type?: string | null}) => Promise<void>;
   addTask: (input: {title: string; details: string; dueLocalDate: string | null; priority: 'normal'; listId: string}) => Promise<string>;
   onDismiss: () => void;
   onSaved: (tab: Tab) => void;
 }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const noteTitle = sharedCaptureTitle(capture, 'Shared note');
+  const noteTitle = sharedCaptureTitle(capture, capture.attachment ? 'Shared file' : 'Shared note');
   const taskTitle = sharedCaptureTitle(capture, 'Shared task');
 
   const saveAsNote = async () => {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await addNote({title: noteTitle, body: capture.text, tags: []});
+      if (capture.attachment) {
+        await addNoteWithAttachment(
+          {title: noteTitle, body: capture.text, tags: []},
+          {uri: capture.attachment.uri, name: capture.attachment.name, type: capture.attachment.mimeType},
+        );
+      } else {
+        await addNote({title: noteTitle, body: capture.text, tags: []});
+      }
       onSaved('notes');
     } catch (error) {
       setSaveError(error instanceof Error && error.message ? error.message : 'The note could not be saved.');
@@ -314,14 +324,21 @@ function SharedCaptureScreen({
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.pageTitle}>Shared capture</Text>
-      <Text style={styles.pageIntro}>Review this text before saving it to your local workspace.</Text>
+      <Text style={styles.pageIntro}>Review this shared content before saving it to your local workspace.</Text>
       <View style={styles.formCard}>
         {capture.subject && <Text style={styles.cardTitle}>{capture.subject}</Text>}
-        <Text style={styles.noteBody}>{capture.text}</Text>
+        {capture.text && <Text style={styles.noteBody}>{capture.text}</Text>}
+        {capture.attachment && (
+          <View style={styles.importPreview}>
+            <Text style={styles.cardTitle}>Attachment</Text>
+            <Text style={styles.listTitle}>{capture.attachment.name}</Text>
+            <Text style={styles.listMeta}>{capture.attachment.mimeType} · {capture.attachment.byteSize === null ? 'Size checked on save' : `${capture.attachment.byteSize} bytes`}</Text>
+          </View>
+        )}
       </View>
       {saveError && <Text style={styles.errorText}>{saveError}</Text>}
       <PrimaryButton label="Save as note" onPress={() => void saveAsNote()} disabled={isSaving} />
-      <TextButton label="Save as task" onPress={() => void saveAsTask()} disabled={isSaving} />
+      {!capture.attachment && <TextButton label="Save as task" onPress={() => void saveAsTask()} disabled={isSaving} />}
       <TextButton label="Dismiss" onPress={onDismiss} disabled={isSaving} />
     </ScrollView>
   );

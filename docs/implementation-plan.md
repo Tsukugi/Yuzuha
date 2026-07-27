@@ -1717,3 +1717,39 @@ Known limits:
 
 - shortcuts open existing blank screens; they do not prefill a record or offer a dynamic user-specific action;
 - widgets, dynamic shortcuts, iOS shortcuts, and shortcut actions that carry record content remain planned.
+
+## Implementation review: Android file-share pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- Android `ACTION_SEND` `EXTRA_STREAM` support for image/jpeg, image/png, image/gif, image/webp, application/pdf, and text/plain;
+- native URI metadata validation for display name, MIME type, known size, and the existing 10 MiB attachment limit;
+- consumed stream-extra clearing and the existing cold-start/warm-app share bridge;
+- shared file metadata in the existing review screen, with Save as note and Dismiss only;
+- direct-source attachment copying through `keepLocalCopy`, private storage, final size verification, and SHA-256 verification;
+- one AppStore commit for the new note and attachment, with explicit cleanup if the workspace save fails;
+- text share behavior retained, including Save as task; no app schema, share-specific record, network fetch, or background worker was added;
+- data model, integrations, requirements, architecture, UX, security, full specification, release, testing, and decision docs record the current boundary.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - share normalization, file limits, direct-source copy, AppStore note/attachment save, and cleanup boundary
+Full Jest                PASS - 39 suites, 170 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - content URI preview, metadata, note save, attachment persistence after relaunch, and text-share regression
+Phone smoke              PASS - release text share launched MainActivity with no filtered app errors; phone UI automation returned no root
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- file-only shares save as notes; tasks do not yet have attachment links;
+- only the six existing attachment MIME types are accepted, and a provider must grant URI read access;
+- unsupported files, remote URL previews, widgets, dynamic shortcuts, iOS share handling, and sync remain planned.

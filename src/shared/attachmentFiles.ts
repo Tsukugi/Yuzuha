@@ -31,6 +31,12 @@ export class AttachmentFileCanceled extends AttachmentFileError {
   }
 }
 
+export interface AttachmentSource {
+  uri: string;
+  name?: string | null;
+  type?: string | null;
+}
+
 export function attachmentFilePath(attachmentId: string): string {
   if (!/^[A-Za-z0-9_-]+$/.test(attachmentId)) {
     throw new AttachmentFileError('Attachment ID is invalid.');
@@ -39,13 +45,17 @@ export function attachmentFilePath(attachmentId: string): string {
 }
 
 export async function importAttachmentFile(noteId: string, attachmentId: string, createdAt: string): Promise<Attachment> {
+  const selectedFile = await selectAttachmentFile();
+  return importAttachmentFileFromSource(noteId, attachmentId, createdAt, selectedFile);
+}
+
+export async function importAttachmentFileFromSource(noteId: string, attachmentId: string, createdAt: string, selectedFile: AttachmentSource): Promise<Attachment> {
   const targetPath = attachmentFilePath(attachmentId);
   let localUri: string | null = null;
   let targetCreated = false;
   let completed = false;
 
   try {
-    const selectedFile = await selectAttachmentFile();
     const name = selectedFile.name?.trim() ?? '';
     const mimeType = (selectedFile.type ?? '').toLowerCase();
     if (!name || name.length > ATTACHMENT_MAX_NAME_LENGTH || !isSupportedAttachmentMimeType(mimeType)) {

@@ -6,6 +6,14 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android file-share pass:
+
+- no app schema change; Android accepts supported image, PDF, and plain-text `EXTRA_STREAM` files through the existing share review;
+- native metadata rejects unsupported MIME types, missing names, and known files over 10 MiB; the existing private copy and SHA-256 path verifies the final file;
+- file shares offer Save as note only, then commit the note and attachment together; text shares retain Save as note and Save as task;
+- focused attachment/share/AppStore coverage, full Jest (39 suites, 170 tests), lint, typecheck, bundle validation, Android debug/release builds, release emulator file-share/save/relaunch smoke, text-share regression, and phone text-launch smoke passed;
+- unsupported files, widgets, dynamic shortcuts, iOS share handling, remote URL fetching, and sync remain planned; both devices were force-stopped after the check and no Gradle/Java process remained.
+
 2026-07-27 Android launcher-shortcut pass:
 
 - no app schema change; Android exposes static Add money, Add note, Add task, and App time shortcuts;

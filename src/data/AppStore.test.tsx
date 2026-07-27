@@ -9,6 +9,7 @@ import {AppStoreProvider, useAppStore} from './AppStore';
 
 jest.mock('../shared/attachmentFiles', () => ({
   deleteAttachmentFiles: jest.fn().mockResolvedValue(undefined),
+  importAttachmentFileFromSource: jest.fn(),
 }));
 
 jest.mock('./nativeWorkspaceStore', () => ({
@@ -25,6 +26,66 @@ jest.mock('../platform/taskReminders', () => ({
 }));
 
 describe('AppStore task reminders', () => {
+  it('saves a shared attachment with its note in one workspace commit', async () => {
+    const attachmentFiles = jest.requireMock('../shared/attachmentFiles') as {importAttachmentFileFromSource: jest.Mock};
+    const attachment = {
+      id: 'attachment_shared',
+      noteId: 'note_shared',
+      name: 'shared.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 1024,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-07-27T12:00:00.000Z',
+      updatedAt: '2026-07-27T12:00:00.000Z',
+    };
+    attachmentFiles.importAttachmentFileFromSource.mockImplementation(async (noteId: string, attachmentId: string, createdAt: string) => ({
+      ...attachment,
+      id: attachmentId,
+      noteId,
+      createdAt,
+      updatedAt: createdAt,
+    }));
+    let saved = emptyAppData();
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await value!.addNoteWithAttachment(
+        {title: 'Shared file', body: '', tags: []},
+        {uri: 'content://source', name: 'shared.pdf', type: 'application/pdf'},
+      );
+    });
+
+    expect(saved.notes[0]?.title).toBe('Shared file');
+    expect(saved.attachments).toHaveLength(1);
+    expect(saved.attachments[0]).toMatchObject({name: attachment.name, noteId: saved.notes[0]?.id});
+    expect(attachmentFiles.importAttachmentFileFromSource).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(String),
+      {uri: 'content://source', name: 'shared.pdf', type: 'application/pdf'},
+    );
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
+
   it('can set a reminder immediately after creating the task', async () => {
     let saved = emptyAppData();
     const store = {

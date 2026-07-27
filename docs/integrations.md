@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text share capture and static launcher shortcuts are current; broader integration capability remains planned.
+Status: Android text/file share capture and static launcher shortcuts are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -12,7 +12,7 @@ An integration is useful only when it makes capture or review faster without wea
 | --- | --- | --- |
 | App icon | Open Home. | MVP. |
 | Global add action | Create money entry, note, or task. | Full product. |
-| Share sheet | Android `text/plain`: preview shared subject/body, then save as a note or Inbox task. | Current Android slice. |
+| Share sheet | Android text: preview and save as note/task; supported image/PDF/plain-text files: preview and save as note attachment. | Current Android slice. |
 | Widgets | Show selected cards and quick capture. | Full product. |
 | Shortcuts/app actions | Android static shortcuts open Money, Notes, Tasks, or App Time. | Current Android slice. |
 | Deep links | Open a safe local object or settings page. | Full product. |
@@ -22,9 +22,9 @@ An integration is useful only when it makes capture or review faster without wea
 
 ## Share capture
 
-Current Android behavior accepts an `ACTION_SEND` `text/plain` intent, plus a missing MIME type when the sender still provides text. The native activity bridge accepts `EXTRA_TEXT` and optional `EXTRA_SUBJECT`, rejects empty or over-20,000-character payloads before the React Native bridge, clears consumed extras, and emits warm launches to `MainApp`. The app shows a review screen; the user can save the bounded text as a note or as an Inbox task, or dismiss it. Nothing is written before confirmation, and no network request is made.
+Current Android behavior accepts an `ACTION_SEND` text intent or a supported `EXTRA_STREAM` file. Text accepts optional subject, rejects over-20,000-character content, clears consumed extras, and shows a review before saving as a note or Inbox task. Files must be image/jpeg, image/png, image/gif, image/webp, application/pdf, or text/plain; native metadata rejects missing names and known sizes over 10 MiB, and the JS/private-file path verifies the final size and SHA-256 checksum. A file share shows a review and saves only as a note attachment after confirmation. Warm launches emit to `MainApp`; cold launches use the initial getter. Nothing is written before confirmation, and no network request is made.
 
-File and URI shares, remote page fetching, widgets, dynamic shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy.
+Remote page fetching, unsupported file types, widgets, dynamic shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy. The sending app must grant read access to the shared URI for the review/save window.
 
 ## Android launcher shortcuts
 

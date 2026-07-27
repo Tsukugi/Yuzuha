@@ -11,6 +11,7 @@ Status: The local SQLite repository boundary is implemented with app data schema
 - Soft deletion is used only where undo or audit behavior needs it. Permanent delete is required for the user data deletion flow.
 - No raw note content or transaction description is written to logs.
 - Android share text is held only in the in-memory review screen until the user confirms a note or task save; the share bridge does not add a repository record.
+- Android shared files are copied into the existing private attachment directory and committed with a new note in one workspace save; no share-specific record or schema field is stored.
 
 ## Entities
 
