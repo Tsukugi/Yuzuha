@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android App-Time-period pass.
+Status: Traceability baseline through the Android verified-remote-bundle pass.
 
 ## Authoritative source by concern
 
@@ -36,6 +36,8 @@ Status: Traceability baseline through the Android App-Time-period pass.
 An item is complete only when its requirement row, source specification, implementation, test, and release gate agree. A green unit test does not prove permission, migration, accessibility, privacy, or rollback behavior unless that layer is tested too.
 
 Current App Time evidence: `TIME-03` maps to `AppTimeScreen`, `getLocalDayRanges`, `aggregateUsagePeriod`, `src/shared/usage.test.ts`, the emulator Day/Week/Month selector and Week refresh smoke, and the 2026-07-27 App-Time-period release note. The feature adds no schema and remains local-only.
+
+Current startup evidence: `START-01` through `START-05` map to `MainApplication`, `YuzuhaBundleInstaller`, `YuzuhaInstallerModule`, `DefaultReactHost(jsBundleFilePath)`, installer metadata/bridge tests, native Kotlin compilation, release APK installation, and emulator/phone startup smoke. The live newer-release path is implemented but awaits a signed endpoint fixture for end-to-end activation evidence.
 
 ## Open decision register
 

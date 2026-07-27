@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android App-Time-period pass.
+Status: Current Android MVP through the Android verified-remote-bundle pass.
 
 ## Navigation
 

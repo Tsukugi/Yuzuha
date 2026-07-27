@@ -12,7 +12,7 @@ const defaultMetadata: BundleMetadata = {
   sha256: '0000000000000000000000000000000000000000000000000000000000000000',
   sizeBytes: 1,
   publishedAt: '2026-07-26T00:00:00.000Z',
-  signature: 'development-fixture',
+  signature: `${'A'.repeat(86)}==`,
 };
 
 function readMetadata(): unknown {

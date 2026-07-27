@@ -1,4 +1,4 @@
-import {validateBundleMetadata} from './metadata';
+import {bundleMetadataSigningPayload, validateBundleMetadata} from './metadata';
 
 const validMetadata = {
   schema: 1,
@@ -11,7 +11,7 @@ const validMetadata = {
   sha256: 'a'.repeat(64),
   sizeBytes: 100,
   publishedAt: '2026-07-26T00:00:00.000Z',
-  signature: 'test-signature',
+  signature: `${'A'.repeat(86)}==`,
 } as const;
 
 describe('bundle metadata', () => {
@@ -30,5 +30,11 @@ describe('bundle metadata', () => {
       'Bundle metadata failed schema validation.',
     );
   });
-});
 
+  it('builds one stable signing payload', () => {
+    expect(bundleMetadataSigningPayload(validMetadata)).toBe(
+      '1\nyuzuha-mobile\nandroid\n0.86.0\n0.1.0\n0.1.0\nhttps://updates.yuzuha.dev/bundles/android/0.1.0/main.jsbundle\n' +
+        `${'a'.repeat(64)}\n100\n2026-07-26T00:00:00.000Z`,
+    );
+  });
+});

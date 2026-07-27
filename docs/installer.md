@@ -1,6 +1,6 @@
 # JavaScript bundle installer contract
 
-Status: Phase 0 implementation plus target contract. `src/installer` currently provides the embedded launch gate and metadata validator. Native remote bundle download, verification, and activation remain a later phase.
+Status: Android native installer implementation through the verified remote-bundle pass. The native shell checks signed metadata, downloads only a newer compatible bundle, verifies its hash and signature, atomically activates it, and starts from the newest verified local or embedded bundle.
 
 ## Purpose
 
@@ -61,7 +61,7 @@ Keep these records separately:
 - activation record: pointer to the selected verified bundle;
 - last-known-good record: previous verified pointer kept for rollback.
 
-Installer metadata needs an explicitly scoped native or file-backed owner; the current build does not ship an AsyncStorage product-data path. The bundle file must use an app-private file path. Writes must be atomic: download to a temporary file, verify, move into place, then write the activation pointer.
+Installer metadata is owned by the Android native shell in app-private files under `filesDir/installer`. The bundle file must use an app-private file path. Writes are atomic: download to a temporary file, verify, move into place, then atomically replace the activation pointer. No product data, AsyncStorage path, account, or network identity is used.
 
 ## Launch decision
 
@@ -104,6 +104,8 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 ## Developer note: local data starts after bundle verification
 
 The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, requires repository schema 2 and app schema 28, expands due money and task rules, copies any recurring-rule local reminder times into generated tasks, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. It also validates project references, task template fields and references, app-group records, focus-session states, task parent references, same-list parent links, parent cycles, task dependency references, cycles, and per-list task sort order before the workspace is shown. That synchronization is empty when the global `taskRemindersEnabled` flag is off. When the global flag is on, tasks linked to a recurring rule are also filtered by `recurringTaskRemindersEnabled`; one-off task reminders remain active when only the recurring flag is off. Both flags pause native alarms without deleting logical reminder timestamps, and turning them back on rebuilds future schedules. A current-schema validation, recurrence-expansion, project, template, app-group, focus-session, subtask, dependency, sort-order, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; old schemas are rejected and are not guessed or upgraded. Restore also synchronizes the incoming projected reminder set before committing it, subject to both restored category flags.
+
+The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, and only then selects the private bundle path. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the local bundle; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. No retry loop or background update worker is started. The JavaScript installer module only reads the native launch result.
 
 ## Developer note
 

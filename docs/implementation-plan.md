@@ -1986,3 +1986,37 @@ Known limits:
 - the selected period is not persisted as a UI preference and uses the device local calendar;
 - a Month refresh is bounded but may issue up to 31 sequential native day queries;
 - selected timezone and week-start preferences, sync, and iOS app-time parity remain planned.
+
+## Implementation review: Android verified-remote-bundle pass
+
+Status: Implemented on 2026-07-27; live remote activation remains endpoint-release verification work.
+
+Delivered:
+
+- native `YuzuhaBundleInstaller` started before React host creation;
+- strict current Android/runtime/native-version metadata validation and canonical Ed25519 signature verification;
+- one bounded HTTPS metadata request, 64 MiB bundle cap, 5-second download read bound, exact-size check, streaming SHA-256, immutable versioned private bundle files, and atomic activation state;
+- `DefaultReactHost(jsBundleFilePath = ...)` selection for verified private bundles, with embedded baseline/offline/invalid-remote paths;
+- `YuzuhaInstaller` JavaScript bridge that only reads native status;
+- Android minimum API 33 decision and latest-only documentation across installer, architecture, requirements, security, testing, release, traceability, and decision log.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - 7 installer/metadata tests
+Full Jest                PASS - 45 suites, 194 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Native Kotlin compile   PASS - :app:compileDebugKotlin
+Android release build   PASS - :app:assembleRelease with Java 17 and 2 workers
+Emulator smoke           PASS - release startup rendered Bundle 0.1.0 and Home; no filtered app errors
+Phone smoke              PASS - release startup with no filtered app errors; UI root unavailable by policy
+Resource cleanup         PASS - both devices force-stopped; Gradle/Kotlin processes stopped
+```
+
+Known limits:
+
+- the live `updates.yuzuha.dev` endpoint has no signed release fixture in this workspace, so device smoke proves the offline embedded path, not remote activation;
+- the native implementation intentionally has no retry loop, polling worker, or background update service;
+- Android API 32 and older are no longer supported; future public releases need release-pipeline key custody and endpoint integration tests.

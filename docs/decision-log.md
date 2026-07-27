@@ -479,3 +479,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Offer Today, This week, and This month. Split each selected local period into local calendar-day ranges, query them sequentially after Usage Access is confirmed, aggregate each result against its queried day, and replace usage snapshots once after all reads succeed.
 - Reason: The rule gives the user an exact range and deterministic local-date totals while bounding each native call and avoiding a worker, timer, retry loop, or partial save.
 - Consequence: A month refresh can issue up to 31 sequential native queries and may take longer than a day refresh. The selected UI period is not persisted, and selected timezone/week-start policy remains future work.
+
+## DEC-070: Make the Android startup bundle gate native and latest-only
+
+- Context: The JavaScript installer class only returned the embedded version. It could not protect the native host from an unverified remote file or satisfy the startup requirement before `MainApp`.
+- Decision: Raise the Android minimum API to 33, run one bounded metadata request in the native shell before React host creation, verify the canonical metadata with the pinned Ed25519 public key, download at most 64 MiB, hash bytes as they are written, and atomically store the verified bundle plus activation state under app-private `filesDir/installer`. Pass the selected private path to `DefaultReactHost`; keep the embedded asset as the clean-install/offline baseline. JavaScript only reads the native result.
+- Reason: The shell owns executable code selection. API 33 gives the current Android target a standard Ed25519 verifier without adding a native crypto dependency. One request, fixed timeouts, and no worker keep launch work bounded and avoid useless background resource use.
+- Consequence: Android devices below API 33 are no longer supported. Live release publishing must use the pinned signing key and exact canonical payload. A failed remote check does not replace the newest verified local or embedded bundle; live signed activation still needs endpoint-release testing.

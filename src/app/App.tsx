@@ -2,10 +2,10 @@ import {useEffect, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {AppStoreProvider} from '../data/AppStore';
-import {EmbeddedBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
+import {NativeBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
 import {MainApp} from './MainApp';
 
-const installer = new EmbeddedBundleInstaller('0.1.0');
+const installer = new NativeBundleInstaller();
 
 export function App() {
   const [decision, setDecision] = useState<LaunchDecision | null>(null);

@@ -1,14 +1,22 @@
 # Testing strategy
 
-Status: Current test strategy through the Android App-Time-period pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android verified-remote-bundle pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 45 Jest suites and 191 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
+- The current suite is 45 Jest suites and 194 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered; current money CSV and JSON file import plus encrypted-backup file opening have strict adapter tests.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
+
+## Native installer evidence
+
+- Focused Jest covers the typed JavaScript bridge, embedded fallback, native verified result, invalid native result blocking, current metadata shape, and stable signed-payload construction.
+- `:app:compileDebugKotlin` passes for the native installer and `:app:assembleRelease` passes with Java 17 and two workers. The release APK installs on emulator `emulator-5554` and phone `42adce68`.
+- Emulator startup after install rendered `Bundle 0.1.0` and the Home screen. Phone startup completed without filtered fatal or ReactNativeJS errors; its UI automation bridge remains unavailable by device policy.
+- The default update endpoint was unavailable during smoke, so the deterministic `offline-local`/embedded path was exercised. A live signed remote activation requires the release endpoint and is not claimed by this device smoke.
+- Both devices were force-stopped after the check, and no Gradle, Kotlin compiler, or app worker process remained.
 
 ## App Time period evidence
 

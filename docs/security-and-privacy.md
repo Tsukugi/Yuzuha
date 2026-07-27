@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android App-Time-period pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android verified-remote-bundle pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -12,6 +12,10 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 - No account is required for the MVP.
 - No personal content is sent to the bundle update endpoint.
 - If opt-in diagnostics are added, they must exclude content and app-usage records by default.
+
+## Android bundle installer controls
+
+The update check sends no account ID, device ID, product record, note text, transaction data, task data, or app-usage data. It makes one HTTPS request for public signed metadata, rejects redirects, caps metadata at 64 KiB and bundles at 64 MiB, and keeps downloaded bytes in app-private storage. Metadata is authenticated with the pinned Ed25519 public key; the bundle hash and exact byte count are checked before activation. Temporary files are removed after failure, and the embedded or previously verified bundle remains selected. Android API 33 is the current minimum for the native verifier.
 
 ## Sensitive data controls
 

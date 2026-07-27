@@ -9,18 +9,25 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 
 class MainApplication : Application(), ReactApplication {
 
+  private val bundleInstaller by lazy { YuzuhaBundleInstaller(applicationContext) }
+
   override val reactHost: ReactHost by lazy {
+    val launchResult = bundleInstaller.await()
     getDefaultReactHost(
         context = applicationContext,
         packageList =
         PackageList(this).packages.apply {
           add(YuzuhaNativePackage())
         },
+        jsBundleFilePath = launchResult.bundlePath,
     )
   }
 
   override fun onCreate() {
     super.onCreate()
+    bundleInstaller.start()
     loadReactNative(this)
   }
+
+  fun bundleLaunchResult(): BundleLaunchResult = bundleInstaller.await()
 }

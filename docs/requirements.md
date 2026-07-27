@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: Planned. Requirement IDs are stable references for issues, tests, and release notes.
+Status: Current implementation trace plus planned requirements. Requirement IDs are stable references for issues, tests, and release notes.
 
 ## Startup and installer
 
@@ -340,6 +340,8 @@ Current Android calendar-draft extension: a dated task row validates its title, 
 Current money CSV import extension: Data tools choose one current Yuzuha CSV through the system picker, copy it to cache, enforce bounded size/row limits, parse quoted fields, validate current schema values and workspace references, show errors and currency totals, and append only after confirmation. Duplicate IDs, split-linked rows, invalid values, and broken references leave the workspace unchanged. No import record, migration, network request, or background job is added.
 
 Current JSON export file extension: Data tools choose one current Yuzuha JSON export through the system picker, copy it to cache, enforce a bounded file size, validate the current export schema, show the existing record-count preview, and replace the workspace only after destructive confirmation. Picker cancellation, unsupported files, invalid JSON, old schemas, and incomplete current records leave the workspace unchanged. No import record, migration, network request, or background job is added.
+
+Current Android startup extension: the native shell runs one bounded signed metadata check before React host creation. A newer compatible bundle is accepted only after Ed25519 metadata verification, exact size, and SHA-256 checks; activation state and the immutable private bundle are written atomically. Timeout or invalid remote input keeps the newest verified private or embedded bundle. JavaScript reads the native decision and does not download or activate executable code. Android API 33 is the current minimum.
 
 ## Local recovery-key backup implementation review
 

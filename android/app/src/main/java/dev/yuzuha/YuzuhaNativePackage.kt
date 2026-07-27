@@ -16,6 +16,7 @@ class YuzuhaNativePackage : ReactPackage {
       DeepLinkModule(reactContext),
       CalendarDraftModule(reactContext),
       YuzuhaWidgetModule(reactContext),
+      YuzuhaInstallerModule(reactContext),
     )
   }
 

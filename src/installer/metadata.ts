@@ -14,6 +14,22 @@ export interface BundleMetadata {
 
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
+const signaturePattern = /^[A-Za-z0-9+/]{86}==$/;
+
+export function bundleMetadataSigningPayload(metadata: BundleMetadata): string {
+  return [
+    metadata.schema,
+    metadata.appId,
+    metadata.platform,
+    metadata.runtime,
+    metadata.version,
+    metadata.minNativeVersion,
+    metadata.bundleUrl,
+    metadata.sha256,
+    metadata.sizeBytes,
+    metadata.publishedAt,
+  ].join('\n');
+}
 
 export function validateBundleMetadata(value: unknown): BundleMetadata {
   if (!value || typeof value !== 'object') {
@@ -40,11 +56,10 @@ export function validateBundleMetadata(value: unknown): BundleMetadata {
     typeof candidate.publishedAt !== 'string' ||
     Number.isNaN(Date.parse(candidate.publishedAt)) ||
     typeof candidate.signature !== 'string' ||
-    candidate.signature.length === 0
+    !signaturePattern.test(candidate.signature)
   ) {
     throw new Error('Bundle metadata failed schema validation.');
   }
 
   return candidate as BundleMetadata;
 }
-

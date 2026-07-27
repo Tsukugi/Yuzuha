@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android verified-remote-bundle pass:
+
+- the native shell now performs one bounded HTTPS metadata check before creating the React host, verifies canonical Ed25519-signed metadata, downloads only a newer compatible Android bundle, checks the 64 MiB size cap and SHA-256, and atomically activates private files;
+- timeout or network failure selects the newest verified private bundle or embedded asset; no retry loop, polling worker, account identity, or legacy bundle migration path was added;
+- Android minimum API is now 33 for the supported Ed25519 runtime; the JavaScript bridge reads the native launch result and never downloads or activates a bundle;
+- focused installer tests, full Jest (45 suites, 194 tests), lint, typecheck, bundle validation, native Kotlin compilation, release APK build, emulator startup, and phone startup passed; live remote activation remains an endpoint-release test rather than a device-smoke claim.
+
 2026-07-27 Android App-Time-period pass:
 
 - no app or repository schema change; App Time now selects Today, This week, or This month and states the exact local date range and last-read time;
