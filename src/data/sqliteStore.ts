@@ -412,9 +412,17 @@ export function decodeAppData(
       case 'category':
         data.categories.push(payload as MoneyCategory);
         break;
-      case 'note':
-        data.notes.push(payload as Note);
+      case 'note': {
+        if (typeof payload !== 'object' || payload === null) {
+          throw new SqliteDataCorruptError();
+        }
+        const notePayload = payload as {tags?: unknown};
+        if (notePayload.tags !== undefined && (!Array.isArray(notePayload.tags) || notePayload.tags.some(tag => typeof tag !== 'string'))) {
+          throw new SqliteDataCorruptError();
+        }
+        data.notes.push({...payload, tags: notePayload.tags ?? []} as Note);
         break;
+      }
       case 'attachment':
         data.attachments.push(payload as Attachment);
         break;

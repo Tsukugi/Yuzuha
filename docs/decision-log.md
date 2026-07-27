@@ -206,3 +206,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: On Android, expose only the selected attachment through an `androidx.core.content.FileProvider` URI. The native bridge checks the canonical file is directly under `filesDir/attachments`, accepts only the supported image, PDF, and plain-text MIME set, and starts the system chooser with read permission. Other platforms return an explicit unavailable error until they have their own tested adapter.
 - Reason: The system viewer handles rendering while the private storage boundary stays narrow. The app does not grant directory access or upload the file.
 - Consequence: Viewer availability depends on installed Android apps. Yuzuha does not yet provide an in-app renderer, iOS preview, attachment search, or synced attachment viewer.
+
+## DEC-031: Store normalized note tags in app schema 11
+
+- Context: Notes require local search over title, body, and tags, but the current note record has no tag field. Search cannot depend on display-only parsing or a remote index.
+- Decision: Add `tags` to every note as a unique lowercase string array. Normalize comma-separated input by trimming, lowercasing, removing empty values, and deduplicating. Limit each note to 20 tags and each tag to 40 characters. Migrate schema 10 notes and old SQLite note rows to `tags: []`.
+- Reason: A small typed field keeps the local-first search contract simple, portable through existing JSON/encrypted backups, and deterministic across Android restarts.
+- Consequence: Search currently covers note title, body, and tags only. Attachment filename search, saved searches, global search, and synced indexes remain separate work.

@@ -732,3 +732,39 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: account/device recovery design or attachment search/sync, with remote sync kept behind the local-first boundary.
+
+## Implementation review: note tags and local search pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 11 with deterministic schema 10 to schema 11 note-tag migration;
+- AsyncStorage key migration from `@yuzuha/app-data/v10` to `@yuzuha/app-data/v11` while retaining older keys as read-only migration sources;
+- old SQLite note-row migration that adds an empty tag collection and rejects malformed tag arrays;
+- normalized comma-separated tags with a 20-tag limit and 40-character per-tag limit;
+- case-insensitive local search over note title, body, and tags;
+- Notes UI tag input, tag display, search field, and explicit no-match state;
+- JSON and encrypted-backup app-schema bounds updated to accept schema 11;
+- focused regression coverage for normalization, invalid tags, search matching, AsyncStorage migration, SQLite migration, and restore compatibility.
+
+Known limits:
+
+- note edit, archive, pin, and delete actions are not implemented yet;
+- attachment filename search, saved searches, global search, synced notes, and remote sync remain planned.
+
+Review evidence:
+
+```text
+Focused Jest       PASS - 3 suites, 19 tests
+Full Jest          PASS - 21 suites, 90 tests
+npm run lint       PASS
+npm run typecheck  PASS
+Bundle check       PASS - Android metadata valid
+Android bundle     PASS - embedded release bundle generated
+Android builds     PASS - debug and release APKs with Java 17
+Emulator smoke     PASS - tagged note created, persisted after restart, title/body/tag searches matched, and no-match state shown
+Phone smoke        PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Next pass: note edit/archive/pin/delete or account/device recovery design, with remote sync kept behind the local-first boundary.

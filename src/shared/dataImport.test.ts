@@ -10,6 +10,7 @@ describe('JSON restore validation', () => {
       id: 'note_1',
       title: 'Keep this',
       body: 'Local note',
+      tags: ['local'],
       isPinned: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
@@ -46,7 +47,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(10);
+    expect(preview.data.schemaVersion).toBe(11);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -57,7 +58,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(10);
+    expect(migrated?.schemaVersion).toBe(11);
     expect(migrated?.attachments).toEqual([]);
   });
 
@@ -70,6 +71,7 @@ describe('JSON restore validation', () => {
         id: 'note_1',
         title: 'First',
         body: '',
+        tags: [],
         isPinned: false,
         createdAt: '2026-07-26T00:00:00.000Z',
         updatedAt: '2026-07-26T00:00:00.000Z',
@@ -78,6 +80,7 @@ describe('JSON restore validation', () => {
         id: 'note_1',
         title: 'Second',
         body: '',
+        tags: [],
         isPinned: false,
         createdAt: '2026-07-26T00:00:00.000Z',
         updatedAt: '2026-07-26T00:00:00.000Z',
@@ -139,6 +142,7 @@ describe('JSON restore validation', () => {
       id: 'note_1',
       title: 'Keep this',
       body: '',
+      tags: [],
       isPinned: false,
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',

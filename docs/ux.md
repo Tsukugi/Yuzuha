@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Planned Android MVP.
+Status: Current Android MVP through the note tags and search pass.
 
 ## Navigation
 
@@ -40,11 +40,11 @@ The short form asks for a title first. Details, due date, priority, and list are
 
 ### Search notes
 
-Search is available from the Notes header. Results show title, a short body preview, tags, and updated time. Search must not send note content to a server.
+Notes has a local search field. It matches title, body, and normalized tags case-insensitively. Results show the title, a short body preview, tags, and updated time. An empty query shows all notes; a query with no matches shows an honest empty state. Search must not send note content to a server.
 
 ### Add a note attachment
 
-Each saved note has an `Add attachment` action. The system picker allows images, PDFs, and plain-text files. Yuzuha copies the selected file into private app storage, checks its name, size, type, and SHA-256 checksum, then saves the metadata under the note. Android shows an `Open attachment` action for supported files and hands one read-only FileProvider URI to the system chooser. If no Android viewer can open the file, the note shows the native error. iOS preview remains planned. The note shows the file name and size. Removing an attachment deletes the private file before removing its metadata. A note can have at most 10 attachments and each file can be at most 10 MiB. Canceling the picker leaves the note unchanged.
+Each saved note has a comma-separated optional tag field and an `Add attachment` action. Tags are trimmed, lowercased, deduplicated, and limited to 20 tags of 40 characters each. The system picker allows images, PDFs, and plain-text files. Yuzuha copies the selected file into private app storage, checks its name, size, type, and SHA-256 checksum, then saves the metadata under the note. Android shows an `Open attachment` action for supported files and hands one read-only FileProvider URI to the system chooser. If no Android viewer can open the file, the note shows the native error. iOS preview remains planned. The note shows its tags, file names, and sizes. Removing an attachment deletes the private file before removing its metadata. A note can have at most 10 attachments and each file can be at most 10 MiB. Canceling the picker leaves the note unchanged.
 
 ### Export and delete local data
 

@@ -1,4 +1,4 @@
-import {migrateStoredData, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
+import {migrateStoredData, migrateV10ToV11, migrateV2ToV3, migrateV3ToV4, migrateV4ToV5, migrateV5ToV6, migrateV6ToV7, migrateV7ToV8, migrateV8ToV9} from './migrations';
 import {emptyAppData} from '../types/domain';
 import type {MoneyCategory} from '../types/domain';
 
@@ -219,13 +219,34 @@ describe('schema migrations', () => {
     expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
   });
 
-  it('adds the attachment collection when opening schema 9 data', () => {
+  it('adds note tags when opening schema 10 data', () => {
+    const legacy = {
+      ...emptyAppData(),
+      schemaVersion: 10 as const,
+      notes: [{
+        id: 'note_1',
+        title: 'Legacy',
+        body: '',
+        isPinned: false,
+        createdAt: '2026-07-27T00:00:00.000Z',
+        updatedAt: '2026-07-27T00:00:00.000Z',
+      }],
+    } as never;
+
+    const data = migrateV10ToV11(legacy);
+
+    expect(data.schemaVersion).toBe(11);
+    expect(data.notes[0].tags).toEqual([]);
+  });
+
+  it('adds the attachment collection and note tags when opening schema 9 data', () => {
     const legacy: Record<string, unknown> = {...emptyAppData(), schemaVersion: 9};
     delete legacy.attachments;
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(10);
+    expect(data?.schemaVersion).toBe(11);
     expect(data?.attachments).toEqual([]);
+    expect(data?.notes).toEqual([]);
   });
 });

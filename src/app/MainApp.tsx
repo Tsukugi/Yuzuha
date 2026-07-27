@@ -40,6 +40,7 @@ import {
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
 import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
+import {NOTE_MAX_TAG_LENGTH, NOTE_MAX_TAGS, normalizeNoteTags, noteMatchesQuery, validateNoteTags} from '../shared/noteSearch';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, RecurrenceCadence} from '../types/domain';
@@ -1723,6 +1724,8 @@ function NotesScreen() {
   const {data, addNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [tags, setTags] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [attachmentBusyNoteId, setAttachmentBusyNoteId] = useState<string | null>(null);
 
@@ -1736,10 +1739,16 @@ function NotesScreen() {
       setError('Give the note a short title.');
       return;
     }
+    const normalizedTags = normalizeNoteTags(tags);
+    if (!validateNoteTags(normalizedTags)) {
+      setError(`Use up to ${NOTE_MAX_TAGS} tags with ${NOTE_MAX_TAG_LENGTH} characters each.`);
+      return;
+    }
     setError(null);
-    await addNote({title: trimmedTitle, body: body.trim()});
+    await addNote({title: trimmedTitle, body: body.trim(), tags: normalizedTags});
     setTitle('');
     setBody('');
+    setTags('');
   }
 
   async function addNoteAttachment(noteId: string) {
@@ -1812,20 +1821,41 @@ function NotesScreen() {
             onChangeText={setBody}
             multiline
           />
+          <Text style={styles.formLabel}>Tags (comma separated, optional)</Text>
+          <TextInput
+            accessibilityLabel="Note tags"
+            placeholder="work, idea, project"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={tags}
+            onChangeText={setTags}
+          />
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label="Save note" onPress={save} />
         </View>
+        <SectionTitle title="Search notes" />
+        <TextInput
+          accessibilityLabel="Search notes"
+          placeholder="Title, body, or tag"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
         <SectionTitle title="All notes" />
         {data.notes.length === 0 ? (
           <EmptyState text="No notes yet." />
+        ) : data.notes.filter(note => noteMatchesQuery(note, searchQuery)).length === 0 ? (
+          <EmptyState text="No notes match this search." />
           ) : (
-          data.notes.map(note => {
+          data.notes.filter(note => noteMatchesQuery(note, searchQuery)).map(note => {
             const noteAttachments = data.attachments.filter(attachment => attachment.noteId === note.id);
             const isAttachmentBusy = attachmentBusyNoteId === note.id;
             return (
               <View key={note.id} style={styles.noteCard}>
                 <Text style={styles.listTitle}>{note.title}</Text>
                 {!!note.body && <Text style={styles.noteBody} numberOfLines={3}>{note.body}</Text>}
+                {note.tags.length > 0 && <Text style={styles.listMeta}>Tags: {note.tags.map(tag => `#${tag}`).join(' ')}</Text>}
                 <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
                 {noteAttachments.length > 0 && (
                   <View style={styles.attachmentSection}>

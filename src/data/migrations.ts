@@ -1,5 +1,6 @@
 import {emptyAppData} from '../types/domain';
 import type {AppData, MoneyBudget, MoneyCategory, MoneyEntry, MoneyRecurrenceRule, UsageRead, UsageSnapshot} from '../types/domain';
+import {validateNoteTags} from '../shared/noteSearch';
 
 interface StoredV1 {
   schemaVersion: 1;
@@ -106,6 +107,10 @@ interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'atta
 
 interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments'> {
   schemaVersion: 9;
+}
+
+interface StoredV10 extends Omit<AppData, 'schemaVersion'> {
+  schemaVersion: 10;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -274,7 +279,7 @@ export function isStoredV9(value: unknown): value is StoredV9 {
   );
 }
 
-export function isStoredV10(value: unknown): value is AppData {
+export function isStoredV10(value: unknown): value is StoredV10 {
   return (
     isRecord(value) &&
     value.schemaVersion === 10 &&
@@ -287,6 +292,29 @@ export function isStoredV10(value: unknown): value is AppData {
     Array.isArray(value.accounts) &&
     Array.isArray(value.categories) &&
     Array.isArray(value.notes) &&
+    Array.isArray(value.attachments) &&
+    Array.isArray(value.tasks) &&
+    Array.isArray(value.usageSnapshots) &&
+    isRecord(value.usageRead) &&
+    Array.isArray(value.usageExcludedPackages) &&
+    Array.isArray(value.timeGoals)
+  );
+}
+
+export function isStoredV11(value: unknown): value is AppData {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 11 &&
+    typeof value.mainCurrency === 'string' &&
+    Array.isArray(value.money) &&
+    Array.isArray(value.transfers) &&
+    Array.isArray(value.splits) &&
+    Array.isArray(value.budgets) &&
+    Array.isArray(value.recurrences) &&
+    Array.isArray(value.accounts) &&
+    Array.isArray(value.categories) &&
+    Array.isArray(value.notes) &&
+    value.notes.every(note => isRecord(note) && validateNoteTags(note.tags)) &&
     Array.isArray(value.attachments) &&
     Array.isArray(value.tasks) &&
     Array.isArray(value.usageSnapshots) &&
@@ -394,7 +422,7 @@ export function migrateV8ToV9(value: StoredV8): StoredV9 {
   };
 }
 
-export function migrateV9ToV10(value: StoredV9): AppData {
+export function migrateV9ToV10(value: StoredV9): StoredV10 {
   return {
     ...value,
     schemaVersion: 10,
@@ -402,36 +430,64 @@ export function migrateV9ToV10(value: StoredV9): AppData {
   };
 }
 
+export function migrateV10ToV11(value: StoredV10): AppData {
+  return {
+    ...value,
+    schemaVersion: 11,
+    notes: value.notes.map(note => ({...note, tags: []})),
+  };
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV10(value)) {
+  if (isStoredV11(value)) {
     return value;
   }
+  if (isStoredV10(value)) {
+    return migrateV10ToV11(value);
+  }
   if (isStoredV9(value)) {
-    return migrateV9ToV10(value);
+    return migrateV10ToV11(migrateV9ToV10(value));
   }
   if (isStoredV8(value)) {
-    return migrateV9ToV10(migrateV8ToV9(value));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)));
   }
   if (isStoredV7(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value)));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))));
   }
   if (isStoredV6(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value))));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))));
   }
   if (isStoredV5(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value)))));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))));
   }
   if (isStoredV4(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value))))));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))));
   }
   if (isStoredV3(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value)))))));
+    return migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))));
   }
   if (isStoredV2(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(value))))))));
+    const v3 = migrateV2ToV3(value);
+    const v4 = migrateV3ToV4(v3);
+    const v5 = migrateV4ToV5(v4);
+    const v6 = migrateV5ToV6(v5);
+    const v7 = migrateV6ToV7(v6);
+    const v8 = migrateV7ToV8(v7);
+    const v9 = migrateV8ToV9(v8);
+    const v10 = migrateV9ToV10(v9);
+    return migrateV10ToV11(v10);
   }
   if (isStoredV1(value)) {
-    return migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(migrateV1ToV2(value)))))))));
+    const v2 = migrateV1ToV2(value);
+    const v3 = migrateV2ToV3(v2);
+    const v4 = migrateV3ToV4(v3);
+    const v5 = migrateV4ToV5(v4);
+    const v6 = migrateV5ToV6(v5);
+    const v7 = migrateV6ToV7(v6);
+    const v8 = migrateV7ToV8(v7);
+    const v9 = migrateV8ToV9(v8);
+    const v10 = migrateV9ToV10(v9);
+    return migrateV10ToV11(v10);
   }
   return null;
 }

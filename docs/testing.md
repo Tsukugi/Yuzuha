@@ -242,6 +242,14 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Emulator `emulator-5554`: imported the controlled PNG fixture through DocumentsUI, opened the Android Photos viewer from Notes, and returned to Yuzuha with the Back action.
 - Phone `42adce68`: the release APK installed and `MainActivity` resumed without filtered app errors; touch automation remains blocked by device policy.
 
+## Note tags and search evidence
+
+- Focused Jest covers tag normalization, invalid stored-tag rejection, title/body/tag matching, schema 10 to 11 migration, old SQLite note-row migration, and current JSON/export/encrypted-backup validation.
+- The note search helper is case-insensitive, matches only local title/body/tag fields, and returns all notes for an empty query.
+- Full Jest: 21 suites and 90 tests pass. Lint, strict TypeScript, bundle metadata, Android bundle generation, and debug/release APK builds also pass.
+- Emulator `emulator-5554`: created a note with `smoketag` and `work`, confirmed the tags were displayed after force-stop/relaunch, matched the note with uppercase tag and body searches, and showed `No notes match this search.` for an unknown query.
+- Phone `42adce68`: the release APK installed and `MainActivity` resumed without filtered Yuzuha errors. Touch input remains policy-blocked, so interactive checks ran on the emulator.
+
 ## Recurring money evidence
 
 - Jest: 14 suites, 47 tests passing, including schema 7 to schema 8 migration, recurrence validation, calendar boundary handling, due generation, duplicate prevention, and SQLite round-trip coverage.

@@ -267,6 +267,7 @@ describe('SQLite workspace store', () => {
       id: 'note_1',
       title: 'A note',
       body: 'Body',
+      tags: [],
       isPinned: false,
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',
@@ -366,6 +367,31 @@ describe('SQLite workspace store', () => {
     const data = await store.load();
 
     expect(data.recurrences[0].missedOccurrencePolicy).toBe('all');
+  });
+
+  it('upgrades old SQLite note rows to an empty tag collection', async () => {
+    const database = new MemorySqlite();
+    database.schemaVersion = '2';
+    database.meta.set('schema_version', '2');
+    database.meta.set('main_currency', 'EUR');
+    database.records.set('note:old_note', {
+      recordType: 'note',
+      recordId: 'old_note',
+      payloadJson: JSON.stringify({
+        id: 'old_note',
+        title: 'Old note',
+        body: 'Still here',
+        isPinned: false,
+        createdAt: '2026-07-26T00:00:00.000Z',
+        updatedAt: '2026-07-26T00:00:00.000Z',
+      }),
+      updatedAt: '2026-07-26T00:00:00.000Z',
+    });
+    const store = new SqliteWorkspaceStore(database, legacyStore(emptyAppData()));
+
+    const data = await store.load();
+
+    expect(data.notes[0].tags).toEqual([]);
   });
 
   it('rejects malformed persisted record payloads', async () => {

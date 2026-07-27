@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the Android attachment preview pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; sync and advanced adapters remain planned.
+Status: Core implementation through the note tags and search pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money rules with missed-occurrence policies, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 11 note tags and local title/body/tag search, local note attachment storage, portable encrypted attachment bytes, and the Android attachment preview bridge exist; sync and advanced adapters remain planned.
 
 ## System shape
 

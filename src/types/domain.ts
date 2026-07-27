@@ -99,6 +99,7 @@ export interface Note {
   id: string;
   title: string;
   body: string;
+  tags: string[];
   isPinned: boolean;
   createdAt: string;
   updatedAt: string;
@@ -154,7 +155,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 10;
+  schemaVersion: 11;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -183,7 +184,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 10,
+  schemaVersion: 11,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],

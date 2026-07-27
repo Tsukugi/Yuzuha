@@ -268,7 +268,7 @@ Not yet complete: missed-occurrence choices, end-of-month anchor preferences, re
 Implemented and verified:
 
 - JSON export schema 1 can be pasted into Data tools and previewed without changing local data;
-- supported app schemas are migrated to schema 10 before restore;
+- supported app schemas are migrated to schema 11 before restore;
 - restore rejects malformed JSON, unsupported versions, duplicate IDs, missing references, invalid timestamps/currencies, and split totals that do not match their parent;
 - the user must confirm the preview before the validated data replaces the current workspace.
 
@@ -330,6 +330,17 @@ Implemented and verified:
 - Notes shows file names and sizes and removes the private file before removing the metadata.
 
 Android preview is implemented: Notes can open a supported private image, PDF, or plain-text attachment through a validated FileProvider URI and the system chooser. iOS preview, synced attachments, and attachment search are not yet complete.
+
+## Local note tags and search implementation review
+
+Implemented and verified:
+
+- app data schema 11 adds a normalized tag array to every note;
+- schema 10 AsyncStorage notes and older SQLite note rows migrate to an empty tag array without changing their title or body;
+- tags are trimmed, lowercased, deduplicated, and limited to 20 values of at most 40 characters;
+- Notes search matches title, body, and tags case-insensitively and keeps the query local.
+
+Not yet complete: note edit/archive/pin/delete, attachment filename search, saved searches, global search, and synced notes.
 
 ## Portable encrypted attachment implementation review
 

@@ -14,6 +14,7 @@ import {localDateKey} from '../shared/period';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
+import {validateNoteTags} from '../shared/noteSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
 import {emptyAppData} from '../types/domain';
@@ -73,7 +74,7 @@ interface AppStoreValue {
   addMoneyCategory: (name: string, kind: MoneyKind | 'both') => Promise<void>;
   archiveMoneyAccount: (accountId: string) => Promise<void>;
   archiveMoneyCategory: (categoryId: string) => Promise<void>;
-  addNote: (input: {title: string; body: string}) => Promise<void>;
+  addNote: (input: {title: string; body: string; tags: string[]}) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
   addTask: (input: {title: string; details: string}) => Promise<void>;
@@ -368,7 +369,10 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const addNote = useCallback(
-    async (input: {title: string; body: string}) => {
+    async (input: {title: string; body: string; tags: string[]}) => {
+      if (!validateNoteTags(input.tags)) {
+        throw new Error('Note tags are invalid. Use up to 20 lowercase tags with 40 characters each.');
+      }
       const now = new Date().toISOString();
       const note: Note = {
         ...input,
