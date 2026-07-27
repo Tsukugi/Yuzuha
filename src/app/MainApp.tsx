@@ -62,8 +62,10 @@ import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
 import {shareCapture} from '../platform/shareCapture';
 import {launchActions} from '../platform/launchActions';
+import {deepLinks} from '../platform/deepLinks';
 import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
+import type {DeepLinkTarget} from '../shared/deepLink';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -116,6 +118,14 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setTab(action);
+  }, []);
+
+  const openDeepLink = useCallback((target: DeepLinkTarget) => {
+    lastSharedCaptureKey.current = null;
+    setSharedCapture(null);
+    setDataToolsOpen(false);
+    setGlobalSearchOpen(false);
+    setTab(target);
   }, []);
 
   const openReminderTask = useCallback((taskId: string) => {
@@ -199,6 +209,24 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
       subscription.remove();
     };
   }, [openLaunchAction]);
+
+  useEffect(() => {
+    let mounted = true;
+    const subscription = deepLinks.onTarget(target => {
+      if (mounted) {
+        openDeepLink(target);
+      }
+    });
+    void deepLinks.getInitialTarget().then(target => {
+      if (mounted && target) {
+        openDeepLink(target);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, [openDeepLink]);
 
   useEffect(() => {
     if (!data || !pendingReminderAction) {

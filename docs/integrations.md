@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text/file share capture, static launcher shortcuts, and the summary widget are current; broader integration capability remains planned.
+Status: Android text/file share capture, static launcher shortcuts, the summary widget, and strict local deep links are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -15,7 +15,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Share sheet | Android text: preview and save as note/task; supported image/PDF/plain-text files: preview and save as note attachment. | Current Android slice. |
 | Widgets | Android summary of open tasks and active notes; tap opens Yuzuha. | Current Android slice. |
 | Shortcuts/app actions | Android static shortcuts open Money, Notes, Tasks, or App Time. | Current Android slice. |
-| Deep links | Open a safe local object or settings page. | Full product. |
+| Deep links | Open one of four existing Android tabs through a strict local `yuzuha://open/...` route. | Current Android slice. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Read or create user-approved task events. | Full product, optional. |
 | File picker | Import/export backups and attachments. | MVP export; full import/backup. |
@@ -33,6 +33,10 @@ The Android manifest exposes four static launcher shortcuts: Add money, Add note
 ## Widgets
 
 The current Android widget exposes only two low-risk counts: open tasks and active notes. It has a fixed `Yuzuha` layout, shows `0 open tasks · 0 active notes` before any workspace records exist, updates only after the app loads or commits workspace data, and opens `MainActivity` when tapped. `updatePeriodMillis=0` means Android does not poll it. Sensitive note bodies, task text, money values, app-time rows, and transaction descriptions are not placed in the widget. Dynamic widgets, user-selected cards, lock-screen policy controls, and iOS widgets remain planned.
+
+## Android deep links
+
+The Android manifest accepts `ACTION_VIEW` for the custom `yuzuha` scheme and `open` host. The only routes are `yuzuha://open/money`, `yuzuha://open/notes`, `yuzuha://open/tasks`, and `yuzuha://open/app-time`; each opens the matching existing tab through the same single-task activity. Cold starts use the native initial getter and warm launches use the native event. Query strings, fragments, extra path segments, IDs, remote URLs, and link content are rejected. Deep links create no record, require no permission, and make no network request.
 
 ## Calendar
 

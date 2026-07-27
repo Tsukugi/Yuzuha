@@ -1,6 +1,6 @@
 # Security and privacy
 
-Status: Security baseline through the Android summary-widget pass. This document is not a legal privacy policy.
+Status: Security baseline through the Android deep-link pass. This document is not a legal privacy policy.
 
 ## Data collected
 
@@ -92,6 +92,8 @@ Current Android share capture accepts text and supported file payloads, rejects 
 Android launcher shortcuts contain only fixed action IDs and labels. They do not expose note bodies, money values, task text, or app-time data in launcher metadata; they only route into the app after launch.
 
 The Android summary widget contains only two aggregate counts: open tasks and active notes. It stores those counts in app-private preferences, never receives note/task text or money/app-time values, does not show raw content on the launcher, and updates only after the JavaScript store loads or commits data. The widget has no periodic worker and its tap action opens Yuzuha.
+
+Android deep links accept only the fixed local `yuzuha://open/...` routes. The native bridge rejects query strings, fragments, IDs, extra paths, unknown targets, and remote schemes before JavaScript routing. No note text, task text, money value, token, or network URL is accepted from a link.
 
 ## Privacy review gates for new features
 

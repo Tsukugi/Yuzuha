@@ -6,6 +6,13 @@ Status: Planned release process.
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-07-27 Android deep-link pass:
+
+- no app or repository schema change; Android accepts only exact local `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time` routes;
+- cold and warm delivery uses a typed native bridge, clears the consumed URI, and routes to existing tabs without IDs, query data, remote URLs, permissions, network requests, or background work;
+- focused deep-link coverage, full Jest (41 suites, 174 tests), lint, typecheck, bundle validation, Android debug/release builds, emulator cold/warm/rejection smoke, and phone cold/warm/manifest smoke passed;
+- malformed and unsupported links remain ignored; remote app links, record-specific links, dynamic shortcuts, and sync remain planned; both devices were force-stopped after the check and no Yuzuha Node, Gradle, or Java process remained.
+
 2026-07-27 Android summary-widget pass:
 
 - no app or repository schema change; Android registers a 3x2 summary widget for open-task and active-note counts;

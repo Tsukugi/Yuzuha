@@ -1787,3 +1787,38 @@ Known limits:
 - the first widget is a fixed count summary; user-selected cards, quick actions, dynamic widgets, lock-screen policy controls, iOS widgets, and sync remain planned;
 - the widget projection is optional and non-authoritative; SQLite remains the only product-data source;
 - the widget does not show note bodies, task text, money values, or app-time rows.
+
+## Implementation review: Android deep-link pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- strict shared deep-link mapping for `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time`;
+- native `DeepLinkModule` with a cold-start getter, warm-app event, exact URI validation, and consumed-intent clearing;
+- Android `ACTION_VIEW`/`BROWSABLE` manifest filter for the `yuzuha://open` authority;
+- `MainApp` routing from validated deep-link targets to the existing Money, Notes, Tasks, and App Time tabs;
+- rejection of query strings, fragments, IDs, extra paths, unknown routes, remote URLs, and non-string values;
+- no app schema, repository record, permission, network request, or background process;
+- architecture, integrations, requirements, UX, security, data-model, full specification, release, testing, and decision docs record the current boundary.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - all four routes and malformed/query/remote/extra-path rejection
+Full Jest                PASS - 41 suites, 174 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - cold Tasks, warm Notes, invalid query ignored, and no filtered app errors
+Phone smoke              PASS - cold/warm delivery, manifest registration, and no filtered app errors; UI text unavailable by device policy
+Resource cleanup         PASS - both devices were force-stopped; no Yuzuha Node, Gradle, or Java process remained
+```
+
+Known limits:
+
+- routes open existing tabs only; record-specific IDs and actions are intentionally not accepted;
+- custom-scheme links are local to this Android slice; verified remote App Links and iOS deep links remain planned;
+- malformed links are ignored with no visible record or network side effect.

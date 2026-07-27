@@ -15,6 +15,7 @@ Status: The local SQLite repository boundary is implemented with app data schema
 - Android share text is held only in the in-memory review screen until the user confirms a note or task save; the share bridge does not add a repository record.
 - Android shared files are copied into the existing private attachment directory and committed with a new note in one workspace save; no share-specific record or schema field is stored.
 - The Android summary widget is not product data. It projects open-task and active-note counts into app-private preferences for `RemoteViews`; SQLite remains authoritative, and no widget text or count is included in JSON, CSV, or encrypted backup payloads.
+- Android deep links are entry-point metadata only. They are validated and cleared at the native boundary, route to existing tabs, and add no record, schema field, export field, or persisted link state.
 
 ## Entities
 

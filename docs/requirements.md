@@ -148,6 +148,7 @@ Current implementation extension: the user can create, pause/resume, and delete 
 | INT-01 | 3 | The user can capture through supported share actions, shortcuts, and widgets. | Current Android text shares show a preview and require note/task confirmation; supported image/PDF/plain-text file shares show a preview and save as a note attachment; static Money/Notes/Tasks/App Time shortcuts open existing screens; the Android widget shows open-task and active-note counts and opens Yuzuha on tap. Unsupported-file, permission, offline, revoke, dynamic-shortcut, and iOS contracts remain planned. |
 | INT-02 | 3 | The user can import and export supported formats. | Unsupported fields are visible instead of silently dropped. |
 | INT-03 | 3 | Calendar integration is opt-in. | Revoking permission stops new reads/writes without deleting existing Yuzuha records. |
+| INT-04 | 3 | The user can open supported local tabs from a deep link. | Exact Android `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time` routes open existing tabs; unknown paths, query data, IDs, remote URLs, and malformed links are rejected without a record or network request. |
 
 ## Quality and service requirements
 
@@ -330,6 +331,8 @@ Current Android share-capture extension: `ACTION_SEND` text with optional subjec
 Current Android launcher extension: four static shortcuts map to Money, Notes, Tasks, and App Time. Cold and warm actions are normalized by a native module and route to existing screens. The action and shortcut metadata are not stored in AppData, and no background process runs.
 
 Current Android widget extension: the summary widget projects the count of open tasks and non-archived notes after workspace load or commit. The counts are stored only in app-private widget preferences, the widget has no periodic update worker, and its tap action opens `MainActivity`. It does not expose record text, money values, app-time rows, or a new AppData/schema field.
+
+Current Android deep-link extension: `ACTION_VIEW` accepts only the four exact `yuzuha://open/...` routes and passes them through a cold-start getter or warm-app event. The bridge clears the consumed URI, shared validation maps it to an existing tab, and query strings, fragments, IDs, extra paths, and remote URLs are rejected. No AppData/schema field, permission, network request, or background process is added.
 
 ## Local recovery-key backup implementation review
 

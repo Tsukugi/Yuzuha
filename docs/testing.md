@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android summary-widget pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android deep-link pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 40 Jest suites and 172 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 41 Jest suites and 174 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -46,6 +46,9 @@ Status: Current test strategy through the Android summary-widget pass. Unit test
 - Widget coverage: pure summary projection tests count only open tasks and non-archived notes, with deterministic singular/plural labels; the native provider uses `updatePeriodMillis=0` and a tap `PendingIntent`.
 - Emulator `emulator-5554`: the release launcher placed the 3x2 Yuzuha widget, it showed `0 open tasks · 0 active notes`, tapping it opened Yuzuha, and saving a shared Inbox task updated the widget to `1 open task · 0 active notes`.
 - Phone `42adce68`: release provider registration was present, `MainActivity` launched cleanly, and no filtered fatal or ReactNativeJS errors appeared; phone widget placement remains unautomated because the device returns no UI automation root.
+- Deep-link coverage: pure routing tests cover all four supported routes and reject query data, remote hosts, extra paths, whitespace, and non-string values.
+- Emulator `emulator-5554`: release cold `yuzuha://open/tasks` opened Tasks, warm `yuzuha://open/notes` opened Notes, and a query-bearing task link was ignored without changing the Notes tab; no filtered fatal or ReactNativeJS errors appeared.
+- Phone `42adce68`: release cold and warm deep links delivered to `MainActivity`, the `yuzuha` manifest filter was registered, and no filtered fatal or ReactNativeJS errors appeared. UI text remains emulator-verified because phone automation has no root.
 
 ### Unit tests
 

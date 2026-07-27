@@ -430,3 +430,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add one Android summary widget that shows only open-task and non-archived-note counts. Refresh it after the JavaScript store loads or commits workspace data, store only the two counts in app-private preferences, use `updatePeriodMillis=0`, and open `MainActivity` when tapped.
 - Reason: The count summary is useful, bounded, cheap to update, and does not require a worker, new schema, new record type, or raw content on the launcher.
 - Consequence: SQLite remains authoritative if the projection is unavailable. User-selected cards, quick actions, dynamic widgets, lock-screen controls, iOS widgets, and sync remain separate contracts.
+
+## DEC-063: Keep Android deep links local and tab-only
+
+- Context: Deep links can shorten entry into the app, but record IDs, query parameters, remote URLs, and action payloads would create a new security and object-addressing contract before public users exist.
+- Decision: Accept only `ACTION_VIEW` links with the exact custom routes `yuzuha://open/money`, `/notes`, `/tasks`, and `/app-time`. Validate and clear them natively, then route to existing tabs through a cold-start getter or warm-app event.
+- Reason: The contract is useful, deterministic, local-only, and reuses existing screens without adding storage, network, or background work.
+- Consequence: Malformed and unsupported links are ignored. Record-specific links, verified remote App Links, iOS deep links, and link-driven actions remain separate contracts.

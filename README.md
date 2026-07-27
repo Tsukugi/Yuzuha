@@ -25,6 +25,8 @@ Android launcher shortcuts now open the existing Money, Notes, Tasks, and App Ti
 
 The Android summary widget shows only the number of open tasks and active notes. It updates after committed workspace changes, uses no periodic worker, stores no record text, and opens Yuzuha when tapped. Dynamic shortcuts and iOS share/widget handling remain planned.
 
+Android also accepts four strict local deep links: `yuzuha://open/money`, `yuzuha://open/notes`, `yuzuha://open/tasks`, and `yuzuha://open/app-time`. They open existing tabs only. IDs, query data, remote URLs, and network fetching are rejected.
+
 ## Technology baseline
 
 The current encrypted backup flow can also save and open the current authenticated JSON envelope through the system document picker. New encrypted backups include verified note attachment bytes, local saved-search records, app groups, focus sessions, task projects and links, task parent links, task templates, task dependencies, and task manual-order fields. The unreleased build uses current app schema 28 and rejects old app schemas, old SQLite repository schemas, and old encrypted backup schemas because there are no external users to upgrade. Plain JSON exports still carry attachment metadata only. Android opens supported private attachment files through a read-only FileProvider URI and the system chooser. Account recovery, device enrollment, sync, and iOS attachment preview remain planned.

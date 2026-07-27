@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Core implementation through the Android summary-widget pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, optional local reminder times on recurring task rules, local task projects with optional task links, same-list task parent links with cycle rejection and child promotion, local task templates with archive controls and direct task creation, local app groups and manual focus sessions, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a device-local 14-day task agenda, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 28 data validation, notification settings and task reminders, Android `Open`, idempotent `Complete`, configurable `Snooze`, separate global and recurring-task reminder switches, Android text/file share capture, Android static launcher shortcuts, and the Android summary widget exist; selected timezone/week-start preferences, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
+Status: Core implementation through the Android deep-link pass with the full-product target architecture. The installer bridge, SQLite repository boundary, app shell, core screens, reports, account balances, transfers, split entries, normalized financial tables, budget projections, exports, local deletion, recurring money and task rules with missed-occurrence policies, optional local reminder times on recurring task rules, local task projects with optional task links, same-list task parent links with cycle rejection and child promotion, local task templates with archive controls and direct task creation, local app groups and manual focus sessions, task dependencies with cycle rejection and completed-prerequisite blocking, persisted task order with manual/due-date/priority sorting, a device-local 14-day task agenda, validated JSON restore, password-encrypted local backups, local recovery-key backups, encrypted backup file save/open, schema 28 data validation, notification settings and task reminders, Android `Open`, idempotent `Complete`, configurable `Snooze`, separate global and recurring-task reminder switches, Android text/file share capture, Android static launcher shortcuts, the Android summary widget, and strict local Android deep links exist; selected timezone/week-start preferences, broader notification automation, dynamic shortcuts, iOS share handling, app blocking, sync, and advanced adapters remain planned.
 
 ## System shape
 
@@ -14,6 +14,8 @@ Android launcher shortcuts are static manifest resources with four actions: Mone
 
 The Android summary widget is a derived platform projection. `AppStoreProvider` builds two counts from the loaded workspace after each committed save: open tasks and non-archived notes. `YuzuhaWidgetModule` writes only those counts to app-private preferences and asks `YuzuhaSummaryWidgetProvider` to refresh placed widgets. The provider uses `RemoteViews`, `updatePeriodMillis=0`, and a `PendingIntent` to `MainActivity`. It stores no record text, schedules no worker, and does not change the SQLite schema. If the bridge is unavailable, the database remains authoritative and the app continues without the widget projection.
 
+Android deep links are a typed local entry-point adapter. `DeepLinkModule` accepts only `ACTION_VIEW` with the exact `yuzuha://open/{money|notes|tasks|app-time}` route, clears the consumed intent, and delivers the canonical URI through a cold-start getter or warm-app event. `MainApp` maps the validated target to an existing tab. Query strings, fragments, extra paths, IDs, and remote URLs are rejected before JavaScript routing; no record or network path is involved.
+
 Yuzuha uses a local-first feature architecture. The installer is a native-shell concern and runs before the JavaScript product shell is shown.
 
 ```mermaid
@@ -21,10 +23,12 @@ flowchart TD
     OS[Android or iOS shell] --> G[Bundle gate]
     OS --> SHARE[Android text share]
     OS --> WIDGET[Android summary widget]
+    OS --> LINK[Android local deep link]
     G --> B[Verified JavaScript bundle]
     B --> APP[MainApp]
     SHARE --> APP
     WIDGET --> APP
+    LINK --> APP
     APP --> NAV[Navigation]
     NAV --> HOME[Home dashboard]
     NAV --> MONEY[Money]
