@@ -13,6 +13,7 @@ import type {
   Note,
   SavedSearch,
   Task,
+  TaskList,
   TimeGoal,
   UsageSnapshot,
 } from '../types/domain';
@@ -32,6 +33,7 @@ export interface JsonImportRecordCounts {
   notes: number;
   attachments: number;
   savedSearches: number;
+  taskLists: number;
   tasks: number;
   usageSnapshots: number;
   timeGoals: number;
@@ -65,7 +67,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 14) {
+  if (typeof appSchemaVersion !== 'number' || !Number.isInteger(appSchemaVersion) || appSchemaVersion < 1 || appSchemaVersion > 15) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -87,7 +89,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 }
 
 function validateAppData(data: AppData): void {
-  if (data.schemaVersion !== 14 || !isCurrency(data.mainCurrency)) {
+  if (data.schemaVersion !== 15 || !isCurrency(data.mainCurrency)) {
     throw new JsonImportError('The export has an invalid app header.');
   }
 
@@ -101,6 +103,7 @@ function validateAppData(data: AppData): void {
   validateUniqueIds('notes', data.notes);
   validateUniqueIds('attachments', data.attachments);
   validateUniqueIds('saved searches', data.savedSearches);
+  validateUniqueIds('task lists', data.taskLists);
   validateUniqueIds('tasks', data.tasks);
   validateUniqueIds('usage snapshots', data.usageSnapshots);
   validateUniqueIds('time goals', data.timeGoals);
@@ -108,6 +111,7 @@ function validateAppData(data: AppData): void {
   const accountIds = new Set(data.accounts.map(account => account.id));
   const categoryIds = new Set(data.categories.map(category => category.id));
   const noteIds = new Set(data.notes.map(note => note.id));
+  const taskListIds = new Set(data.taskLists.map(taskList => taskList.id));
   const moneyById = new Map(data.money.map(entry => [entry.id, entry]));
   const splitLineIds = new Set<string>();
 
@@ -131,7 +135,8 @@ function validateAppData(data: AppData): void {
     }
   });
   data.savedSearches.forEach(validateSavedSearch);
-  data.tasks.forEach(validateTask);
+  data.taskLists.forEach(validateTaskList);
+  data.tasks.forEach(task => validateTask(task, taskListIds));
   data.usageSnapshots.forEach(validateUsageSnapshot);
   validateUsageRead(data);
   data.timeGoals.forEach(validateTimeGoal);
@@ -260,11 +265,21 @@ function validateSavedSearch(savedSearch: SavedSearch): void {
   }
 }
 
-function validateTask(task: Task): void {
+function validateTaskList(taskList: TaskList): void {
+  validateId(taskList.id, 'task list');
+  if (typeof taskList.name !== 'string' || taskList.name.trim() === '' || typeof taskList.isArchived !== 'boolean' ||
+      !isIsoDate(taskList.createdAt) || !isIsoDate(taskList.updatedAt)) {
+    throw new JsonImportError(`Task list ${taskList.id} has invalid fields.`);
+  }
+}
+
+function validateTask(task: Task, taskListIds: Set<string>): void {
   validateId(task.id, 'task');
   if (typeof task.title !== 'string' || typeof task.details !== 'string' ||
       (task.status !== 'open' && task.status !== 'completed') ||
       (task.dueLocalDate !== null && !isValidLocalDate(task.dueLocalDate)) ||
+      (task.priority !== 'low' && task.priority !== 'normal' && task.priority !== 'high') ||
+      !taskListIds.has(task.listId) ||
       (task.sourceNoteId !== null && typeof task.sourceNoteId !== 'string') ||
       !isIsoDate(task.createdAt) || !isIsoDate(task.updatedAt)) {
     throw new JsonImportError(`Task ${task.id} has invalid fields.`);
@@ -393,6 +408,7 @@ function countRecords(data: AppData): JsonImportRecordCounts {
     notes: data.notes.length,
     attachments: data.attachments.length,
     savedSearches: data.savedSearches.length,
+    taskLists: data.taskLists.length,
     tasks: data.tasks.length,
     usageSnapshots: data.usageSnapshots.length,
     timeGoals: data.timeGoals.length,

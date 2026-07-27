@@ -44,9 +44,10 @@ import {normalizeNoteTags} from '../shared/noteSearch';
 import {filterNotes, validateNoteDraft} from '../shared/noteLifecycle';
 import {searchGlobal, type GlobalSearchKind} from '../shared/globalSearch';
 import {getTaskSourceLabel} from '../shared/noteTask';
+import {filterTasks, TASK_INBOX_LIST_ID, validateTaskDraft, type TaskDraft, type TaskFilter} from '../shared/taskLifecycle';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 
@@ -2161,6 +2162,160 @@ function formatBytes(byteSize: number): string {
 }
 
 function TasksScreen() {
+  const {data, addTask, updateTask, deleteTask, toggleTask} = useAppStore();
+  const [title, setTitle] = useState('');
+  const [details, setDetails] = useState('');
+  const [dueLocalDate, setDueLocalDate] = useState('');
+  const [priority, setPriority] = useState<TaskPriority>('normal');
+  const [listId, setListId] = useState(TASK_INBOX_LIST_ID);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<TaskFilter>('all');
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!data) {
+    return null;
+  }
+
+  const currentData = data;
+  const taskListIds = new Set(currentData.taskLists.map(taskList => taskList.id));
+  const visibleTasks = filterTasks(currentData.tasks, filter, localDateKey(new Date()));
+
+  function resetForm() {
+    setTitle('');
+    setDetails('');
+    setDueLocalDate('');
+    setPriority('normal');
+    setListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
+    setEditingTaskId(null);
+  }
+
+  function startEditing(task: Task) {
+    setTitle(task.title);
+    setDetails(task.details);
+    setDueLocalDate(task.dueLocalDate ?? '');
+    setPriority(task.priority);
+    setListId(task.listId);
+    setEditingTaskId(task.id);
+    setError(null);
+  }
+
+  async function save() {
+    const draft: TaskDraft = {
+      title,
+      details,
+      dueLocalDate: dueLocalDate.trim() || null,
+      priority,
+      listId,
+    };
+    const validationError = validateTaskDraft(draft, taskListIds);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    try {
+      if (editingTaskId) {
+        await updateTask(editingTaskId, draft);
+      } else {
+        await addTask(draft);
+      }
+      resetForm();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'The task could not be saved.');
+    }
+  }
+
+  async function removeTask(taskId: string) {
+    setBusyTaskId(taskId);
+    setError(null);
+    try {
+      await deleteTask(taskId);
+      if (editingTaskId === taskId) {
+        resetForm();
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'The task could not be deleted.');
+    } finally {
+      setBusyTaskId(null);
+    }
+  }
+
+  function confirmDelete(task: Task) {
+    Alert.alert('Delete task?', `Delete "${task.title}"? This cannot be undone.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeTask(task.id)},
+    ]);
+  }
+
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <Text style={styles.pageTitle}>Tasks</Text>
+        <Text style={styles.pageIntro}>Keep one next action visible.</Text>
+        <View style={styles.formCard}>
+          <Text style={styles.formLabel}>{editingTaskId ? 'Edit task' : 'New task'}</Text>
+          <TextInput accessibilityLabel="Task title" placeholder="What needs doing?" placeholderTextColor={colors.muted} style={styles.input} value={title} onChangeText={setTitle} />
+          <Text style={styles.formLabel}>Details (optional)</Text>
+          <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
+          <Text style={styles.formLabel}>Due date (optional)</Text>
+          <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} autoCapitalize="none" />
+          <Text style={styles.formLabel}>Priority</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Low" selected={priority === 'low'} onPress={() => setPriority('low')} />
+            <SegmentButton label="Normal" selected={priority === 'normal'} onPress={() => setPriority('normal')} />
+            <SegmentButton label="High" selected={priority === 'high'} onPress={() => setPriority('high')} />
+          </View>
+          <Text style={styles.formLabel}>List</Text>
+          <View style={styles.segmentRow}>
+            {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
+              <SegmentButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
+            ))}
+          </View>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
+          {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
+        </View>
+        <SectionTitle title="Task view" />
+        <View style={styles.segmentRow}>
+          <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
+          <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
+          <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
+          <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
+          <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
+        </View>
+        {visibleTasks.length === 0 ? (
+          <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
+        ) : visibleTasks.map(task => {
+          const sourceLabel = getTaskSourceLabel(task, data.notes);
+          const taskList = data.taskLists.find(taskListItem => taskListItem.id === task.listId);
+          return (
+            <View key={task.id} style={styles.taskRow}>
+              <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTask(task.id)}>
+                <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
+                  {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <View style={styles.listBody}>
+                  <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
+                  {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
+                  <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date'].join(' · ')}</Text>
+                  {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
+                </View>
+              </Pressable>
+              <View style={styles.taskActions}>
+                <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
+                <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
+              </View>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+/* Legacy task screen kept in history for the task lifecycle rewrite.
+function LegacyTasksScreen() {
   const {data, addTask, toggleTask} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -2177,7 +2332,7 @@ function TasksScreen() {
       return;
     }
     setError(null);
-    await addTask({title: trimmedTitle, details: details.trim()});
+    await addTask({title: trimmedTitle, details: details.trim(), dueLocalDate: null, priority: 'normal', listId: TASK_INBOX_LIST_ID});
     setTitle('');
     setDetails('');
   }
@@ -2236,6 +2391,8 @@ function TasksScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+*/
 
 function SummaryCard({
   title,
@@ -2423,6 +2580,8 @@ const styles = StyleSheet.create({
   rowActions: {alignItems: 'flex-end', marginLeft: 10},
   noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 8},
   taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
+  taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
+  taskActions: {alignItems: 'center', flexDirection: 'row'},
   checkbox: {alignItems: 'center', borderColor: colors.muted, borderRadius: 6, borderWidth: 1, height: 23, justifyContent: 'center', marginRight: 12, width: 23},
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},

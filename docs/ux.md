@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the note-to-task pass.
+Status: Current Android MVP through the task-lifecycle pass.
 
 ## Navigation
 
@@ -34,9 +34,9 @@ The form asks for type, amount, currency, category, date, account label, and not
 
 The permission explanation appears before the system settings page. After returning, the app checks permission again, reads the selected range, stores a local snapshot, and shows the read timestamp. If permission was not granted, the app remains useful and explains how to try again.
 
-### Add a task
+### Manage tasks
 
-The short form asks for a title first. Details, due date, priority, and list are optional. Completing a task uses an undo action so an accidental tap is recoverable.
+The form asks for a title and optional details, local due date, priority, and list. The current release seeds one `Inbox` list. Edit loads the same fields into the form. Complete/reopen is a direct status toggle. Delete always asks for confirmation. Task views are All, Overdue, Today, Upcoming, and Completed. Overdue means an open task whose local due date is before today; completed tasks stay out of the open-date views.
 
 ### Search notes
 

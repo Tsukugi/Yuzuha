@@ -245,7 +245,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(14);
+    expect(data?.schemaVersion).toBe(15);
     expect(data?.attachments).toEqual([]);
     expect(data?.notes).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(14);
+    expect(data?.schemaVersion).toBe(15);
     expect(data?.savedSearches).toEqual([]);
   });
 
@@ -297,7 +297,9 @@ describe('schema migrations', () => {
 
     const data = migrateStoredData(legacy);
 
-    expect(data?.schemaVersion).toBe(14);
+    expect(data?.schemaVersion).toBe(15);
     expect(data?.tasks[0].sourceNoteId).toBeNull();
+    expect(data?.tasks[0].priority).toBe('normal');
+    expect(data?.tasks[0].listId).toBe('task_list_inbox');
   });
 });

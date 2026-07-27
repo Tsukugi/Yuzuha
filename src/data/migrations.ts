@@ -7,7 +7,7 @@ interface StoredV1 {
   schemaVersion: 1;
   money: Array<Omit<MoneyEntry, 'accountId' | 'categoryId'> & {category: string}>;
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
 }
 
 interface StoredV2 {
@@ -17,7 +17,7 @@ interface StoredV2 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
 }
@@ -29,7 +29,7 @@ interface StoredV3 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
   usageExcludedPackages: string[];
@@ -44,7 +44,7 @@ interface StoredV4 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
   usageExcludedPackages: string[];
@@ -60,7 +60,7 @@ interface StoredV5 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
   usageExcludedPackages: string[];
@@ -77,7 +77,7 @@ interface StoredV6 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: AppData['usageSnapshots'];
   usageRead: AppData['usageRead'];
   usageExcludedPackages: string[];
@@ -94,43 +94,56 @@ interface StoredV7 {
   accounts: AppData['accounts'];
   categories: AppData['categories'];
   notes: AppData['notes'];
-  tasks: AppData['tasks'];
+  tasks: StoredLegacyTask[];
   usageSnapshots: AppData['usageSnapshots'];
   usageRead: AppData['usageRead'];
   usageExcludedPackages: string[];
   timeGoals: AppData['timeGoals'];
 }
 
-interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'attachments' | 'savedSearches'> {
+interface StoredV8 extends Omit<AppData, 'schemaVersion' | 'recurrences' | 'attachments' | 'savedSearches' | 'taskLists' | 'tasks'> {
   schemaVersion: 8;
   recurrences: Array<Omit<MoneyRecurrenceRule, 'missedOccurrencePolicy'>>;
+  tasks: StoredLegacyTask[];
 }
 
-interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments' | 'savedSearches'> {
+interface StoredV9 extends Omit<AppData, 'schemaVersion' | 'attachments' | 'savedSearches' | 'taskLists' | 'tasks'> {
   schemaVersion: 9;
+  tasks: StoredLegacyTask[];
 }
 
 type StoredNoteV11 = Omit<AppData['notes'][number], 'isArchived'>;
 
-interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches'> {
+interface StoredV10 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches' | 'taskLists' | 'tasks'> {
   schemaVersion: 10;
   notes: StoredNoteV11[];
+  tasks: StoredLegacyTask[];
 }
 
-interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches'> {
+interface StoredV11 extends Omit<AppData, 'schemaVersion' | 'notes' | 'savedSearches' | 'taskLists' | 'tasks'> {
   schemaVersion: 11;
   notes: StoredNoteV11[];
+  tasks: StoredLegacyTask[];
 }
 
-interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches'> {
+interface StoredV12 extends Omit<AppData, 'schemaVersion' | 'savedSearches' | 'taskLists' | 'tasks'> {
   schemaVersion: 12;
+  tasks: StoredLegacyTask[];
 }
 
-type StoredTaskV13 = Omit<AppData['tasks'][number], 'sourceNoteId'>;
+type StoredLegacyTask = Omit<AppData['tasks'][number], 'sourceNoteId' | 'priority' | 'listId'>;
+type StoredTaskV13 = StoredLegacyTask;
 
-interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks'> {
+interface StoredV13 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists'> {
   schemaVersion: 13;
   tasks: StoredTaskV13[];
+}
+
+type StoredTaskV14 = Omit<AppData['tasks'][number], 'priority' | 'listId'>;
+
+interface StoredV14 extends Omit<AppData, 'schemaVersion' | 'tasks' | 'taskLists'> {
+  schemaVersion: 14;
+  tasks: StoredTaskV14[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -371,7 +384,7 @@ export function isStoredV12(value: unknown): value is StoredV12 {
   );
 }
 
-function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14, requireTaskSourceNoteId: boolean): boolean {
+function isStoredV13Shape(value: unknown, schemaVersion: 13 | 14 | 15, requireTaskSourceNoteId: boolean): boolean {
   return (
     isRecord(value) &&
     value.schemaVersion === schemaVersion &&
@@ -413,8 +426,21 @@ export function isStoredV13(value: unknown): value is StoredV13 {
   return isStoredV13Shape(value, 13, false);
 }
 
-export function isStoredV14(value: unknown): value is AppData {
+export function isStoredV14(value: unknown): value is StoredV14 {
   return isStoredV13Shape(value, 14, true);
+}
+
+export function isStoredV15(value: unknown): value is AppData {
+  return (
+    isStoredV13Shape(value, 15, true) &&
+    isRecord(value) &&
+    Array.isArray(value.taskLists) &&
+    value.taskLists.every(taskList => isRecord(taskList) && typeof taskList.id === 'string' && typeof taskList.name === 'string' &&
+      typeof taskList.isArchived === 'boolean' && isIsoDate(taskList.createdAt) && isIsoDate(taskList.updatedAt)) &&
+    Array.isArray(value.tasks) &&
+    value.tasks.every(task => isRecord(task) && typeof task.listId === 'string' &&
+      (task.priority === 'low' || task.priority === 'normal' || task.priority === 'high'))
+  );
 }
 
 function legacyCategoryId(name: string): string {
@@ -547,7 +573,7 @@ export function migrateV12ToV13(value: StoredV12): StoredV13 {
   };
 }
 
-export function migrateV13ToV14(value: StoredV13): AppData {
+export function migrateV13ToV14(value: StoredV13): StoredV14 {
   return {
     ...value,
     schemaVersion: 14,
@@ -555,46 +581,69 @@ export function migrateV13ToV14(value: StoredV13): AppData {
   };
 }
 
-function migrateV12ToV14(value: StoredV12): AppData {
+export function migrateV14ToV15(value: StoredV14): AppData {
+  const inbox = {
+    id: 'task_list_inbox',
+    name: 'Inbox',
+    isArchived: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+  return {
+    ...value,
+    schemaVersion: 15,
+    taskLists: [inbox],
+    tasks: value.tasks.map(task => ({...task, priority: 'normal' as const, listId: inbox.id})),
+  };
+}
+
+function migrateV12ToV14(value: StoredV12): StoredV14 {
   return migrateV13ToV14(migrateV12ToV13(value));
 }
 
+function migrateV12ToV15(value: StoredV12): AppData {
+  return migrateV14ToV15(migrateV12ToV14(value));
+}
+
 export function migrateStoredData(value: unknown): AppData | null {
-  if (isStoredV14(value)) {
+  if (isStoredV15(value)) {
     return value;
   }
+  if (isStoredV14(value)) {
+    return migrateV14ToV15(value);
+  }
   if (isStoredV13(value)) {
-    return migrateV13ToV14(value);
+    return migrateV14ToV15(migrateV13ToV14(value));
   }
   if (isStoredV12(value)) {
-    return migrateV13ToV14(migrateV12ToV13(value));
+    return migrateV12ToV15(value);
   }
   if (isStoredV11(value)) {
-    return migrateV13ToV14(migrateV12ToV13(migrateV11ToV12(value)));
+    return migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(value)));
   }
   if (isStoredV10(value)) {
-    return migrateV13ToV14(migrateV12ToV13(migrateV11ToV12(migrateV10ToV11(value))));
+    return migrateV14ToV15(migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(value))));
   }
   if (isStoredV9(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(value))));
   }
   if (isStoredV8(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(value)))));
   }
   if (isStoredV7(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(value))))));
   }
   if (isStoredV6(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(value)))))));
   }
   if (isStoredV5(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(value))))))));
   }
   if (isStoredV4(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(value)))))))));
   }
   if (isStoredV3(value)) {
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(migrateV9ToV10(migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(value))))))))));
   }
   if (isStoredV2(value)) {
     const v3 = migrateV2ToV3(value);
@@ -605,7 +654,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   if (isStoredV1(value)) {
     const v2 = migrateV1ToV2(value);
@@ -617,7 +666,7 @@ export function migrateStoredData(value: unknown): AppData | null {
     const v8 = migrateV7ToV8(v7);
     const v9 = migrateV8ToV9(v8);
     const v10 = migrateV9ToV10(v9);
-    return migrateV12ToV14(migrateV11ToV12(migrateV10ToV11(v10)));
+    return migrateV12ToV15(migrateV11ToV12(migrateV10ToV11(v10)));
   }
   return null;
 }

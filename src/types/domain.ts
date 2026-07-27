@@ -126,12 +126,24 @@ export interface SavedSearch {
   updatedAt: string;
 }
 
+export type TaskPriority = 'low' | 'normal' | 'high';
+
+export interface TaskList {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   details: string;
   status: 'open' | 'completed';
   dueLocalDate: string | null;
+  priority: TaskPriority;
+  listId: string;
   sourceNoteId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -166,7 +178,7 @@ export interface TimeGoal {
 }
 
 export interface AppData {
-  schemaVersion: 14;
+  schemaVersion: 15;
   mainCurrency: string;
   money: MoneyEntry[];
   transfers: MoneyTransfer[];
@@ -178,6 +190,7 @@ export interface AppData {
   notes: Note[];
   attachments: Attachment[];
   savedSearches: SavedSearch[];
+  taskLists: TaskList[];
   tasks: Task[];
   usageSnapshots: UsageSnapshot[];
   usageRead: UsageRead;
@@ -196,7 +209,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 14,
+  schemaVersion: 15,
   mainCurrency: 'EUR',
   money: [],
   transfers: [],
@@ -216,6 +229,15 @@ export const emptyAppData = (): AppData => ({
   notes: [],
   attachments: [],
   savedSearches: [],
+  taskLists: [
+    {
+      id: 'task_list_inbox',
+      name: 'Inbox',
+      isArchived: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+  ],
   tasks: [],
   usageSnapshots: [],
   usageRead: {

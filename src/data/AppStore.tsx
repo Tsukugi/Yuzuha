@@ -16,6 +16,7 @@ import {deleteAttachmentFiles} from '../shared/attachmentFiles';
 import type {AttachmentRestoreStage} from '../shared/attachmentBackup';
 import {updateNoteRecord, validateNoteDraft, type NoteDraft} from '../shared/noteLifecycle';
 import {createTaskFromNote as createTaskFromNoteRecord} from '../shared/noteTask';
+import {createTaskRecord, deleteTaskRecord, updateTaskRecord, validateTaskDraft, type TaskDraft} from '../shared/taskLifecycle';
 import {createSavedSearch, validateSavedSearchDraft, type SavedSearchDraft} from '../shared/savedSearch';
 import {createNativeWorkspaceStore} from './nativeWorkspaceStore';
 import type {WorkspaceStore} from './sqliteStore';
@@ -29,7 +30,6 @@ import type {
   MoneyTransfer,
   Note,
   Attachment,
-  Task,
   UsagePermissionState,
   UsageSnapshot,
 } from '../types/domain';
@@ -85,7 +85,9 @@ interface AppStoreValue {
   deleteSavedSearch: (savedSearchId: string) => Promise<void>;
   addAttachment: (noteId: string, attachment: Attachment) => Promise<void>;
   deleteAttachment: (attachmentId: string) => Promise<void>;
-  addTask: (input: {title: string; details: string}) => Promise<void>;
+  addTask: (input: TaskDraft) => Promise<void>;
+  updateTask: (taskId: string, input: TaskDraft) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
   createTaskFromNote: (noteId: string) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   setUsagePermission: (permission: UsagePermissionState, errorCode?: string | null) => Promise<void>;
@@ -535,18 +537,47 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   );
 
   const addTask = useCallback(
-    async (input: {title: string; details: string}) => {
-      const now = new Date().toISOString();
-      const task: Task = {
-        ...input,
-        id: createId('task'),
-        status: 'open',
-        dueLocalDate: null,
-        sourceNoteId: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      await commit(current => ({...current, tasks: [task, ...current.tasks]}));
+    async (input: TaskDraft) => {
+      await commit(current => {
+        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+        const validationError = validateTaskDraft(input, listIds);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        const now = new Date().toISOString();
+        const task = createTaskRecord(input, createId('task'), now);
+        return {...current, tasks: [task, ...current.tasks]};
+      });
+    },
+    [commit],
+  );
+
+  const updateTask = useCallback(
+    async (taskId: string, input: TaskDraft) => {
+      await commit(current => {
+        const task = current.tasks.find(item => item.id === taskId);
+        if (!task) {
+          throw new Error('The task no longer exists.');
+        }
+        const listIds = new Set(current.taskLists.map(taskList => taskList.id));
+        const validationError = validateTaskDraft(input, listIds);
+        if (validationError) {
+          throw new Error(validationError);
+        }
+        return {
+          ...current,
+          tasks: current.tasks.map(item => item.id === taskId ? updateTaskRecord(task, input, new Date().toISOString()) : item),
+        };
+      });
+    },
+    [commit],
+  );
+
+  const deleteTask = useCallback(
+    async (taskId: string) => {
+      await commit(current => {
+        return {...current, tasks: deleteTaskRecord(current.tasks, taskId)};
+      });
     },
     [commit],
   );
@@ -683,6 +714,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addAttachment,
       deleteAttachment,
       addTask,
+      updateTask,
+      deleteTask,
       createTaskFromNote,
       toggleTask,
       setUsagePermission,
@@ -712,6 +745,8 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       addAttachment,
       deleteAttachment,
       addTask,
+      updateTask,
+      deleteTask,
       createTaskFromNote,
       data,
       error,

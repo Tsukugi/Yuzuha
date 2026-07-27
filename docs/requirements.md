@@ -370,7 +370,7 @@ Note-to-task conversion is implemented and verified:
 - deleting the source note leaves the task and its source ID, so the task can show `Deleted note`;
 - schema 13 tasks migrate to schema 14 with `sourceNoteId: null`.
 
-Not yet complete: task editing, recurring task rules, reminders, synced notes, and remote sync.
+Task lifecycle basics are implemented and verified: create, edit, complete/reopen, delete after confirmation, due date, priority, Inbox list, and All/Overdue/Today/Upcoming/Completed views. Recurring task rules, reminders, synced notes, and remote sync remain planned.
 
 ## Portable encrypted attachment implementation review
 

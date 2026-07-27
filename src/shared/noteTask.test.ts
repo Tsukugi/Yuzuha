@@ -21,6 +21,8 @@ describe('note to task conversion', () => {
       details: 'Email the final proposal before Friday.',
       status: 'open',
       dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
       sourceNoteId: 'note_1',
       createdAt: '2026-07-27T12:00:00.000Z',
       updatedAt: '2026-07-27T12:00:00.000Z',

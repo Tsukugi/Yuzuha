@@ -934,3 +934,35 @@ Phone smoke        PASS - release APK installed and MainActivity resumed on 42ad
 ```
 
 Next pass: account/device recovery design or the next Phase 3 task contract, with remote sync kept behind the local-first boundary.
+
+## Implementation review: task-lifecycle pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- app data schema 15 with a seeded `Inbox` task list and deterministic migration from schema 14;
+- typed task draft validation for trimmed titles, optional local due dates, priorities, and list links;
+- task create, edit, complete/reopen, and confirmed delete actions in the local store;
+- Tasks views for All, Overdue, Today, Upcoming, and Completed using one local-date rule;
+- task fields included in SQLite rows, JSON exports and restore validation, encrypted backups, and old SQLite/task migrations;
+- unit coverage for validation, identity-preserving edits, deletion rules, filters, and schema migration.
+
+Review evidence:
+
+```text
+Focused task tests       PASS - task lifecycle, note-task, migration, JSON, backup, and SQLite coverage
+Full Jest                PASS - 26 suites, 110 tests
+npm run lint             PASS
+npm run typecheck        PASS
+Bundle check             PASS - Android metadata valid
+Android builds           PASS - debug and release APKs with Java 17
+Emulator UI smoke        PASS - Tasks showed the new form, Inbox, priority controls, due-date field, and date filters
+Phone smoke              PASS - release APK installed and MainActivity resumed on 42adce68; touch input remains policy-blocked
+```
+
+Known limits:
+
+- custom task-list management, recurring task rules, reminders, synced links, account recovery, and remote sync remain planned.
+
+Next pass: custom task-list management or account/device recovery design, with remote sync kept behind the local-first boundary.

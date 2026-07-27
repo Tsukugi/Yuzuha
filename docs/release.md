@@ -4,6 +4,14 @@ Status: Planned release process.
 
 ## Current pass release notes
 
+2026-07-27 task-lifecycle pass:
+
+- app data schema 15 adds task priority and required task-list links, with the seeded `Inbox` list;
+- Tasks support create, edit, complete/reopen, delete after confirmation, and All/Overdue/Today/Upcoming/Completed views;
+- schema 14 tasks migrate with `normal` priority and the `Inbox` list; SQLite and all portable data paths validate the new fields;
+- no permission or minimum-OS change;
+- known limits remain custom list management, recurring task rules, reminders, synced notes, account recovery, and remote sync.
+
 2026-07-27 note-to-task pass:
 
 - app data schema 14 adds an optional `sourceNoteId` to tasks and migrates schema 13 tasks with `null`;

@@ -64,6 +64,8 @@ describe('encrypted backups', () => {
       details: 'Keep the source link.',
       status: 'open',
       dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
       sourceNoteId: 'note_secret',
       createdAt,
       updatedAt: createdAt,

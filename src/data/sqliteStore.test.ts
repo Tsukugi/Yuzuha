@@ -297,6 +297,8 @@ describe('SQLite workspace store', () => {
       details: 'Body',
       status: 'open',
       dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
       sourceNoteId: 'note_1',
       createdAt: '2026-07-26T12:00:00.000Z',
       updatedAt: '2026-07-26T12:00:00.000Z',

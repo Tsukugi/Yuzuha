@@ -248,3 +248,10 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add nullable `sourceNoteId` to tasks in app schema 14. The Notes action creates a new open task from the note title/body. A missing source ID remains valid so Tasks can show `Deleted note` after source deletion. Existing schema 13 tasks migrate with `null`.
 - Reason: A stable ID preserves provenance without copying mutable note state into a hidden relationship or deleting the task when the note is deleted. The action remains local and works offline.
 - Consequence: This pass does not add task editing, projects, reminders, recurrence, or synced links.
+
+## DEC-037: Keep task lifecycle local and date-only in schema 15
+
+- Context: Tasks now need useful local work controls, but reminders, recurring tasks, and sync need separate product contracts.
+- Decision: Add `priority` and a required `listId` to tasks, seed one `Inbox` list, and keep due dates as validated `YYYY-MM-DD` strings. Implement create, edit, complete/reopen, confirmed delete, and deterministic All/Overdue/Today/Upcoming/Completed filters locally.
+- Reason: Date-only values avoid timezone surprises, the Inbox default keeps creation simple, and the lifecycle is testable without a notification or sync service.
+- Consequence: Custom list management, recurring tasks, reminders, synced links, account recovery, and remote sync remain future work.

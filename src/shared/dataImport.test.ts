@@ -40,6 +40,8 @@ describe('JSON restore validation', () => {
       details: 'The source note may already be deleted.',
       status: 'open',
       dueLocalDate: null,
+      priority: 'normal',
+      listId: 'task_list_inbox',
       sourceNoteId: 'note_missing',
       createdAt: '2026-07-26T00:00:00.000Z',
       updatedAt: '2026-07-26T00:00:00.000Z',
@@ -52,7 +54,8 @@ describe('JSON restore validation', () => {
     expect(preview.recordCounts.attachments).toBe(1);
     expect(preview.recordCounts.accounts).toBe(1);
     expect(preview.recordCounts.savedSearches).toBe(1);
-    expect(preview.totalRecords).toBe(12);
+    expect(preview.recordCounts.taskLists).toBe(1);
+    expect(preview.totalRecords).toBe(13);
   });
 
   it('rejects saved searches that are not stored in normalized form', () => {
@@ -81,7 +84,7 @@ describe('JSON restore validation', () => {
       data: legacy,
     }));
 
-    expect(preview.data.schemaVersion).toBe(14);
+    expect(preview.data.schemaVersion).toBe(15);
     expect(preview.data.recurrences).toEqual([]);
     expect(preview.data.attachments).toEqual([]);
   });
@@ -92,7 +95,7 @@ describe('JSON restore validation', () => {
 
     const migrated = migrateStoredData(legacy);
 
-    expect(migrated?.schemaVersion).toBe(14);
+    expect(migrated?.schemaVersion).toBe(15);
     expect(migrated?.attachments).toEqual([]);
   });
 

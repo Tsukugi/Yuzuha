@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the note-to-task pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
+Status: Current test strategy through the task-lifecycle pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned.
 
 ## Test pyramid
 
@@ -15,6 +15,7 @@ Use Jest for pure logic:
 - saved-search validation, schema migration, persistence, export/restore, backup round trips, and lifecycle actions;
 - global-search matching, stable result ordering, archived-record filtering, and Usage Access visibility rules;
 - note-to-task creation, source preservation, source-link migration, JSON/backup validation, and SQLite round trips;
+- task draft validation, task identity-preserving edits, task deletion rules, date filters, schema 15 migration, JSON/backup validation, and SQLite round trips;
 - note lifecycle filtering, validation, editing, pinning, archive state, and deletion ownership;
 - app-time aggregation and exclusions;
 - installer schema validation, semver comparison, compatibility, and reason codes;
@@ -32,10 +33,11 @@ Use an in-memory or temporary database adapter to test:
 
 ### Android device tests
 
-Current evidence for the note-to-task pass:
+Current evidence for the task-lifecycle pass:
 
 - Android release APK installed on emulator `emulator-5554` and phone `42adce68`;
 - emulator smoke created a task from a note, showed the source note in Tasks, and confirmed the source note remained unchanged;
+- emulator UI dump showed the schema 15 task form, Inbox list, priority controls, due-date field, and All/Overdue/Today/Upcoming/Completed filters;
 - both devices resumed `dev.yuzuha/.MainActivity` after a process restart;
 - no fatal Android or React Native error appeared during the final launch checks;
 - phone touch input remains blocked by the device policy, so phone validation is launch-only.
