@@ -48,7 +48,7 @@ Home is a configurable view, not a second source of truth. Cards read from featu
 
 Cards are reorderable and hideable. A reset action restores the default layout. The default layout has money, app time, tasks, and notes.
 
-Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral review screen. The user can save the shared text as a note or an Inbox task after review. The full product may add file/URI shares, widgets, and other entry points after their privacy and platform contracts are defined.
+Current Android capture slice: an `ACTION_SEND` text share opens an ephemeral review screen. The user can save the shared text as a note or an Inbox task after review. Static launcher shortcuts open Money, Notes, Tasks, or App Time. The full product may add file/URI shares, widgets, dynamic shortcuts, and other entry points after their privacy and platform contracts are defined.
 
 ### Review behavior
 

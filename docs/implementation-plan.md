@@ -1681,6 +1681,39 @@ Resource cleanup         PASS - both devices were force-stopped; no Gradle or Ja
 
 Known limits:
 
-- only text shares are current; file/URI shares, widgets, shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain planned;
+- only text shares are current; file/URI shares, widgets, dynamic shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain planned;
 - a share over 20,000 characters is rejected instead of truncated;
 - sharing the same payload again is allowed after the current review is dismissed or saved.
+
+## Implementation review: Android launcher-shortcut pass
+
+Status: Completed on 2026-07-27.
+
+Delivered:
+
+- four static Android shortcuts: Add money, Add note, Add task, and App time;
+- typed `YuzuhaLaunchActions` native module with a cold-start getter and warm-app event;
+- explicit rejection of unknown action strings and direct routing to existing `MainApp` tabs;
+- transient share previews close when a launcher action arrives;
+- no app schema, repository record, shortcut persistence, permission, network request, or background process was added;
+- integrations, requirements, architecture, UX, security, full specification, release, testing, and decision docs record the current boundary.
+
+Review evidence:
+
+```text
+Focused Jest             PASS - supported action mapping and unknown-action rejection
+Full Jest                PASS - 39 suites, 166 tests
+npm run lint             PASS
+npm run typecheck        PASS
+npm run check-bundle     PASS - Android metadata valid
+Android debug build     PASS - app:assembleDebug with Java 17, max 2 workers and no daemon
+Android release build   PASS - app:assembleRelease with Java 17, max 2 workers and no daemon
+Emulator smoke           PASS - cold and warm Money, Notes, Tasks, and App Time action routing; four static shortcut IDs present
+Phone smoke              PASS - cold and warm launcher actions were accepted and delivered to MainActivity with no filtered app errors; UI text was verified on the emulator because phone UI automation returned no root
+Resource cleanup         PASS - both devices were force-stopped; no Gradle or Java process remained
+```
+
+Known limits:
+
+- shortcuts open existing blank screens; they do not prefill a record or offer a dynamic user-specific action;
+- widgets, dynamic shortcuts, iOS shortcuts, and shortcut actions that carry record content remain planned.

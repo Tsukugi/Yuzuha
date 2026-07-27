@@ -1,13 +1,13 @@
 # Testing strategy
 
-Status: Current test strategy through the Android share-capture pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the Android launcher-shortcut pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 38 Jest suites and 164 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 39 Jest suites and 166 tests. Legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 28 data directly; old local database files are rejected by repository schema checks.
 
 ## Task reminder evidence
@@ -37,6 +37,9 @@ Status: Current test strategy through the Android share-capture pass. Unit tests
 - Share-capture coverage: normalization, subject-only fallback, first-line title derivation, empty/oversized rejection, Android native bridge compilation, cold-start and warm-app preview, note/task confirmation routing, relaunch persistence, and no filtered fatal or ReactNativeJS errors.
 - Emulator `emulator-5554`: release `ACTION_SEND` smoke showed `Shared capture` with the shared subject/body, saved a note, then accepted a warm share and saved a task; the task was visible after relaunch.
 - Phone `42adce68`: release `ACTION_SEND` smoke showed `Shared capture` with the shared subject/body and no filtered app errors. Touch automation remains blocked by device policy.
+- Launcher-action coverage: supported Money, Notes, Tasks, and App Time actions map only to existing tabs; unknown actions are rejected.
+- Emulator `emulator-5554`: release cold and warm launcher-action intents opened Money, Notes, Tasks, and App Time with no filtered fatal or ReactNativeJS errors; the release manifest/resource inspection found all four static shortcut IDs and action filters.
+- Phone `42adce68`: release cold and warm launcher-action intents were accepted and delivered to `MainActivity` with no filtered app errors. MIUI returned no UI automation root, so target-screen text was verified on the emulator; touch automation remains blocked by device policy.
 
 ### Unit tests
 

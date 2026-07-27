@@ -1,6 +1,6 @@
 # Integrations and platform entry points
 
-Status: Android text share capture is current; broader integration capability remains planned.
+Status: Android text share capture and static launcher shortcuts are current; broader integration capability remains planned.
 
 ## Integration rule
 
@@ -14,7 +14,7 @@ An integration is useful only when it makes capture or review faster without wea
 | Global add action | Create money entry, note, or task. | Full product. |
 | Share sheet | Android `text/plain`: preview shared subject/body, then save as a note or Inbox task. | Current Android slice. |
 | Widgets | Show selected cards and quick capture. | Full product. |
-| Shortcuts/app actions | Open a feature or start a focus session. | Full product. |
+| Shortcuts/app actions | Android static shortcuts open Money, Notes, Tasks, or App Time. | Current Android slice. |
 | Deep links | Open a safe local object or settings page. | Full product. |
 | Notification actions | Android MVP: `Open`, `Complete`, and `Snooze` using the local duration setting; broader review actions are full product. | Android MVP; broader full product. |
 | Calendar | Read or create user-approved task events. | Full product, optional. |
@@ -24,7 +24,11 @@ An integration is useful only when it makes capture or review faster without wea
 
 Current Android behavior accepts an `ACTION_SEND` `text/plain` intent, plus a missing MIME type when the sender still provides text. The native activity bridge accepts `EXTRA_TEXT` and optional `EXTRA_SUBJECT`, rejects empty or over-20,000-character payloads before the React Native bridge, clears consumed extras, and emits warm launches to `MainApp`. The app shows a review screen; the user can save the bounded text as a note or as an Inbox task, or dismiss it. Nothing is written before confirmation, and no network request is made.
 
-File and URI shares, remote page fetching, widgets, shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy.
+File and URI shares, remote page fetching, widgets, dynamic shortcuts, iOS share handling, and a persisted draft type remain planned. A shared URL must not be fetched or stored as remote content without a separate network policy.
+
+## Android launcher shortcuts
+
+The Android manifest exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. They open the current blank form or screen through the same `singleTask` activity used by reminders and share capture. Cold starts use the typed initial-action getter; warm launches use the native event. Shortcut actions carry no record data, do not require a new permission, and do not start background work. Dynamic, user-configured, widget, and iOS shortcuts remain planned.
 
 ## Widgets
 

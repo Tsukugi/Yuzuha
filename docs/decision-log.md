@@ -408,4 +408,11 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Context: Android share entry is useful for fast capture, but accepting files, URLs, or a second draft store would expand the privacy, storage, and restore contract before the product has users.
 - Decision: Accept only `ACTION_SEND` text payloads, with optional subject, and cap each field at 20,000 characters before the native bridge. Show one review screen. On confirmation, save through the existing Note or Inbox Task AppStore methods; otherwise dismiss without persistence. Clear consumed activity extras and deduplicate the same cold/warm payload.
 - Reason: This gives one useful entry point with a bounded memory cost and one source of truth for validation. It does not fetch remote content, add a schema field, run a worker, or create legacy compatibility work.
-- Consequence: File/URI shares, widgets, shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain separate contracts and need their own privacy and platform review.
+- Consequence: File/URI shares, widgets, dynamic shortcuts, iOS share handling, remote URL preview, persisted drafts, and sync remain separate contracts and need their own privacy and platform review.
+
+## DEC-060: Keep launcher shortcuts static and navigation-only
+
+- Context: Android launcher entry points can shorten the path to existing records, but dynamic shortcut state, personalized content, and widget data would add lifecycle, privacy, and persistence work before public users exist.
+- Decision: Add four static shortcuts: Add money, Add note, Add task, and App time. Each carries only a fixed action ID into `MainActivity`; the typed native bridge handles cold and warm delivery and `MainApp` routes to an existing screen. Do not store shortcut state or run background refresh.
+- Reason: This gives fast access while reusing the current forms and keeps launcher metadata free of money, note, task, and app-time content. The action contract is small and testable on both an emulator and phone.
+- Consequence: Dynamic/user-configured shortcuts, widgets, lock-screen content, iOS shortcuts, and shortcut actions that prefill a record remain separate future contracts. No app schema change is needed.

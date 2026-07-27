@@ -19,7 +19,9 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home also has a local Quick capture menu. It routes to the existing Money, Notes, and Tasks forms and does not create a separate record type or background process.
 
-Android also accepts `text/plain` share intents. It shows the shared subject/body in a review screen before saving as a note or an Inbox task. The capture is ephemeral until confirmed, limited to 20,000 characters, and does not fetch links or start background work. File shares, widgets, shortcuts, and iOS share handling remain planned.
+Android also accepts `text/plain` share intents. It shows the shared subject/body in a review screen before saving as a note or an Inbox task. The capture is ephemeral until confirmed, limited to 20,000 characters, and does not fetch links or start background work. File shares, widgets, dynamic shortcuts, and iOS share handling remain planned.
+
+Android launcher shortcuts now open the existing Money, Notes, Tasks, and App Time screens. They are static navigation entries only: they create no record, store no shortcut state, and start no background work.
 
 ## Technology baseline
 

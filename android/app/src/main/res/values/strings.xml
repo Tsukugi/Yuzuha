@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Yuzuha</string>
+    <string name="shortcut_add_money">Add money</string>
+    <string name="shortcut_add_money_long">Open the money form</string>
+    <string name="shortcut_add_note">Add note</string>
+    <string name="shortcut_add_note_long">Open the note form</string>
+    <string name="shortcut_add_task">Add task</string>
+    <string name="shortcut_add_task_long">Open the task form</string>
+    <string name="shortcut_app_time">App time</string>
+    <string name="shortcut_app_time_long">Open app time</string>
 </resources>

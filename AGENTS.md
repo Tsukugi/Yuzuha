@@ -34,4 +34,6 @@ The current core now also includes schema 28 task templates, schema 27 task pare
 
 The current core also includes the Home Quick capture menu. It routes to the existing Money, Notes, and Tasks forms, adds no schema, and starts no background process. Check implementation evidence before describing planned work as shipped.
 
-The current Android shell also accepts `ACTION_SEND` `text/plain` intents. It clears consumed intent text, caps native payloads at 20,000 characters, shows a review before saving as a note or Inbox task, and keeps the capture out of persistence until confirmation. File/URI shares, widgets, shortcuts, and iOS share handling remain planned. Check implementation evidence before describing planned work as shipped.
+The current Android shell also accepts `ACTION_SEND` `text/plain` intents. It clears consumed intent text, caps native payloads at 20,000 characters, shows a review before saving as a note or Inbox task, and keeps the capture out of persistence until confirmation. File/URI shares, widgets, dynamic shortcuts, and iOS share handling remain planned. Check implementation evidence before describing planned work as shipped.
+
+The current Android shell also exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. They route through a typed cold/warm intent bridge to existing screens, add no schema or shortcut persistence, and start no background process. Widgets, dynamic shortcuts, and iOS shortcuts remain planned. Check implementation evidence before describing planned work as shipped.

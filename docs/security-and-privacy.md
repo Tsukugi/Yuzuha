@@ -89,6 +89,8 @@ Treat imported files, pasted JSON, and attachments as untrusted input. Validate 
 
 Current Android share capture accepts only text payloads, rejects empty or over-20,000-character values before the JS bridge, clears consumed activity extras, and performs no network fetch. The preview is ephemeral; the user must choose Save as note or Save as task before local storage changes. File/URI shares and widget lock-screen policy remain separate reviews.
 
+Android launcher shortcuts contain only fixed action IDs and labels. They do not expose note bodies, money values, task text, or app-time data in launcher metadata; they only route into the app after launch.
+
 ## Privacy review gates for new features
 
 For every feature, record data collected, source, local storage, server transfer, retention, user control, deletion path, permission, and telemetry fields. A feature cannot enter a release phase if one of those fields is unknown.

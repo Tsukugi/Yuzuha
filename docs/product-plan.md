@@ -166,7 +166,7 @@ Add accounts and categories, budgets, goals, reports, projects, recurrence, focu
 
 ### Phase 3 - Capture and automation
 
-Add rich notes, links, attachments, saved searches, global capture, reminders, templates, widgets, share actions, and calendar actions. The current Android slice covers bounded `text/plain` share preview plus confirmed note/task saving; file/URI shares, widgets, shortcuts, and calendar actions remain planned.
+Add rich notes, links, attachments, saved searches, global capture, reminders, templates, widgets, share actions, and calendar actions. The current Android slice covers bounded `text/plain` share preview, confirmed note/task saving, and static shortcuts into Money, Notes, Tasks, and App Time; file/URI shares, widgets, dynamic shortcuts, and calendar actions remain planned.
 
 ### Phase 4 - Continuity and portability
 

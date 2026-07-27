@@ -19,6 +19,7 @@ class MainActivity : ReactActivity() {
     setIntent(intent)
     TaskReminderModule.handleActivityIntent(intent)
     ShareCaptureModule.handleActivityIntent(intent)
+    LaunchActionsModule.handleActivityIntent(intent)
   }
 
   /**

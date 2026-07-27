@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add-money"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_money"
+        android:shortcutLongLabel="@string/shortcut_add_money_long">
+        <intent
+            android:action="dev.yuzuha.OPEN_MONEY"
+            android:targetPackage="dev.yuzuha"
+            android:targetClass="dev.yuzuha.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add-note"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_note"
+        android:shortcutLongLabel="@string/shortcut_add_note_long">
+        <intent
+            android:action="dev.yuzuha.OPEN_NOTES"
+            android:targetPackage="dev.yuzuha"
+            android:targetClass="dev.yuzuha.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add-task"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_add_task"
+        android:shortcutLongLabel="@string/shortcut_add_task_long">
+        <intent
+            android:action="dev.yuzuha.OPEN_TASKS"
+            android:targetPackage="dev.yuzuha"
+            android:targetClass="dev.yuzuha.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="app-time"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_app_time"
+        android:shortcutLongLabel="@string/shortcut_app_time_long">
+        <intent
+            android:action="dev.yuzuha.OPEN_APP_TIME"
+            android:targetPackage="dev.yuzuha"
+            android:targetClass="dev.yuzuha.MainActivity" />
+    </shortcut>
+</shortcuts>

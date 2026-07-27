@@ -61,7 +61,9 @@ import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
 import {taskReminders} from '../platform/taskReminders';
 import {shareCapture} from '../platform/shareCapture';
+import {launchActions} from '../platform/launchActions';
 import type {TaskReminderTarget} from '../platform/taskReminders';
+import type {LaunchAction} from '../shared/launchAction';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -106,6 +108,14 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     if (nextTab) {
       setTab(nextTab);
     }
+  }, []);
+
+  const openLaunchAction = useCallback((action: LaunchAction) => {
+    lastSharedCaptureKey.current = null;
+    setSharedCapture(null);
+    setDataToolsOpen(false);
+    setGlobalSearchOpen(false);
+    setTab(action);
   }, []);
 
   const openReminderTask = useCallback((taskId: string) => {
@@ -171,6 +181,24 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
       subscription.remove();
     };
   }, [openSharedCapture]);
+
+  useEffect(() => {
+    let mounted = true;
+    const subscription = launchActions.onAction(action => {
+      if (mounted) {
+        openLaunchAction(action);
+      }
+    });
+    void launchActions.getInitialAction().then(action => {
+      if (mounted && action) {
+        openLaunchAction(action);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, [openLaunchAction]);
 
   useEffect(() => {
     if (!data || !pendingReminderAction) {
