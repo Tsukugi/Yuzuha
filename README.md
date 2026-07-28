@@ -67,6 +67,10 @@ See [docs/README.md](docs/README.md) for the complete documentation set and read
 
 The documentation covers both the local-first MVP and the later full product. The implementation plan is phased so the first release stays small without losing the long-term design.
 
+## Android release signing
+
+Release builds require a private signing key. Put the non-secret file path and signing values in the ignored `android/keystore.properties`, or provide the `YUZUHA_RELEASE_STORE_FILE`, `YUZUHA_RELEASE_STORE_PASSWORD`, `YUZUHA_RELEASE_KEY_ALIAS`, and `YUZUHA_RELEASE_KEY_PASSWORD` environment variables. The release build fails when signing is not configured; it never falls back to the debug key. Keystores and signing properties are never committed.
+
 ## Local setup
 
 The package scripts cover the current app and quality gates:

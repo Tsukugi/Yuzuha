@@ -28,6 +28,7 @@ The current Money report pass adds derived period, type, category, and account f
 18. [API contract](api-contract.md) - sync service requests, responses, errors, and versioning.
 19. [Traceability](traceability.md) - requirement families, authoritative documents, and evidence.
 20. [Decision log](decision-log.md) - decisions that affect future work.
+21. [v0.1.0 release record](releases/v0.1.0.md) - artifact identity, verification, and release boundary.
 
 ## Documentation rules
 

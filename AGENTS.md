@@ -10,6 +10,8 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 4. Keep `README.md`, this file, and the whole `docs/` tree current when features, configuration, or release behavior changes.
 5. Any change to startup, bundle caching, or installer metadata must update `docs/installer.md` and the relevant developer note in `docs/architecture.md`, `docs/testing.md`, or `docs/release.md`.
 
+6. Android release builds must use a private non-debug keystore supplied through ignored `android/keystore.properties` or `YUZUHA_RELEASE_*` environment variables. Release keystores, signing properties, and passwords must never be committed.
+
 ## Work style
 
 - Reproduce a bug with a test before fixing it.

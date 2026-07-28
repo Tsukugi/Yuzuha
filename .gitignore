@@ -5,6 +5,16 @@ android/.gradle/
 android/app/.cxx/
 android/app/build/
 android/build/
+
+# Android release signing material. Never commit these files.
+android/keystore.properties
+android/*.jks
+android/*.keystore
+android/app/*.jks
+android/app/*.keystore
+android/app/*.p12
+!android/app/debug.keystore
+
 ios/Pods/
 ios/DerivedData/
 ios/build/
