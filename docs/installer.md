@@ -1,6 +1,6 @@
 # JavaScript bundle installer contract
 
-Status: Android native installer implementation for the 0.1.1 release. The native shell checks signed metadata, downloads only a newer compatible bundle, verifies its hash and signature, atomically activates it, and starts from the newest verified local or embedded bundle.
+Status: Android native installer implementation for the 0.1.2 release. The native shell checks signed metadata, downloads only a newer compatible bundle, verifies its hash and signature, atomically activates it, and starts from the newest verified local or embedded bundle.
 
 ## Purpose
 
@@ -115,7 +115,7 @@ The current JavaScript path still checks the embedded bundle gate before mountin
 
 The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, and only then selects the private bundle path. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the local bundle; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. No retry loop or background update worker is started. The JavaScript installer module only reads the native launch result.
 
-For Android 0.1.1, the embedded and native installer baseline is `0.1.1`; the default remote bundle metadata also targets `0.1.1`. The published release used app schema 32; the current unreleased build uses app schema 33 and repository schema 3, with no legacy bundle or data migration path.
+For Android 0.1.2, the embedded and native installer baseline is `0.1.2`; the default remote bundle metadata also targets `0.1.2`. The release uses app schema 33 and repository schema 3, with no legacy bundle or data migration path.
 
 ## Developer note
 
