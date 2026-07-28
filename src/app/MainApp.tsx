@@ -4464,7 +4464,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             </View>
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
+          <PrimaryButton label={editingTaskId ? 'Update task' : 'Save task'} onPress={() => void save()} />
           {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
         </View>
           </>
