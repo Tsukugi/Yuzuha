@@ -3105,6 +3105,8 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
   );
 }
 
+type NotesFilter = 'all' | 'pinned' | 'archived';
+
 function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focusNoteId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void}) {
   const {colors, styles} = useThemeStyles();
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
@@ -3116,10 +3118,10 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   const [savedSearchName, setSavedSearchName] = useState('');
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
-  const [noteSearchOpen, setNoteSearchOpen] = useState(false);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteFormOpen, setNoteFormOpen] = useState(false);
+  const [noteFilter, setNoteFilter] = useState<NotesFilter>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
@@ -3167,6 +3169,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   if (!data) {
     return null;
   }
+  const currentData = data;
 
   const attachmentNamesByNoteId = new Map<string, string[]>();
   for (const attachment of data.attachments) {
@@ -3174,7 +3177,14 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
     names.push(attachment.name);
     attachmentNamesByNoteId.set(attachment.noteId, names);
   }
-  const visibleNotes = filterNotes(data.notes, searchQuery, showArchived, attachmentNamesByNoteId);
+  const filteredNotes = filterNotes(data.notes, searchQuery, noteFilter === 'archived' || showArchived, attachmentNamesByNoteId);
+  const visibleNotes = noteFilter === 'pinned'
+    ? filteredNotes.filter(note => note.isPinned && !note.isArchived)
+    : noteFilter === 'archived'
+      ? filteredNotes.filter(note => note.isArchived)
+      : filteredNotes;
+  const pinnedNotes = visibleNotes.filter(note => note.isPinned && !note.isArchived).slice(0, 4);
+  const recentNotes = (noteFilter === 'all' && pinnedNotes.length > 0 ? visibleNotes.filter(note => !note.isPinned) : visibleNotes).slice(0, 12);
 
   async function save() {
     const draft = {title: title.trim(), body: body.trim(), tags: normalizeNoteTags(tags)};
@@ -3406,6 +3416,13 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   function applySavedSearch(savedSearch: SavedSearch) {
     setSearchQuery(savedSearch.query);
     setShowArchived(savedSearch.showArchived);
+    setNoteFilter('all');
+    setError(null);
+  }
+
+  function changeNoteFilter(nextFilter: NotesFilter) {
+    setNoteFilter(nextFilter);
+    setShowArchived(nextFilter === 'archived');
     setError(null);
   }
 
@@ -3429,11 +3446,132 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
     );
   }
 
+  function renderNoteCard(note: Note) {
+    const noteAttachments = currentData.attachments.filter(attachment => attachment.noteId === note.id);
+    const noteLinks = currentData.noteLinks.filter(link => link.noteId === note.id);
+    const isBusy = busyNoteId === note.id;
+    const currentLinkOptions = linkingNoteId === note.id ? noteLinkOptions(linkTargetType, currentData, linkTargetSearch) : [];
+    const detailParts = [
+      noteAttachments.length > 0 ? `${noteAttachments.length} attachment${noteAttachments.length === 1 ? '' : 's'}` : null,
+      noteLinks.length > 0 ? `${noteLinks.length} link${noteLinks.length === 1 ? '' : 's'}` : null,
+    ].filter((part): part is string => part !== null);
+
+    return (
+      <View key={note.id} style={[styles.noteCard, styles.cardShadow, note.isPinned && styles.noteCardPinned, note.isArchived && styles.noteCardArchived]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open note ${note.title}`}
+          style={styles.noteCardPressable}
+          onPress={() => startEditing(note)}>
+          <View style={styles.noteCardTopline}>
+            <Text style={styles.noteCategory}>{note.isArchived ? 'Archived' : note.isPinned ? 'Pinned' : note.tags[0] ? `#${note.tags[0]}` : 'Note'}</Text>
+            <Text style={note.isPinned ? styles.notePinIcon : styles.noteMoreIcon}>{note.isPinned ? '★' : '•••'}</Text>
+          </View>
+          <Text style={styles.noteCardTitle} numberOfLines={2}>{note.title}</Text>
+          {!!note.body && <NoteBodyPreview body={note.body} />}
+          {note.tags.length > 0 && (
+            <View style={styles.noteTagRow}>
+              {note.tags.slice(0, 4).map(tag => <Text key={tag} style={styles.noteTag}>#{tag}</Text>)}
+            </View>
+          )}
+          <View style={styles.noteCardMetaRow}>
+            <Text style={styles.noteCardMeta}>{formatDate(note.updatedAt)}</Text>
+            {detailParts.length > 0 && <Text style={styles.noteCardMeta}>{detailParts.join(' - ')}</Text>}
+          </View>
+        </Pressable>
+        <View style={styles.noteCardActions}>
+          <TextButton label="Open" disabled={isBusy} onPress={() => startEditing(note)} />
+          <TextButton
+            label={expandedNoteId === note.id ? 'Less' : 'More'}
+            disabled={isBusy}
+            onPress={() => setExpandedNoteId(current => current === note.id ? null : note.id)} />
+        </View>
+        {expandedNoteId === note.id && (
+          <View style={styles.noteCardActions}>
+            <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
+            <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
+            <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
+            <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
+            <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
+          </View>
+        )}
+        {linkingNoteId === note.id && (
+          <View style={styles.linkEditor}>
+            <Text style={styles.formLabel}>Link type</Text>
+            <View style={styles.chipWrap}>
+              {NOTE_LINK_TARGET_TYPES.map(type => (
+                <ChipButton key={type} label={noteLinkTypeLabel(type)} selected={linkTargetType === type} onPress={() => changeLinkTargetType(type)} />
+              ))}
+            </View>
+            <TextInput
+              accessibilityLabel="Search link targets"
+              placeholder="Search records"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={linkTargetSearch}
+              onChangeText={value => {
+                setLinkTargetSearch(value);
+                const first = noteLinkOptions(linkTargetType, currentData, value)[0];
+                if (first) {
+                  setLinkTargetId(first.id);
+                }
+              }}
+            />
+            <View style={styles.chipWrap}>
+              {currentLinkOptions.slice(0, 20).map(option => (
+                <ChipButton key={option.id} label={option.label} selected={linkTargetId === option.id} onPress={() => setLinkTargetId(option.id)} />
+              ))}
+            </View>
+            {currentLinkOptions.length === 0 && <Text style={styles.emptyState}>No matching records.</Text>}
+            <PrimaryButton label="Save link" onPress={() => void saveNoteLink(note)} disabled={isBusy || linkTargetId === null} />
+          </View>
+        )}
+        {expandedNoteId === note.id && noteLinks.length > 0 && (
+          <View style={styles.linkSection}>
+            <Text style={styles.formLabel}>Linked records</Text>
+            {noteLinks.map(link => (
+              <View key={link.id} style={styles.linkRow}>
+                <Text style={styles.listMeta}>{formatNoteLinkTarget(link, currentData)}</Text>
+                <TextButton label="Remove link" danger disabled={isBusy} onPress={() => void removeNoteLink(link)} />
+              </View>
+            ))}
+          </View>
+        )}
+        {expandedNoteId === note.id && noteAttachments.length > 0 && (
+          <View style={styles.attachmentSection}>
+            <Text style={styles.formLabel}>Attachments</Text>
+            {noteAttachments.map(attachment => (
+              <View key={attachment.id} style={styles.attachmentRow}>
+                <View style={styles.listBody}>
+                  <Text style={styles.attachmentName} numberOfLines={1}>{attachment.name}</Text>
+                  <Text style={styles.listMeta}>{formatBytes(attachment.byteSize)}</Text>
+                </View>
+                <TextButton label="Open attachment" disabled={isBusy} onPress={() => void openNoteAttachment(attachment)} />
+                <TextButton label="Remove attachment" danger disabled={isBusy} onPress={() => void removeNoteAttachment(attachment)} />
+              </View>
+            ))}
+          </View>
+        )}
+        {expandedNoteId === note.id && (
+          <TextButton label={isBusy ? 'Working...' : 'Add attachment'} disabled={busyNoteId !== null} onPress={() => void addNoteAttachment(note.id)} />
+        )}
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.pageTitle}>Notes</Text>
-        <Text style={styles.pageIntro}>Capture first. Organize more later.</Text>
+        <View style={styles.notesHero}>
+          <View style={styles.notesHeroCopy}>
+            <Text style={styles.pageTitle}>Notes</Text>
+            <Text style={styles.pageIntro}>Small thoughts, easy to find.</Text>
+          </View>
+          <View style={styles.notesCountBadge}>
+            <Text style={styles.notesCountValue}>{data.notes.filter(note => !note.isArchived).length}</Text>
+            <Text style={styles.notesCountLabel}>active</Text>
+          </View>
+        </View>
         {noteFormOpen && (
           <>
         <View style={styles.formCard}>
@@ -3490,32 +3628,42 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
         )}
         {!noteFormOpen && (
           <>
-        <Disclosure
-          title="Search notes"
-          subtitle={searchQuery.trim() ? 'Search active notes' : 'Title, body, tags, and attachments'}
-          open={noteSearchOpen}
-          onPress={() => setNoteSearchOpen(current => !current)}>
-        <SectionTitle title="Search notes" />
-        <TextInput
-          accessibilityLabel="Search notes"
-          placeholder="Title, body, tag, or attachment name"
-          placeholderTextColor={colors.muted}
-          style={styles.input}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={styles.notesSearchCard}>
+          <View style={styles.notesSearchRow}>
+            <Text style={styles.notesSearchIcon}>⌕</Text>
+            <TextInput
+              accessibilityLabel="Search notes"
+              placeholder="Search notes..."
+              placeholderTextColor={colors.muted}
+              style={styles.notesSearchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.trim() ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Clear note search" onPress={() => setSearchQuery('')} style={styles.notesSearchAction}>
+                <Text style={styles.notesSearchActionText}>×</Text>
+              </Pressable>
+            ) : (
+              <Text style={styles.notesSearchActionText}>☷</Text>
+            )}
+          </View>
+        </View>
+        <View style={styles.notesFilterRow}>
+          <ChipButton label="All" selected={noteFilter === 'all'} onPress={() => changeNoteFilter('all')} />
+          <ChipButton label="Pinned" selected={noteFilter === 'pinned'} onPress={() => changeNoteFilter('pinned')} />
+          <ChipButton label="Archived" selected={noteFilter === 'archived'} onPress={() => changeNoteFilter('archived')} />
+        </View>
         {searchQuery.trim() && (
-          <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Save current search</Text>
+          <View style={styles.notesSaveSearch}>
             <TextInput
               accessibilityLabel="Saved search name"
-              placeholder="Name this search"
+              placeholder="Save this search as..."
               placeholderTextColor={colors.muted}
-              style={styles.input}
+              style={styles.notesSaveSearchInput}
               value={savedSearchName}
               onChangeText={setSavedSearchName}
             />
-            <TextButton label="Save search" onPress={() => void saveSearch()} />
+            <TextButton label="Save" onPress={() => void saveSearch()} />
           </View>
         )}
         {data.savedSearches.length > 0 && (
@@ -3538,122 +3686,44 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             ))}
           </Disclosure>
         )}
-        <TextButton label={showArchived ? 'Hide archived notes' : 'Show archived notes'} onPress={() => setShowArchived(current => !current)} />
-        </Disclosure>
-        <SectionTitle title={showArchived ? 'All notes' : 'Active notes'} />
+        {error && <Text style={styles.errorText}>{error}</Text>}
         {data.notes.length === 0 ? (
-          <EmptyState text="No notes yet." />
+          <EmptyState text="No notes yet. Tap + to capture one." />
         ) : visibleNotes.length === 0 ? (
-          <EmptyState text={searchQuery.trim() ? 'No notes match this search.' : 'No active notes. Show archived notes to restore one.'} />
-          ) : (
-          visibleNotes.map(note => {
-            const noteAttachments = data.attachments.filter(attachment => attachment.noteId === note.id);
-            const noteLinks = data.noteLinks.filter(link => link.noteId === note.id);
-            const isBusy = busyNoteId === note.id;
-            const currentLinkOptions = linkingNoteId === note.id ? noteLinkOptions(linkTargetType, data, linkTargetSearch) : [];
-            return (
-              <View key={note.id} style={styles.noteCard}>
-                <Text style={styles.listTitle}>{note.title}</Text>
-                {!!note.body && <NoteBodyPreview body={note.body} />}
-                {note.tags.length > 0 && <Text style={styles.listMeta}>Tags: {note.tags.map(tag => `#${tag}`).join(' ')}</Text>}
-                {note.isPinned && <Text style={styles.successText}>Pinned</Text>}
-                {note.isArchived && <Text style={styles.warningText}>Archived</Text>}
-                <Text style={styles.listMeta}>{formatDate(note.updatedAt)}</Text>
-                {noteLinks.length > 0 && (
-                  <View style={styles.linkSection}>
-                    <Text style={styles.formLabel}>Linked records</Text>
-                    {noteLinks.map(link => (
-                      <View key={link.id} style={styles.linkRow}>
-                        <Text style={styles.listMeta}>{formatNoteLinkTarget(link, data)}</Text>
-                        <TextButton label="Remove link" danger disabled={isBusy} onPress={() => void removeNoteLink(link)} />
-                      </View>
-                    ))}
-                  </View>
-                )}
-                <View style={styles.noteActions}>
-                  <TextButton label="Edit" disabled={isBusy} onPress={() => startEditing(note)} />
-                  <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
-                  <TextButton
-                    label={expandedNoteId === note.id ? 'Hide actions' : 'More actions'}
-                    disabled={isBusy}
-                    onPress={() => setExpandedNoteId(current => current === note.id ? null : note.id)} />
+          <EmptyState text={searchQuery.trim() ? 'No notes match this search.' : noteFilter === 'pinned' ? 'No pinned notes yet.' : 'No archived notes.'} />
+        ) : searchQuery.trim() || noteFilter !== 'all' ? (
+          <>
+            <SectionTitle title={searchQuery.trim() ? 'Search results' : noteFilter === 'pinned' ? 'Pinned notes' : 'Archived notes'} />
+            {visibleNotes.map(renderNoteCard)}
+          </>
+        ) : (
+          <>
+            {pinnedNotes.length > 0 && (
+              <View style={styles.notesSection}>
+                <View style={styles.notesSectionHeader}>
+                  <Text style={styles.notesSectionTitle}>Pinned notes</Text>
+                  <Text style={styles.notesSectionCount}>{pinnedNotes.length}</Text>
                 </View>
-                {expandedNoteId === note.id && (
-                  <View style={styles.noteActions}>
-                    <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
-                    <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
-                    <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
-                    <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
-                  </View>
-                )}
-                {linkingNoteId === note.id && (
-                  <View style={styles.linkEditor}>
-                    <Text style={styles.formLabel}>Link type</Text>
-                    <View style={styles.chipWrap}>
-                      {NOTE_LINK_TARGET_TYPES.map(type => (
-                        <ChipButton key={type} label={noteLinkTypeLabel(type)} selected={linkTargetType === type} onPress={() => changeLinkTargetType(type)} />
-                      ))}
-                    </View>
-                    <TextInput
-                      accessibilityLabel="Search link targets"
-                      placeholder="Search records"
-                      placeholderTextColor={colors.muted}
-                      style={styles.input}
-                      value={linkTargetSearch}
-                      onChangeText={value => {
-                        setLinkTargetSearch(value);
-                        const first = noteLinkOptions(linkTargetType, data, value)[0];
-                        if (first) {
-                          setLinkTargetId(first.id);
-                        }
-                      }}
-                    />
-                    <View style={styles.chipWrap}>
-                      {currentLinkOptions.slice(0, 20).map(option => (
-                        <ChipButton key={option.id} label={option.label} selected={linkTargetId === option.id} onPress={() => setLinkTargetId(option.id)} />
-                      ))}
-                    </View>
-                    {currentLinkOptions.length === 0 && <Text style={styles.emptyState}>No matching records.</Text>}
-                    <PrimaryButton label="Save link" onPress={() => void saveNoteLink(note)} disabled={isBusy || linkTargetId === null} />
-                  </View>
-                )}
-                {noteAttachments.length > 0 && (
-                  <View style={styles.attachmentSection}>
-                    <Text style={styles.formLabel}>Attachments</Text>
-                    {noteAttachments.map(attachment => (
-                      <View key={attachment.id} style={styles.attachmentRow}>
-                        <View style={styles.listBody}>
-                          <Text style={styles.attachmentName} numberOfLines={1}>{attachment.name}</Text>
-                          <Text style={styles.listMeta}>{formatBytes(attachment.byteSize)}</Text>
-                        </View>
-                        <TextButton
-                          label="Open attachment"
-                          disabled={isBusy}
-                          onPress={() => void openNoteAttachment(attachment)}
-                        />
-                        <TextButton
-                          label="Remove attachment"
-                          danger
-                          disabled={isBusy}
-                          onPress={() => void removeNoteAttachment(attachment)}
-                        />
-                      </View>
-                    ))}
-                  </View>
-                )}
-                <PrimaryButton
-                  label={isBusy ? 'Working...' : 'Add attachment'}
-                  disabled={busyNoteId !== null}
-                  onPress={() => void addNoteAttachment(note.id)}
-                />
+                {pinnedNotes.map(renderNoteCard)}
               </View>
-            );
-          })
+            )}
+            <View style={styles.notesSection}>
+              <View style={styles.notesSectionHeader}>
+                <Text style={styles.notesSectionTitle}>Recent notes</Text>
+                <Text style={styles.notesSectionCount}>{recentNotes.length}</Text>
+              </View>
+              {recentNotes.map(renderNoteCard)}
+            </View>
+          </>
         )}
-        <PrimaryButton label="Add note" onPress={startNewNote} />
           </>
         )}
       </ScrollView>
+      {!noteFormOpen && (
+        <Pressable accessibilityRole="button" accessibilityLabel="Add note" style={[styles.notesFab, styles.cardShadow]} onPress={startNewNote}>
+          <Text style={styles.notesFabIcon}>+</Text>
+        </Pressable>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -5041,7 +5111,40 @@ function createStyles(colors: ThemeColors) {
   amount: {fontSize: 15, fontWeight: '800', marginLeft: 12},
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
-  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: 10, padding: 15},
+  notesHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
+  notesHeroCopy: {flex: 1},
+  notesCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 18, minWidth: 64, paddingHorizontal: 12, paddingVertical: 9},
+  notesCountValue: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  notesCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
+  notesSearchCard: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 18, borderWidth: 1, marginTop: 10, paddingHorizontal: 14, paddingVertical: 4},
+  notesSearchRow: {alignItems: 'center', flexDirection: 'row'},
+  notesSearchIcon: {color: colors.muted, fontSize: 29, lineHeight: 36, marginRight: 8},
+  notesSearchInput: {color: colors.text, flex: 1, fontSize: 16, minHeight: 50, paddingVertical: 8},
+  notesSearchAction: {alignItems: 'center', height: 40, justifyContent: 'center', width: 36},
+  notesSearchActionText: {color: colors.muted, fontSize: 25, fontWeight: '700'},
+  notesFilterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12},
+  notesSaveSearch: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, flexDirection: 'row', gap: 8, marginTop: 12, paddingHorizontal: 12},
+  notesSaveSearchInput: {color: colors.text, flex: 1, fontSize: 14, minHeight: 44, paddingVertical: 7},
+  notesSection: {marginTop: 22},
+  notesSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10},
+  notesSectionTitle: {color: colors.text, fontSize: 19, fontWeight: '800'},
+  notesSectionCount: {color: colors.muted, fontSize: 13, fontWeight: '700'},
+  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginBottom: 12, overflow: 'hidden'},
+  noteCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 18, paddingHorizontal: 17, paddingBottom: 12},
+  noteCardPinned: {borderColor: colors.warning},
+  noteCardArchived: {opacity: 0.86},
+  noteCardPressable: {padding: 17},
+  noteCardTopline: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
+  noteCategory: {color: colors.accent, fontSize: 13, fontWeight: '800'},
+  notePinIcon: {color: colors.warning, fontSize: 20},
+  noteMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
+  noteCardTitle: {color: colors.text, fontSize: 19, fontWeight: '800', lineHeight: 24, marginTop: 10},
+  noteTagRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12},
+  noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4},
+  noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14},
+  noteCardMeta: {color: colors.muted, fontSize: 12},
+  notesFab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 31, bottom: 18, height: 62, justifyContent: 'center', position: 'absolute', right: 20, width: 62},
+  notesFabIcon: {color: colors.accentText, fontSize: 36, fontWeight: '300', lineHeight: 40},
   savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 10, paddingTop: 10},
   noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
   attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},

@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-28 Money graphs and theme pass.
+Status: Current Android MVP through the 2026-07-28 Notes UX pass.
 
 ## Navigation
 
@@ -18,7 +18,7 @@ The first visible action on a screen should match the main job for that screen. 
 
 - Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
 - Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
-- Notes opens on the current note list, then shows Add note. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Search notes and saved searches use closed sections; each note keeps Edit, Make task, and More actions as the first row of actions.
+- Notes opens on the current note list with an always-visible search field, All/Pinned/Archived chips, pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Attachments, links, and destructive actions stay behind each card's More action.
 - Tasks opens on the current List/Agenda view, then shows Add task. The form appears only after Add task or an edit/search-focus action. Task filters, optional task details, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
 - App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
 - Search keeps the query visible. Archived-result controls and the Usage Access note use Search options.
@@ -59,6 +59,10 @@ The form asks for type, amount, currency, category, date, account label, and not
 
 Money shows a split-aware spending overview after the current entry list. Category bars use the main currency and active type/category/account scope; the chart shows the top categories and keeps exact amounts visible. The daily chart appears for Day, Week, or Month scopes and shows separate spending and income bars for each local date. All-time scope keeps the category view and explains that a daily trend needs a bounded period. Empty scopes show a clear no-spending state. Transfers are excluded and currencies never mix.
 
+### Read Notes
+
+Notes shows current records first. Search stays visible at the top, and the All, Pinned, and Archived chips change the local list without changing saved data. With no search, pinned notes appear in their own section and the remaining active notes appear under Recent notes. Each card shows a short preview, tags, updated time, and compact metadata; tapping the card or Open opens the existing editor. More reveals task conversion, pin/archive, links, attachments, and delete. The floating plus button is the only normal add action, and it opens the form after the list has been seen.
+
 ### Read app time
 
 The permission explanation appears before the system settings page. After returning, the app checks permission again, reads the selected range, stores a local snapshot, and shows the read timestamp. If permission was not granted, the app remains useful and explains how to try again.
@@ -85,11 +89,11 @@ A task row shows `Calendar` only as a one-way Android draft action. The task mus
 
 ### Search notes
 
-Notes has a local search field. It matches title, body, normalized tags, and attachment file names case-insensitively. Results show the title, a short body preview, tags, attachments, and updated time. An empty query shows all notes; a query with no matches shows an honest empty state. Search never reads attachment bytes or sends note content to a server.
+Notes keeps a local search field visible. It matches title, body, normalized tags, and attachment file names case-insensitively. Results show compact cards with the title, a short body preview, tags, attachments, and updated time. An empty query shows pinned and recent sections; a query with no matches shows an honest empty state. Search never reads attachment bytes or sends note content to a server.
 
 The note editor keeps body text portable and offers Bold, Italic, Code, Bullet, and Heading actions. Bold uses `**text**`, italic uses `*text*`, code uses backticks, bullets use `- ` line prefixes, and headings use `# `. The note card renders these known markers. Unsupported or incomplete text stays visible as plain text, and the stored body remains the same string used by search and local data tools.
 
-Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default. Show archived notes reveals them for review or restore, and pinned notes appear first. Deleting a note also removes its attachment metadata and private files.
+Notes also supports editing a saved note, pinning it, archiving/restoring it, and deleting it after confirmation. Archived notes are hidden by default and the Archived chip reveals them for review or restore. Deleting a note also removes its attachment metadata and private files.
 
 When a note query is non-empty, Notes can save it under a local name. Saving also records whether archived notes are included. The saved-search list shows the name and query, Apply restores both values, and Delete requires confirmation. Saved searches stay on the device and are included in local exports and encrypted backups; they are not global or synced searches.
 

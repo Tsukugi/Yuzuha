@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-07-28 Money graphs and theme pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-07-28 Notes UX pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -21,7 +21,8 @@ Status: Current test strategy through the 2026-07-28 Money graphs and theme pass
 - `moneyChart.test.ts` covers category totals, complete local daily ranges, and split-line aggregation without duplicating the split parent.
 - Android system light and dark mode were each applied before a clean Money launch. Both reached the same Money hierarchy with no filtered fatal or ReactNativeJS errors; the app's System/Light/Dark selector remains view state and adds no data write.
 - The explicit Money add action opens `New money entry` with Type, Amount, Category, Account, collapsed `More entry details`, and `Save entry`. The form does not render the entry list underneath it.
-- Notes opens on the notes list with Add note; Search notes is collapsed and the form is only visible after Add note or an edit-focus action. The add form keeps title/body visible and places formatting/tags under More note details. Tasks opens on Task view with Task filters collapsed and Add task; its form is only visible after Add task or an edit-focus action.
+- Notes opens on the notes list with visible Search notes, All/Pinned/Archived chips, pinned/recent sections, compact cards, and a floating Add note action. The form is only visible after Add note, launcher action, or edit focus; the add form keeps title/body visible and places formatting/tags under More note details. Tasks opens on Task view with Task filters collapsed and Add task; its form is only visible after Add task or an edit-focus action.
+- Xiaomi light and dark screenshots show the Notes search card, filter chips, recent section, compact card actions with spacing, floating Add note action, and the simple note form. The launcher action opens `New note` with title/body visible and optional details collapsed.
 - Search shows Search options collapsed.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.

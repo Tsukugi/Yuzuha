@@ -28,6 +28,13 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 - kept Home to the compact Money widget and kept Money list-first: balance/activity, current entries, Add money entry, then graphs;
 - typecheck, lint, diff checks, 52 Jest suites/231 tests, signed Java 17 release build, Xiaomi install, Money hierarchy smoke in system light/dark modes, and filtered logcat checks passed. Xiaomi still rejects adb touch injection; no GitHub release was created for this local UI pass.
 
+2026-07-28 Android Notes UX pass:
+
+- kept Notes list-first and made search visible on entry, with All/Pinned/Archived chips, pinned/recent sections, compact tappable note cards, and one floating Add note action;
+- moved attachments, links, task conversion, pin/archive, and delete behind the card's More action so the current list is easier to scan;
+- preserved the existing note form, attachments, links, saved searches, and note-to-task behavior; no schema, migration, network request, worker, or background process changed;
+- typecheck, lint, diff checks, 52 Jest suites/231 tests, signed Java 17 release build, Xiaomi light/dark screenshots, launcher add-form smoke, and filtered logcat checks passed. Local APK SHA-256: `F21879B74F871B0DA6CD317EC2DBBCBD7DF06CB05E4671F46E36B27AF11106FB`. No GitHub release was created for this local UI pass.
+
 2026-07-28 Android Money/Home reference UI pass:
 
 - removed the Yuzuha title, description, and bundle label from the React shell and startup content;

@@ -677,3 +677,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The graphs are fast, testable, accessible, and sufficient for the current reference UI. System theme support works without a schema field or preference migration, and the app avoids a chart dependency until interactive gestures or larger datasets justify one.
 - Consequence: Category bars and daily movement are derived at render time. All-time scope has no daily series and explains the required bounded period. Theme choice resets on relaunch and is not included in data tools. No schema, network request, worker, polling loop, or native chart dependency is added.
 - Validation: chart helper tests cover categories, daily date coverage, and split lines; signed Android build and Xiaomi UI smoke cover Money in system light and dark modes with no filtered fatal errors.
+
+## DEC-095: Make Notes review-first with compact cards and one add action
+
+- Status: Accepted.
+- Context: Notes opened with search hidden in a disclosure, actions and attachment controls consumed much of each card, and the add action was a large button at the end of the list. The supplied reference makes search, sections, compact cards, and one floating add action the primary visual hierarchy.
+- Decision: Keep the current note list visible on entry. Keep search visible, add All/Pinned/Archived local filters, split the default view into pinned and recent sections, make each card tappable, collapse links/attachments/destructive actions behind More, and use one floating Add note action. Keep title/body first in the existing form and keep formatting/tags under More note details.
+- Reason: The user can review current notes quickly, find a note without opening a secondary section, and add only after choosing to do so. Existing local actions remain available without putting every control in the scan path.
+- Consequence: The pass changes only React Native view state and theme-aware styles. It adds no AppData field, schema boundary, migration, export/import format, network request, worker, timer, or polling loop.
+- Validation: full Jest (52 suites/231 tests), typecheck, lint, signed Java 17 release build, Xiaomi light/dark screenshots, Notes hierarchy smoke, launcher add-form smoke, and filtered logcat checks.
