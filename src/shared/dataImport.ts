@@ -25,7 +25,7 @@ import type {
   UsageSnapshot,
 } from '../types/domain';
 import {ATTACHMENT_MAX_BYTES, ATTACHMENT_MAX_NAME_LENGTH, ATTACHMENT_MAX_PER_NOTE, isSha256, isSupportedAttachmentMimeType} from './attachment';
-import {isValidLocalDate} from './moneyRecurrence';
+import {isValidLocalDate, isValidRecurrenceWeekdays} from './moneyRecurrence';
 import {validateNoteTags} from './noteSearch';
 import {validateSavedSearchDraft} from './savedSearch';
 import {TASK_LIST_MAX_NAME_LENGTH} from './taskListLifecycle';
@@ -91,7 +91,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
     throw new JsonImportError('This JSON export version is not supported.');
   }
   const appSchemaVersion = parsed.appSchemaVersion;
-  if (appSchemaVersion !== 32) {
+  if (appSchemaVersion !== 33) {
     throw new JsonImportError('This app data version is not supported.');
   }
   if (!isIsoDate(parsed.exportedAt)) {
@@ -110,7 +110,7 @@ export function parseJsonImport(raw: string): JsonImportPreview {
 
 export function validateCurrentAppData(value: unknown): asserts value is AppData {
   const notificationSettings = isRecord(value) ? value.notificationSettings : null;
-  if (!isRecord(value) || value.schemaVersion !== 32 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
+  if (!isRecord(value) || value.schemaVersion !== 33 || !isCurrency(value.mainCurrency) || !isWeekStartDay(value.weekStartsOn) || !isRecord(notificationSettings) ||
       !isValidTaskReminderSnoozeDuration(notificationSettings.snoozeDurationMinutes) || typeof notificationSettings.taskRemindersEnabled !== 'boolean' ||
       typeof notificationSettings.recurringTaskRemindersEnabled !== 'boolean') {
     throw new JsonImportError('The export has an invalid app header.');
@@ -340,7 +340,8 @@ function validateRecurrence(rule: MoneyRecurrenceRule, accountIds: Set<string>, 
   validateOptionalReference(rule.categoryId, categoryIds, `Recurring rule ${rule.id} category`);
   if (typeof rule.category !== 'string' || typeof rule.note !== 'string' ||
       !isRecurrenceCadence(rule.cadence) || !Number.isSafeInteger(rule.interval) || rule.interval < 1 || rule.interval > 365 ||
-      !isValidLocalDate(rule.nextOccurrenceLocalDate) || !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) || typeof rule.isPaused !== 'boolean') {
+      !isValidLocalDate(rule.nextOccurrenceLocalDate) || !isMissedOccurrencePolicy(rule.missedOccurrencePolicy) || !isValidRecurrenceWeekdays(rule.weekdays) ||
+      (rule.cadence !== 'day' || rule.interval !== 1 ? rule.weekdays.length !== 7 : false) || typeof rule.isPaused !== 'boolean') {
     throw new JsonImportError(`Recurring rule ${rule.id} has invalid fields.`);
   }
 }

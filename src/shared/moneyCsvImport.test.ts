@@ -36,7 +36,7 @@ describe('money CSV import', () => {
     const data = emptyAppData();
     const header = buildMoneyCsvExport(data).trim();
     const row = (id: string, accountId = 'account_everyday', splitId = '') => [
-      '1', '32', id, 'expense', '100', 'EUR', accountId, 'category_food', '', 'Food', 'note',
+      '1', '33', id, 'expense', '100', 'EUR', accountId, 'category_food', '', 'Food', 'note',
       '2026-07-28T12:00:00.000Z', '2026-07-28T12:00:00.000Z', '2026-07-28T12:00:00.000Z', splitId,
     ].join(',');
     const existing: MoneyEntry = {

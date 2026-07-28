@@ -7,6 +7,7 @@ import type {
   MoneyRecurrenceRule,
   MissedOccurrencePolicy,
   RecurrenceCadence,
+  RecurrenceWeekday,
 } from '../types/domain';
 
 export interface MoneyRecurrenceInput {
@@ -19,6 +20,7 @@ export interface MoneyRecurrenceInput {
   note: string;
   cadence: RecurrenceCadence;
   interval: number;
+  weekdays: RecurrenceWeekday[];
   nextOccurrenceLocalDate: string;
   missedOccurrencePolicy: MissedOccurrencePolicy;
 }
@@ -44,6 +46,12 @@ export function validateMoneyRecurrence(
   }
   if (input.cadence !== 'day' && input.cadence !== 'week' && input.cadence !== 'month') {
     return 'Choose a valid recurring cadence.';
+  }
+  if (!isValidRecurrenceWeekdays(input.weekdays)) {
+    return 'Choose at least one valid day for the recurring operation.';
+  }
+  if ((input.cadence !== 'day' || input.interval !== 1) && input.weekdays.length !== 7) {
+    return 'Choose all days unless the operation repeats every day.';
   }
   if (!isMissedOccurrencePolicy(input.missedOccurrencePolicy)) {
     return 'Choose a valid missed-occurrence policy.';
@@ -110,8 +118,10 @@ export function expandDueMoneyRecurrences(
     const dueDates: string[] = [];
     let nextOccurrenceLocalDate = rule.nextOccurrenceLocalDate;
     while (nextOccurrenceLocalDate <= todayLocalDate) {
-      dueDates.push(nextOccurrenceLocalDate);
-      nextOccurrenceLocalDate = addRecurrenceDate(nextOccurrenceLocalDate, rule.cadence, rule.interval);
+      if (rule.cadence !== 'day' || rule.interval !== 1 || rule.weekdays.includes(getRecurrenceWeekday(nextOccurrenceLocalDate))) {
+        dueDates.push(nextOccurrenceLocalDate);
+      }
+      nextOccurrenceLocalDate = addMoneyRecurrenceDate(rule, nextOccurrenceLocalDate);
     }
     const occurrenceDates = rule.missedOccurrencePolicy === 'all'
       ? dueDates
@@ -170,6 +180,16 @@ export function addRecurrenceDate(localDate: string, cadence: RecurrenceCadence,
   return formatLocalDate(next);
 }
 
+function addMoneyRecurrenceDate(rule: MoneyRecurrenceRule, localDate: string): string {
+  let next = addRecurrenceDate(localDate, rule.cadence, rule.interval);
+  if (rule.cadence === 'day' && rule.interval === 1) {
+    while (!rule.weekdays.includes(getRecurrenceWeekday(next))) {
+      next = addRecurrenceDate(next, 'day', 1);
+    }
+  }
+  return next;
+}
+
 export function isValidLocalDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -177,6 +197,18 @@ export function isValidLocalDate(value: string): boolean {
   const [year, month, day] = value.split('-').map(Number);
   const parsed = new Date(Date.UTC(year, month - 1, day));
   return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+}
+
+export function getRecurrenceWeekday(localDate: string): RecurrenceWeekday {
+  if (!isValidLocalDate(localDate)) {
+    throw new Error('Cannot get the weekday for an invalid local date.');
+  }
+  const [year, month, day] = localDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay() as RecurrenceWeekday;
+}
+
+export function isValidRecurrenceWeekdays(value: unknown): value is RecurrenceWeekday[] {
+  return Array.isArray(value) && value.length > 0 && new Set(value).size === value.length && value.every(day => Number.isInteger(day) && day >= 0 && day <= 6);
 }
 
 function isMissedOccurrencePolicy(value: unknown): value is MissedOccurrencePolicy {

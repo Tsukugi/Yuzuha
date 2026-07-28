@@ -8,7 +8,7 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
 - The current suite is 52 Jest suites and 231 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
-- Fresh SQLite startup seeds current app schema 32 data directly; old local database files and missing current metadata, including the latest-import receipt and note links, are rejected by repository validation.
+- Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
@@ -26,7 +26,7 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 - Xiaomi light and dark screenshots show the Tasks tabs, empty Today/Upcoming states, overview, Task tools disclosure, floating Add task action, and the simple task form. The launcher action opens `New task` with title visible and optional details collapsed.
 - Search shows Search options collapsed.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
-- The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form shows `Repeat this operation?` with `No, one time` and `Yes`; selecting Yes exposes `Periodic interval`, Day/Week/Month, `Periodic first date`, `More repeat options`, and `Save periodic operation`. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
+- The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form hierarchy shows one `Repeat` switch and no `No, one time`, `Yes`, or missed-date controls. Xiaomi blocks automated touch injection, so activating the switch and checking the expanded Mon/Tue/Wed/Thu/Fri/Sat/Sun controls remains a manual tap check; the weekday selection and weekend-skipping behavior are covered by recurrence tests. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 
@@ -39,7 +39,7 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 ## Money payee evidence
 
 - Focused payee tests cover trimmed records, blank names, case-insensitive duplicate rejection, and same-record validation.
-- SQLite round-trip coverage stores a payee record, a money-entry `payeeId`, `weekStartsOn`, the latest money CSV import receipt, and a note link; JSON and CSV tests use current schema 32 data and current payee columns.
+- SQLite round-trip coverage stores a payee record, a money-entry `payeeId`, `weekStartsOn`, the latest money CSV import receipt, a note link, and weekday-aware periodic money data; JSON and CSV tests use current schema 33 data and current payee columns.
 - Global-search coverage finds a money entry by its payee name and includes that name in the result title.
 
 ## Note-link evidence

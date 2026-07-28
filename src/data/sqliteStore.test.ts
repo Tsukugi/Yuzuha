@@ -248,6 +248,7 @@ describe('SQLite workspace store', () => {
       note: 'Subscription',
       cadence: 'month',
       interval: 1,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
       nextOccurrenceLocalDate: '2026-08-01',
       missedOccurrencePolicy: 'all',
       isPaused: false,
@@ -505,7 +506,7 @@ describe('SQLite workspace store', () => {
     await expect(store.load()).rejects.toThrow('Unsupported Yuzuha SQLite schema version 4.');
   });
 
-  it('rejects old SQLite recurrence rows without the current policy', async () => {
+  it('rejects old SQLite recurrence rows without current weekday selections', async () => {
     const database = new MemorySqlite();
     database.schemaVersion = '3';
     database.meta.set('schema_version', '3');
@@ -525,6 +526,7 @@ describe('SQLite workspace store', () => {
         cadence: 'month',
         interval: 1,
         nextOccurrenceLocalDate: '2026-07-26',
+        missedOccurrencePolicy: 'all',
         isPaused: false,
         createdAt: '2026-07-26T00:00:00.000Z',
         updatedAt: '2026-07-26T00:00:00.000Z',

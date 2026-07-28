@@ -26,6 +26,7 @@ import type {
   UsageSnapshot,
 } from '../types/domain';
 import {isValidTaskReminderSnoozeDuration, validateQuietHoursDraft} from '../shared/notificationSettings';
+import {isValidRecurrenceWeekdays} from '../shared/moneyRecurrence';
 import {isValidTaskRecurrenceReminderLocalTime} from '../shared/taskRecurrence';
 import {validateCurrentAppData} from '../shared/dataImport';
 import {validateMoneyCsvImportReceipt} from '../shared/moneyCsvImportReceipt';
@@ -468,7 +469,9 @@ export function decodeAppData(
       }
       case 'recurrence': {
         const recurrence = payload as MoneyRecurrenceRule;
-        if (recurrence.missedOccurrencePolicy !== 'all' && recurrence.missedOccurrencePolicy !== 'one' && recurrence.missedOccurrencePolicy !== 'skip') {
+        if ((recurrence.missedOccurrencePolicy !== 'all' && recurrence.missedOccurrencePolicy !== 'one' && recurrence.missedOccurrencePolicy !== 'skip') ||
+            !isValidRecurrenceWeekdays(recurrence.weekdays) ||
+            (recurrence.cadence !== 'day' || recurrence.interval !== 1 ? recurrence.weekdays.length !== 7 : false)) {
           throw new SqliteDataCorruptError();
         }
         data.recurrences.push(recurrence);

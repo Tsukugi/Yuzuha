@@ -82,11 +82,26 @@ import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 import {useAppTheme, type ThemeColors} from './theme';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
+
+const ALL_RECURRENCE_WEEKDAYS: RecurrenceWeekday[] = [0, 1, 2, 3, 4, 5, 6];
+const RECURRENCE_WEEKDAY_OPTIONS: Array<{value: RecurrenceWeekday; label: string}> = [
+  {value: 1, label: 'Mon'},
+  {value: 2, label: 'Tue'},
+  {value: 3, label: 'Wed'},
+  {value: 4, label: 'Thu'},
+  {value: 5, label: 'Fri'},
+  {value: 6, label: 'Sat'},
+  {value: 0, label: 'Sun'},
+];
+
+function formatRecurrenceWeekdays(weekdays: RecurrenceWeekday[]): string {
+  return RECURRENCE_WEEKDAY_OPTIONS.filter(day => weekdays.includes(day.value)).map(day => day.label).join(' ');
+}
 
 function useThemeStyles() {
   const {colors, mode, resolvedMode, setMode} = useAppTheme();
@@ -1331,8 +1346,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [recurrenceCadence, setRecurrenceCadence] = useState<RecurrenceCadence>('month');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
   const [recurrenceStartDate, setRecurrenceStartDate] = useState(localDateKey(new Date()));
-  const [recurrenceMissedPolicy, setRecurrenceMissedPolicy] = useState<MissedOccurrencePolicy>('all');
-  const [recurrenceDetailsOpen, setRecurrenceDetailsOpen] = useState(false);
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<RecurrenceWeekday[]>(ALL_RECURRENCE_WEEKDAYS);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
   const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
@@ -1360,8 +1374,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setRecurrenceCadence('month');
     setRecurrenceInterval('1');
     setRecurrenceStartDate(localDateKey(new Date()));
-    setRecurrenceMissedPolicy('all');
-    setRecurrenceDetailsOpen(false);
+    setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryDetailsOpen(false);
     setError(null);
     setEntryFormOpen(true);
@@ -1454,8 +1467,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           note: input.note,
           cadence: recurrenceCadence,
           interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
+          weekdays: recurrenceCadence === 'day' && parsedInterval === 1 ? recurrenceWeekdays : ALL_RECURRENCE_WEEKDAYS,
           nextOccurrenceLocalDate: recurrenceStartDate.trim(),
-          missedOccurrencePolicy: recurrenceMissedPolicy,
+          missedOccurrencePolicy: 'all',
         });
       } else {
         await addMoney(input);
@@ -1472,7 +1486,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setNote('');
     setEditingId(null);
     setRecurrenceEnabled(false);
-    setRecurrenceDetailsOpen(false);
+    setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryFormOpen(false);
     setError(null);
   }
@@ -1489,8 +1503,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setRecurrenceCadence('month');
     setRecurrenceInterval('1');
     setRecurrenceStartDate(localDateKey(new Date()));
-    setRecurrenceMissedPolicy('all');
-    setRecurrenceDetailsOpen(false);
+    setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryDetailsOpen(false);
     setError(null);
     setEntryFormOpen(true);
@@ -1505,9 +1518,15 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
     setRecurrenceEnabled(false);
-    setRecurrenceDetailsOpen(false);
+    setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryFormOpen(true);
     setError(null);
+  }
+
+  function toggleRecurrenceWeekday(day: RecurrenceWeekday) {
+    setRecurrenceWeekdays(current => current.includes(day)
+      ? current.filter(value => value !== day)
+      : [...current, day].sort((left, right) => left - right));
   }
 
   async function removeEditing() {
@@ -1772,11 +1791,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           </View>
           {!editingId && (
             <>
-              <Text style={styles.formLabel}>Repeat this operation?</Text>
-              <View style={styles.segmentRow}>
-                <SegmentButton label="No, one time" selected={!recurrenceEnabled} onPress={() => setRecurrenceEnabled(false)} />
-                <SegmentButton label="Yes" selected={recurrenceEnabled} onPress={() => setRecurrenceEnabled(true)} />
-              </View>
+              <ToggleButton label="Repeat" value={recurrenceEnabled} onPress={() => setRecurrenceEnabled(current => !current)} />
               {recurrenceEnabled && (
                 <View style={styles.formCard}>
                   <Text style={styles.cardDetail}>Yuzuha adds this operation on its local calendar dates when you open the app.</Text>
@@ -1805,19 +1820,21 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
                     onChangeText={setRecurrenceStartDate}
                     autoCapitalize="none"
                   />
-                  <Disclosure
-                    title="More repeat options"
-                    subtitle={recurrenceMissedPolicy === 'all' ? 'Create all old dates' : recurrenceMissedPolicy === 'one' ? 'Create the first old date' : 'Skip old dates'}
-                    open={recurrenceDetailsOpen}
-                    onPress={() => setRecurrenceDetailsOpen(current => !current)}>
-                    <Text style={styles.formLabel}>If dates were missed</Text>
-                    <View style={styles.segmentRow}>
-                      <SegmentButton label="Create all" selected={recurrenceMissedPolicy === 'all'} onPress={() => setRecurrenceMissedPolicy('all')} />
-                      <SegmentButton label="Create one" selected={recurrenceMissedPolicy === 'one'} onPress={() => setRecurrenceMissedPolicy('one')} />
-                      <SegmentButton label="Skip old" selected={recurrenceMissedPolicy === 'skip'} onPress={() => setRecurrenceMissedPolicy('skip')} />
-                    </View>
-                    <Text style={styles.cardDetail}>The operation always advances past every old date, so reopening the app never duplicates an occurrence.</Text>
-                  </Disclosure>
+                  {recurrenceCadence === 'day' && Number.parseInt(recurrenceInterval.trim(), 10) === 1 && (
+                    <>
+                      <Text style={styles.formLabel}>Repeat on</Text>
+                      <View style={styles.chipWrap}>
+                        {RECURRENCE_WEEKDAY_OPTIONS.map(day => (
+                          <ChipButton
+                            key={day.value}
+                            label={day.label}
+                            selected={recurrenceWeekdays.includes(day.value)}
+                            onPress={() => toggleRecurrenceWeekday(day.value)}
+                          />
+                        ))}
+                      </View>
+                    </>
+                  )}
                 </View>
               )}
             </>
@@ -2060,7 +2077,7 @@ function MoneyRecurrenceScreen({data, onBack, onAdd}: {data: AppData; onBack: ()
         {rules.length === 0 ? (
           <>
             <EmptyState text="No periodic operations yet." />
-            <Text style={styles.cardDetail}>Start from Add money entry, then choose Yes under Repeat this operation.</Text>
+            <Text style={styles.cardDetail}>Start from Add money entry, then turn on Repeat.</Text>
             <PrimaryButton label="Add periodic operation" onPress={onAdd} />
           </>
         ) : (
@@ -2068,7 +2085,7 @@ function MoneyRecurrenceScreen({data, onBack, onAdd}: {data: AppData; onBack: ()
             <View key={rule.id} style={styles.formCard}>
               <Text style={styles.cardTitle}>{rule.kind === 'income' ? 'Income' : 'Expense'}</Text>
               <Text style={styles.listTitle}>{rule.category}</Text>
-              <Text style={styles.cardDetail}>{accountNames.get(rule.accountId ?? '') ?? 'Archived account'} · Every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}</Text>
+              <Text style={styles.cardDetail}>{accountNames.get(rule.accountId ?? '') ?? 'Archived account'} · Every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}{rule.cadence === 'day' && rule.interval === 1 ? ` · ${formatRecurrenceWeekdays(rule.weekdays)}` : ''}</Text>
               <Text style={styles.cardDetail}>{rule.isPaused ? `Paused · next date stays ${rule.nextOccurrenceLocalDate}` : `Next date: ${rule.nextOccurrenceLocalDate}`}</Text>
               <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} disabled={busyRuleId !== null} onPress={() => void toggleRule(rule)} />
               <TextButton label="Delete" danger disabled={busyRuleId !== null} onPress={() => confirmDelete(rule)} />
@@ -5169,6 +5186,21 @@ function TextButton({
   );
 }
 
+function ToggleButton({label, value, onPress}: {label: string; value: boolean; onPress: () => void}) {
+  const {styles} = useThemeStyles();
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="switch"
+      accessibilityState={{checked: value}}
+      style={({pressed}) => [styles.toggleRow, value && styles.toggleRowSelected, pressed && styles.pressed]}
+      onPress={onPress}>
+      <Text style={[styles.toggleMark, value && styles.toggleTextSelected]}>{value ? '✓' : '○'}</Text>
+      <Text style={[styles.toggleLabel, value && styles.toggleTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function SegmentButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
   const {styles} = useThemeStyles();
   return (
@@ -5256,6 +5288,11 @@ function createStyles(colors: ThemeColors) {
   linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
+  toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14},
+  toggleRowSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
+  toggleMark: {color: colors.muted, fontSize: 22, fontWeight: '800', marginRight: 10},
+  toggleLabel: {color: colors.text, fontSize: 15, fontWeight: '800'},
+  toggleTextSelected: {color: colors.accentText},
   noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4},
   segmentRow: {flexDirection: 'row', gap: 8},
   segmentButton: {borderColor: colors.border, borderRadius: 10, borderWidth: 1, flex: 1, paddingVertical: 11},

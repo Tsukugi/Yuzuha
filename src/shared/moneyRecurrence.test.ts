@@ -1,5 +1,6 @@
 import {addRecurrenceDate, createMoneyRecurrence, expandDueMoneyRecurrences, setMoneyRecurrencePaused, validateMoneyRecurrence} from './moneyRecurrence';
 import {emptyAppData} from '../types/domain';
+import type {RecurrenceWeekday} from '../types/domain';
 
 const accounts = emptyAppData().accounts;
 const categories = emptyAppData().categories;
@@ -15,6 +16,7 @@ const input = {
   cadence: 'month' as const,
   interval: 1,
   nextOccurrenceLocalDate: '2026-01-31',
+  weekdays: [0, 1, 2, 3, 4, 5, 6] as RecurrenceWeekday[],
   missedOccurrencePolicy: 'all' as const,
 };
 
@@ -25,6 +27,8 @@ describe('money recurrences', () => {
     expect(validateMoneyRecurrence({...input, currency: 'USD'}, accounts, categories)).toContain('match');
     expect(validateMoneyRecurrence({...input, nextOccurrenceLocalDate: '2026-02-30'}, accounts, categories)).toContain('valid recurring start');
     expect(validateMoneyRecurrence({...input, interval: 0}, accounts, categories)).toContain('1 to 365');
+    expect(validateMoneyRecurrence({...input, weekdays: []}, accounts, categories)).toContain('at least one');
+    expect(validateMoneyRecurrence({...input, cadence: 'week', weekdays: [1, 2]}, accounts, categories)).toContain('all days');
     expect(validateMoneyRecurrence({...input, missedOccurrencePolicy: 'later' as never}, accounts, categories)).toContain('missed-occurrence');
   });
 
@@ -104,6 +108,24 @@ describe('money recurrences', () => {
 
     expect(result.generatedCount).toBe(0);
     expect(result.data).toBe(data);
+  });
+
+  it('generates only selected weekdays and advances to the next selected day', () => {
+    const data = emptyAppData();
+    const rule = createMoneyRecurrence({
+      ...input,
+      cadence: 'day',
+      interval: 1,
+      weekdays: [1, 3, 5],
+      nextOccurrenceLocalDate: '2026-08-01',
+    }, 'rule_weekdays', '2026-08-01T00:00:00.000Z');
+    data.recurrences = [rule];
+
+    const result = expandDueMoneyRecurrences(data, '2026-08-03', '2026-08-03T12:00:00.000Z');
+
+    expect(result.generatedCount).toBe(1);
+    expect(result.data.money.map(entry => entry.id)).toEqual(['money_rule_weekdays_2026-08-03']);
+    expect(result.data.recurrences[0].nextOccurrenceLocalDate).toBe('2026-08-05');
   });
 
   it('rejects pausing an operation that is no longer present', () => {

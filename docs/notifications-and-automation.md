@@ -32,9 +32,9 @@ The current release supports one optional local reminder on each open task and o
 
 Current Android reminders have a task ID and trigger time. Editing the reminder cancels the old schedule and creates one new schedule. Completing, deleting, or clearing a task reminder cancels it. Startup and device boot reschedule future reminders from stored task data. The notification content intent carries the stable task ID; cold starts use the initial-intent getter, and warm app launches use a native event before the Tasks form loads that task.
 
-The full-product target adds explicit timezone and synced notification state. The current local Task reminders flag, recurring-task reminders flag, quiet-hours pair, recurring-rule reminder time, task parent link, task template fields, task dependency condition, local snooze-duration policy, payee records, the week-start preference, the latest money CSV import receipt, and note links are in app schema 32; broader category automation and timezone contracts remain planned.
+The full-product target adds explicit timezone and synced notification state. The current local Task reminders flag, recurring-task reminders flag, quiet-hours pair, recurring-rule reminder time, task parent link, task template fields, task dependency condition, local snooze-duration policy, payee records, the week-start preference, the latest money CSV import receipt, note links, and weekday-aware periodic money are in app schema 33; broader category automation and timezone contracts remain planned.
 
-The current overall app schema is 32 after the local note-link pass. Notification data and behavior are unchanged by that pass.
+The current overall app schema is 33 after the weekday-aware periodic-money pass. Notification data and behavior are unchanged by that pass.
 
 The current Android action contract is `Complete`, `Snooze`, or `Open`. Each action carries only the stable local task ID. `Complete` verifies the task exists and is open, then commits the status change once. `Snooze` reads the selected local duration, schedules its projected alarm, and replaces the old schedule before committing the new timestamp. Missing, completed, and paused-category targets are ignored. The full-product target may add recurring notification state and synced notification state later.
 

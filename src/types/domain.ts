@@ -97,6 +97,7 @@ export interface MoneyBudget {
 
 export type RecurrenceCadence = 'day' | 'week' | 'month';
 export type MissedOccurrencePolicy = 'all' | 'one' | 'skip';
+export type RecurrenceWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface MoneyRecurrenceRule {
   id: string;
@@ -109,6 +110,7 @@ export interface MoneyRecurrenceRule {
   note: string;
   cadence: RecurrenceCadence;
   interval: number;
+  weekdays: RecurrenceWeekday[];
   nextOccurrenceLocalDate: string;
   missedOccurrencePolicy: MissedOccurrencePolicy;
   isPaused: boolean;
@@ -302,7 +304,7 @@ export interface FocusSession {
 }
 
 export interface AppData {
-  schemaVersion: 32;
+  schemaVersion: 33;
   mainCurrency: string;
   weekStartsOn: WeekStartDay;
   lastMoneyCsvImport: MoneyCsvImportReceipt | null;
@@ -344,7 +346,7 @@ export const createDefaultCategories = (): MoneyCategory[] => [
 ];
 
 export const emptyAppData = (): AppData => ({
-  schemaVersion: 32,
+  schemaVersion: 33,
   mainCurrency: 'EUR',
   weekStartsOn: 1,
   lastMoneyCsvImport: null,
