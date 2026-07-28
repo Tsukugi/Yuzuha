@@ -77,6 +77,13 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 - the exact release record is in [`docs/releases/v0.1.0.md`](releases/v0.1.0.md), and the published release is [Tsukugi/Yuzuha v0.1.0](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.0);
 - the downloaded GitHub asset matched the local APK byte-for-byte: 67,352,639 bytes and SHA-256 `317B7C8C0C64F6D413B1B66034DED41A452A13842C3F66307D7C9C754E1D7D98`.
 
+2026-07-28 Android v0.1.1 release preparation:
+
+- Android `versionName` is `0.1.1`, matching the embedded bundle version, with version code `2`;
+- the native installer baseline and JavaScript bundle metadata now use `0.1.1`;
+- the release keeps app schema 32 and repository schema 3; no migration or import/export expansion is included;
+- the signed APK identity, SHA-256, byte size, published asset URL, and final verification will be recorded in [`docs/releases/v0.1.1.md`](releases/v0.1.1.md) after the release build and upload.
+
 2026-07-28 Android app-group-search-focus pass:
 
 - app groups now have local edit controls using the existing `updateAppGroup` store action;

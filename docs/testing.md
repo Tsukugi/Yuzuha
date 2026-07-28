@@ -14,7 +14,7 @@ Status: Current test strategy through the 2026-07-28 Tasks UX pass. Unit tests a
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
 - Full Jest passes: 52 suites and 231 tests.
-- The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and the private release signer.
+- The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.1`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
 - Money also renders `Spending overview` after the entry list. Its category bars use the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.

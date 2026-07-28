@@ -4,7 +4,7 @@ describe('NativeBundleInstaller', () => {
   it('uses the embedded baseline when the native bridge is unavailable', async () => {
     await expect(new NativeBundleInstaller(null).launch()).resolves.toEqual({
       kind: 'embedded',
-      version: '0.1.0',
+      version: '0.1.1',
     });
   });
 

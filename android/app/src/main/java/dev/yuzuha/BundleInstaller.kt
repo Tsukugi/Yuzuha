@@ -419,8 +419,8 @@ class YuzuhaBundleInstaller(
 
   companion object {
     const val DEFAULT_METADATA_URL = "https://updates.yuzuha.dev/installer/bundle.json"
-    const val EMBEDDED_VERSION = "0.1.0"
-    const val NATIVE_VERSION = "0.1.0"
+    const val EMBEDDED_VERSION = "0.1.1"
+    const val NATIVE_VERSION = "0.1.1"
     const val APP_ID = "yuzuha-mobile"
     const val RUNTIME = "0.86.0"
     const val MAX_BUNDLE_BYTES = 64L * 1024L * 1024L

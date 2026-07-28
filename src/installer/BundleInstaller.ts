@@ -24,7 +24,7 @@ export class NativeBundleInstaller implements BundleInstaller {
 
   async launch(): Promise<LaunchDecision> {
     if (!this.bridge) {
-      return {kind: 'embedded', version: '0.1.0'};
+      return {kind: 'embedded', version: '0.1.1'};
     }
     try {
       const status = await this.bridge.getLaunchStatus();
