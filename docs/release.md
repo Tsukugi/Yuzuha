@@ -77,13 +77,14 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 - the exact release record is in [`docs/releases/v0.1.0.md`](releases/v0.1.0.md), and the published release is [Tsukugi/Yuzuha v0.1.0](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.0);
 - the downloaded GitHub asset matched the local APK byte-for-byte: 67,352,639 bytes and SHA-256 `317B7C8C0C64F6D413B1B66034DED41A452A13842C3F66307D7C9C754E1D7D98`.
 
-2026-07-28 Android v0.1.1 release candidate:
+2026-07-28 Android v0.1.1 release:
 
 - Android `versionName` is `0.1.1`, matching the embedded bundle version, with version code `2`;
 - the native installer baseline and JavaScript bundle metadata now use `0.1.1`;
 - the release keeps app schema 32 and repository schema 3; no migration or import/export expansion is included;
 - the signed APK is `67,386,107` bytes with SHA-256 `AF2A2E6C717DCBC1D40EDB703914312213F6E0EE127EF3B221312672C3C379A4`;
-- the exact local release record is [`docs/releases/v0.1.1.md`](releases/v0.1.1.md); GitHub publication is the remaining release step.
+- the exact release record is [`docs/releases/v0.1.1.md`](releases/v0.1.1.md), and the published release is [Tsukugi/Yuzuha v0.1.1](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.1);
+- the downloaded GitHub asset matched the local APK byte-for-byte: `67,386,107` bytes and SHA-256 `AF2A2E6C717DCBC1D40EDB703914312213F6E0EE127EF3B221312672C3C379A4`.
 
 2026-07-28 Android app-group-search-focus pass:
 
