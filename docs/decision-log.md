@@ -650,3 +650,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The user can see the next useful action without losing access to advanced local features. A closed section is deterministic and does not run work until the user opens it.
 - Consequence: The change is view state only. It adds no schema, migration, network request, worker, polling loop, or import/export format. Search focus opens the section needed for the focused record when applicable.
 - Validation: Android emulator smoke covers Home, Money, Notes, Tasks, Search, App Time, Review, and Data tools; typecheck, lint, diff checks, signed release build, install, startup, and filtered logcat checks must pass.
+
+## DEC-092: Make core record screens list-first
+
+- Status: Accepted.
+- Context: The first UI pass collapsed secondary controls but still rendered the Money, Notes, and Tasks add forms on normal screen entry. That made the app feel like a form wizard instead of a place to review current records.
+- Decision: Normal Money, Notes, and Tasks navigation opens the current list/view first. A clear Add money entry, Add note, or Add task action opens the form. Home Quick capture keeps a direct path to the matching form. Edit and exact search-focus actions open the form directly for the selected record.
+- Reason: The user sees existing information before being asked to create something. The add form appears only with clear intent, and editing remains one tap from a record.
+- Consequence: The change is local navigation/form state only. No record, schema, migration, import/export format, network request, worker, or background process changes.
+- Validation: Static checks, full Jest, signed Android build, phone startup, and emulator UI hierarchy smoke must cover list-first entry, Add-to-form, cancel, save, edit, and Home Quick capture paths.

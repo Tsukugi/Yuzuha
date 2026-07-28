@@ -16,7 +16,10 @@ Status: Current test strategy through the 2026-07-28 Android UI simplification p
 - The signed release APK was rebuilt with Java 17, installed on emulator `emulator-5554`, and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and signer `Yuzuha Release`.
 - Emulator smoke confirms Home shows Quick capture and Search workspace with More home tools and Dashboard settings collapsed; expanding More home tools reveals Review and Data tools.
 - Money shows More money actions, Filter entries, and More entry details collapsed, with the labeled New money entry form visible. Expanding More money actions reveals budgets, report, transfer, split, and recurring actions.
-- Notes shows the new note flow with Formatting collapsed; expanding it reveals the existing formatting controls. Tasks shows title/save with Task details and Task tools collapsed. Search shows Search options collapsed.
+- Money now opens on the Entries list with Add money entry; the form is only visible after that action or an edit-focus action. The add form keeps type, amount, category, and account visible, with payee/note optional.
+- Notes opens on the notes list with Add note; Search notes is collapsed and the form is only visible after Add note or an edit-focus action. The add form keeps title/body visible and places formatting/tags under More note details. Tasks opens on Task view with Task filters collapsed and Add task; its form is only visible after Add task or an edit-focus action.
+- Search shows Search options collapsed.
+- The final signed APK installed on Xiaomi `42adce68` (`M2012K11AG`) and launched `dev.yuzuha/.MainActivity` at version `0.1.0`. Xiaomi rejects adb touch injection with `INJECT_EVENTS`, so manual tapping on the phone is required for the Add-to-form interaction check.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 

@@ -9,6 +9,8 @@ The 2026-07-28 UI pass uses one typed `Disclosure` component for secondary contr
 Delivered:
 
 - visible primary actions for Quick capture, Search workspace, money entry, note title/body, task title/save, and App Time permission/report state;
+- list-first Money, Notes, and Tasks entry with separate Add actions; Home Quick capture opens the matching form directly while normal navigation remains list-first;
+- minimal add forms with Money type/amount/category/account, Notes title/body, and Tasks title/save visible first;
 - collapsed optional actions and settings for filters, reports, management, formatting, saved searches, task tools, focus sessions, time goals, and data operations;
 - deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
 - no schema, migration, import/export format, network request, worker, or background process.

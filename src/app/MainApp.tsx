@@ -86,6 +86,7 @@ import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
+type QuickCaptureTab = 'money' | 'notes' | 'tasks';
 
 const colors = {
   background: '#101820',
@@ -103,6 +104,7 @@ const colors = {
 export function MainApp({bundleVersion}: {bundleVersion: string}) {
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
+  const [pendingAddTab, setPendingAddTab] = useState<QuickCaptureTab | null>(null);
   const [dataToolsOpen, setDataToolsOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -157,6 +159,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setReviewOpen(false);
+    setPendingAddTab(action === 'appTime' ? null : action);
     setTab(action);
   }, []);
 
@@ -322,10 +325,10 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={setTab} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
-            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
-            {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} onFocusHandled={() => setPendingNoteId(null)} />}
-            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onAdd={nextTab => {setPendingAddTab(nextTab); setTab(nextTab);}} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
+            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
+            {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
+            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
             {tab === 'appTime' && <AppTimeScreen focusAppGroupId={pendingAppGroupId} onFocusHandled={() => setPendingAppGroupId(null)} onBack={() => setTab('home')} />}
           </>
         )}
@@ -429,12 +432,14 @@ function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'nor
 function HomeScreen({
   data,
   onNavigate,
+  onAdd,
   onOpenDataTools,
   onOpenSearch,
   onOpenReview,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
+  onAdd: (tab: QuickCaptureTab) => void;
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
   onOpenReview: () => void;
@@ -475,7 +480,7 @@ function HomeScreen({
       {quickCaptureOpen && (
         <View style={styles.segmentRow}>
           {QUICK_CAPTURE_OPTIONS.map(option => (
-            <TextButton key={option.target} label={option.label} onPress={() => {setQuickCaptureOpen(false); onNavigate(option.target);}} />
+            <TextButton key={option.target} label={option.label} onPress={() => {setQuickCaptureOpen(false); onAdd(option.target);}} />
           ))}
         </View>
       )}
@@ -1300,7 +1305,7 @@ function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): st
   }
 }
 
-function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocusHandled}: {focusMoneyId: string | null; focusBudgetId: string | null; onFocusHandled: () => void; onBudgetFocusHandled: () => void}) {
+function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocusHandled, onBudgetFocusHandled}: {focusMoneyId: string | null; focusBudgetId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void; onBudgetFocusHandled: () => void}) {
   const {
     data,
     addMoney,
@@ -1324,6 +1329,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
   const [newPayee, setNewPayee] = useState('');
   const [payeeError, setPayeeError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [entryFormOpen, setEntryFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
   const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
@@ -1335,6 +1341,23 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
   const [entryFilterAccountId, setEntryFilterAccountId] = useState<string | 'all'>(emptyMoneyEntryFilter.accountId);
+
+  useEffect(() => {
+    if (!openAdd) {
+      return;
+    }
+    setKind('expense');
+    setAmount('');
+    setCategoryId('');
+    setAccountId('');
+    setPayeeId('');
+    setNote('');
+    setEditingId(null);
+    setEntryDetailsOpen(false);
+    setError(null);
+    setEntryFormOpen(true);
+    onAddHandled();
+  }, [onAddHandled, openAdd]);
 
   useEffect(() => {
     if (!focusMoneyId || !data) {
@@ -1353,6 +1376,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
     setAccountId(entry.accountId ?? '');
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
+    setEntryFormOpen(true);
     setError(null);
     onFocusHandled();
   }, [data, focusMoneyId, onFocusHandled]);
@@ -1419,7 +1443,21 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
     setPayeeId('');
     setNote('');
     setEditingId(null);
+    setEntryFormOpen(false);
     setError(null);
+  }
+
+  function startNewEntry() {
+    setKind('expense');
+    setAmount('');
+    setCategoryId('');
+    setAccountId('');
+    setPayeeId('');
+    setNote('');
+    setEditingId(null);
+    setEntryDetailsOpen(false);
+    setError(null);
+    setEntryFormOpen(true);
   }
 
   function startEdit(entry: AppData['money'][number]) {
@@ -1430,6 +1468,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
     setAccountId(entry.accountId ?? '');
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
+    setEntryFormOpen(true);
     setError(null);
   }
 
@@ -1502,11 +1541,48 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
   ].filter(Boolean);
   const entryFilterSummary = activeEntryFilterLabels.length > 0 ? activeEntryFilterLabels.join(' · ') : 'All entries';
 
+  function renderEntryList() {
+    return (
+      <>
+        <SectionTitle title={`Entries (${listEntries.length})`} />
+        {listEntries.length === 0 ? (
+          <EmptyState text="No money entries match these filters." />
+        ) : (
+          listEntries
+            .slice(0, 20)
+            .map(entry => (
+            <Pressable
+              key={entry.id}
+              accessibilityLabel={`Edit ${entry.category} ${formatMoney(entry.amountMinor, entry.currency)}`}
+              accessibilityRole="button"
+              style={({pressed}) => [styles.listRow, pressed && styles.pressed]}
+              onPress={() => startEdit(entry)}>
+              <View style={styles.listBody}>
+                <Text style={styles.listTitle}>{entry.category}</Text>
+                <Text style={styles.listMeta}>
+                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || formatDate(entry.occurredAt)].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+              <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
+                {entry.kind === 'income' ? '+' : '-'}
+                {formatMoney(entry.amountMinor, entry.currency)}
+              </Text>
+            </Pressable>
+            ))
+        )}
+        <PrimaryButton label="Add money entry" onPress={startNewEntry} />
+      </>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        {!entryFormOpen && renderEntryList()}
+        {!entryFormOpen && (
+          <>
         <Disclosure
           title="More money actions"
           subtitle="Budgets, reports, transfers, splits, and recurring rules"
@@ -1568,6 +1644,10 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
             </View>
           ))
         )}
+          </>
+        )}
+        {entryFormOpen && (
+          <>
         <SectionTitle title={editingId ? 'Edit money entry' : 'New money entry'} />
         {editingId && (
           <View style={styles.editBanner}>
@@ -1640,8 +1720,10 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
           <PrimaryButton label={editingId ? 'Update entry' : 'Save entry'} onPress={save} />
           {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} />}
         </View>
+          </>
+        )}
 
-        <Disclosure
+        {!entryFormOpen && <Disclosure
           title="Account balances"
           subtitle={`${data.accounts.filter(account => !account.isArchived).length} active`}
           open={balancesOpen}
@@ -1657,9 +1739,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               </Text>
             </View>
           ))}
-        </Disclosure>
+        </Disclosure>}
 
-        <Disclosure
+        {!entryFormOpen && <Disclosure
           title="Manage accounts, payees, and categories"
           subtitle="Add or archive supporting records"
           open={accountManagementOpen}
@@ -1720,8 +1802,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               <TextButton label="Archive" onPress={() => archiveMoneyPayee(payee.id)} />
             </View>
           ))}
-        </Disclosure>
+        </Disclosure>}
 
+        {entryFormOpen && (<>
         <SectionTitle title={`Entries (${listEntries.length})`} />
         {listEntries.length === 0 ? (
           <EmptyState text="No money entries match these filters." />
@@ -1747,7 +1830,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               </Text>
             </Pressable>
             ))
-        )}
+        )}</>)}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -2946,7 +3029,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
   );
 }
 
-function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null; onFocusHandled: () => void}) {
+function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focusNoteId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void}) {
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -2956,8 +3039,10 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
   const [savedSearchName, setSavedSearchName] = useState('');
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [noteSearchOpen, setNoteSearchOpen] = useState(false);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteFormOpen, setNoteFormOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
@@ -2966,6 +3051,21 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
   const [linkTargetType, setLinkTargetType] = useState<NoteLinkTargetType>('task');
   const [linkTargetId, setLinkTargetId] = useState<string | null>(null);
   const [linkTargetSearch, setLinkTargetSearch] = useState('');
+
+  useEffect(() => {
+    if (!openAdd) {
+      return;
+    }
+    setEditingNoteId(null);
+    setTitle('');
+    setBody('');
+    setBodySelection({start: 0, end: 0});
+    setTags('');
+    setFormattingOpen(false);
+    setError(null);
+    setNoteFormOpen(true);
+    onAddHandled();
+  }, [onAddHandled, openAdd]);
 
   useEffect(() => {
     if (!focusNoteId || !data) {
@@ -2982,6 +3082,7 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
     setBodySelection({start: note.body.length, end: note.body.length});
     setTags(note.tags.join(', '));
     setShowArchived(note.isArchived);
+    setNoteFormOpen(true);
     setError(null);
     onFocusHandled();
   }, [data, focusNoteId, onFocusHandled]);
@@ -3020,6 +3121,7 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
 
   function cancelEditing() {
     setEditingNoteId(null);
+    setNoteFormOpen(false);
     setTitle('');
     setBody('');
     setBodySelection({start: 0, end: 0});
@@ -3032,7 +3134,19 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
     setBody(note.body);
     setBodySelection({start: note.body.length, end: note.body.length});
     setTags(note.tags.join(', '));
+    setNoteFormOpen(true);
     setError(null);
+  }
+
+  function startNewNote() {
+    setEditingNoteId(null);
+    setTitle('');
+    setBody('');
+    setBodySelection({start: 0, end: 0});
+    setTags('');
+    setFormattingOpen(false);
+    setError(null);
+    setNoteFormOpen(true);
   }
 
   function formatBody(action: NoteMarkupAction) {
@@ -3243,6 +3357,8 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Notes</Text>
         <Text style={styles.pageIntro}>Capture first. Organize more later.</Text>
+        {noteFormOpen && (
+          <>
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingNoteId ? 'Edit note' : 'New note'}</Text>
           <TextInput
@@ -3254,20 +3370,6 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
             onChangeText={setTitle}
           />
           <Text style={styles.formLabel}>Body (optional)</Text>
-          <Disclosure
-            title="Formatting"
-            subtitle="Optional readable text styles"
-            open={formattingOpen}
-            onPress={() => setFormattingOpen(current => !current)}>
-            <View style={styles.noteMarkupToolbar}>
-              <ChipButton label="Bold" selected={false} onPress={() => formatBody('bold')} />
-              <ChipButton label="Italic" selected={false} onPress={() => formatBody('italic')} />
-              <ChipButton label="Code" selected={false} onPress={() => formatBody('code')} />
-              <ChipButton label="Bullet" selected={false} onPress={() => formatBody('bullet')} />
-              <ChipButton label="Heading" selected={false} onPress={() => formatBody('heading')} />
-            </View>
-            <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
-          </Disclosure>
           <TextInput
             accessibilityLabel="Note body"
             placeholder="Write a few lines..."
@@ -3279,19 +3381,43 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
             selection={bodySelection}
             multiline
           />
-          <Text style={styles.formLabel}>Tags (comma separated, optional)</Text>
-          <TextInput
-            accessibilityLabel="Note tags"
-            placeholder="work, idea, project"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={tags}
-            onChangeText={setTags}
-          />
+          <Disclosure
+            title="More note details"
+            subtitle={tags.trim() ? 'Tags added' : 'Formatting and tags are optional'}
+            open={formattingOpen}
+            onPress={() => setFormattingOpen(current => !current)}>
+            <Text style={styles.formLabel}>Formatting</Text>
+            <View style={styles.noteMarkupToolbar}>
+              <ChipButton label="Bold" selected={false} onPress={() => formatBody('bold')} />
+              <ChipButton label="Italic" selected={false} onPress={() => formatBody('italic')} />
+              <ChipButton label="Code" selected={false} onPress={() => formatBody('code')} />
+              <ChipButton label="Bullet" selected={false} onPress={() => formatBody('bullet')} />
+              <ChipButton label="Heading" selected={false} onPress={() => formatBody('heading')} />
+            </View>
+            <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
+            <Text style={styles.formLabel}>Tags (comma separated, optional)</Text>
+            <TextInput
+              accessibilityLabel="Note tags"
+              placeholder="work, idea, project"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={tags}
+              onChangeText={setTags}
+            />
+          </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingNoteId ? 'Update note' : 'Save note'} onPress={() => void save()} />
-          {editingNoteId && <TextButton label="Cancel edit" onPress={cancelEditing} />}
+          <TextButton label="Cancel" onPress={cancelEditing} />
         </View>
+          </>
+        )}
+        {!noteFormOpen && (
+          <>
+        <Disclosure
+          title="Search notes"
+          subtitle={searchQuery.trim() ? 'Search active notes' : 'Title, body, tags, and attachments'}
+          open={noteSearchOpen}
+          onPress={() => setNoteSearchOpen(current => !current)}>
         <SectionTitle title="Search notes" />
         <TextInput
           accessibilityLabel="Search notes"
@@ -3336,6 +3462,7 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
           </Disclosure>
         )}
         <TextButton label={showArchived ? 'Hide archived notes' : 'Show archived notes'} onPress={() => setShowArchived(current => !current)} />
+        </Disclosure>
         <SectionTitle title={showArchived ? 'All notes' : 'Active notes'} />
         {data.notes.length === 0 ? (
           <EmptyState text="No notes yet." />
@@ -3446,6 +3573,9 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
             );
           })
         )}
+        <PrimaryButton label="Add note" onPress={startNewNote} />
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -3527,7 +3657,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
   return new Intl.DateTimeFormat(undefined, {weekday: 'long', month: 'short', day: 'numeric'}).format(new Date(year, month - 1, day));
 }
 
-function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled, onListFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; focusListId: string | null; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void; onListFocusHandled: () => void}) {
+function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId, openAdd, onAddHandled, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled, onListFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; focusListId: string | null; openAdd: boolean; onAddHandled: () => void; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void; onListFocusHandled: () => void}) {
   const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -3538,8 +3668,10 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [projectId, setProjectId] = useState<string | null>(null);
   const [parentTaskId, setParentTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
   const [taskToolsOpen, setTaskToolsOpen] = useState(false);
+  const [taskFiltersOpen, setTaskFiltersOpen] = useState(false);
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
@@ -3590,6 +3722,25 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [busyDependencyId, setBusyDependencyId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!openAdd) {
+      return;
+    }
+    setTitle('');
+    setDetails('');
+    setDueLocalDate('');
+    setReminderAtLocalDateTime('');
+    setPriority('normal');
+    setListId(TASK_INBOX_LIST_ID);
+    setProjectId(null);
+    setParentTaskId(null);
+    setEditingTaskId(null);
+    setTaskDetailsOpen(false);
+    setError(null);
+    setTaskFormOpen(true);
+    onAddHandled();
+  }, [onAddHandled, openAdd]);
+
+  useEffect(() => {
     if (!focusTaskId || !data) {
       return;
     }
@@ -3608,6 +3759,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setProjectId(task.projectId);
     setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
+    setTaskFormOpen(true);
     setTaskDetailsOpen(true);
     setError(null);
     onTaskFocusHandled();
@@ -3709,6 +3861,23 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setProjectId(null);
     setParentTaskId(null);
     setEditingTaskId(null);
+    setTaskFormOpen(false);
+    setTaskDetailsOpen(false);
+  }
+
+  function startNewTask() {
+    setTitle('');
+    setDetails('');
+    setDueLocalDate('');
+    setReminderAtLocalDateTime('');
+    setPriority('normal');
+    setListId(currentData.taskLists.find(taskList => taskList.id === TASK_INBOX_LIST_ID)?.id ?? currentData.taskLists[0]?.id ?? TASK_INBOX_LIST_ID);
+    setProjectId(null);
+    setParentTaskId(null);
+    setEditingTaskId(null);
+    setTaskDetailsOpen(false);
+    setError(null);
+    setTaskFormOpen(true);
   }
 
   function startEditing(task: Task) {
@@ -3721,6 +3890,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setProjectId(task.projectId);
     setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
+    setTaskFormOpen(true);
     setError(null);
   }
 
@@ -4250,6 +4420,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Tasks</Text>
         <Text style={styles.pageIntro}>Keep one next action visible.</Text>
+        {taskFormOpen && (
+          <>
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingTaskId ? 'Edit task' : 'New task'}</Text>
           <TextInput accessibilityLabel="Task title" placeholder="What needs doing?" placeholderTextColor={colors.muted} style={styles.input} value={title} onChangeText={setTitle} />
@@ -4295,6 +4467,10 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
           {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
         </View>
+          </>
+        )}
+        {!taskFormOpen && (
+          <>
         <Disclosure
           title="Task tools"
           subtitle="Reminders, dependencies, projects, templates, lists, and recurring tasks"
@@ -4538,6 +4714,11 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           </View>
         ) : (
           <View>
+            <Disclosure
+              title="Task filters"
+              subtitle={`${filter === 'all' ? 'All tasks' : filter} · ${taskSort === 'manual' ? 'Manual order' : taskSort === 'due' ? 'Due date' : 'Priority'}`}
+              open={taskFiltersOpen}
+              onPress={() => setTaskFiltersOpen(current => !current)}>
             <View style={styles.segmentRow}>
               <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
               <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
@@ -4551,10 +4732,14 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
               <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
             </View>
+            </Disclosure>
             {visibleTasks.length === 0 ? (
               <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
             ) : visibleTasks.map(task => renderTaskRow(task, filter === 'all' && taskSort === 'manual'))}
           </View>
+        )}
+        <PrimaryButton label="Add task" onPress={startNewTask} />
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>

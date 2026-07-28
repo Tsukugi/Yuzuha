@@ -23,9 +23,11 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 2026-07-28 Android UI simplification pass:
 
 - the primary capture and query controls remain visible while optional filters, settings, management, formatting, restore/import actions, focus tools, and task tools move behind labeled disclosures;
+- Money, Notes, and Tasks now open on their current list/view and show a separate Add action before rendering the form; Home Quick capture opens those forms directly, while normal navigation remains list-first;
+- the Money form keeps type, amount, category, and account visible; Notes keeps title/body visible and moves formatting/tags into More note details; Tasks keeps title/save visible and keeps optional fields under Task details;
 - Data tools starts with export, import, restore, and delete sections closed, matching the current decision to keep import/export out of the primary flow;
 - the pass changes only local view state and layout; no schema, import/export format, network request, worker, or background process changed;
-- typecheck, lint, diff checks, signed Java 17 release build, APK signer/version inspection, emulator install/startup, and screen smoke checks passed; no GitHub release was created for this UI-only pass.
+- typecheck, lint, diff checks, signed Java 17 release build, APK signer/version inspection, prior emulator screen smoke, and final Xiaomi install/startup passed; Xiaomi rejects adb touch injection, so manual tapping remains required for the final Add-to-form interaction check; no GitHub release was created for this UI-only pass.
 
 2026-07-28 Android budget-search-focus pass:
 

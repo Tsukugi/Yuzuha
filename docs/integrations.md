@@ -28,7 +28,7 @@ Remote page fetching, unsupported file types, dynamic shortcuts, iOS share handl
 
 ## Android launcher shortcuts
 
-The Android manifest exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. They open the current blank form or screen through the same `singleTask` activity used by reminders and share capture. Cold starts use the typed initial-action getter; warm launches use the native event. Shortcut actions carry no record data, do not require a new permission, and do not start background work. Dynamic, user-configured, and iOS shortcuts remain planned.
+The Android manifest exposes four static launcher shortcuts: Add money, Add note, Add task, and App time. The first three open the matching add form; App time opens its screen through the same `singleTask` activity used by reminders and share capture. Cold starts use the typed initial-action getter; warm launches use the native event. Shortcut actions carry no record data, do not require a new permission, and do not start background work. Dynamic, user-configured, and iOS shortcuts remain planned.
 
 ## Widgets
 

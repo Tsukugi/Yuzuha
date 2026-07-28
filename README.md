@@ -17,13 +17,13 @@ The current core includes the TypeScript app shell, a transactional SQLite repos
 
 The current Android reminder notification also supports a `Snooze` action using the local 15/30/60/120-minute setting, with 60 minutes as the default. The local Task reminders setting can pause the category: native alarms are removed, logical reminder times remain saved, and stale snooze actions do nothing while paused. It replaces the logical reminder and reschedules through local quiet hours when enabled; recurring notifications and sync remain planned.
 
-Home also has a local Quick capture menu. It routes to the existing Money, Notes, and Tasks forms and does not create a separate record type or background process.
+Home also has a local Quick capture menu. Its Add money, Add note, and Add task actions open the matching minimal form directly; normal Home cards and bottom tabs open the current list view. It does not create a separate record type or background process.
 
 The Android UI simplification pass keeps the primary action visible and puts optional controls behind labeled sections. Home keeps Quick capture and Search visible; Money collapses reports, filters, optional entry details, balances, and record management; Notes collapses formatting and saved searches; Tasks collapses optional task details and task tools; App Time collapses focus sessions and time goals; Search collapses archived-record options; and Data tools starts with export, import, restore, and delete sections closed. This is view state only and adds no schema, network request, worker, or background process.
 
 Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work.
 
-Android launcher shortcuts now open the existing Money, Notes, Tasks, and App Time screens. They are static navigation entries only: they create no record, store no shortcut state, and start no background work.
+Android launcher shortcuts now open Add money, Add note, Add task, or App time. The first three open the matching add form; App time opens its screen. They create no record, store no shortcut state, and start no background work.
 
 The Android summary widget shows only the number of open tasks and active notes. It updates after committed workspace changes, uses no periodic worker, stores no record text, and opens Yuzuha when tapped. Dynamic shortcuts and iOS share/widget handling remain planned.
 

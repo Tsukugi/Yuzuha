@@ -75,7 +75,7 @@ Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNa
 
 Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingBudgetId`, `MoneyScreen`, `MoneyBudgetScreen`, `updateMoneyBudget`, `updateMoneyBudgetRecord`, the budget lifecycle assertion in `src/shared/moneyBudget.test.ts`, the budget focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 budget-search-focus release note. Budget results load the current budget in the Money edit form; deleting the temporary smoke budget leaves no budget record.
 
-Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 emulator smoke checks visible primary controls, collapsed secondary sections, disclosure expansion, Review, Data tools, and clean startup on the signed APK. The pass adds no schema, migration, network request, worker, or background process.
+Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 emulator smoke checks visible primary controls, collapsed secondary sections, disclosure expansion, Review, Data tools, and clean startup on the signed APK. The list-first follow-up maps Add money entry, Add note, Add task, the three form-open states, and Home Quick capture to the same screens. The pass adds no schema, migration, network request, worker, or background process.
 
 ## Open decision register
 
