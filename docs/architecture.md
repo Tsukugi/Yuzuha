@@ -6,6 +6,8 @@ Status: Core implementation through the Android budget-search-focus pass with th
 
 Current UI pass addition: the React shell no longer renders the Yuzuha title, description, or bundle label. Home renders one derived Money widget for main-currency balance and selected-period activity, while Money renders a derived balance/activity card before the list. The list-first Add money entry flow remains unchanged; no new record, schema field, migration, network request, worker, or background process is added.
 
+Current Money graph and theme addition: `buildMoneyChartData` expands split lines without adding parent totals, applies the current Money filter scope, keeps currencies separate, and returns bounded category and local-day series. `ThemeProvider` follows Android `useColorScheme` by default and supports temporary Light/Dark overrides; `createStyles` resolves all screen tokens from the active theme. Neither feature writes AppData, starts a worker, or adds a native chart dependency.
+
 Current pass addition: Notes support stable links to tasks, projects, money entries, and focus sessions. Data tools keep their bounded current-format import, latest-import receipt/undo, JSON restore, and encrypted-backup file boundaries unchanged apart from carrying the new current workspace collection.
 
 Current App Time addition: the Android report can select Today, This week, or This month. `getLocalDayRanges` splits the selected local period into one native query per local day. Queries run sequentially, snapshots are aggregated with the queried day as their local date, and `replaceUsageSnapshots` runs once after all queries succeed. The selected range is a derived view and adds no schema, worker, timer, or polling loop.

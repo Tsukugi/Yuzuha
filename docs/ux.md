@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-28 Money/Home reference UI pass.
+Status: Current Android MVP through the 2026-07-28 Money graphs and theme pass.
 
 ## Navigation
 
@@ -17,7 +17,7 @@ Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/no
 The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
 
 - Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
-- Money opens with a green balance/activity card, then the current entry list and Add money entry. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
+- Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
 - Notes opens on the current note list, then shows Add note. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Search notes and saved searches use closed sections; each note keeps Edit, Make task, and More actions as the first row of actions.
 - Tasks opens on the current List/Agenda view, then shows Add task. The form appears only after Add task or an edit/search-focus action. Task filters, optional task details, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
 - App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
@@ -26,6 +26,10 @@ The first visible action on a screen should match the main job for that screen. 
 - Review stays read-only with one period selector and four source cards because those cards are the page's main job.
 
 The disclosure control uses a visible title, a short state summary, a plus/minus state, an accessible expanded state, and a touch target of at least 44 dp. The layout change is local view state only: it adds no record, schema field, migration, network request, worker, or polling loop.
+
+## Theme behavior
+
+The default theme is `System`, which follows Android light or dark mode. The Home More home tools section also offers temporary `Light` and `Dark` overrides. Selecting System removes the override. Theme choice is presentation state only and is not stored in AppData or included in exports.
 
 ## First run
 
@@ -50,6 +54,10 @@ Do not force account creation, cloud sync, or Usage Access permission during onb
 ### Add money
 
 The form asks for type, amount, currency, category, date, account label, and note. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
+
+### Read Money graphs
+
+Money shows a split-aware spending overview after the current entry list. Category bars use the main currency and active type/category/account scope; the chart shows the top categories and keeps exact amounts visible. The daily chart appears for Day, Week, or Month scopes and shows separate spending and income bars for each local date. All-time scope keeps the category view and explains that a daily trend needs a bounded period. Empty scopes show a clear no-spending state. Transfers are excluded and currencies never mix.
 
 ### Read app time
 

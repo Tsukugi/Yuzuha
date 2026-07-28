@@ -1,22 +1,25 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-07-28 Money/Home reference UI pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-07-28 Money graphs and theme pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 51 Jest suites and 229 tests. Note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 52 Jest suites and 231 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 32 data directly; old local database files and missing current metadata, including the latest-import receipt and note links, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 51 suites and 229 tests.
+- Full Jest passes: 52 suites and 231 tests.
 - The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
+- Money also renders `Spending overview` after the entry list. Its category bars use the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.
+- `moneyChart.test.ts` covers category totals, complete local daily ranges, and split-line aggregation without duplicating the split parent.
+- Android system light and dark mode were each applied before a clean Money launch. Both reached the same Money hierarchy with no filtered fatal or ReactNativeJS errors; the app's System/Light/Dark selector remains view state and adds no data write.
 - The explicit Money add action opens `New money entry` with Type, Amount, Category, Account, collapsed `More entry details`, and `Save entry`. The form does not render the entry list underneath it.
 - Notes opens on the notes list with Add note; Search notes is collapsed and the form is only visible after Add note or an edit-focus action. The add form keeps title/body visible and places formatting/tags under More note details. Tasks opens on Task view with Task filters collapsed and Add task; its form is only visible after Add task or an edit-focus action.
 - Search shows Search options collapsed.

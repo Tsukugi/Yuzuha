@@ -20,6 +20,14 @@ Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The r
 
 The release process does not auto-commit, auto-push, generate a new signing key, or publish import/export changes. Rapunzel's `v<version>` tag and APK asset convention is used as a reference; its older automatic release script is not copied into Yuzuha.
 
+2026-07-28 Android Money graphs and theme pass:
+
+- added pure split-aware Money chart data for category spending and local daily income/spending, with the current Money filters and separate currencies preserved;
+- rendered lightweight React Native bar charts without adding a native chart dependency;
+- added System, Light, and Dark theme tokens across startup, shell, Money, forms, lists, and secondary screens. System follows Android `useColorScheme`; manual Light/Dark overrides are temporary and do not change AppData;
+- kept Home to the compact Money widget and kept Money list-first: balance/activity, current entries, Add money entry, then graphs;
+- typecheck, lint, diff checks, 52 Jest suites/231 tests, signed Java 17 release build, Xiaomi install, Money hierarchy smoke in system light/dark modes, and filtered logcat checks passed. Xiaomi still rejects adb touch injection; no GitHub release was created for this local UI pass.
+
 2026-07-28 Android Money/Home reference UI pass:
 
 - removed the Yuzuha title, description, and bundle label from the React shell and startup content;

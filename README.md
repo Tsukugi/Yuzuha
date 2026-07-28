@@ -19,7 +19,9 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home now shows one compact Money widget with the current main-currency balance and selected-period activity. Tapping it opens the Money list. Normal Home cards and bottom tabs open current list views; there is no Home capture menu.
 
-The Android UI simplification pass removes the app title/description block from the shell, keeps the primary action visible, and puts optional controls behind labeled sections. Money shows a reference-style balance/activity card, current entries, and Add money entry; Notes and Tasks stay list-first; App Time, Search, and Data tools keep secondary controls collapsed. This is view state and styling only and adds no schema, network request, worker, or background process.
+The Android Money/Home UI pass removes the app title/description block from the shell, keeps the primary action visible, and puts optional controls behind labeled sections. Money shows a reference-style balance/activity card, current entries, Add money entry, split-aware spending bars, and a daily income/spending chart. Home keeps only the compact Money widget. This is derived view state and styling only and adds no schema, network request, worker, or background process.
+
+The app supports System, Light, and Dark themes. System follows the Android setting; Light and Dark are temporary in-app overrides. Theme colors are applied to the startup screen, shell, Money charts, forms, lists, and secondary screens without changing local data.
 
 Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work.
 

@@ -668,3 +668,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: This keeps the reference hierarchy where it helps the money workflow, keeps Home small, and preserves the existing list-first capture boundary.
 - Consequence: The widget is derived from current local data and has no persistence, schema, migration, network request, worker, or background refresh. The existing Android summary widget remains a separate count-only projection.
 - Validation: typecheck, lint, full Jest, signed release build, Xiaomi install, cold/warm Money hierarchy checks, no-duplicate-form-list check, and filtered logcat smoke.
+
+## DEC-094: Use derived lightweight Money graphs and system-aware themes
+
+- Status: Accepted.
+- Context: Money needs visual summaries, but a full chart stack would add native dependencies and configuration for a small local dataset. The app also needs to be usable in both Android light and dark modes.
+- Decision: Build category and local-day Money chart series in a pure typed helper. Expand split lines without duplicating parent amounts, apply the current Money filters, keep currencies separate, and render bounded bars with React Native `View` primitives. Add a `ThemeProvider` with System as the default and temporary Light/Dark overrides; resolve all screen styles from the active color tokens.
+- Reason: The graphs are fast, testable, accessible, and sufficient for the current reference UI. System theme support works without a schema field or preference migration, and the app avoids a chart dependency until interactive gestures or larger datasets justify one.
+- Consequence: Category bars and daily movement are derived at render time. All-time scope has no daily series and explains the required bounded period. Theme choice resets on relaunch and is not included in data tools. No schema, network request, worker, polling loop, or native chart dependency is added.
+- Validation: chart helper tests cover categories, daily date coverage, and split lines; signed Android build and Xiaomi UI smoke cover Money in system light and dark modes with no filtered fatal errors.

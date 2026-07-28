@@ -20,6 +20,7 @@ import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDa
 import type {Period} from '../shared/period';
 import {buildBudgetProjection, validateMoneyBudget, type MoneyBudgetInput} from '../shared/moneyBudget';
 import {buildMoneyReport, emptyMoneyReportFilter, type MoneyReportFilter} from '../shared/moneyReport';
+import {buildMoneyChartData, type MoneyChartData} from '../shared/moneyChart';
 import {emptyMoneyEntryFilter, filterMoneyEntries, summarizeMoneyEntries, type MoneyFilterPeriod} from '../shared/moneyFilter';
 import {validateMoneySplit, type MoneySplitInput} from '../shared/moneySplit';
 import {calculateAccountBalance, validateMoneyTransfer} from '../shared/moneyTransfer';
@@ -83,24 +84,19 @@ import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import {useAppTheme, type ThemeColors} from './theme';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
 
-const colors = {
-  background: '#F7F9FC',
-  card: '#FFFFFF',
-  cardRaised: '#EFF5F2',
-  text: '#1C2430',
-  muted: '#6F7785',
-  accent: '#16A37C',
-  accentText: '#FFFFFF',
-  warning: '#D9931E',
-  danger: '#C94F5C',
-  border: '#E5EAF0',
-};
+function useThemeStyles() {
+  const {colors, mode, resolvedMode, setMode} = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return {colors, styles, mode, resolvedMode, setMode};
+}
 
 export function MainApp() {
+  const {styles} = useThemeStyles();
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [pendingAddTab, setPendingAddTab] = useState<QuickCaptureTab | null>(null);
@@ -350,6 +346,7 @@ function SharedCaptureScreen({
   onDismiss: () => void;
   onSaved: (tab: Tab) => void;
 }) {
+  const {styles} = useThemeStyles();
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const noteTitle = sharedCaptureTitle(capture, capture.attachment ? 'Shared file' : 'Shared note');
@@ -412,6 +409,7 @@ function SharedCaptureScreen({
 }
 
 function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'normal' | 'danger'}) {
+  const {styles} = useThemeStyles();
   return (
     <SafeAreaView style={styles.loading}>
       <Text style={[styles.loadingMessage, tone === 'danger' && styles.dangerText]}>{message}</Text>
@@ -432,6 +430,7 @@ function HomeScreen({
   onOpenSearch: () => void;
   onOpenReview: () => void;
 }) {
+  const {styles, mode, resolvedMode, setMode} = useThemeStyles();
   const {setWeekStartsOn} = useAppStore();
   const [homeToolsOpen, setHomeToolsOpen] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
@@ -531,6 +530,13 @@ function HomeScreen({
         subtitle="Review and data tools"
         open={homeToolsOpen}
         onPress={() => setHomeToolsOpen(current => !current)}>
+        <Text style={styles.formLabel}>Theme</Text>
+        <Text style={styles.cardDetail}>Current: {mode === 'system' ? `System (${resolvedMode})` : mode}. This setting is temporary and follows the device again when System is selected.</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
+          <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
+          <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+        </View>
         <TextButton label="Review this period" onPress={onOpenReview} />
         <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
       </Disclosure>
@@ -554,6 +560,7 @@ function HomeScreen({
 }
 
 function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (tab: Tab) => void}) {
+  const {styles} = useThemeStyles();
   const [reviewPeriod, setReviewPeriod] = useState<Period>('day');
   const range = getPeriodRange(new Date(), reviewPeriod, data.weekStartsOn);
   const summary = buildReviewSummary(data, range);
@@ -606,6 +613,7 @@ function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => 
 }
 
 function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (navigation: GlobalSearchNavigation) => void}) {
+  const {colors, styles} = useThemeStyles();
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
   const [searchOptionsOpen, setSearchOptionsOpen] = useState(false);
@@ -705,6 +713,7 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
 }
 
 function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1293,6 +1302,7 @@ function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): st
 }
 
 function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocusHandled, onBudgetFocusHandled}: {focusMoneyId: string | null; focusBudgetId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void; onBudgetFocusHandled: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {
     data,
     addMoney,
@@ -1524,6 +1534,14 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     0,
   );
   const mainFilteredTotal = filteredTotals.find(total => total.currency === currentData.mainCurrency);
+  const chartRange = entryFilterPeriod === 'all' ? null : getPeriodRange(new Date(), entryFilterPeriod, currentData.weekStartsOn);
+  const chartData = buildMoneyChartData(
+    currentData.money,
+    currentData.splits,
+    chartRange,
+    currentData.mainCurrency,
+    {kind: entryFilterKind, categoryId: entryFilterCategoryId, accountId: entryFilterAccountId},
+  );
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
   const activeEntryFilterLabels = [
@@ -1598,6 +1616,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           </View>
         )}
         {!entryFormOpen && renderEntryList()}
+        {!entryFormOpen && <MoneyChartCard data={chartData} currency={currentData.mainCurrency} scope={entryFilterSummary} hasDailyRange={chartRange !== null} />}
         {!entryFormOpen && (
           <>
         <Disclosure
@@ -1826,6 +1845,65 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   );
 }
 
+function MoneyChartCard({data, currency, scope, hasDailyRange}: {data: MoneyChartData; currency: string; scope: string; hasDailyRange: boolean}) {
+  const {styles} = useThemeStyles();
+  const spendingCategories = data.categories.filter(category => category.expenseMinor > 0);
+  const maxCategoryExpense = Math.max(...spendingCategories.map(category => category.expenseMinor), 1);
+  const maxDailyValue = Math.max(...data.daily.flatMap(point => [point.expenseMinor, point.incomeMinor]), 1);
+
+  return (
+    <View style={[styles.moneyChartCard, styles.cardShadow]}>
+      <View style={styles.moneyChartHeader}>
+        <Text style={styles.moneyChartTitle}>Spending overview</Text>
+        <Text style={styles.moneyOverviewMeta}>{scope}</Text>
+      </View>
+      <Text style={styles.cardDetail}>Top expense categories in {currency}. Transfers are not included.</Text>
+      {spendingCategories.length === 0 ? (
+        <Text style={styles.chartEmpty}>No spending matches this scope.</Text>
+      ) : (
+        spendingCategories.map(category => (
+          <View key={category.name} style={styles.chartBarRow} accessible accessibilityLabel={`${category.name}, ${formatMoney(category.expenseMinor, currency)} spent`}>
+            <View style={styles.chartBarHeader}>
+              <Text style={styles.chartBarLabel}>{category.name}</Text>
+              <Text style={styles.chartBarAmount}>{formatMoney(category.expenseMinor, currency)}</Text>
+            </View>
+            <View style={styles.chartBarTrack}>
+              <View style={[styles.chartBarFill, {width: `${Math.max(4, Math.round((category.expenseMinor / maxCategoryExpense) * 100))}%`}]} />
+            </View>
+          </View>
+        ))
+      )}
+
+      <View style={styles.chartDivider} />
+      <View style={styles.moneyChartHeader}>
+        <Text style={styles.moneyChartSubtitle}>Daily movement</Text>
+        <View style={styles.chartLegend}>
+          <View style={styles.chartLegendItem}><View style={styles.chartLegendExpense} /><Text style={styles.chartLegendText}>Spent</Text></View>
+          <View style={styles.chartLegendItem}><View style={styles.chartLegendIncome} /><Text style={styles.chartLegendText}>Income</Text></View>
+        </View>
+      </View>
+      {!hasDailyRange ? (
+        <Text style={styles.chartEmpty}>Choose Day, Week, or Month in Filter entries to see the daily trend.</Text>
+      ) : (
+        <View style={styles.chartStrip} accessible accessibilityLabel={`Daily movement for ${scope}`}>
+          {data.daily.map((point, index) => {
+            const showLabel = data.daily.length <= 8 || index === 0 || index === data.daily.length - 1 || index % 7 === 0;
+            return (
+              <View key={point.localDate} style={styles.chartColumn}>
+                <View style={styles.chartColumnBars}>
+                  <View style={[styles.chartColumnBar, styles.chartColumnExpense, {height: point.expenseMinor === 0 ? 0 : Math.max(3, Math.round((point.expenseMinor / maxDailyValue) * 66))}]} />
+                  <View style={[styles.chartColumnBar, styles.chartColumnIncome, {height: point.incomeMinor === 0 ? 0 : Math.max(3, Math.round((point.incomeMinor / maxDailyValue) * 66))}]} />
+                </View>
+                {showLabel && <Text style={styles.chartDayLabel}>{point.localDate.slice(5)}</Text>}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
 interface SplitLineDraft {
   categoryId: string;
   amount: string;
@@ -1833,6 +1911,7 @@ interface SplitLineDraft {
 }
 
 function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {addMoneyRecurrence, deleteMoneyRecurrence} = useAppStore();
   const [kind, setKind] = useState<MoneyKind>('expense');
   const [amount, setAmount] = useState('');
@@ -1982,6 +2061,7 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
 }
 
 function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data: AppData; focusBudgetId: string | null; onFocusHandled: () => void; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {addMoneyBudget, updateMoneyBudget, deleteMoneyBudget} = useAppStore();
   const focusedBudget = focusBudgetId ? data.budgets.find(item => item.id === focusBudgetId) ?? null : null;
   const categories = data.categories.filter(category => (!category.isArchived || category.id === focusedBudget?.categoryId) && (category.kind === 'expense' || category.kind === 'both'));
@@ -2173,6 +2253,7 @@ function budgetStatusLabel(status: 'empty' | 'on-track' | 'near-limit' | 'over')
 }
 
 function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {addSplitMoney, deleteMoney} = useAppStore();
   const activeAccounts = data.accounts.filter(account => !account.isArchived);
   const [kind, setKind] = useState<MoneyKind>('expense');
@@ -2365,6 +2446,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
 }
 
 function MoneyTransferScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {addMoneyTransfer, deleteMoneyTransfer} = useAppStore();
   const activeAccounts = data.accounts.filter(account => !account.isArchived);
   const [fromAccountId, setFromAccountId] = useState(activeAccounts[0]?.id ?? '');
@@ -2491,6 +2573,7 @@ function TransferRow({
   accounts: AppData['accounts'];
   onDelete: () => void;
 }) {
+  const {styles} = useThemeStyles();
   const fromName = accounts.find(account => account.id === transfer.fromAccountId)?.name ?? 'Unknown account';
   const toName = accounts.find(account => account.id === transfer.toAccountId)?.name ?? 'Unknown account';
   return (
@@ -2508,6 +2591,7 @@ function TransferRow({
 }
 
 function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {styles} = useThemeStyles();
   const [period, setPeriod] = useState<Period>('month');
   const [kind, setKind] = useState<MoneyReportFilter['kind']>(emptyMoneyReportFilter.kind);
   const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
@@ -2595,6 +2679,7 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
 }
 
 function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroupId: string | null; onFocusHandled: () => void; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {data, setUsagePermission, replaceUsageSnapshots, toggleUsageExclusion, addTimeGoal} = useAppStore();
   const [permission, setPermission] = useState(data?.usageRead.permission ?? 'unknown');
   const [isChecking, setIsChecking] = useState(true);
@@ -2800,6 +2885,7 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
 }
 
 function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppData; focusAppGroupId: string | null; onFocusHandled: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {startFocusSession, finishFocusSession, deleteFocusSession, addAppGroup, updateAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
   const [taskId, setTaskId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -3020,6 +3106,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
 }
 
 function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focusNoteId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -3572,6 +3659,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
 }
 
 function NoteBodyPreview({body}: {body: string}) {
+  const {styles} = useThemeStyles();
   return (
     <Text style={styles.noteBody} numberOfLines={3}>
       {parseNoteMarkup(body).map((line, lineIndex) => (
@@ -3648,6 +3736,7 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
 }
 
 function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId, openAdd, onAddHandled, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled, onListFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; focusListId: string | null; openAdd: boolean; onAddHandled: () => void; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void; onListFocusHandled: () => void}) {
+  const {colors, styles} = useThemeStyles();
   const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
@@ -4752,6 +4841,7 @@ function SummaryCard({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const {styles} = useThemeStyles();
   return (
     <View style={[styles.summaryCard, disabled && styles.disabledCard]}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -4770,10 +4860,12 @@ function SummaryCard({
 }
 
 function SectionTitle({title}: {title: string}) {
+  const {styles} = useThemeStyles();
   return <Text style={styles.sectionTitle}>{title}</Text>;
 }
 
 function Disclosure({title, subtitle, open, onPress, children}: {title: string; subtitle?: string; open: boolean; onPress: () => void; children: ReactNode}) {
+  const {styles} = useThemeStyles();
   return (
     <View style={styles.disclosure}>
       <Pressable
@@ -4794,10 +4886,12 @@ function Disclosure({title, subtitle, open, onPress, children}: {title: string; 
 }
 
 function EmptyState({text}: {text: string}) {
+  const {styles} = useThemeStyles();
   return <Text style={styles.emptyState}>{text}</Text>;
 }
 
 function PrimaryButton({label, onPress, disabled = false}: {label: string; onPress: () => void; disabled?: boolean}) {
+  const {styles} = useThemeStyles();
   return (
     <Pressable
       accessibilityLabel={label}
@@ -4821,6 +4915,7 @@ function TextButton({
   danger?: boolean;
   disabled?: boolean;
 }) {
+  const {styles} = useThemeStyles();
   return (
     <Pressable
       accessibilityLabel={label}
@@ -4834,6 +4929,7 @@ function TextButton({
 }
 
 function SegmentButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
+  const {styles} = useThemeStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -4846,6 +4942,7 @@ function SegmentButton({label, selected, onPress}: {label: string; selected: boo
 }
 
 function ChipButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
+  const {styles} = useThemeStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -4858,6 +4955,7 @@ function ChipButton({label, selected, onPress}: {label: string; selected: boolea
 }
 
 function TabButton({label, icon, selected, onPress}: {label: string; icon: string; selected: boolean; onPress: () => void}) {
+  const {styles} = useThemeStyles();
   return (
     <Pressable
       accessibilityLabel={label}
@@ -4871,7 +4969,8 @@ function TabButton({label, icon, selected, onPress}: {label: string; icon: strin
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   app: {flex: 1, backgroundColor: colors.background},
   flex: {flex: 1},
   content: {flex: 1},
@@ -4881,7 +4980,7 @@ const styles = StyleSheet.create({
   editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
   cardGrid: {gap: 12},
-  cardShadow: {elevation: 2, shadowColor: '#1C2430', shadowOffset: {height: 4, width: 0}, shadowOpacity: 0.06, shadowRadius: 12},
+  cardShadow: {elevation: 2, shadowColor: colors.shadow, shadowOffset: {height: 4, width: 0}, shadowOpacity: 0.06, shadowRadius: 12},
   summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: 18},
   disabledCard: {opacity: 0.72},
   cardTitle: {color: colors.muted, fontSize: 14, fontWeight: '700', textTransform: 'uppercase'},
@@ -4927,7 +5026,7 @@ const styles = StyleSheet.create({
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
-  input: {backgroundColor: '#F4F7FA', borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
+  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
   quietHoursInput: {flex: 1, minWidth: 0},
   smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
@@ -4965,7 +5064,7 @@ const styles = StyleSheet.create({
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},
   completedText: {color: colors.muted, textDecorationLine: 'line-through'},
-  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: 8, paddingTop: 8, shadowColor: '#1C2430', shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
+  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: 8, paddingTop: 8, shadowColor: colors.shadow, shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
   tab: {alignItems: 'center', flex: 1, paddingVertical: 3},
   tabIcon: {color: colors.muted, fontSize: 20, height: 25},
   tabLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
@@ -4991,4 +5090,29 @@ const styles = StyleSheet.create({
   moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, padding: 18},
   moneyActivityRight: {alignItems: 'flex-end'},
   moneyActivityValue: {color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 5},
+  moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginTop: 18, padding: 18},
+  moneyChartHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
+  moneyChartTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
+  moneyChartSubtitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
+  chartBarRow: {marginTop: 14},
+  chartBarHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
+  chartBarLabel: {color: colors.text, flex: 1, fontSize: 14, fontWeight: '700'},
+  chartBarAmount: {color: colors.muted, fontSize: 13, fontWeight: '700', marginLeft: 10},
+  chartBarTrack: {backgroundColor: colors.cardRaised, borderRadius: 5, height: 8, marginTop: 7, overflow: 'hidden'},
+  chartBarFill: {backgroundColor: colors.accent, borderRadius: 5, height: 8},
+  chartEmpty: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 12},
+  chartDivider: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 20, paddingTop: 16},
+  chartLegend: {flexDirection: 'row', gap: 10},
+  chartLegendItem: {alignItems: 'center', flexDirection: 'row', gap: 4},
+  chartLegendExpense: {backgroundColor: colors.warning, borderRadius: 3, height: 8, width: 8},
+  chartLegendIncome: {backgroundColor: colors.accent, borderRadius: 3, height: 8, width: 8},
+  chartLegendText: {color: colors.muted, fontSize: 11, fontWeight: '700'},
+  chartStrip: {alignItems: 'stretch', flexDirection: 'row', height: 96, marginTop: 12},
+  chartColumn: {alignItems: 'center', flex: 1, minWidth: 0},
+  chartColumnBars: {alignItems: 'flex-end', flex: 1, flexDirection: 'row', gap: 2, justifyContent: 'center'},
+  chartColumnBar: {borderRadius: 3, minHeight: 0, width: 5},
+  chartColumnExpense: {backgroundColor: colors.warning},
+  chartColumnIncome: {backgroundColor: colors.accent},
+  chartDayLabel: {color: colors.muted, fontSize: 9, marginTop: 5},
 });
+}
