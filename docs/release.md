@@ -28,13 +28,14 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 - no schema, permission, import/export UI, network request, worker, or background process changed;
 - focused budget lifecycle/navigation tests, full Jest (51 suites, 229 tests), lint, typecheck, bundle validation, Java 17 / two-worker release build, emulator budget create/search/edit/delete smoke, and phone cold-start process/activity smoke passed; the phone rejects automated touch input, and both devices were force-stopped.
 
-2026-07-28 Android v0.1.0 release candidate:
+2026-07-28 Android v0.1.0 release:
 
 - release signing now requires a private non-debug keystore from ignored local configuration or `YUZUHA_RELEASE_*` environment variables;
 - Android `versionName` is `0.1.0`, matching the embedded bundle version, with version code `1`;
 - the release APK is staged as `Yuzuha-0.1.0.apk` and its SHA-256 is `317B7C8C0C64F6D413B1B66034DED41A452A13842C3F66307D7C9C754E1D7D98`;
 - full tests, static checks, signed release build, APK signature inspection, clean emulator install, and clean phone startup passed;
-- the exact release record is in [`docs/releases/v0.1.0.md`](releases/v0.1.0.md). GitHub publication uses `Tsukugi/Yuzuha` and tag `v0.1.0` after the release-preparation commit is pushed.
+- the exact release record is in [`docs/releases/v0.1.0.md`](releases/v0.1.0.md), and the published release is [Tsukugi/Yuzuha v0.1.0](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.0);
+- the downloaded GitHub asset matched the local APK byte-for-byte: 67,352,639 bytes and SHA-256 `317B7C8C0C64F6D413B1B66034DED41A452A13842C3F66307D7C9C754E1D7D98`.
 
 2026-07-28 Android app-group-search-focus pass:
 

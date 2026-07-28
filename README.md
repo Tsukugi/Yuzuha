@@ -59,9 +59,9 @@ The current Money report pass adds local Day/Week/Month, type, category, and acc
 
 Use locked dependency versions in implementation branches. The current baseline is the newer React Native 0.86 line requested for this project.
 
-## Planned first release
+## First Android release
 
-The Android MVP will provide a dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It will work without an account or network after the initial app install. Cloud sync is out of scope for the MVP.
+The first Android release is `v0.1.0`. It provides a dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.0). Cloud sync is out of scope for this release.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 
