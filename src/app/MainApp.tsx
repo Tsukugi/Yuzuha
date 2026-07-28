@@ -1345,7 +1345,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
   const [recurrenceCadence, setRecurrenceCadence] = useState<RecurrenceCadence>('month');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
-  const [recurrenceStartDate, setRecurrenceStartDate] = useState(localDateKey(new Date()));
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<RecurrenceWeekday[]>(ALL_RECURRENCE_WEEKDAYS);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
@@ -1373,7 +1372,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setRecurrenceEnabled(false);
     setRecurrenceCadence('month');
     setRecurrenceInterval('1');
-    setRecurrenceStartDate(localDateKey(new Date()));
     setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryDetailsOpen(false);
     setError(null);
@@ -1468,7 +1466,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           cadence: recurrenceCadence,
           interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
           weekdays: recurrenceCadence === 'day' && parsedInterval === 1 ? recurrenceWeekdays : ALL_RECURRENCE_WEEKDAYS,
-          nextOccurrenceLocalDate: recurrenceStartDate.trim(),
+          nextOccurrenceLocalDate: localDateKey(new Date()),
           missedOccurrencePolicy: 'all',
         });
       } else {
@@ -1502,7 +1500,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setRecurrenceEnabled(false);
     setRecurrenceCadence('month');
     setRecurrenceInterval('1');
-    setRecurrenceStartDate(localDateKey(new Date()));
     setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryDetailsOpen(false);
     setError(null);
@@ -1793,7 +1790,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             <>
               <ToggleButton label="Repeat" value={recurrenceEnabled} onPress={() => setRecurrenceEnabled(current => !current)} />
               {recurrenceEnabled && (
-                <View style={styles.formCard}>
+                <View style={styles.recurrenceOptions}>
                   <Text style={styles.cardDetail}>Yuzuha adds this operation on its local calendar dates when you open the app.</Text>
                   <Text style={styles.formLabel}>Repeat every</Text>
                   <View style={styles.segmentRow}>
@@ -1810,27 +1807,24 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
                     <SegmentButton label="Week" selected={recurrenceCadence === 'week'} onPress={() => setRecurrenceCadence('week')} />
                     <SegmentButton label="Month" selected={recurrenceCadence === 'month'} onPress={() => setRecurrenceCadence('month')} />
                   </View>
-                  <Text style={styles.formLabel}>First date (YYYY-MM-DD)</Text>
-                  <TextInput
-                    accessibilityLabel="Periodic first date"
-                    placeholder="2026-07-29"
-                    placeholderTextColor={colors.muted}
-                    style={styles.input}
-                    value={recurrenceStartDate}
-                    onChangeText={setRecurrenceStartDate}
-                    autoCapitalize="none"
-                  />
                   {recurrenceCadence === 'day' && Number.parseInt(recurrenceInterval.trim(), 10) === 1 && (
                     <>
                       <Text style={styles.formLabel}>Repeat on</Text>
-                      <View style={styles.chipWrap}>
+                      <View style={styles.weekdayRow}>
                         {RECURRENCE_WEEKDAY_OPTIONS.map(day => (
-                          <ChipButton
+                          <Pressable
                             key={day.value}
-                            label={day.label}
-                            selected={recurrenceWeekdays.includes(day.value)}
-                            onPress={() => toggleRecurrenceWeekday(day.value)}
-                          />
+                            accessibilityLabel={day.label}
+                            accessibilityRole="button"
+                            accessibilityState={{selected: recurrenceWeekdays.includes(day.value)}}
+                            style={({pressed}) => [
+                              styles.weekdayToggle,
+                              recurrenceWeekdays.includes(day.value) && styles.weekdayToggleSelected,
+                              pressed && styles.pressed,
+                            ]}
+                            onPress={() => toggleRecurrenceWeekday(day.value)}>
+                            <Text style={[styles.weekdayToggleText, recurrenceWeekdays.includes(day.value) && styles.weekdayToggleTextSelected]}>{day.label}</Text>
+                          </Pressable>
                         ))}
                       </View>
                     </>
@@ -5287,6 +5281,7 @@ function createStyles(colors: ThemeColors) {
   linkRow: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 8},
   linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
+  recurrenceOptions: {backgroundColor: colors.cardRaised, borderRadius: 14, marginTop: 12, padding: 14},
   formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
   toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14},
   toggleRowSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
@@ -5300,6 +5295,11 @@ function createStyles(colors: ThemeColors) {
   segmentText: {color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center'},
   segmentTextSelected: {color: colors.accentText},
   chipWrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  weekdayRow: {flexDirection: 'row', gap: 6},
+  weekdayToggle: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, minWidth: 0, paddingVertical: 10},
+  weekdayToggleSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
+  weekdayToggleText: {color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center'},
+  weekdayToggleTextSelected: {color: colors.accentText},
   chip: {borderColor: colors.border, borderRadius: 20, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 9},
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},

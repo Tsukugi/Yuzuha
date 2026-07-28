@@ -119,7 +119,7 @@ The Home screen links to Data tools. The user can share a complete JSON export o
 
 ### Create a periodic money operation
 
-The normal Add money entry form has one `Repeat` switch. Turning it on reveals `Repeat every [number] [Day/Week/Month]` and the first local date. When the choice is every 1 Day, it also shows Mon, Tue, Wed, Thu, Fri, Sat, and Sun toggles; at least one day is required. Saving creates due entries immediately for selected dates; reopening the app advances only dates that do not already have their deterministic entry. The Periodic money view shows current operations first and supports pause, resume, and confirmed delete. Pausing keeps the next date and existing entries. Deleting stops future entries but keeps existing history.
+The normal Add money entry form has one `Repeat` switch. Turning it on reveals `Repeat every [number] [Day/Week/Month]`. When the choice is every 1 Day, it also shows one compact Mon, Tue, Wed, Thu, Fri, Sat, and Sun toggle row; at least one day is required. Saving starts the operation today and applies it only to the selected weekdays; reopening the app advances only dates that do not already have their deterministic entry. The Periodic money view shows current operations first and supports pause, resume, and confirmed delete. Pausing keeps the next date and existing entries. Deleting stops future entries but keeps existing history.
 
 ### Restore local data
 

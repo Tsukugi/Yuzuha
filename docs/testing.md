@@ -7,13 +7,13 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 52 Jest suites and 231 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 52 Jest suites and 235 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 52 suites and 231 tests.
+- Full Jest passes: 52 suites and 235 tests.
 - The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.1`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
@@ -26,7 +26,7 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 - Xiaomi light and dark screenshots show the Tasks tabs, empty Today/Upcoming states, overview, Task tools disclosure, floating Add task action, and the simple task form. The launcher action opens `New task` with title visible and optional details collapsed.
 - Search shows Search options collapsed.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
-- The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form hierarchy shows one `Repeat` switch and no `No, one time`, `Yes`, or missed-date controls. Xiaomi blocks automated touch injection, so activating the switch and checking the expanded Mon/Tue/Wed/Thu/Fri/Sat/Sun controls remains a manual tap check; the weekday selection and weekend-skipping behavior are covered by recurrence tests. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
+- The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form hierarchy shows one `Repeat` switch and no `No, one time`, `Yes`, missed-date, or first-date controls. Xiaomi blocks automated touch injection, so activating the switch and checking the expanded compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggle row remains a manual tap check; the weekday selection and weekend-skipping behavior are covered by recurrence tests. New operations use today as their internal start date. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 

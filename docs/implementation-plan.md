@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: Planned work order for the first working Android release. The current Tasks UX pass is implemented and recorded below; older phase notes remain historical.
+Status: Planned work order for the first working Android release. The current Tasks and periodic-money UX passes are implemented and recorded below; older phase notes remain historical.
 
 ## Current implementation review: Tasks UX
 
@@ -21,7 +21,7 @@ Delivered:
 - deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
 - no schema, migration, import/export format, network request, worker, or background process.
 
-Exit evidence: signed Java 17 release build, Xiaomi install/startup, Tasks screenshots and UI hierarchy smoke in light/dark modes, launcher add-form smoke, 52 Jest suites/231 tests, typecheck, lint, and diff checks.
+Exit evidence: signed Java 17 release build, Xiaomi install/startup, Tasks screenshots and UI hierarchy smoke in light/dark modes, launcher add-form smoke, 52 Jest suites/235 tests, typecheck, lint, and diff checks.
 
 ## Milestone 0: confirm the product contract
 
