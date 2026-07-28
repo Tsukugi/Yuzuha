@@ -641,3 +641,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Decision: Add a validated budget update action and editor in `MoneyBudgetScreen`. When a Global Search result kind is `budget`, carry its stable ID through `pendingBudgetId`, open Money, and load the budget into the editor. The update helper copies only editable budget fields so identity and archive state stay unchanged.
 - Reason: This completes the existing local budget lifecycle and gives search a useful exact destination without a schema change, second record form, or remote dependency.
 - Consequence: Budget category, currency, period, rollover, and amount can be edited locally. Exact focus for accounts, categories, transfers, splits, recurring rules, focus sessions, and time goals remains separate work. No schema, export, import, network, worker, or background change is made.
+
+## DEC-091: Use progressive disclosure for secondary controls
+
+- Status: Accepted.
+- Context: The primary Android screens exposed useful actions, filters, settings, formatting controls, management forms, restore/import actions, and destructive actions in one long visible flow. The empty-state UI review showed that this made the main capture jobs hard to find.
+- Decision: Keep the main capture or query control visible on each screen. Put optional controls into labeled disclosure sections with a short summary and an accessible expanded state. Start Data tools with every export, import, restore, and delete section closed. Keep Review's four source cards visible because they are its main output.
+- Reason: The user can see the next useful action without losing access to advanced local features. A closed section is deterministic and does not run work until the user opens it.
+- Consequence: The change is view state only. It adds no schema, migration, network request, worker, polling loop, or import/export format. Search focus opens the section needed for the focused record when applicable.
+- Validation: Android emulator smoke covers Home, Money, Notes, Tasks, Search, App Time, Review, and Data tools; typecheck, lint, diff checks, signed release build, install, startup, and filtered logcat checks must pass.

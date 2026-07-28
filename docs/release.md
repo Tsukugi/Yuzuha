@@ -20,6 +20,13 @@ Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The r
 
 The release process does not auto-commit, auto-push, generate a new signing key, or publish import/export changes. Rapunzel's `v<version>` tag and APK asset convention is used as a reference; its older automatic release script is not copied into Yuzuha.
 
+2026-07-28 Android UI simplification pass:
+
+- the primary capture and query controls remain visible while optional filters, settings, management, formatting, restore/import actions, focus tools, and task tools move behind labeled disclosures;
+- Data tools starts with export, import, restore, and delete sections closed, matching the current decision to keep import/export out of the primary flow;
+- the pass changes only local view state and layout; no schema, import/export format, network request, worker, or background process changed;
+- typecheck, lint, diff checks, signed Java 17 release build, APK signer/version inspection, emulator install/startup, and screen smoke checks passed; no GitHub release was created for this UI-only pass.
+
 2026-07-28 Android budget-search-focus pass:
 
 - budgets now have local edit controls using the existing budget validation and store boundary;

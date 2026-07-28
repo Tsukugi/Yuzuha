@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the Android budget-search-focus pass.
+Status: Current Android MVP through the 2026-07-28 Android UI simplification pass.
 
 ## Navigation
 
@@ -11,6 +11,21 @@ When Android sends Yuzuha text, show `Shared capture` with the subject/body prev
 The widget has no setup flow. Its empty state is `0 open tasks · 0 active notes`; it never shows note bodies, task text, money values, or app-time rows. Android does not poll it because its update period is zero.
 
 Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/notes`, `yuzuha://open/tasks`, and `yuzuha://open/app-time`. Each opens the matching existing tab. A link with a query, fragment, ID, extra path, unknown target, or remote scheme is ignored and does not create a record.
+
+## Current UI simplification pass
+
+The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
+
+- Home keeps Quick capture, Search workspace, the period selector, and the four summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard settings.
+- Money keeps the entry form visible. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
+- Notes keeps the new note title/body flow visible. Formatting and saved searches use closed sections; each note keeps Edit, Make task, and More actions as the first row of actions.
+- Tasks keeps title and save visible. Optional task details and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
+- App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
+- Search keeps the query visible. Archived-result controls and the Usage Access note use Search options.
+- Data tools starts with export, import, restore, and delete sections closed. The user opens only the operation needed.
+- Review stays read-only with one period selector and four source cards because those cards are the page's main job.
+
+The disclosure control uses a visible title, a short state summary, a plus/minus state, an accessible expanded state, and a touch target of at least 44 dp. The layout change is local view state only: it adds no record, schema field, migration, network request, worker, or polling loop.
 
 ## First run
 

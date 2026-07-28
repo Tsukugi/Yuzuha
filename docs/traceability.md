@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the Android budget-search-focus pass.
+Status: Traceability baseline through the 2026-07-28 Android UI simplification pass.
 
 ## Authoritative source by concern
 
@@ -74,6 +74,8 @@ Current task-list-search-focus evidence: `CROSS-02` also maps to `globalSearchNa
 Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingAppGroupId`, `AppTimeScreen`, `FocusSessionPanel`, the app-group editor, the app-group update assertion in `src/shared/focusSessionLifecycle.test.ts`, the app-group focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 app-group-search-focus release note. App-group results load the current group in edit mode; deleting the focused group clears the editor.
 
 Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingBudgetId`, `MoneyScreen`, `MoneyBudgetScreen`, `updateMoneyBudget`, `updateMoneyBudgetRecord`, the budget lifecycle assertion in `src/shared/moneyBudget.test.ts`, the budget focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 budget-search-focus release note. Budget results load the current budget in the Money edit form; deleting the temporary smoke budget leaves no budget record.
+
+Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 emulator smoke checks visible primary controls, collapsed secondary sections, disclosure expansion, Review, Data tools, and clean startup on the signed APK. The pass adds no schema, migration, network request, worker, or background process.
 
 ## Open decision register
 

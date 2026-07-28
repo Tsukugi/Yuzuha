@@ -19,6 +19,8 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home also has a local Quick capture menu. It routes to the existing Money, Notes, and Tasks forms and does not create a separate record type or background process.
 
+The Android UI simplification pass keeps the primary action visible and puts optional controls behind labeled sections. Home keeps Quick capture and Search visible; Money collapses reports, filters, optional entry details, balances, and record management; Notes collapses formatting and saved searches; Tasks collapses optional task details and task tools; App Time collapses focus sessions and time goals; Search collapses archived-record options; and Data tools starts with export, import, restore, and delete sections closed. This is view state only and adds no schema, network request, worker, or background process.
+
 Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work.
 
 Android launcher shortcuts now open the existing Money, Notes, Tasks, and App Time screens. They are static navigation entries only: they create no record, store no shortcut state, and start no background work.

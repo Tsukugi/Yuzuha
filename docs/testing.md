@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the Android budget-search-focus pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-07-28 Android UI simplification pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -9,6 +9,16 @@ Status: Current test strategy through the Android budget-search-focus pass. Unit
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
 - The current suite is 51 Jest suites and 229 tests. Note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - Fresh SQLite startup seeds current app schema 32 data directly; old local database files and missing current metadata, including the latest-import receipt and note links, are rejected by repository validation.
+
+## UI simplification evidence
+
+- `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the disclosure changes.
+- The signed release APK was rebuilt with Java 17, installed on emulator `emulator-5554`, and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and signer `Yuzuha Release`.
+- Emulator smoke confirms Home shows Quick capture and Search workspace with More home tools and Dashboard settings collapsed; expanding More home tools reveals Review and Data tools.
+- Money shows More money actions, Filter entries, and More entry details collapsed, with the labeled New money entry form visible. Expanding More money actions reveals budgets, report, transfer, split, and recurring actions.
+- Notes shows the new note flow with Formatting collapsed; expanding it reveals the existing formatting controls. Tasks shows title/save with Task details and Task tools collapsed. Search shows Search options collapsed.
+- App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
+- Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 
 ## Money filter evidence
 

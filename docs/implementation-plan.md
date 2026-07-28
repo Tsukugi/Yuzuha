@@ -1,6 +1,19 @@
 # Implementation plan
 
-Status: Planned work order for the first working Android release.
+Status: Planned work order for the first working Android release. The current Android UI simplification pass is implemented and recorded below; older phase notes remain historical.
+
+## Current implementation review: Android UI simplification
+
+The 2026-07-28 UI pass uses one typed `Disclosure` component for secondary controls. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report were reviewed against the product-plan rule that capture comes first and dashboard clutter stays bounded.
+
+Delivered:
+
+- visible primary actions for Quick capture, Search workspace, money entry, note title/body, task title/save, and App Time permission/report state;
+- collapsed optional actions and settings for filters, reports, management, formatting, saved searches, task tools, focus sessions, time goals, and data operations;
+- deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
+- no schema, migration, import/export format, network request, worker, or background process.
+
+Exit evidence: signed Java 17 release build, APK signer/version inspection, emulator install/startup, UI hierarchy smoke across the reviewed screens, typecheck, lint, and diff checks.
 
 ## Milestone 0: confirm the product contract
 

@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {ReactNode} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -440,6 +441,8 @@ function HomeScreen({
 }) {
   const {setWeekStartsOn} = useAppStore();
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [homeToolsOpen, setHomeToolsOpen] = useState(false);
+  const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
   const [homePeriod, setHomePeriod] = useState<Period>('day');
   const [weekStartError, setWeekStartError] = useState<string | null>(null);
   const range = getPeriodRange(new Date(), homePeriod, data.weekStartsOn);
@@ -468,10 +471,7 @@ function HomeScreen({
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Text style={styles.pageTitle}>{selectedPeriodLabel}</Text>
       <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
-      <TextButton label="Search everything" onPress={onOpenSearch} />
-      <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
-      <TextButton label="Review this period" onPress={onOpenReview} />
-      <TextButton label={quickCaptureOpen ? 'Close quick capture' : 'Quick capture'} onPress={() => setQuickCaptureOpen(current => !current)} />
+      <PrimaryButton label={quickCaptureOpen ? 'Close quick capture' : 'Quick capture'} onPress={() => setQuickCaptureOpen(current => !current)} />
       {quickCaptureOpen && (
         <View style={styles.segmentRow}>
           {QUICK_CAPTURE_OPTIONS.map(option => (
@@ -479,6 +479,15 @@ function HomeScreen({
           ))}
         </View>
       )}
+      <TextButton label="Search workspace" onPress={onOpenSearch} />
+      <Disclosure
+        title="More home tools"
+        subtitle="Review and data tools"
+        open={homeToolsOpen}
+        onPress={() => setHomeToolsOpen(current => !current)}>
+        <TextButton label="Review this period" onPress={onOpenReview} />
+        <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
+      </Disclosure>
 
       <SectionTitle title="Dashboard period" />
       <View style={styles.formCard}>
@@ -489,15 +498,19 @@ function HomeScreen({
           <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
         </View>
       </View>
-      <View style={styles.formCard}>
+      <Disclosure
+        title="Dashboard settings"
+        subtitle={`Week starts ${data.weekStartsOn === 0 ? 'Sunday' : 'Monday'}`}
+        open={dashboardSettingsOpen}
+        onPress={() => setDashboardSettingsOpen(current => !current)}>
         <Text style={styles.formLabel}>Week starts on</Text>
-        <Text style={styles.cardDetail}>Week-based Home, Money, App Time, Review, and budget views use this local setting.</Text>
+        <Text style={styles.cardDetail}>Used by weekly Home, Money, App Time, Review, and budget views.</Text>
         <View style={styles.segmentRow}>
           <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
           <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
         </View>
         {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
-      </View>
+      </Disclosure>
 
       <View style={styles.cardGrid}>
         <SummaryCard
@@ -603,6 +616,7 @@ function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => 
 function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => void; onNavigate: (navigation: GlobalSearchNavigation) => void}) {
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [searchOptionsOpen, setSearchOptionsOpen] = useState(false);
   const results = searchGlobal(data, query, {includeArchived});
 
   return (
@@ -610,7 +624,7 @@ function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <TextButton label="Back to home" onPress={onBack} />
         <Text style={styles.pageTitle}>Search</Text>
-        <Text style={styles.pageIntro}>Search local notes, tasks, money, and other workspace records. Search stays on this device.</Text>
+        <Text style={styles.pageIntro}>Search your local workspace. Nothing leaves this device.</Text>
         <TextInput
           accessibilityLabel="Global search"
           placeholder="Search your workspace"
@@ -619,11 +633,17 @@ function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: 
           value={query}
           onChangeText={setQuery}
         />
-        <TextButton
-          label={includeArchived ? 'Hide archived results' : 'Include archived results'}
-          onPress={() => setIncludeArchived(current => !current)}
-        />
-        <Text style={styles.searchAccessNote}>App-time results appear only when Usage Access is granted and the snapshot is included.</Text>
+        <Disclosure
+          title="Search options"
+          subtitle={includeArchived ? 'Archived records included' : 'Active records only'}
+          open={searchOptionsOpen}
+          onPress={() => setSearchOptionsOpen(current => !current)}>
+          <TextButton
+            label={includeArchived ? 'Hide archived results' : 'Include archived results'}
+            onPress={() => setIncludeArchived(current => !current)}
+          />
+          <Text style={styles.searchAccessNote}>App-time results appear only when Usage Access is granted and the snapshot is included.</Text>
+        </Disclosure>
         {!query.trim() ? (
           <EmptyState text="Type a word to search your local workspace." />
         ) : results.length === 0 ? (
@@ -709,6 +729,11 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [moneyCsvUndoBusy, setMoneyCsvUndoBusy] = useState(false);
   const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
   const [jsonFileBusy, setJsonFileBusy] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [jsonRestoreOpen, setJsonRestoreOpen] = useState(false);
+  const [encryptedRestoreOpen, setEncryptedRestoreOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function shareJson() {
     try {
@@ -1047,7 +1072,11 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       </Pressable>
       <Text style={styles.pageTitle}>Data tools</Text>
       <Text style={styles.pageIntro}>Exports include supported local records. Restore validates a JSON export and shows a preview before replacing this workspace.</Text>
-      <View style={styles.formCard}>
+      <Disclosure
+        title="Export and backup"
+        subtitle="Share or save a copy of this workspace"
+        open={exportOpen}
+        onPress={() => setExportOpen(current => !current)}>
         <Text style={styles.formLabel}>Export</Text>
         <PrimaryButton label="Share JSON export" onPress={shareJson} />
         <PrimaryButton label="Share money CSV" onPress={shareCsv} />
@@ -1090,9 +1119,12 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         )}
         {status && <Text style={styles.successText}>{status}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
-      </View>
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Import money CSV</Text>
+      </Disclosure>
+      <Disclosure
+        title="Import money CSV"
+        subtitle="Append current-format money entries"
+        open={csvImportOpen}
+        onPress={() => setCsvImportOpen(current => !current)}>
         <Text style={styles.cardDetail}>Choose a current Yuzuha money CSV. Nothing changes until you review the rows and confirm the append. Split-linked rows need a JSON export or encrypted backup.</Text>
         <PrimaryButton label={moneyCsvBusy ? 'Opening money CSV...' : 'Choose money CSV'} onPress={previewMoneyCsvImport} disabled={moneyCsvBusy || moneyCsvUndoBusy || backupBusy} />
         {moneyCsvPreview && (
@@ -1113,9 +1145,12 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         ) : (
           <Text style={styles.cardDetail}>No money CSV import is available to undo.</Text>
         )}
-      </View>
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Restore JSON export</Text>
+      </Disclosure>
+      <Disclosure
+        title="Restore JSON export"
+        subtitle="Replace the workspace after preview and confirmation"
+        open={jsonRestoreOpen}
+        onPress={() => setJsonRestoreOpen(current => !current)}>
         <Text style={styles.cardDetail}>Choose or paste a current Yuzuha JSON export. Nothing changes until you review the count and confirm the replacement.</Text>
         <PrimaryButton label={jsonFileBusy ? 'Opening JSON export...' : 'Choose JSON export file'} onPress={openJsonImportFileFromDevice} disabled={jsonFileBusy || backupBusy} />
         <TextInput
@@ -1142,9 +1177,12 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
             <PrimaryButton label="Restore this workspace" onPress={confirmRestore} />
           </View>
         )}
-      </View>
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Restore encrypted backup</Text>
+      </Disclosure>
+      <Disclosure
+        title="Restore encrypted backup"
+        subtitle="Decrypt and replace after validation"
+        open={encryptedRestoreOpen}
+        onPress={() => setEncryptedRestoreOpen(current => !current)}>
         <Text style={styles.cardDetail}>Paste the encrypted backup and enter its password or recovery key. The backup is decrypted and validated before any local data changes.</Text>
         <PrimaryButton label="Open encrypted backup file" onPress={openEncryptedBackupFileFromDevice} disabled={backupBusy} />
         <TextInput
@@ -1185,12 +1223,15 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
             <PrimaryButton label="Restore encrypted workspace" onPress={confirmEncryptedRestore} />
           </View>
         )}
-      </View>
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Delete</Text>
+      </Disclosure>
+      <Disclosure
+        title="Delete local data"
+        subtitle="Destructive action"
+        open={deleteOpen}
+        onPress={() => setDeleteOpen(current => !current)}>
         <Text style={styles.cardDetail}>Delete removes local records and keeps only the empty workspace defaults.</Text>
         <TextButton label="Delete all local data" danger onPress={confirmDelete} />
-      </View>
+      </Disclosure>
     </ScrollView>
   );
 }
@@ -1285,6 +1326,11 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
+  const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
+  const [entryFiltersOpen, setEntryFiltersOpen] = useState(false);
+  const [entryDetailsOpen, setEntryDetailsOpen] = useState(false);
+  const [balancesOpen, setBalancesOpen] = useState(false);
+  const [accountManagementOpen, setAccountManagementOpen] = useState(false);
   const [entryFilterPeriod, setEntryFilterPeriod] = useState<MoneyFilterPeriod>(emptyMoneyEntryFilter.period);
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
@@ -1448,19 +1494,35 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
   const filteredTotals = summarizeMoneyEntries(listEntries);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
+  const activeEntryFilterLabels = [
+    entryFilterPeriod !== 'all' ? periodLabel(entryFilterPeriod) : null,
+    entryFilterKind !== 'all' ? entryFilterKind : null,
+    entryFilterCategoryId !== 'all' ? 'category' : null,
+    entryFilterAccountId !== 'all' ? 'account' : null,
+  ].filter(Boolean);
+  const entryFilterSummary = activeEntryFilterLabels.length > 0 ? activeEntryFilterLabels.join(' · ') : 'All entries';
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
-        <TextButton label="Open budgets" onPress={() => setView('budget')} />
-        <TextButton label="Add split entry" onPress={() => setView('split')} />
-        <TextButton label="Add transfer" onPress={() => setView('transfer')} />
-        <TextButton label="Add recurring rule" onPress={() => setView('recurrence')} />
-        <TextButton label="Open money report" onPress={() => setView('report')} />
-        <SectionTitle title="Entry filters" />
-        <View style={styles.formCard}>
+        <Disclosure
+          title="More money actions"
+          subtitle="Budgets, reports, transfers, splits, and recurring rules"
+          open={moneyActionsOpen}
+          onPress={() => setMoneyActionsOpen(current => !current)}>
+          <TextButton label="Open budgets" onPress={() => setView('budget')} />
+          <TextButton label="Open money report" onPress={() => setView('report')} />
+          <TextButton label="Add transfer" onPress={() => setView('transfer')} />
+          <TextButton label="Add split entry" onPress={() => setView('split')} />
+          <TextButton label="Add recurring rule" onPress={() => setView('recurrence')} />
+        </Disclosure>
+        <Disclosure
+          title="Filter entries"
+          subtitle={entryFilterSummary}
+          open={entryFiltersOpen}
+          onPress={() => setEntryFiltersOpen(current => !current)}>
           <Text style={styles.formLabel}>Period</Text>
           <View style={styles.segmentRow}>
             <SegmentButton label="All" selected={entryFilterPeriod === 'all'} onPress={() => setEntryFilterPeriod('all')} />
@@ -1488,7 +1550,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
             ))}
           </View>
-        </View>
+        </Disclosure>
         <SectionTitle title="Filtered totals" />
         {filteredTotals.length === 0 ? (
           <EmptyState text="No totals for these filters." />
@@ -1506,6 +1568,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
             </View>
           ))
         )}
+        <SectionTitle title={editingId ? 'Edit money entry' : 'New money entry'} />
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>
@@ -1550,30 +1613,39 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               />
             ))}
           </View>
-          <Text style={styles.formLabel}>Payee (optional)</Text>
-          <View style={styles.chipWrap}>
-            <ChipButton label="No payee" selected={payeeId === ''} onPress={() => setPayeeId('')} />
-            {visiblePayees.map(payee => (
-              <ChipButton key={payee.id} label={payee.name} selected={payee.id === payeeId} onPress={() => setPayeeId(payee.id)} />
-            ))}
-          </View>
-          <Text style={styles.formLabel}>Note (optional)</Text>
-          <TextInput
-            accessibilityLabel="Money note"
-            placeholder="What was this for?"
-            placeholderTextColor={colors.muted}
-            style={[styles.input, styles.multilineInput]}
-            value={note}
-            onChangeText={setNote}
-            multiline
-          />
+          <Disclosure
+            title="More entry details"
+            subtitle={payeeId ? 'Payee selected' : note ? 'Note added' : 'Payee and note are optional'}
+            open={entryDetailsOpen}
+            onPress={() => setEntryDetailsOpen(current => !current)}>
+            <Text style={styles.formLabel}>Payee (optional)</Text>
+            <View style={styles.chipWrap}>
+              <ChipButton label="No payee" selected={payeeId === ''} onPress={() => setPayeeId('')} />
+              {visiblePayees.map(payee => (
+                <ChipButton key={payee.id} label={payee.name} selected={payee.id === payeeId} onPress={() => setPayeeId(payee.id)} />
+              ))}
+            </View>
+            <Text style={styles.formLabel}>Note (optional)</Text>
+            <TextInput
+              accessibilityLabel="Money note"
+              placeholder="What was this for?"
+              placeholderTextColor={colors.muted}
+              style={[styles.input, styles.multilineInput]}
+              value={note}
+              onChangeText={setNote}
+              multiline
+            />
+          </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingId ? 'Update entry' : 'Save entry'} onPress={save} />
           {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} />}
         </View>
 
-        <SectionTitle title="Account balances" />
-        <View style={styles.formCard}>
+        <Disclosure
+          title="Account balances"
+          subtitle={`${data.accounts.filter(account => !account.isArchived).length} active`}
+          open={balancesOpen}
+          onPress={() => setBalancesOpen(current => !current)}>
           {data.accounts.filter(account => !account.isArchived).map(account => (
             <View key={account.id} style={styles.manageRow}>
               <View style={styles.listBody}>
@@ -1585,10 +1657,13 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               </Text>
             </View>
           ))}
-        </View>
+        </Disclosure>
 
-        <SectionTitle title="Add account or category" />
-        <View style={styles.formCard}>
+        <Disclosure
+          title="Manage accounts, payees, and categories"
+          subtitle="Add or archive supporting records"
+          open={accountManagementOpen}
+          onPress={() => setAccountManagementOpen(current => !current)}>
           <Text style={styles.formLabel}>New account</Text>
           <TextInput
             accessibilityLabel="New account name"
@@ -1645,7 +1720,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, onFocusHandled, onBudgetFocus
               <TextButton label="Archive" onPress={() => archiveMoneyPayee(payee.id)} />
             </View>
           ))}
-        </View>
+        </Disclosure>
 
         <SectionTitle title={`Entries (${listEntries.length})`} />
         {listEntries.length === 0 ? (
@@ -2364,6 +2439,7 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const [kind, setKind] = useState<MoneyReportFilter['kind']>(emptyMoneyReportFilter.kind);
   const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
   const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
+  const [reportFiltersOpen, setReportFiltersOpen] = useState(false);
   const range = getPeriodRange(new Date(), period, data.weekStartsOn);
   const filter: MoneyReportFilter = {kind, categoryId, accountId};
   const report = buildMoneyReport(data.money, range, data.splits, filter);
@@ -2391,26 +2467,32 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
         <Text style={styles.cardDetail}>Filters: {kindLabel}, {categoryLabel}, {accountLabel}</Text>
         <Text style={styles.cardDetail}>Excluded: transfers and entries outside the range; currencies stay in separate cards.</Text>
       </View>
-      <Text style={styles.formLabel}>Type</Text>
-      <View style={styles.chipWrap}>
-        <ChipButton label="All" selected={kind === 'all'} onPress={() => setKind('all')} />
-        <ChipButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
-        <ChipButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
-      </View>
-      <Text style={styles.formLabel}>Category</Text>
-      <View style={styles.chipWrap}>
-        <ChipButton label="All" selected={categoryId === 'all'} onPress={() => setCategoryId('all')} />
-        {filterCategories.map(category => (
-          <ChipButton key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
-        ))}
-      </View>
-      <Text style={styles.formLabel}>Account</Text>
-      <View style={styles.chipWrap}>
-        <ChipButton label="All" selected={accountId === 'all'} onPress={() => setAccountId('all')} />
-        {filterAccounts.map(account => (
-          <ChipButton key={account.id} label={account.name} selected={accountId === account.id} onPress={() => setAccountId(account.id)} />
-        ))}
-      </View>
+      <Disclosure
+        title="Report filters"
+        subtitle={`${kindLabel}, ${categoryLabel}, ${accountLabel}`}
+        open={reportFiltersOpen}
+        onPress={() => setReportFiltersOpen(current => !current)}>
+        <Text style={styles.formLabel}>Type</Text>
+        <View style={styles.chipWrap}>
+          <ChipButton label="All" selected={kind === 'all'} onPress={() => setKind('all')} />
+          <ChipButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
+          <ChipButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
+        </View>
+        <Text style={styles.formLabel}>Category</Text>
+        <View style={styles.chipWrap}>
+          <ChipButton label="All" selected={categoryId === 'all'} onPress={() => setCategoryId('all')} />
+          {filterCategories.map(category => (
+            <ChipButton key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
+          ))}
+        </View>
+        <Text style={styles.formLabel}>Account</Text>
+        <View style={styles.chipWrap}>
+          <ChipButton label="All" selected={accountId === 'all'} onPress={() => setAccountId('all')} />
+          {filterAccounts.map(account => (
+            <ChipButton key={account.id} label={account.name} selected={accountId === account.id} onPress={() => setAccountId(account.id)} />
+          ))}
+        </View>
+      </Disclosure>
       {report.currencies.length === 0 ? (
         <EmptyState text="No money entries match this report scope." />
       ) : (
@@ -2449,10 +2531,18 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
   const [goalName, setGoalName] = useState('Weekly attention');
   const [goalPeriod, setGoalPeriod] = useState<'day' | 'week'>('week');
   const [goalMinutes, setGoalMinutes] = useState('300');
+  const [focusToolsOpen, setFocusToolsOpen] = useState(false);
+  const [timeGoalOpen, setTimeGoalOpen] = useState(false);
 
   useEffect(() => {
     void checkPermission();
   }, []);
+
+  useEffect(() => {
+    if (focusAppGroupId) {
+      setFocusToolsOpen(true);
+    }
+  }, [focusAppGroupId]);
 
   if (!data) {
     return null;
@@ -2538,7 +2628,13 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
       </Pressable>
       <Text style={styles.pageTitle}>App time</Text>
       <Text style={styles.pageIntro}>Read-only totals from Android Usage Access. Nothing leaves this device.</Text>
-      <FocusSessionPanel data={data} focusAppGroupId={focusAppGroupId} onFocusHandled={onFocusHandled} />
+      <Disclosure
+        title="Focus sessions"
+        subtitle="Optional manual focus block"
+        open={focusToolsOpen}
+        onPress={() => setFocusToolsOpen(current => !current)}>
+        <FocusSessionPanel data={data} focusAppGroupId={focusAppGroupId} onFocusHandled={onFocusHandled} />
+      </Disclosure>
 
       {!usageAccess.isSupported() ? (
         <EmptyState text="App-time data is not available on this platform." />
@@ -2593,8 +2689,11 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
               </View>
             ))
           )}
-          <SectionTitle title="Weekly goal" />
-          <View style={styles.formCard}>
+          <Disclosure
+            title="Time goal"
+            subtitle={activeGoal ? `${formatDuration(goalSeconds)} of ${formatDuration(activeGoal.targetSeconds)}` : 'Optional daily or weekly target'}
+            open={timeGoalOpen}
+            onPress={() => setTimeGoalOpen(current => !current)}>
             <Text style={styles.cardDetail}>
               {activeGoal ? `${formatDuration(goalSeconds)} of ${formatDuration(activeGoal.targetSeconds)}` : `No ${goalPeriod} goal yet.`}
             </Text>
@@ -2620,7 +2719,7 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
               onChangeText={setGoalMinutes}
             />
             <PrimaryButton label="Save time goal" onPress={saveGoal} />
-          </View>
+          </Disclosure>
         </>
       )}
     </ScrollView>
@@ -2639,6 +2738,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
   const [clockMillis, setClockMillis] = useState(() => Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [appGroupsOpen, setAppGroupsOpen] = useState(false);
   const activeSession = data.focusSessions.find(session => session.status === 'active') ?? null;
 
   useEffect(() => {
@@ -2663,6 +2763,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
     setEditingAppGroupId(group.id);
     setAppGroupName(group.name);
     setAppGroupPackages(group.packageNames.join(', '));
+    setAppGroupsOpen(true);
     setError(null);
     setMessage(null);
     onFocusHandled();
@@ -2703,6 +2804,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
     setEditingAppGroupId(group.id);
     setAppGroupName(group.name);
     setAppGroupPackages(group.packageNames.join(', '));
+    setAppGroupsOpen(true);
     setError(null);
     setMessage(null);
   }
@@ -2816,7 +2918,11 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
           ))}
         </>
       )}
-      <SectionTitle title="App groups" />
+      <Disclosure
+        title="App groups"
+        subtitle={`${data.appGroups.length} saved`}
+        open={appGroupsOpen}
+        onPress={() => setAppGroupsOpen(current => !current)}>
       {editingAppGroupId && <Text style={styles.formLabel}>Edit app group</Text>}
       <TextInput accessibilityLabel="App group name" placeholder="App group name" placeholderTextColor={colors.muted} style={styles.input} value={appGroupName} onChangeText={setAppGroupName} />
       <TextInput accessibilityLabel="App group packages" placeholder="com.editor, com.browser" placeholderTextColor={colors.muted} style={styles.input} value={appGroupPackages} onChangeText={setAppGroupPackages} />
@@ -2835,6 +2941,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
           </View>
         </View>
       ))}
+      </Disclosure>
     </View>
   );
 }
@@ -2847,6 +2954,9 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
   const [tags, setTags] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [savedSearchName, setSavedSearchName] = useState('');
+  const [formattingOpen, setFormattingOpen] = useState(false);
+  const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -2941,6 +3051,7 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
     setLinkTargetSearch('');
     const linkedTargetIds = new Set(data.noteLinks.filter(link => link.noteId === note.id && link.targetType === nextType).map(link => link.targetId));
     setLinkTargetId(noteLinkOptions(nextType, data, '').find(option => !linkedTargetIds.has(option.id))?.id ?? null);
+    setExpandedNoteId(note.id);
     setError(null);
   }
 
@@ -3143,14 +3254,20 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
             onChangeText={setTitle}
           />
           <Text style={styles.formLabel}>Body (optional)</Text>
-          <View style={styles.noteMarkupToolbar}>
-            <ChipButton label="Bold" selected={false} onPress={() => formatBody('bold')} />
-            <ChipButton label="Italic" selected={false} onPress={() => formatBody('italic')} />
-            <ChipButton label="Code" selected={false} onPress={() => formatBody('code')} />
-            <ChipButton label="Bullet" selected={false} onPress={() => formatBody('bullet')} />
-            <ChipButton label="Heading" selected={false} onPress={() => formatBody('heading')} />
-          </View>
-          <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
+          <Disclosure
+            title="Formatting"
+            subtitle="Optional readable text styles"
+            open={formattingOpen}
+            onPress={() => setFormattingOpen(current => !current)}>
+            <View style={styles.noteMarkupToolbar}>
+              <ChipButton label="Bold" selected={false} onPress={() => formatBody('bold')} />
+              <ChipButton label="Italic" selected={false} onPress={() => formatBody('italic')} />
+              <ChipButton label="Code" selected={false} onPress={() => formatBody('code')} />
+              <ChipButton label="Bullet" selected={false} onPress={() => formatBody('bullet')} />
+              <ChipButton label="Heading" selected={false} onPress={() => formatBody('heading')} />
+            </View>
+            <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
+          </Disclosure>
           <TextInput
             accessibilityLabel="Note body"
             placeholder="Write a few lines..."
@@ -3199,8 +3316,11 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
           </View>
         )}
         {data.savedSearches.length > 0 && (
-          <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Saved searches</Text>
+          <Disclosure
+            title="Saved searches"
+            subtitle={`${data.savedSearches.length} saved`}
+            open={savedSearchesOpen}
+            onPress={() => setSavedSearchesOpen(current => !current)}>
             {data.savedSearches.map(savedSearch => (
               <View key={savedSearch.id} style={styles.savedSearchRow}>
                 <View style={styles.listBody}>
@@ -3213,7 +3333,7 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
                 </View>
               </View>
             ))}
-          </View>
+          </Disclosure>
         )}
         <TextButton label={showArchived ? 'Hide archived notes' : 'Show archived notes'} onPress={() => setShowArchived(current => !current)} />
         <SectionTitle title={showArchived ? 'All notes' : 'Active notes'} />
@@ -3248,12 +3368,20 @@ function NotesScreen({focusNoteId, onFocusHandled}: {focusNoteId: string | null;
                 )}
                 <View style={styles.noteActions}>
                   <TextButton label="Edit" disabled={isBusy} onPress={() => startEditing(note)} />
-                  <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
-                  <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
                   <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
-                  <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
-                  <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
+                  <TextButton
+                    label={expandedNoteId === note.id ? 'Hide actions' : 'More actions'}
+                    disabled={isBusy}
+                    onPress={() => setExpandedNoteId(current => current === note.id ? null : note.id)} />
                 </View>
+                {expandedNoteId === note.id && (
+                  <View style={styles.noteActions}>
+                    <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
+                    <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
+                    <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
+                    <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
+                  </View>
+                )}
                 {linkingNoteId === note.id && (
                   <View style={styles.linkEditor}>
                     <Text style={styles.formLabel}>Link type</Text>
@@ -3410,6 +3538,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [projectId, setProjectId] = useState<string | null>(null);
   const [parentTaskId, setParentTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
+  const [taskToolsOpen, setTaskToolsOpen] = useState(false);
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
@@ -3478,6 +3608,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setProjectId(task.projectId);
     setParentTaskId(task.parentTaskId);
     setEditingTaskId(task.id);
+    setTaskDetailsOpen(true);
     setError(null);
     onTaskFocusHandled();
   }, [data, focusTaskId, onTaskFocusHandled]);
@@ -3494,6 +3625,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setEditingProjectId(project.id);
     setProjectName(project.name);
     setProjectStatus(project.status);
+    setTaskToolsOpen(true);
     setProjectError(null);
     onProjectFocusHandled();
   }, [data, focusProjectId, onProjectFocusHandled]);
@@ -3514,6 +3646,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setTemplatePriority(template.priority);
     setTemplateListId(template.listId);
     setTemplateProjectId(template.projectId);
+    setTaskToolsOpen(true);
     setTemplateError(null);
     setTemplateMessage(null);
     onTemplateFocusHandled();
@@ -3530,6 +3663,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     }
     setEditingListId(taskList.id);
     setEditingListName(taskList.name);
+    setTaskToolsOpen(true);
     setTaskListError(null);
     onListFocusHandled();
   }, [data, focusListId, onListFocusHandled]);
@@ -4119,42 +4253,53 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>{editingTaskId ? 'Edit task' : 'New task'}</Text>
           <TextInput accessibilityLabel="Task title" placeholder="What needs doing?" placeholderTextColor={colors.muted} style={styles.input} value={title} onChangeText={setTitle} />
-          <Text style={styles.formLabel}>Details (optional)</Text>
-          <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
-          <Text style={styles.formLabel}>Due date (optional)</Text>
-          <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} autoCapitalize="none" />
-          <Text style={styles.formLabel}>Reminder (optional)</Text>
-          <TextInput accessibilityLabel="Task reminder time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} autoCapitalize="none" />
-          <Text style={styles.formLabel}>Priority</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Low" selected={priority === 'low'} onPress={() => setPriority('low')} />
-            <SegmentButton label="Normal" selected={priority === 'normal'} onPress={() => setPriority('normal')} />
-            <SegmentButton label="High" selected={priority === 'high'} onPress={() => setPriority('high')} />
-          </View>
-          <Text style={styles.formLabel}>List</Text>
-          <View style={styles.segmentRow}>
-            {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
-              <SegmentButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
-            ))}
-          </View>
-          <Text style={styles.formLabel}>Project (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
-            {data.projects.filter(project => !project.isArchived || project.id === projectId).map(project => (
-              <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
-            ))}
-          </View>
-          <Text style={styles.formLabel}>Parent task (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No parent" selected={parentTaskId === null} onPress={() => setParentTaskId(null)} />
-            {currentData.tasks.filter(task => task.id !== editingTaskId && task.listId === listId).map(task => (
-              <SegmentButton key={task.id} label={task.title} selected={parentTaskId === task.id} onPress={() => setParentTaskId(task.id)} />
-            ))}
-          </View>
+          <Disclosure
+            title="Task details"
+            subtitle={dueLocalDate ? `Due ${dueLocalDate}` : 'Optional details, date, priority, and links'}
+            open={taskDetailsOpen}
+            onPress={() => setTaskDetailsOpen(current => !current)}>
+            <Text style={styles.formLabel}>Details (optional)</Text>
+            <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
+            <Text style={styles.formLabel}>Due date (optional)</Text>
+            <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} autoCapitalize="none" />
+            <Text style={styles.formLabel}>Reminder (optional)</Text>
+            <TextInput accessibilityLabel="Task reminder time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} autoCapitalize="none" />
+            <Text style={styles.formLabel}>Priority</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="Low" selected={priority === 'low'} onPress={() => setPriority('low')} />
+              <SegmentButton label="Normal" selected={priority === 'normal'} onPress={() => setPriority('normal')} />
+              <SegmentButton label="High" selected={priority === 'high'} onPress={() => setPriority('high')} />
+            </View>
+            <Text style={styles.formLabel}>List</Text>
+            <View style={styles.segmentRow}>
+              {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
+                <SegmentButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
+              ))}
+            </View>
+            <Text style={styles.formLabel}>Project (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+              {data.projects.filter(project => !project.isArchived || project.id === projectId).map(project => (
+                <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
+              ))}
+            </View>
+            <Text style={styles.formLabel}>Parent task (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No parent" selected={parentTaskId === null} onPress={() => setParentTaskId(null)} />
+              {currentData.tasks.filter(task => task.id !== editingTaskId && task.listId === listId).map(task => (
+                <SegmentButton key={task.id} label={task.title} selected={parentTaskId === task.id} onPress={() => setParentTaskId(task.id)} />
+              ))}
+            </View>
+          </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingTaskId ? 'Update task' : 'Add task'} onPress={() => void save()} />
           {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
         </View>
+        <Disclosure
+          title="Task tools"
+          subtitle="Reminders, dependencies, projects, templates, lists, and recurring tasks"
+          open={taskToolsOpen}
+          onPress={() => setTaskToolsOpen(current => !current)}>
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>Notification settings</Text>
           <Text style={styles.formLabel}>Task reminders</Text>
@@ -4373,6 +4518,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             </View>
           ))}
         </View>
+        </Disclosure>
         <SectionTitle title="Task view" />
         <View style={styles.segmentRow}>
           <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
@@ -4450,6 +4596,26 @@ function SummaryCard({
 
 function SectionTitle({title}: {title: string}) {
   return <Text style={styles.sectionTitle}>{title}</Text>;
+}
+
+function Disclosure({title, subtitle, open, onPress, children}: {title: string; subtitle?: string; open: boolean; onPress: () => void; children: ReactNode}) {
+  return (
+    <View style={styles.disclosure}>
+      <Pressable
+        accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title}`}
+        accessibilityRole="button"
+        accessibilityState={{expanded: open}}
+        style={({pressed}) => [styles.disclosureButton, pressed && styles.pressed]}
+        onPress={onPress}>
+        <View style={styles.listBody}>
+          <Text style={styles.disclosureTitle}>{title}</Text>
+          {!!subtitle && <Text style={styles.disclosureSubtitle}>{subtitle}</Text>}
+        </View>
+        <Text style={styles.disclosureIcon}>{open ? '−' : '+'}</Text>
+      </Pressable>
+      {open && <View style={styles.disclosureBody}>{children}</View>}
+    </View>
+  );
 }
 
 function EmptyState({text}: {text: string}) {
@@ -4556,6 +4722,12 @@ const styles = StyleSheet.create({
   backButton: {alignSelf: 'flex-start', marginBottom: 12},
   backButtonText: {color: colors.accent, fontSize: 15, fontWeight: '800'},
   sectionTitle: {color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 10},
+  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginTop: 12, overflow: 'hidden'},
+  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 62, paddingHorizontal: 14, paddingVertical: 10},
+  disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: 14},
+  disclosureTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
+  disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: 4},
+  disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: 14},
   emptyState: {backgroundColor: colors.card, borderRadius: 12, color: colors.muted, fontSize: 15, lineHeight: 22, padding: 16},
   listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   listBody: {flex: 1},
