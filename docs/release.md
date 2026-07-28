@@ -20,6 +20,15 @@ Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The r
 
 The release process does not auto-commit, auto-push, generate a new signing key, or publish import/export changes. Rapunzel's `v<version>` tag and APK asset convention is used as a reference; its older automatic release script is not copied into Yuzuha.
 
+2026-07-28 Android Money/Home reference UI pass:
+
+- removed the Yuzuha title, description, and bundle label from the React shell and startup content;
+- replaced the Home capture-heavy layout with one derived Money widget showing main-currency balance and selected-period spending/income;
+- added the reference-style Money balance/activity card while keeping current entries and Add money entry as the first Money workflow;
+- removed the duplicate entry list from the open Money form so the form contains only the fields needed to save;
+- changed only local layout, styling, and derived view state; no schema, migration, import/export format, network request, worker, or background process changed;
+- typecheck, lint, diff checks, 51 Jest suites/229 tests, signed Java 17 release build, Xiaomi install, cold/warm Money hierarchy smoke, and filtered logcat checks passed. Xiaomi still rejects adb touch injection, so arbitrary touch testing remains manual; no GitHub release was created for this UI-only pass.
+
 2026-07-28 Android UI simplification pass:
 
 - the primary capture and query controls remain visible while optional filters, settings, management, formatting, restore/import actions, focus tools, and task tools move behind labeled disclosures;

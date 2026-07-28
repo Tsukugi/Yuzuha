@@ -1,6 +1,6 @@
 # Product plan
 
-Status: Planned baseline for the first implementation.
+Status: Planned product baseline. Current UI override: Home uses one derived Money widget; Money opens the balance/activity summary and current entry list before showing Add money entry. Older Quick capture wording in historical planning notes is not current behavior.
 
 ## Product statement
 
@@ -55,7 +55,7 @@ Shows today and the current period:
 
 Each card opens the source feature. The home screen must not invent a value when data is missing; it shows `Not available` with the reason.
 
-Home also offers Quick capture. The menu routes to the existing Money, Notes, and Tasks forms so the user can start an entry without first opening a feature card.
+Home offers one compact Money widget. It shows the main-currency balance and selected-period spending/income, then opens the Money list. Adding a money entry happens from that list through Add money entry.
 
 ### Money
 

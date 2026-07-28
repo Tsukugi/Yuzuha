@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the 2026-07-28 Android UI simplification pass.
+Status: Traceability baseline through the 2026-07-28 Money/Home reference UI pass.
 
 ## Authoritative source by concern
 
@@ -39,7 +39,7 @@ Current App Time evidence: `TIME-03` maps to `AppTimeScreen`, `getLocalDayRanges
 
 Current startup evidence: `START-01` through `START-05` map to `MainApplication`, `YuzuhaBundleInstaller`, `YuzuhaInstallerModule`, `DefaultReactHost(jsBundleFilePath)`, installer metadata/bridge tests, native Kotlin compilation, release APK installation, and emulator/phone startup smoke. The live newer-release path is implemented but awaits a signed endpoint fixture for end-to-end activation evidence.
 
-Current Home evidence: `CROSS-01` maps to `HomeScreen`, shared `period.ts` helpers, period unit tests, emulator selector/range/card smoke, and the 2026-07-27 Home-period release note. The calculation is derived and adds no schema or background behavior.
+Current Home evidence: `CROSS-01` maps to `HomeScreen`, shared `period.ts` helpers, period unit tests, Xiaomi UI hierarchy smoke, and the 2026-07-28 Money/Home reference UI release note. The compact Money widget derives main-currency balance and selected-period activity, routes to Money, and adds no schema or background behavior.
 
 Current Review evidence: `CROSS-03` maps to `ReviewScreen`, `buildReviewSummary`, `src/shared/review.test.ts`, emulator Today/Week/Month Review smoke, and the 2026-07-27 period-review release note. The screen is source-backed and read-only; persisted reflection and review history remain planned.
 
@@ -75,7 +75,7 @@ Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNa
 
 Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingBudgetId`, `MoneyScreen`, `MoneyBudgetScreen`, `updateMoneyBudget`, `updateMoneyBudgetRecord`, the budget lifecycle assertion in `src/shared/moneyBudget.test.ts`, the budget focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 budget-search-focus release note. Budget results load the current budget in the Money edit form; deleting the temporary smoke budget leaves no budget record.
 
-Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 emulator smoke checks visible primary controls, collapsed secondary sections, disclosure expansion, Review, Data tools, and clean startup on the signed APK. The list-first follow-up maps Add money entry, Add note, Add task, the three form-open states, and Home Quick capture to the same screens. The pass adds no schema, migration, network request, worker, or background process.
+Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 signed Xiaomi smoke checks the title-free shell, compact Home Money widget, Money balance/activity card, current entry list, Add money entry, collapsed secondary sections, and the form-open state. The pass adds no schema, migration, network request, worker, or background process.
 
 ## Open decision register
 

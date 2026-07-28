@@ -1,10 +1,10 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-28 Android UI simplification pass.
+Status: Current Android MVP through the 2026-07-28 Money/Home reference UI pass.
 
 ## Navigation
 
-Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home has a Quick capture action that opens Add money, Add note, or Add task and routes directly to the matching form without creating a separate capture record. Normal Home cards and bottom tabs open the current list view.
+Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home shows one compact Money widget with the current main-currency balance and selected-period spending/income; tapping it opens the Money list. Normal Home cards and bottom tabs open the current list view.
 
 When Android sends Yuzuha text, show `Shared capture` with the subject/body preview and `Save as note`, `Save as task`, and `Dismiss`. Saving a note uses the subject or first line as its title. Saving a task uses the same title, stores the full text as details, uses Inbox and Normal priority, and routes to Tasks. When Android sends a supported image, PDF, or plain-text file, show its name, MIME type, and known size; offer `Save as note` and `Dismiss`, then store the file as a note attachment after checksum verification. Empty, unsupported, or over-limit payloads create no record. Do not fetch URLs or show shared content on a lock screen before the user opens the app. Launcher shortcuts labeled Add money, Add note, Add task, and App time open the matching add form or screen without creating a record. The Android summary widget shows only open-task and active-note counts, updates after committed workspace changes, and opens Yuzuha on tap.
 
@@ -16,8 +16,8 @@ Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/no
 
 The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
 
-- Home keeps Quick capture, Search workspace, the period selector, and the four summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard settings.
-- Money opens on the current entry list, then shows Add money entry. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
+- Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
+- Money opens with a green balance/activity card, then the current entry list and Add money entry. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
 - Notes opens on the current note list, then shows Add note. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Search notes and saved searches use closed sections; each note keeps Edit, Make task, and More actions as the first row of actions.
 - Tasks opens on the current List/Agenda view, then shows Add task. The form appears only after Add task or an edit/search-focus action. Task filters, optional task details, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
 - App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
@@ -32,7 +32,7 @@ The disclosure control uses a visible title, a short state summary, a plus/minus
 1. Welcome: explain that data stays on the device by default.
 2. Main currency: choose a default currency; allow later changes without rewriting old entries.
 3. App time: explain Usage Access, with `Not now` as a valid choice.
-4. Home: show the four cards with honest empty states.
+4. Home: show the compact Money widget and the other source cards with honest empty states.
 
 Do not force account creation, cloud sync, or Usage Access permission during onboarding.
 
@@ -40,7 +40,7 @@ Do not force account creation, cloud sync, or Usage Access permission during onb
 
 | Card | Populated state | Empty or unavailable state |
 | --- | --- | --- |
-| Money | Period total and entry count. | `Add your first entry` or `No entries in this period`. |
+| Money | Main-currency balance plus selected-period spending and income. | `EUR 0.00` (or the configured main currency) with an honest empty entry list. |
 | App time | Total duration, last-read time, and top apps. | `Allow Usage Access` or `No usage data for this period`. |
 | Tasks | Open count, overdue count, and next due task. | `All clear` with add action. |
 | Notes | Pinned and recent notes. | `Create a note`. |

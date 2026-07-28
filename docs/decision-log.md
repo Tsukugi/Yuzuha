@@ -659,3 +659,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The user sees existing information before being asked to create something. The add form appears only with clear intent, and editing remains one tap from a record.
 - Consequence: The change is local navigation/form state only. No record, schema, migration, import/export format, network request, worker, or background process changes.
 - Validation: Static checks, full Jest, signed Android build, phone startup, and emulator UI hierarchy smoke must cover list-first entry, Add-to-form, cancel, save, edit, and Home Quick capture paths.
+
+## DEC-093: Keep Home to one derived Money widget
+
+- Status: Accepted.
+- Context: The reference finance UI is useful for Money, but putting accounts, quick actions, spending charts, and cross-feature cards on Home made the first view large and pulled attention away from current records. The user also requires a list-first flow: open a feature, see current entries, then choose Add.
+- Decision: Home shows one compact, tappable Money widget with the current main-currency account balance and selected-period spending/income. Money shows a green balance/activity card, then the current entries and Add money entry; account balances and advanced money tools stay behind their existing sections. Remove the React shell title, description, and visible bundle label.
+- Reason: This keeps the reference hierarchy where it helps the money workflow, keeps Home small, and preserves the existing list-first capture boundary.
+- Consequence: The widget is derived from current local data and has no persistence, schema, migration, network request, worker, or background refresh. The existing Android summary widget remains a separate count-only projection.
+- Validation: typecheck, lint, full Jest, signed release build, Xiaomi install, cold/warm Money hierarchy checks, no-duplicate-form-list check, and filtered logcat smoke.

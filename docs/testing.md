@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-07-28 Android UI simplification pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-07-28 Money/Home reference UI pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -12,14 +12,15 @@ Status: Current test strategy through the 2026-07-28 Android UI simplification p
 
 ## UI simplification evidence
 
-- `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the disclosure changes.
-- The signed release APK was rebuilt with Java 17, installed on emulator `emulator-5554`, and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and signer `Yuzuha Release`.
-- Emulator smoke confirms Home shows Quick capture and Search workspace with More home tools and Dashboard settings collapsed; expanding More home tools reveals Review and Data tools.
-- Money shows More money actions, Filter entries, and More entry details collapsed, with the labeled New money entry form visible. Expanding More money actions reveals budgets, report, transfer, split, and recurring actions.
-- Money now opens on the Entries list with Add money entry; the form is only visible after that action or an edit-focus action. The add form keeps type, amount, category, and account visible, with payee/note optional.
+- `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
+- Full Jest passes: 51 suites and 229 tests.
+- The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The APK reports package `dev.yuzuha`, version `0.1.0`, and the private release signer.
+- Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
+- Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
+- The explicit Money add action opens `New money entry` with Type, Amount, Category, Account, collapsed `More entry details`, and `Save entry`. The form does not render the entry list underneath it.
 - Notes opens on the notes list with Add note; Search notes is collapsed and the form is only visible after Add note or an edit-focus action. The add form keeps title/body visible and places formatting/tags under More note details. Tasks opens on Task view with Task filters collapsed and Add task; its form is only visible after Add task or an edit-focus action.
 - Search shows Search options collapsed.
-- The final signed APK installed on Xiaomi `42adce68` (`M2012K11AG`) and launched `dev.yuzuha/.MainActivity` at version `0.1.0`. Xiaomi rejects adb touch injection with `INJECT_EVENTS`, so manual tapping on the phone is required for the Add-to-form interaction check.
+- Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 

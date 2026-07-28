@@ -1,21 +1,23 @@
 # Implementation plan
 
-Status: Planned work order for the first working Android release. The current Android UI simplification pass is implemented and recorded below; older phase notes remain historical.
+Status: Planned work order for the first working Android release. The current Money/Home reference UI pass is implemented and recorded below; older phase notes remain historical.
 
-## Current implementation review: Android UI simplification
+## Current implementation review: Money/Home reference UI
 
-The 2026-07-28 UI pass uses one typed `Disclosure` component for secondary controls. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report were reviewed against the product-plan rule that capture comes first and dashboard clutter stays bounded.
+The 2026-07-28 pass applies the supplied finance reference to Money while keeping Home small. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.
 
 Delivered:
 
-- visible primary actions for Quick capture, Search workspace, money entry, note title/body, task title/save, and App Time permission/report state;
-- list-first Money, Notes, and Tasks entry with separate Add actions; Home Quick capture opens the matching form directly while normal navigation remains list-first;
+- a title-free React shell with no visible app description or bundle label;
+- one derived Home Money widget with main-currency balance and selected-period spending/income;
+- a Money balance/activity card followed by the current entry list and separate Add money entry action;
+- list-first Money, Notes, and Tasks entry with separate Add actions;
 - minimal add forms with Money type/amount/category/account, Notes title/body, and Tasks title/save visible first;
 - collapsed optional actions and settings for filters, reports, management, formatting, saved searches, task tools, focus sessions, time goals, and data operations;
 - deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
 - no schema, migration, import/export format, network request, worker, or background process.
 
-Exit evidence: signed Java 17 release build, APK signer/version inspection, emulator install/startup, UI hierarchy smoke across the reviewed screens, typecheck, lint, and diff checks.
+Exit evidence: signed Java 17 release build, Xiaomi install/startup, Money list/form UI hierarchy smoke, 51 Jest suites/229 tests, typecheck, lint, and diff checks.
 
 ## Milestone 0: confirm the product contract
 

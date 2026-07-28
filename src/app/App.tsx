@@ -33,7 +33,7 @@ export function App() {
   return (
     <SafeAreaProvider>
       <AppStoreProvider>
-        <MainApp bundleVersion={decision.version} />
+        <MainApp />
       </AppStoreProvider>
     </SafeAreaProvider>
   );
@@ -43,7 +43,6 @@ function StartupScreen({message}: {message: string}) {
   return (
     <SafeAreaView style={styles.startup}>
       <View>
-        <Text style={styles.logo}>Yuzuha</Text>
         <Text style={styles.message}>{message}</Text>
         <ActivityIndicator color="#8be9c1" style={styles.spinner} />
       </View>
@@ -53,7 +52,6 @@ function StartupScreen({message}: {message: string}) {
 
 const styles = StyleSheet.create({
   startup: {flex: 1, backgroundColor: '#101820', justifyContent: 'center', padding: 28},
-  logo: {color: '#f4f7f5', fontSize: 42, fontWeight: '800', letterSpacing: -1},
   message: {color: '#aebdb7', fontSize: 16, lineHeight: 24, marginTop: 12},
   spinner: {alignSelf: 'flex-start', marginTop: 24},
 });

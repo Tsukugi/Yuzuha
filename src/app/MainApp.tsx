@@ -68,7 +68,6 @@ import {validateAppGroupDraft} from '../shared/appGroupLifecycle';
 import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {validateTaskTemplateDraft, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
-import {QUICK_CAPTURE_OPTIONS} from '../shared/quickCapture';
 import {sharedCaptureTitle, type SharedCapture} from '../shared/shareCapture';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
@@ -89,19 +88,19 @@ type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
 
 const colors = {
-  background: '#101820',
-  card: '#19272a',
-  cardRaised: '#203234',
-  text: '#f4f7f5',
-  muted: '#aebdb7',
-  accent: '#8be9c1',
-  accentText: '#102019',
-  warning: '#ffd166',
-  danger: '#ff8b8b',
-  border: '#2b4140',
+  background: '#F7F9FC',
+  card: '#FFFFFF',
+  cardRaised: '#EFF5F2',
+  text: '#1C2430',
+  muted: '#6F7785',
+  accent: '#16A37C',
+  accentText: '#FFFFFF',
+  warning: '#D9931E',
+  danger: '#C94F5C',
+  border: '#E5EAF0',
 };
 
-export function MainApp({bundleVersion}: {bundleVersion: string}) {
+export function MainApp() {
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [pendingAddTab, setPendingAddTab] = useState<QuickCaptureTab | null>(null);
@@ -299,14 +298,6 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
 
   return (
     <SafeAreaView style={styles.app}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>Yuzuha</Text>
-          <Text style={styles.subtitle}>Your private daily desk</Text>
-        </View>
-        <Text style={styles.version}>Bundle {bundleVersion}</Text>
-      </View>
-
       <View style={styles.content}>
         {sharedCapture ? (
           <SharedCaptureScreen
@@ -325,7 +316,7 @@ export function MainApp({bundleVersion}: {bundleVersion: string}) {
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onAdd={nextTab => {setPendingAddTab(nextTab); setTab(nextTab);}} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
@@ -423,7 +414,6 @@ function SharedCaptureScreen({
 function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'normal' | 'danger'}) {
   return (
     <SafeAreaView style={styles.loading}>
-      <Text style={styles.brand}>Yuzuha</Text>
       <Text style={[styles.loadingMessage, tone === 'danger' && styles.dangerText]}>{message}</Text>
     </SafeAreaView>
   );
@@ -432,20 +422,17 @@ function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'nor
 function HomeScreen({
   data,
   onNavigate,
-  onAdd,
   onOpenDataTools,
   onOpenSearch,
   onOpenReview,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
-  onAdd: (tab: QuickCaptureTab) => void;
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
   onOpenReview: () => void;
 }) {
   const {setWeekStartsOn} = useAppStore();
-  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [homeToolsOpen, setHomeToolsOpen] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
   const [homePeriod, setHomePeriod] = useState<Period>('day');
@@ -462,7 +449,11 @@ function HomeScreen({
   const recentNotes = activeNotes.filter(note => isInPeriod(note.updatedAt, range)).slice(0, 3);
   const appTimeSeconds = sumUsage(data.usageSnapshots, periodDates);
   const hasUsagePermission = data.usageRead.permission === 'granted';
-
+  const activeMainAccounts = data.accounts.filter(account => !account.isArchived && account.currency === data.mainCurrency);
+  const totalBalanceMinor = activeMainAccounts.reduce(
+    (total, account) => total + calculateAccountBalance(account, data.money, data.transfers),
+    0,
+  );
   async function saveWeekStart(weekStartsOn: WeekStartDay) {
     setWeekStartError(null);
     try {
@@ -474,57 +465,26 @@ function HomeScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.pageTitle}>{selectedPeriodLabel}</Text>
-      <Text style={styles.pageIntro}>A small, honest view of what is in your workspace.</Text>
-      <PrimaryButton label={quickCaptureOpen ? 'Close quick capture' : 'Quick capture'} onPress={() => setQuickCaptureOpen(current => !current)} />
-      {quickCaptureOpen && (
-        <View style={styles.segmentRow}>
-          {QUICK_CAPTURE_OPTIONS.map(option => (
-            <TextButton key={option.target} label={option.label} onPress={() => {setQuickCaptureOpen(false); onAdd(option.target);}} />
-          ))}
-        </View>
-      )}
-      <TextButton label="Search workspace" onPress={onOpenSearch} />
-      <Disclosure
-        title="More home tools"
-        subtitle="Review and data tools"
-        open={homeToolsOpen}
-        onPress={() => setHomeToolsOpen(current => !current)}>
-        <TextButton label="Review this period" onPress={onOpenReview} />
-        <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
-      </Disclosure>
+      <Text style={styles.pageTitle}>Overview</Text>
+      <Text style={styles.pageIntro}>{selectedPeriodLabel} · {formatPeriodRange(range)}</Text>
 
-      <SectionTitle title="Dashboard period" />
-      <View style={styles.formCard}>
-        <Text style={styles.cardDetail}>Selected range: {formatPeriodRange(range)}. Cards use this local range; no background refresh is added.</Text>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="Day" selected={homePeriod === 'day'} onPress={() => setHomePeriod('day')} />
-          <SegmentButton label="Week" selected={homePeriod === 'week'} onPress={() => setHomePeriod('week')} />
-          <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
+      <Pressable
+        accessibilityLabel="Open money"
+        accessibilityRole="button"
+        style={({pressed}) => [styles.homeMoneyWidget, styles.cardShadow, pressed && styles.pressed]}
+        onPress={() => onNavigate('money')}>
+        <View style={styles.homeSectionHeader}>
+          <Text style={styles.homeBalanceLabel}>Money</Text>
+          <Text style={styles.homeBalanceCurrency}>{data.mainCurrency}</Text>
         </View>
-      </View>
-      <Disclosure
-        title="Dashboard settings"
-        subtitle={`Week starts ${data.weekStartsOn === 0 ? 'Sunday' : 'Monday'}`}
-        open={dashboardSettingsOpen}
-        onPress={() => setDashboardSettingsOpen(current => !current)}>
-        <Text style={styles.formLabel}>Week starts on</Text>
-        <Text style={styles.cardDetail}>Used by weekly Home, Money, App Time, Review, and budget views.</Text>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
-          <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
-        </View>
-        {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
-      </Disclosure>
+        <Text style={styles.homeBalanceValue}>{formatMoney(totalBalanceMinor, data.mainCurrency)}</Text>
+        <Text style={styles.homeBalanceDetail}>
+          {formatMoney(expenses, data.mainCurrency)} spent · {formatMoney(income, data.mainCurrency)} income {selectedPeriodLabel.toLowerCase()}
+        </Text>
+        <Text style={styles.homeWidgetAction}>Open money</Text>
+      </Pressable>
 
       <View style={styles.cardGrid}>
-        <SummaryCard
-          title="Money"
-          value={formatMoney(expenses, data.mainCurrency)}
-          detail={`${formatMoney(income, data.mainCurrency)} income ${selectedPeriodLabel.toLowerCase()}`}
-          action="Open money"
-          onPress={() => onNavigate('money')}
-        />
         <SummaryCard
           title="App time"
           value={hasUsagePermission ? formatDuration(appTimeSeconds) : 'Not connected'}
@@ -547,6 +507,33 @@ function HomeScreen({
           onPress={() => onNavigate('notes')}
         />
       </View>
+
+      <TextButton label="Search workspace" onPress={onOpenSearch} />
+      <Disclosure
+        title="Dashboard period"
+        subtitle={formatPeriodRange(range)}
+        open={dashboardSettingsOpen}
+        onPress={() => setDashboardSettingsOpen(current => !current)}>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Day" selected={homePeriod === 'day'} onPress={() => setHomePeriod('day')} />
+          <SegmentButton label="Week" selected={homePeriod === 'week'} onPress={() => setHomePeriod('week')} />
+          <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
+        </View>
+        <Text style={styles.formLabel}>Week starts on</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
+          <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
+        </View>
+        {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
+      </Disclosure>
+      <Disclosure
+        title="More home tools"
+        subtitle="Review and data tools"
+        open={homeToolsOpen}
+        onPress={() => setHomeToolsOpen(current => !current)}>
+        <TextButton label="Review this period" onPress={onOpenReview} />
+        <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
+      </Disclosure>
 
       <SectionTitle title={`Recent notes ${selectedPeriodLabel.toLowerCase()}`} />
       {recentNotes.length === 0 ? (
@@ -1531,6 +1518,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   );
   const listEntries = filterMoneyEntries(listSourceEntries, entryFilter, new Date(), data.weekStartsOn);
   const filteredTotals = summarizeMoneyEntries(listEntries);
+  const mainCurrencyAccounts = data.accounts.filter(account => !account.isArchived && account.currency === currentData.mainCurrency);
+  const totalBalanceMinor = mainCurrencyAccounts.reduce(
+    (total, account) => total + calculateAccountBalance(account, currentData.money, currentData.transfers),
+    0,
+  );
+  const mainFilteredTotal = filteredTotals.find(total => total.currency === currentData.mainCurrency);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
   const activeEntryFilterLabels = [
@@ -1580,6 +1573,30 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+        {!entryFormOpen && (
+          <View style={[styles.moneyOverviewCard, styles.cardShadow]}>
+            <View style={styles.moneyBalanceCard}>
+              <View style={styles.homeSectionHeader}>
+                <Text style={styles.moneyBalanceLabel}>Total balance</Text>
+                <Text style={styles.moneyBalanceCurrency}>{currentData.mainCurrency}</Text>
+              </View>
+              <Text style={styles.moneyBalanceValue}>{formatMoney(totalBalanceMinor, currentData.mainCurrency)}</Text>
+              <Text style={styles.moneyBalanceDetail}>
+                {mainCurrencyAccounts.length} active {mainCurrencyAccounts.length === 1 ? 'account' : 'accounts'}
+              </Text>
+            </View>
+            <View style={styles.moneyActivityRow}>
+              <View>
+                <Text style={styles.moneyOverviewMeta}>{entryFilterSummary}</Text>
+                <Text style={styles.moneyActivityValue}>{mainFilteredTotal ? formatMoney(mainFilteredTotal.expenseMinor, currentData.mainCurrency) : formatMoney(0, currentData.mainCurrency)} spent</Text>
+              </View>
+              <View style={styles.moneyActivityRight}>
+                <Text style={styles.moneyOverviewMeta}>Net</Text>
+                <Text style={styles.moneyActivityValue}>{mainFilteredTotal ? formatMoney(mainFilteredTotal.incomeMinor - mainFilteredTotal.expenseMinor, currentData.mainCurrency) : formatMoney(0, currentData.mainCurrency)}</Text>
+              </View>
+            </View>
+          </View>
+        )}
         {!entryFormOpen && renderEntryList()}
         {!entryFormOpen && (
           <>
@@ -1804,33 +1821,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           ))}
         </Disclosure>}
 
-        {entryFormOpen && (<>
-        <SectionTitle title={`Entries (${listEntries.length})`} />
-        {listEntries.length === 0 ? (
-          <EmptyState text="No money entries match these filters." />
-        ) : (
-          listEntries
-            .slice(0, 20)
-            .map(entry => (
-            <Pressable
-              key={entry.id}
-              accessibilityLabel={`Edit ${entry.category} ${formatMoney(entry.amountMinor, entry.currency)}`}
-              accessibilityRole="button"
-              style={({pressed}) => [styles.listRow, pressed && styles.pressed]}
-              onPress={() => startEdit(entry)}>
-              <View style={styles.listBody}>
-                <Text style={styles.listTitle}>{entry.category}</Text>
-                <Text style={styles.listMeta}>
-                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || formatDate(entry.occurredAt)].filter(Boolean).join(' · ')}
-                </Text>
-              </View>
-              <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
-                {entry.kind === 'income' ? '+' : '-'}
-                {formatMoney(entry.amountMinor, entry.currency)}
-              </Text>
-            </Pressable>
-            ))
-        )}</>)}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -4884,18 +4874,15 @@ function TabButton({label, icon, selected, onPress}: {label: string; icon: strin
 const styles = StyleSheet.create({
   app: {flex: 1, backgroundColor: colors.background},
   flex: {flex: 1},
-  header: {alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12},
-  brand: {color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5},
-  subtitle: {color: colors.muted, fontSize: 13, marginTop: 3},
-  version: {color: colors.muted, fontSize: 11, marginBottom: 2},
   content: {flex: 1},
-  scrollContent: {padding: 20, paddingBottom: 36},
+  scrollContent: {padding: 20, paddingBottom: 36, paddingTop: 22},
   pageTitle: {color: colors.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6},
   pageIntro: {color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 6, marginBottom: 18},
   editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
   cardGrid: {gap: 12},
-  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 16},
+  cardShadow: {elevation: 2, shadowColor: '#1C2430', shadowOffset: {height: 4, width: 0}, shadowOpacity: 0.06, shadowRadius: 12},
+  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: 18},
   disabledCard: {opacity: 0.72},
   cardTitle: {color: colors.muted, fontSize: 14, fontWeight: '700', textTransform: 'uppercase'},
   cardValue: {color: colors.text, fontSize: 23, fontWeight: '800', marginTop: 9},
@@ -4907,19 +4894,19 @@ const styles = StyleSheet.create({
   backButton: {alignSelf: 'flex-start', marginBottom: 12},
   backButtonText: {color: colors.accent, fontSize: 15, fontWeight: '800'},
   sectionTitle: {color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 10},
-  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginTop: 12, overflow: 'hidden'},
+  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, overflow: 'hidden'},
   disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 62, paddingHorizontal: 14, paddingVertical: 10},
   disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: 14},
   disclosureTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
   disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: 4},
   disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: 14},
-  emptyState: {backgroundColor: colors.card, borderRadius: 12, color: colors.muted, fontSize: 15, lineHeight: 22, padding: 16},
+  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, color: colors.muted, fontSize: 15, lineHeight: 22, padding: 16},
   listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   listBody: {flex: 1},
   listTitle: {color: colors.text, fontSize: 16, fontWeight: '700'},
   listMeta: {color: colors.muted, fontSize: 13, marginTop: 5},
   chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
-  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 16},
+  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: 16},
   searchAccessNote: {color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10},
   searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: 14},
   searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase'},
@@ -4940,7 +4927,7 @@ const styles = StyleSheet.create({
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
-  input: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
+  input: {backgroundColor: '#F4F7FA', borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
   quietHoursInput: {flex: 1, minWidth: 0},
   smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
@@ -4955,7 +4942,7 @@ const styles = StyleSheet.create({
   amount: {fontSize: 15, fontWeight: '800', marginLeft: 12},
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
-  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginBottom: 10, padding: 15},
+  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: 10, padding: 15},
   savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 10, paddingTop: 10},
   noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
   attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
@@ -4978,7 +4965,7 @@ const styles = StyleSheet.create({
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},
   completedText: {color: colors.muted, textDecorationLine: 'line-through'},
-  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', paddingBottom: 8, paddingTop: 8},
+  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: 8, paddingTop: 8, shadowColor: '#1C2430', shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
   tab: {alignItems: 'center', flex: 1, paddingVertical: 3},
   tabIcon: {color: colors.muted, fontSize: 20, height: 25},
   tabLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
@@ -4986,4 +4973,22 @@ const styles = StyleSheet.create({
   loading: {backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: 28},
   loadingMessage: {color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12},
   dangerText: {color: colors.danger},
+  homeMoneyWidget: {backgroundColor: colors.accent, borderRadius: 22, marginBottom: 16, padding: 20},
+  homeWidgetAction: {color: colors.accentText, fontSize: 14, fontWeight: '800', marginTop: 14},
+  homeBalanceLabel: {color: colors.accentText, fontSize: 16, fontWeight: '700'},
+  homeBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
+  homeBalanceValue: {color: colors.accentText, fontSize: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 14},
+  homeBalanceDetail: {color: colors.accentText, fontSize: 14, marginTop: 12, opacity: 0.85},
+  homeSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
+  homeMuted: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 14},
+  moneyOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginBottom: 18, overflow: 'hidden'},
+  moneyBalanceCard: {backgroundColor: colors.accent, padding: 20},
+  moneyBalanceLabel: {color: colors.accentText, fontSize: 16, fontWeight: '700'},
+  moneyBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
+  moneyBalanceValue: {color: colors.accentText, fontSize: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 14},
+  moneyBalanceDetail: {color: colors.accentText, fontSize: 14, marginTop: 12, opacity: 0.85},
+  moneyOverviewMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
+  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, padding: 18},
+  moneyActivityRight: {alignItems: 'flex-end'},
+  moneyActivityValue: {color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 5},
 });

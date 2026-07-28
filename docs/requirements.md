@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: Current implementation trace plus planned requirements. Requirement IDs are stable references for issues, tests, and release notes.
+Status: Current implementation trace plus planned requirements. Requirement IDs are stable references for issues, tests, and release notes. The current Home/Money UI boundary supersedes older Quick capture wording below: Home has one derived Money widget, and Money stays list-first with a separate Add money entry action.
 
 ## Startup and installer
 
@@ -335,7 +335,7 @@ Current subtask extension: Tasks support one optional same-list parent link. Mis
 
 Current template extension: Tasks support local templates with unique names, strict title/details/priority/list/project fields, archive/restore, edit/delete, and direct creation of normal tasks. Archived templates cannot be used. Template references keep projects and lists from being deleted, and template data is validated across JSON import, encrypted backup restore, SQLite persistence, and global search.
 
-Current quick-capture extension: Home shows a Quick capture action with Add money, Add note, and Add task targets. Each target opens the existing feature form; no separate capture record, schema field, or background process is added.
+Current Home/Money UI boundary: Home shows one derived Money widget with main-currency balance and selected-period spending/income. Money opens the current entries before the separate Add money entry action; the form is not rendered on normal entry. This changes no record, schema field, migration, or background process.
 
 Current Android share-capture extension: `ACTION_SEND` text with optional subject is bounded to 20,000 characters before the native bridge and normalized again in shared code. Supported `EXTRA_STREAM` image, PDF, and plain-text files require a readable provider name and are bounded to 10 MiB before private copy/checksum verification. Text can save as a note or Inbox task; file shares save as a note attachment only. The user must review before any save. Cold-start and warm-app delivery use the single-task activity and deduplicate the same payload; consumed text, subject, and stream extras are cleared. No app schema, network request, or persisted draft is added.
 
