@@ -35,6 +35,13 @@ The release process does not auto-commit, auto-push, generate a new signing key,
 - preserved the existing note form, attachments, links, saved searches, and note-to-task behavior; no schema, migration, network request, worker, or background process changed;
 - typecheck, lint, diff checks, 52 Jest suites/231 tests, signed Java 17 release build, Xiaomi light/dark screenshots, launcher add-form smoke, and filtered logcat checks passed. Local APK SHA-256: `F21879B74F871B0DA6CD317EC2DBBCBD7DF06CB05E4671F46E36B27AF11106FB`. No GitHub release was created for this local UI pass.
 
+2026-07-28 Android Tasks UX pass:
+
+- kept Tasks list-first and added All/Today/Upcoming/Completed tabs, Today/Upcoming/no-date sections, a compact overview, compact task rows, and one floating Add task action;
+- moved Task tools, Agenda, Overdue, sorting, reminders, dependencies, projects, templates, lists, and recurrence below the primary task dashboard;
+- preserved existing task records, completion, reminders, calendar draft, projects, dependencies, templates, lists, recurrence, and edit behavior; no schema, migration, network request, worker, or background process changed;
+- typecheck, lint, diff checks, 52 Jest suites/231 tests, signed Java 17 release build, Xiaomi light/dark screenshots, launcher add-form smoke, and filtered logcat checks passed. Local APK SHA-256: `14BB448A7D26D8E958AFA0FDA8F46A998115278BD084DFBD8F77AB433D6FC4BA`. No GitHub release was created for this local UI pass.
+
 2026-07-28 Android Money/Home reference UI pass:
 
 - removed the Yuzuha title, description, and bundle label from the React shell and startup content;

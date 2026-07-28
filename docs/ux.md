@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-28 Notes UX pass.
+Status: Current Android MVP through the 2026-07-28 Tasks UX pass.
 
 ## Navigation
 
@@ -19,7 +19,7 @@ The first visible action on a screen should match the main job for that screen. 
 - Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
 - Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
 - Notes opens on the current note list with an always-visible search field, All/Pinned/Archived chips, pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Attachments, links, and destructive actions stay behind each card's More action.
-- Tasks opens on the current List/Agenda view, then shows Add task. The form appears only after Add task or an edit/search-focus action. Task filters, optional task details, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
+- Tasks opens with All/Today/Upcoming/Completed tabs, Today and Upcoming sections, a compact overview, compact task rows, and one floating Add task action. The form appears only after Add task or an edit/search-focus action. Task tools, Agenda, Overdue, sorting, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
 - App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
 - Search keeps the query visible. Archived-result controls and the Usage Access note use Search options.
 - Data tools starts with export, import, restore, and delete sections closed. The user opens only the operation needed.
@@ -62,6 +62,10 @@ Money shows a split-aware spending overview after the current entry list. Catego
 ### Read Notes
 
 Notes shows current records first. Search stays visible at the top, and the All, Pinned, and Archived chips change the local list without changing saved data. With no search, pinned notes appear in their own section and the remaining active notes appear under Recent notes. Each card shows a short preview, tags, updated time, and compact metadata; tapping the card or Open opens the existing editor. More reveals task conversion, pin/archive, links, attachments, and delete. The floating plus button is the only normal add action, and it opens the form after the list has been seen.
+
+### Read Tasks
+
+Tasks shows current work before the form. All, Today, Upcoming, and Completed are the primary local tabs. All shows Today first, then Upcoming, then open tasks without a due date; the compact overview shows open tasks, completed-this-week count, and open-task counts by list. Today and Upcoming can open their focused tab or the local 14-day Agenda. Each task row keeps completion, title, due date, list/project metadata, priority, and a More action visible; calendar export, delete, manual movement, and other secondary actions appear only after More. The floating plus button opens the simple title-first form.
 
 ### Read app time
 

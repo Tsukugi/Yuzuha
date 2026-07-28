@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: Current implementation trace plus planned requirements. Requirement IDs are stable references for issues, tests, and release notes. The current Home/Money/Notes UI boundary supersedes older Quick capture wording below: Home has one derived Money widget, Money stays list-first with a separate Add money entry action, Money graphs plus System/Light/Dark themes are derived presentation state, and Notes keeps search/list review first with a separate floating Add note action.
+Status: Current implementation trace plus planned requirements. Requirement IDs are stable references for issues, tests, and release notes. The current Home/Money/Notes/Tasks UI boundary supersedes older Quick capture wording below: Home has one derived Money widget, Money stays list-first with a separate Add money entry action, Money graphs plus System/Light/Dark themes are derived presentation state, Notes keeps search/list review first with a separate floating Add note action, and Tasks keeps primary task tabs/list review first with a separate floating Add task action.
 
 ## Startup and installer
 

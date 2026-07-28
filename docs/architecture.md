@@ -10,6 +10,8 @@ Current Money graph and theme addition: `buildMoneyChartData` expands split line
 
 Current Notes UX addition: `NotesScreen` keeps the local search field and list visible, derives All/Pinned/Archived filters plus pinned/recent sections, renders compact cards and a floating add action, and keeps attachments, links, and destructive actions behind card expansion. The pass uses existing note records and actions only; it adds no schema, migration, network request, worker, timer, or polling loop.
 
+Current Tasks UX addition: `TasksScreen` derives primary All/Today/Upcoming/Completed tabs, Today/Upcoming/no-date sections, a local task overview, compact task rows, and a floating add action from existing task/list/project records. Task tools, Agenda, and deeper filters remain available below the dashboard. The pass adds no schema, migration, network request, worker, timer, or polling loop.
+
 Current pass addition: Notes support stable links to tasks, projects, money entries, and focus sessions. Data tools keep their bounded current-format import, latest-import receipt/undo, JSON restore, and encrypted-backup file boundaries unchanged apart from carrying the new current workspace collection.
 
 Current App Time addition: the Android report can select Today, This week, or This month. `getLocalDayRanges` splits the selected local period into one native query per local day. Queries run sequentially, snapshots are aggregated with the queried day as their local date, and `replaceUsageSnapshots` runs once after all queries succeed. The selected range is a derived view and adds no schema, worker, timer, or polling loop.

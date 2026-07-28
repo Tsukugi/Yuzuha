@@ -1,10 +1,10 @@
 # Implementation plan
 
-Status: Planned work order for the first working Android release. The current Notes UX pass is implemented and recorded below; older phase notes remain historical.
+Status: Planned work order for the first working Android release. The current Tasks UX pass is implemented and recorded below; older phase notes remain historical.
 
-## Current implementation review: Notes UX
+## Current implementation review: Tasks UX
 
-The 2026-07-28 pass applies the supplied card/filter visual language to Notes while keeping the local record workflow first. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.
+The 2026-07-28 pass applies the supplied card/filter visual language to Tasks while keeping the local record workflow first. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.
 
 Delivered:
 
@@ -14,13 +14,14 @@ Delivered:
 - split-aware category spending bars and a local daily income/spending chart using pure derived data;
 - System, Light, and Dark theme tokens applied to startup, shell, Money, and secondary screens;
 - Notes search kept visible with All/Pinned/Archived filters, pinned/recent sections, compact tappable cards, collapsed card details, and a floating Add note action;
+- Tasks primary tabs, Today/Upcoming/no-date sections, compact task rows, a task overview, collapsed advanced tools, and a floating Add task action;
 - list-first Money, Notes, and Tasks entry with separate Add actions;
 - minimal add forms with Money type/amount/category/account, Notes title/body, and Tasks title/save visible first;
 - collapsed optional actions and settings for filters, reports, management, formatting, saved searches, task tools, focus sessions, time goals, and data operations;
 - deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
 - no schema, migration, import/export format, network request, worker, or background process.
 
-Exit evidence: signed Java 17 release build, Xiaomi install/startup, Notes screenshots and UI hierarchy smoke in light/dark modes, form-open smoke through the launcher action, 52 Jest suites/231 tests, typecheck, lint, and diff checks.
+Exit evidence: signed Java 17 release build, Xiaomi install/startup, Tasks screenshots and UI hierarchy smoke in light/dark modes, launcher add-form smoke, 52 Jest suites/231 tests, typecheck, lint, and diff checks.
 
 ## Milestone 0: confirm the product contract
 

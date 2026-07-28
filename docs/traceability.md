@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the 2026-07-28 Notes UX pass.
+Status: Traceability baseline through the 2026-07-28 Tasks UX pass.
 
 ## Authoritative source by concern
 
@@ -75,7 +75,7 @@ Current app-group-search-focus evidence: `CROSS-02` also maps to `globalSearchNa
 
 Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavigation`, `pendingBudgetId`, `MoneyScreen`, `MoneyBudgetScreen`, `updateMoneyBudget`, `updateMoneyBudgetRecord`, the budget lifecycle assertion in `src/shared/moneyBudget.test.ts`, the budget focus assertion in `src/shared/globalSearch.test.ts`, and the 2026-07-28 budget-search-focus release note. Budget results load the current budget in the Money edit form; deleting the temporary smoke budget leaves no budget record.
 
-Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 signed Xiaomi smoke checks the title-free shell, compact Home Money widget, Money balance/activity card, current entry list, Add money entry, spending overview, daily movement scope, Notes search/chips/pinned-recent cards/floating Add note, collapsed secondary sections, and the form-open state in system light and dark modes. Pure chart-data tests cover category totals, complete daily ranges, and split-line handling. The pass adds no schema, migration, network request, worker, or background process.
+Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 signed Xiaomi smoke checks the title-free shell, compact Home Money widget, Money balance/activity card, current entry list, Add money entry, spending overview, daily movement scope, Notes search/chips/pinned-recent cards/floating Add note, Tasks primary tabs/Today/Upcoming/overview/compact dashboard/Add task, collapsed secondary sections, and the form-open state in system light and dark modes. Pure chart-data tests cover category totals, complete daily ranges, and split-line handling. The pass adds no schema, migration, network request, worker, or background process.
 
 ## Open decision register
 

@@ -686,3 +686,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The user can review current notes quickly, find a note without opening a secondary section, and add only after choosing to do so. Existing local actions remain available without putting every control in the scan path.
 - Consequence: The pass changes only React Native view state and theme-aware styles. It adds no AppData field, schema boundary, migration, export/import format, network request, worker, timer, or polling loop.
 - Validation: full Jest (52 suites/231 tests), typecheck, lint, signed Java 17 release build, Xiaomi light/dark screenshots, Notes hierarchy smoke, launcher add-form smoke, and filtered logcat checks.
+
+## DEC-096: Make Tasks review-first with primary tabs and compact rows
+
+- Status: Accepted.
+- Context: Tasks opened with advanced tools and a secondary Task view before the main work list. Each row exposed completion, calendar, edit, and delete actions at once. The supplied reference makes the current task state, primary tabs, compact rows, overview, and one add action the first visual hierarchy.
+- Decision: Keep All, Today, Upcoming, and Completed as the primary local tabs. In All, show Today, Upcoming, and no-due-date sections, followed by a derived task overview. Use compact rows with completion, title, due/list/project metadata, priority, and a More action; keep calendar, delete, manual movement, and advanced controls behind secondary views. Keep title first in the existing form and keep optional details under Task details.
+- Reason: The user can review and complete current work quickly, switch to the most useful scope, and add only after choosing to do so. Existing reminders, projects, dependencies, recurrence, lists, agenda, and calendar actions remain available without crowding the scan path.
+- Consequence: The pass changes only React Native view state and theme-aware styles. It adds no AppData field, schema boundary, migration, export/import format, network request, worker, timer, or polling loop.
+- Validation: full Jest (52 suites/231 tests), typecheck, lint, signed Java 17 release build, Xiaomi light/dark screenshots, Tasks hierarchy smoke, launcher add-form smoke, and filtered logcat checks.

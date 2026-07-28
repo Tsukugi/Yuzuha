@@ -3824,6 +3824,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
@@ -3999,6 +4000,16 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const todayLocalDate = localDateKey(new Date());
   const visibleTasks = sortTasks(filterTasks(currentData.tasks, filter, todayLocalDate), taskSort);
   const agendaDays = buildTaskAgenda(currentData.tasks, todayLocalDate, 14);
+  const todayTasks = sortTasks(currentData.tasks.filter(task => task.dueLocalDate === todayLocalDate), 'due');
+  const upcomingTasks = sortTasks(currentData.tasks.filter(task => task.status === 'open' && task.dueLocalDate !== null && task.dueLocalDate > todayLocalDate), 'due');
+  const noDateTasks = sortTasks(currentData.tasks.filter(task => task.status === 'open' && task.dueLocalDate === null), taskSort);
+  const completedThisWeek = currentData.tasks.filter(task => task.status === 'completed' && isInPeriod(task.updatedAt, getPeriodRange(new Date(), 'week', currentData.weekStartsOn))).length;
+  const listOverview = currentData.taskLists
+    .map(taskList => ({name: taskList.name, count: currentData.tasks.filter(task => task.status === 'open' && task.listId === taskList.id).length}))
+    .filter(item => item.count > 0)
+    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+    .slice(0, 4);
+  const maxListCount = Math.max(...listOverview.map(item => item.count), 1);
 
   function resetForm() {
     setTitle('');
@@ -4564,11 +4575,67 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     );
   }
 
+  function renderCompactTaskRow(task: Task, allowManualMove: boolean) {
+    const taskList = currentData.taskLists.find(taskListItem => taskListItem.id === task.listId);
+    const project = task.projectId === null ? null : currentData.projects.find(projectItem => projectItem.id === task.projectId);
+    const subtaskCount = subtaskCountByParent.get(task.id) ?? 0;
+    const sourceLabel = getTaskSourceLabel(task, currentData.notes);
+    const isExpanded = expandedTaskId === task.id;
+    const dueLabel = task.dueLocalDate === todayLocalDate ? 'Today' : task.dueLocalDate;
+    return (
+      <View key={task.id} style={[styles.taskCard, styles.cardShadow, task.status === 'completed' && styles.taskCardCompleted]}>
+        <View style={styles.taskCardMain}>
+          <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskCheckButton} onPress={() => void toggleTaskFromList(task.id)}>
+            <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
+              {task.status === 'completed' && <Text style={styles.checkmark}>âœ“</Text>}
+            </View>
+          </Pressable>
+          <Pressable accessibilityLabel={`Open ${task.title}`} accessibilityRole="button" style={styles.taskContentButton} onPress={() => startEditing(task)}>
+            <Text style={[styles.taskCardTitle, task.status === 'completed' && styles.completedText]} numberOfLines={2}>{task.title}</Text>
+            <View style={styles.taskMetaRow}>
+              {dueLabel && <Text style={styles.taskDueMeta}>{dueLabel}</Text>}
+              {taskList && <Text style={styles.taskMetaAccent}>{taskList.name}</Text>}
+              {project && <Text style={styles.taskMetaAccent}>{project.name}</Text>}
+              {subtaskCount > 0 && <Text style={styles.taskMeta}>{`${subtaskCount} subtasks`}</Text>}
+            </View>
+            {sourceLabel && <Text style={styles.taskMeta} numberOfLines={1}>{sourceLabel}</Text>}
+            {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
+              const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
+              return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
+            })}
+          </Pressable>
+          <View style={styles.taskCardRight}>
+            <Text style={task.priority === 'high' ? styles.taskPriorityHigh : styles.taskPriorityNormal}>{task.priority === 'high' ? '★' : '☆'}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={isExpanded ? `Hide actions for ${task.title}` : `Show actions for ${task.title}`} style={styles.taskMoreButton} onPress={() => setExpandedTaskId(current => current === task.id ? null : task.id)} disabled={busyTaskId !== null}>
+              <Text style={styles.taskMoreIcon}>•••</Text>
+            </Pressable>
+          </View>
+        </View>
+        {isExpanded && (
+          <View style={styles.taskCardActions}>
+            {allowManualMove && <TextButton label="Up" onPress={() => void moveTaskFromList(task.id, 'up')} disabled={busyTaskId !== null} />}
+            {allowManualMove && <TextButton label="Down" onPress={() => void moveTaskFromList(task.id, 'down')} disabled={busyTaskId !== null} />}
+            {task.dueLocalDate && <TextButton label="Calendar" onPress={() => void addTaskToCalendar(task)} disabled={busyTaskId !== null} />}
+            <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
+          </View>
+        )}
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.pageTitle}>Tasks</Text>
-        <Text style={styles.pageIntro}>Keep one next action visible.</Text>
+        <View style={styles.tasksHero}>
+          <View style={styles.tasksHeroCopy}>
+            <Text style={styles.pageTitle}>Tasks</Text>
+            <Text style={styles.pageIntro}>Keep the next action visible.</Text>
+          </View>
+          <View style={styles.tasksCountBadge}>
+            <Text style={styles.tasksCountValue}>{currentData.tasks.filter(task => task.status === 'open').length}</Text>
+            <Text style={styles.tasksCountLabel}>open</Text>
+          </View>
+        </View>
         {taskFormOpen && (
           <>
         <View style={styles.formCard}>
@@ -4620,6 +4687,103 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
         )}
         {!taskFormOpen && (
           <>
+        <View style={styles.taskFilterTabs}>
+          <SegmentButton label="All" selected={filter === 'all'} onPress={() => {setFilter('all'); setShowAgenda(false);}} />
+          <SegmentButton label="Today" selected={filter === 'today'} onPress={() => {setFilter('today'); setShowAgenda(false);}} />
+          <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => {setFilter('upcoming'); setShowAgenda(false);}} />
+          <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => {setFilter('completed'); setShowAgenda(false);}} />
+        </View>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        {showAgenda ? (
+          <View style={styles.taskSection}>
+            <View style={styles.taskSectionHeader}>
+              <Text style={styles.taskSectionTitle}>Agenda</Text>
+              <Text style={styles.taskSectionMeta}>14 days</Text>
+            </View>
+            <Text style={styles.taskSectionIntro}>Dated open tasks in the next two weeks.</Text>
+            {agendaDays.length === 0 ? (
+              <EmptyState text="No dated tasks in the next 14 days." />
+            ) : agendaDays.map(day => (
+              <View key={day.localDate}>
+                <Text style={styles.taskAgendaDay}>{formatTaskAgendaDay(day.localDate, todayLocalDate)}</Text>
+                {day.tasks.map(task => renderTaskRow(task, false))}
+              </View>
+            ))}
+          </View>
+        ) : filter === 'all' ? (
+          <>
+            <View style={styles.taskSection}>
+              <View style={styles.taskSectionHeader}>
+                <View style={styles.taskSectionTitleRow}>
+                  <Text style={styles.taskSectionTitle}>Today</Text>
+                  <Text style={styles.taskCountBadge}>{todayTasks.length}</Text>
+                </View>
+                <TextButton label="+ Add task" onPress={startNewTask} />
+              </View>
+              {todayTasks.length === 0 ? <EmptyState text="Nothing due today." /> : todayTasks.slice(0, 6).map(task => renderCompactTaskRow(task, false))}
+              {todayTasks.length > 6 && <TextButton label="View all today" onPress={() => setFilter('today')} />}
+            </View>
+            <View style={styles.taskSection}>
+              <View style={styles.taskSectionHeader}>
+                <View style={styles.taskSectionTitleRow}>
+                  <Text style={styles.taskSectionTitle}>Upcoming</Text>
+                  <Text style={styles.taskCountBadge}>{upcomingTasks.length}</Text>
+                </View>
+                <TextButton label="Agenda" onPress={() => setShowAgenda(true)} />
+              </View>
+              {upcomingTasks.length === 0 ? <EmptyState text="No upcoming tasks." /> : upcomingTasks.slice(0, 6).map(task => renderCompactTaskRow(task, false))}
+              {upcomingTasks.length > 6 && <TextButton label="View all upcoming" onPress={() => setFilter('upcoming')} />}
+            </View>
+            {noDateTasks.length > 0 && (
+              <View style={styles.taskSection}>
+                <View style={styles.taskSectionHeader}>
+                  <View style={styles.taskSectionTitleRow}>
+                    <Text style={styles.taskSectionTitle}>No due date</Text>
+                    <Text style={styles.taskCountBadge}>{noDateTasks.length}</Text>
+                  </View>
+                </View>
+                {noDateTasks.slice(0, 6).map(task => renderCompactTaskRow(task, true))}
+                {noDateTasks.length > 6 && <TextButton label="View all tasks" onPress={() => setFilter('all')} />}
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.taskSection}>
+            <View style={styles.taskSectionHeader}>
+              <View style={styles.taskSectionTitleRow}>
+                <Text style={styles.taskSectionTitle}>{filter === 'today' ? 'Today' : filter === 'upcoming' ? 'Upcoming' : filter === 'completed' ? 'Completed' : 'Overdue'}</Text>
+                <Text style={styles.taskCountBadge}>{visibleTasks.length}</Text>
+              </View>
+            </View>
+            {visibleTasks.length === 0 ? <EmptyState text={filter === 'completed' ? 'No completed tasks yet.' : 'No tasks match this view.'} /> : visibleTasks.map(task => renderCompactTaskRow(task, false))}
+          </View>
+        )}
+        {!showAgenda && (
+          <View style={styles.taskOverviewCard}>
+            <View style={styles.taskOverviewHeader}>
+              <View>
+                <Text style={styles.taskOverviewTitle}>Tasks overview</Text>
+                <Text style={styles.taskOverviewValue}>{currentData.tasks.filter(task => task.status === 'open').length}</Text>
+                <Text style={styles.taskOverviewMeta}>open tasks</Text>
+              </View>
+              <View style={styles.taskCompletedSummary}>
+                <Text style={styles.taskCompletedValue}>{completedThisWeek}</Text>
+                <Text style={styles.taskOverviewMeta}>completed this week</Text>
+              </View>
+            </View>
+            {listOverview.length > 0 && (
+              <View style={styles.taskOverviewList}>
+                {listOverview.map(item => (
+                  <View key={item.name} style={styles.taskOverviewRow}>
+                    <Text style={styles.taskOverviewLabel} numberOfLines={1}>{item.name}</Text>
+                    <View style={styles.taskOverviewTrack}><View style={[styles.taskOverviewFill, {width: `${Math.max(8, Math.round((item.count / maxListCount) * 100))}%`}]} /></View>
+                    <Text style={styles.taskOverviewCount}>{item.count}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
         <Disclosure
           title="Task tools"
           subtitle="Reminders, dependencies, projects, templates, lists, and recurring tasks"
@@ -4844,53 +5008,39 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           ))}
         </View>
         </Disclosure>
-        <SectionTitle title="Task view" />
-        <View style={styles.segmentRow}>
-          <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
-          <SegmentButton label="Agenda" selected={showAgenda} onPress={() => setShowAgenda(true)} />
-        </View>
-        {showAgenda ? (
-          <View>
-            <Text style={styles.searchAccessNote}>Due tasks for the next 14 device-local calendar days.</Text>
-            {agendaDays.length === 0 ? (
-              <EmptyState text="No dated tasks in the next 14 days." />
-            ) : agendaDays.map(day => (
-              <View key={day.localDate}>
-                <SectionTitle title={formatTaskAgendaDay(day.localDate, todayLocalDate)} />
-                {day.tasks.map(task => renderTaskRow(task, false))}
-              </View>
-            ))}
+        <Disclosure
+          title="Task views and filters"
+          subtitle={`${filter === 'all' ? 'All tasks' : filter} - ${showAgenda ? 'Agenda' : taskSort === 'manual' ? 'Manual order' : taskSort === 'due' ? 'Due date' : 'Priority'}`}
+          open={taskFiltersOpen}
+          onPress={() => setTaskFiltersOpen(current => !current)}>
+          <Text style={styles.formLabel}>View</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
+            <SegmentButton label="Agenda" selected={showAgenda} onPress={() => setShowAgenda(true)} />
           </View>
-        ) : (
-          <View>
-            <Disclosure
-              title="Task filters"
-              subtitle={`${filter === 'all' ? 'All tasks' : filter} · ${taskSort === 'manual' ? 'Manual order' : taskSort === 'due' ? 'Due date' : 'Priority'}`}
-              open={taskFiltersOpen}
-              onPress={() => setTaskFiltersOpen(current => !current)}>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
-              <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
-              <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
-              <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
-              <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
-            </View>
-            <Text style={styles.formLabel}>Sort list</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="Manual" selected={taskSort === 'manual'} onPress={() => setTaskSort('manual')} />
-              <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
-              <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
-            </View>
-            </Disclosure>
-            {visibleTasks.length === 0 ? (
-              <EmptyState text={data.tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this view.'} />
-            ) : visibleTasks.map(task => renderTaskRow(task, filter === 'all' && taskSort === 'manual'))}
+          <Text style={styles.formLabel}>Filter</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
+            <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
+            <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
+            <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
+            <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
           </View>
-        )}
-        <PrimaryButton label="Add task" onPress={startNewTask} />
+          <Text style={styles.formLabel}>Sort list</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Manual" selected={taskSort === 'manual'} onPress={() => setTaskSort('manual')} />
+            <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
+            <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
+          </View>
+        </Disclosure>
           </>
         )}
       </ScrollView>
+      {!taskFormOpen && (
+        <Pressable accessibilityRole="button" accessibilityLabel="Add task" style={[styles.tasksFab, styles.cardShadow]} onPress={startNewTask}>
+          <Text style={styles.tasksFabIcon}>+</Text>
+        </Pressable>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -5158,6 +5308,51 @@ function createStyles(colors: ThemeColors) {
   noteMarkupBold: {fontWeight: '800'},
   noteMarkupItalic: {fontStyle: 'italic'},
   noteMarkupCode: {backgroundColor: colors.cardRaised, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},
+  tasksHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
+  tasksHeroCopy: {flex: 1},
+  tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 18, minWidth: 64, paddingHorizontal: 12, paddingVertical: 9},
+  tasksCountValue: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  tasksCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
+  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', gap: 4, marginTop: 8, padding: 4},
+  taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginTop: 16, padding: 16},
+  taskSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
+  taskSectionTitleRow: {alignItems: 'center', flexDirection: 'row', gap: 8},
+  taskSectionTitle: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  taskSectionMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
+  taskSectionIntro: {color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: 6},
+  taskCountBadge: {backgroundColor: colors.cardRaised, borderRadius: 12, color: colors.accent, fontSize: 13, fontWeight: '800', minWidth: 26, paddingHorizontal: 8, paddingVertical: 4, textAlign: 'center'},
+  taskAgendaDay: {color: colors.accent, fontSize: 14, fontWeight: '800', marginTop: 16, marginBottom: 4},
+  taskCard: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: 13},
+  taskCardCompleted: {opacity: 0.78},
+  taskCardMain: {alignItems: 'flex-start', flexDirection: 'row'},
+  taskCheckButton: {paddingRight: 11, paddingTop: 2},
+  taskContentButton: {flex: 1, minWidth: 0, paddingRight: 8},
+  taskCardTitle: {color: colors.text, fontSize: 16, fontWeight: '800', lineHeight: 21},
+  taskMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6},
+  taskDueMeta: {color: colors.accent, fontSize: 13, fontWeight: '700'},
+  taskMetaAccent: {color: colors.accent, fontSize: 13},
+  taskMeta: {color: colors.muted, fontSize: 12, marginTop: 5},
+  taskCardRight: {alignItems: 'center', marginLeft: 4},
+  taskPriorityHigh: {color: colors.warning, fontSize: 21, lineHeight: 26},
+  taskPriorityNormal: {color: colors.muted, fontSize: 21, lineHeight: 26},
+  taskMoreButton: {alignItems: 'center', height: 38, justifyContent: 'center', marginTop: 5, width: 38},
+  taskMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
+  taskCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 12, paddingTop: 5},
+  taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginTop: 16, padding: 18},
+  taskOverviewHeader: {flexDirection: 'row', justifyContent: 'space-between'},
+  taskOverviewTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
+  taskOverviewValue: {color: colors.text, fontSize: 32, fontWeight: '800', marginTop: 8},
+  taskOverviewMeta: {color: colors.muted, fontSize: 13, marginTop: 3},
+  taskCompletedSummary: {alignItems: 'flex-end', backgroundColor: colors.cardRaised, borderRadius: 16, minWidth: 136, paddingHorizontal: 13, paddingVertical: 12},
+  taskCompletedValue: {color: colors.accent, fontSize: 28, fontWeight: '800'},
+  taskOverviewList: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 16, paddingTop: 14},
+  taskOverviewRow: {alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 9},
+  taskOverviewLabel: {color: colors.text, fontSize: 13, width: 96},
+  taskOverviewTrack: {backgroundColor: colors.cardRaised, borderRadius: 4, flex: 1, height: 8, overflow: 'hidden'},
+  taskOverviewFill: {backgroundColor: colors.accent, borderRadius: 4, height: 8},
+  taskOverviewCount: {color: colors.muted, fontSize: 13, fontWeight: '800', minWidth: 18, textAlign: 'right'},
+  tasksFab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 31, bottom: 18, height: 62, justifyContent: 'center', position: 'absolute', right: 20, width: 62},
+  tasksFabIcon: {color: colors.accentText, fontSize: 36, fontWeight: '300', lineHeight: 40},
   taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
   taskActions: {alignItems: 'center', flexDirection: 'row'},

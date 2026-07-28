@@ -25,6 +25,8 @@ The app supports System, Light, and Dark themes. System follows the Android sett
 
 Notes now opens with an always-visible search field, All/Pinned/Archived filters, pinned and recent sections, compact tappable note cards, collapsed note actions/details, and one floating Add note action. The note form still appears only after Add note, edit focus, or a launcher action. This is local view state and styling only; note data, attachments, links, and saved searches keep their current behavior.
 
+Tasks now opens with All/Today/Upcoming/Completed tabs, Today and Upcoming sections, a compact task overview, compact task rows, and one floating Add task action. Task tools and deeper filters stay below the main dashboard. The task form still appears only after Add task, edit focus, or a launcher action; reminders, projects, dependencies, recurrence, agenda, and lists keep their current behavior.
+
 Android also accepts `text/plain` share intents and supported file shares for images, PDFs, and plain text. Text shows a review before saving as a note or an Inbox task. A file shows its name/type/size and can be saved as a note attachment after review. Text is limited to 20,000 characters; files are limited to 10 MiB and checked by checksum. Captures are ephemeral until confirmed and do not fetch links or start background work.
 
 Android launcher shortcuts now open Add money, Add note, Add task, or App time. The first three open the matching add form; App time opens its screen. They create no record, store no shortcut state, and start no background work.
