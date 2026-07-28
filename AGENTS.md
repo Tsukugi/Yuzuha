@@ -56,6 +56,8 @@ Current Home status: Home offers the same Today, This week, and This month local
 
 Current Money status: Money entry history offers local All/Day/Week/Month, type, category, and account filters. The visible current non-split entry list and currency-separated filtered totals use the same filter, archived selected references remain visible, and the pass adds no schema, migration, network request, or background process. Check implementation evidence before describing planned work as shipped.
 
+Current periodic-money status: a new operation starts from the normal Money add form. The Yes repeat choice reveals cadence, interval, first local date, and clear missed-date options. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay unchanged. No schema, migration, network request, worker, timer, or polling loop is added. Check implementation evidence before describing this as shipped.
+
 Current Payee status: Money has optional stable payee references on entries, local payee creation, case-insensitive unique names, archive controls, JSON/encrypted-backup/SQLite persistence, current CSV fields, and global-search matching. Payees are local records and add no account, network, or background process.
 
 Current Money report status: the separate report screen uses one typed local period/type/category/account filter over source entries and split lines, shows exact scope text, excludes transfers and out-of-range entries, and keeps each currency in its own card. It adds no persisted filter preference or background work.

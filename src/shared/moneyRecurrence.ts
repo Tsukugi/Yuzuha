@@ -82,6 +82,18 @@ export function createMoneyRecurrence(
   };
 }
 
+export function setMoneyRecurrencePaused(
+  rules: MoneyRecurrenceRule[],
+  ruleId: string,
+  isPaused: boolean,
+  timestamp = new Date().toISOString(),
+): MoneyRecurrenceRule[] {
+  if (!rules.some(rule => rule.id === ruleId)) {
+    throw new Error('The periodic money operation no longer exists.');
+  }
+  return rules.map(rule => rule.id === ruleId ? {...rule, isPaused, updatedAt: timestamp} : rule);
+}
+
 export function expandDueMoneyRecurrences(
   data: AppData,
   todayLocalDate: string,

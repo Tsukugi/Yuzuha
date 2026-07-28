@@ -1,4 +1,4 @@
-import {addRecurrenceDate, createMoneyRecurrence, expandDueMoneyRecurrences, validateMoneyRecurrence} from './moneyRecurrence';
+import {addRecurrenceDate, createMoneyRecurrence, expandDueMoneyRecurrences, setMoneyRecurrencePaused, validateMoneyRecurrence} from './moneyRecurrence';
 import {emptyAppData} from '../types/domain';
 
 const accounts = emptyAppData().accounts;
@@ -83,5 +83,30 @@ describe('money recurrences', () => {
     expect(result.generatedCount).toBe(0);
     expect(result.data.money).toEqual([]);
     expect(result.data.recurrences[0].nextOccurrenceLocalDate).toBe('2026-07-27');
+  });
+
+  it('pauses and resumes an existing operation without changing its next date', () => {
+    const rule = createMoneyRecurrence(input, 'rule_pause', '2026-07-24T00:00:00.000Z');
+
+    const paused = setMoneyRecurrencePaused([rule], rule.id, true, '2026-07-26T12:00:00.000Z');
+    expect(paused[0]).toMatchObject({id: rule.id, isPaused: true, nextOccurrenceLocalDate: rule.nextOccurrenceLocalDate, updatedAt: '2026-07-26T12:00:00.000Z'});
+
+    const resumed = setMoneyRecurrencePaused(paused, rule.id, false, '2026-07-27T12:00:00.000Z');
+    expect(resumed[0]).toMatchObject({id: rule.id, isPaused: false, nextOccurrenceLocalDate: rule.nextOccurrenceLocalDate, updatedAt: '2026-07-27T12:00:00.000Z'});
+  });
+
+  it('does not expand a paused operation', () => {
+    const data = emptyAppData();
+    const rule = {...createMoneyRecurrence({...input, nextOccurrenceLocalDate: '2026-07-24'}, 'rule_paused', '2026-07-24T00:00:00.000Z'), isPaused: true};
+    data.recurrences = [rule];
+
+    const result = expandDueMoneyRecurrences(data, '2026-07-29', '2026-07-29T12:00:00.000Z');
+
+    expect(result.generatedCount).toBe(0);
+    expect(result.data).toBe(data);
+  });
+
+  it('rejects pausing an operation that is no longer present', () => {
+    expect(() => setMoneyRecurrencePaused([], 'missing', true)).toThrow('no longer exists');
   });
 });

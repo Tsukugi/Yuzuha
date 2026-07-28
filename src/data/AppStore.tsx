@@ -7,6 +7,7 @@ import {validateMoneyTransfer} from '../shared/moneyTransfer';
 import {
   createMoneyRecurrence,
   expandDueMoneyRecurrences,
+  setMoneyRecurrencePaused,
   type MoneyRecurrenceInput,
   validateMoneyRecurrence,
 } from '../shared/moneyRecurrence';
@@ -90,6 +91,7 @@ interface AppStoreValue {
   restoreWorkspace: (next: AppData, attachmentStage?: AttachmentRestoreStage) => Promise<void>;
   setWeekStartsOn: (weekStartsOn: WeekStartDay) => Promise<void>;
   addMoneyRecurrence: (input: MoneyRecurrenceInput) => Promise<void>;
+  setMoneyRecurrencePaused: (ruleId: string, isPaused: boolean) => Promise<void>;
   deleteMoneyRecurrence: (ruleId: string) => Promise<void>;
   addSplitMoney: (input: MoneySplitInput) => Promise<void>;
   addMoneyBudget: (input: MoneyBudgetInput) => Promise<void>;
@@ -449,6 +451,16 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       await commit(current => ({
         ...current,
         recurrences: current.recurrences.filter(rule => rule.id !== ruleId),
+      }));
+    },
+    [commit],
+  );
+
+  const setMoneyRecurrencePausedAction = useCallback(
+    async (ruleId: string, isPaused: boolean) => {
+      await commit(current => ({
+        ...current,
+        recurrences: setMoneyRecurrencePaused(current.recurrences, ruleId, isPaused),
       }));
     },
     [commit],
@@ -1563,6 +1575,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       setWeekStartsOn,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
+      setMoneyRecurrencePaused: setMoneyRecurrencePausedAction,
       addSplitMoney,
       addMoneyBudget,
       updateMoneyBudget,
@@ -1701,6 +1714,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       setWeekStartsOn,
       addMoneyRecurrence,
       deleteMoneyRecurrence,
+      setMoneyRecurrencePausedAction,
       setUsagePermission,
       toggleUsageExclusion,
       toggleTask,

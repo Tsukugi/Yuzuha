@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-07-28 Tasks UX pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 ## Test pyramid
 
@@ -26,6 +26,7 @@ Status: Current test strategy through the 2026-07-28 Tasks UX pass. Unit tests a
 - Xiaomi light and dark screenshots show the Tasks tabs, empty Today/Upcoming states, overview, Task tools disclosure, floating Add task action, and the simple task form. The launcher action opens `New task` with title visible and optional details collapsed.
 - Search shows Search options collapsed.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
+- The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form shows `Repeat this operation?` with `No, one time` and `Yes`; selecting Yes exposes `Periodic interval`, Day/Week/Month, `Periodic first date`, `More repeat options`, and `Save periodic operation`. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
 

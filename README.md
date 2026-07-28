@@ -41,6 +41,8 @@ Home now uses the same local Day/Week/Month selector. Money totals use only the 
 
 Money entry history now has local Period, Type, Category, and Account filters. The visible list and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
 
+Periodic money operations start from the normal Add money entry form. Choosing Yes under Repeat this operation reveals the cadence, interval, first date, and missed-date options. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay in history.
+
 Home can open a read-only period Review. It combines main-currency money, included app time, due and overdue tasks, completed tasks, and active notes updated in the selected local range. Review changes no records and does not refresh Android usage.
 
 Android startup checks one signed update manifest before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. The check has one bounded request and no polling worker.

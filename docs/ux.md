@@ -1,6 +1,6 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-28 Tasks UX pass.
+Status: Current Android MVP through the 2026-07-29 periodic-money UX pass.
 
 ## Navigation
 
@@ -17,7 +17,7 @@ Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/no
 The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
 
 - Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
-- Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, recurring rules, filters, optional payee/note fields, balances, and account/payee/category management use closed sections.
+- Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, periodic-money management, filters, optional payee/note fields, balances, and account/payee/category management use closed sections. A new operation can be marked Repeat this operation inside the normal add form; only then do its period options appear.
 - Notes opens on the current note list with an always-visible search field, All/Pinned/Archived chips, pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Attachments, links, and destructive actions stay behind each card's More action.
 - Tasks opens with All/Today/Upcoming/Completed tabs, Today and Upcoming sections, a compact overview, compact task rows, and one floating Add task action. The form appears only after Add task or an edit/search-focus action. Task tools, Agenda, Overdue, sorting, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
 - App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
@@ -117,9 +117,9 @@ Each saved note has a comma-separated optional tag field and an `Add attachment`
 
 The Home screen links to Data tools. The user can share a complete JSON export or a money-entry CSV through the Android system share sheet. The user can also choose a current Yuzuha money CSV for append import or a current JSON export file for replacement restore. CSV previews row count, currency totals, duplicate/reference/format errors, and the append action; JSON previews record counts and the replacement action before any write. Confirmations are required for both paths, and delete uses a destructive confirmation with a clear list of affected local records. After deletion, the app shows the empty workspace defaults and does not imply that a remote copy was deleted.
 
-### Create a recurring money rule
+### Create a periodic money operation
 
-Money includes a recurring-rule form for expense or income, amount, category, account, cadence, interval, local start date, missed-date policy, and note. The user chooses All, One, or Skip before saving. All creates every missed date, One creates the first missed date, and Skip creates none; each choice advances the rule beyond the missed range. Saving a rule creates due entries immediately and shows the next local calendar date. Reopening the app advances only due dates that have not already generated a deterministic entry. Rules can be deleted from the recurring-rules list.
+The normal Add money entry form asks whether the operation repeats. Selecting Yes reveals the repeat interval, Day/Week/Month cadence, first local date, and an optional More repeat options section. The missed-date choices are written as Create all, Create one, and Skip old. Saving creates due entries immediately when the first date is due; reopening the app advances only dates that do not already have their deterministic entry. The Periodic money view shows current operations first and supports pause, resume, and confirmed delete. Pausing keeps the next date and existing entries; resuming applies the saved missed-date choice. Deleting stops future entries but keeps existing history.
 
 ### Restore local data
 

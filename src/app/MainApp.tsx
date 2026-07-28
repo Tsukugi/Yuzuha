@@ -52,7 +52,6 @@ import {
   type JsonImportFilePreview,
 } from '../shared/jsonImportFile';
 import {AttachmentFileCanceled, deleteAttachmentFile, importAttachmentFile, openAttachmentFile, readAttachmentBackupFiles, stageAttachmentBackupFiles} from '../shared/attachmentFiles';
-import {type MoneyRecurrenceInput} from '../shared/moneyRecurrence';
 import {ATTACHMENT_MAX_PER_NOTE} from '../shared/attachment';
 import {normalizeNoteTags} from '../shared/noteSearch';
 import {applyNoteMarkup, parseNoteMarkup, type NoteMarkupAction, type NoteTextSelection} from '../shared/noteMarkup';
@@ -1306,6 +1305,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const {
     data,
     addMoney,
+    addMoneyRecurrence,
     updateMoney,
     deleteMoney,
     addMoneyAccount,
@@ -1327,6 +1327,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [payeeError, setPayeeError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [entryFormOpen, setEntryFormOpen] = useState(false);
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
+  const [recurrenceCadence, setRecurrenceCadence] = useState<RecurrenceCadence>('month');
+  const [recurrenceInterval, setRecurrenceInterval] = useState('1');
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState(localDateKey(new Date()));
+  const [recurrenceMissedPolicy, setRecurrenceMissedPolicy] = useState<MissedOccurrencePolicy>('all');
+  const [recurrenceDetailsOpen, setRecurrenceDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
   const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
@@ -1350,6 +1356,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setPayeeId('');
     setNote('');
     setEditingId(null);
+    setRecurrenceEnabled(false);
+    setRecurrenceCadence('month');
+    setRecurrenceInterval('1');
+    setRecurrenceStartDate(localDateKey(new Date()));
+    setRecurrenceMissedPolicy('all');
+    setRecurrenceDetailsOpen(false);
     setEntryDetailsOpen(false);
     setError(null);
     setEntryFormOpen(true);
@@ -1402,7 +1414,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     return <MoneyBudgetScreen data={currentData} focusBudgetId={focusBudgetId} onFocusHandled={onBudgetFocusHandled} onBack={() => setView('entry')} />;
   }
   if (view === 'recurrence') {
-    return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} />;
+    return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} onAdd={() => { setView('entry'); startNewEntry(); }} />;
   }
 
   async function save() {
@@ -1427,12 +1439,31 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
       category: selectedCategory?.name ?? 'Uncategorized',
       note: note.trim(),
     };
-    if (editingId) {
-      await updateMoney(editingId, input);
-    } else {
-      await addMoney(input);
+    try {
+      if (editingId) {
+        await updateMoney(editingId, input);
+      } else if (recurrenceEnabled) {
+        const parsedInterval = Number.parseInt(recurrenceInterval.trim(), 10);
+        await addMoneyRecurrence({
+          kind,
+          amountMinor: input.amountMinor,
+          currency: input.currency,
+          accountId: input.accountId ?? '',
+          categoryId: input.categoryId,
+          category: input.category,
+          note: input.note,
+          cadence: recurrenceCadence,
+          interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
+          nextOccurrenceLocalDate: recurrenceStartDate.trim(),
+          missedOccurrencePolicy: recurrenceMissedPolicy,
+        });
+      } else {
+        await addMoney(input);
+      }
+      resetForm();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'The money entry could not be saved.');
     }
-    resetForm();
   }
 
   function resetForm() {
@@ -1440,6 +1471,8 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setPayeeId('');
     setNote('');
     setEditingId(null);
+    setRecurrenceEnabled(false);
+    setRecurrenceDetailsOpen(false);
     setEntryFormOpen(false);
     setError(null);
   }
@@ -1452,6 +1485,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setPayeeId('');
     setNote('');
     setEditingId(null);
+    setRecurrenceEnabled(false);
+    setRecurrenceCadence('month');
+    setRecurrenceInterval('1');
+    setRecurrenceStartDate(localDateKey(new Date()));
+    setRecurrenceMissedPolicy('all');
+    setRecurrenceDetailsOpen(false);
     setEntryDetailsOpen(false);
     setError(null);
     setEntryFormOpen(true);
@@ -1465,6 +1504,8 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAccountId(entry.accountId ?? '');
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
+    setRecurrenceEnabled(false);
+    setRecurrenceDetailsOpen(false);
     setEntryFormOpen(true);
     setError(null);
   }
@@ -1621,14 +1662,14 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           <>
         <Disclosure
           title="More money actions"
-          subtitle="Budgets, reports, transfers, splits, and recurring rules"
+          subtitle="Budgets, reports, transfers, splits, and periodic money"
           open={moneyActionsOpen}
           onPress={() => setMoneyActionsOpen(current => !current)}>
           <TextButton label="Open budgets" onPress={() => setView('budget')} />
           <TextButton label="Open money report" onPress={() => setView('report')} />
           <TextButton label="Add transfer" onPress={() => setView('transfer')} />
           <TextButton label="Add split entry" onPress={() => setView('split')} />
-          <TextButton label="Add recurring rule" onPress={() => setView('recurrence')} />
+          <TextButton label="Open periodic money" onPress={() => setView('recurrence')} />
         </Disclosure>
         <Disclosure
           title="Filter entries"
@@ -1729,6 +1770,58 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               />
             ))}
           </View>
+          {!editingId && (
+            <>
+              <Text style={styles.formLabel}>Repeat this operation?</Text>
+              <View style={styles.segmentRow}>
+                <SegmentButton label="No, one time" selected={!recurrenceEnabled} onPress={() => setRecurrenceEnabled(false)} />
+                <SegmentButton label="Yes" selected={recurrenceEnabled} onPress={() => setRecurrenceEnabled(true)} />
+              </View>
+              {recurrenceEnabled && (
+                <View style={styles.formCard}>
+                  <Text style={styles.cardDetail}>Yuzuha adds this operation on its local calendar dates when you open the app.</Text>
+                  <Text style={styles.formLabel}>Repeat every</Text>
+                  <View style={styles.segmentRow}>
+                    <TextInput
+                      accessibilityLabel="Periodic interval"
+                      keyboardType="number-pad"
+                      placeholder="1"
+                      placeholderTextColor={colors.muted}
+                      style={[styles.input, styles.smallInput]}
+                      value={recurrenceInterval}
+                      onChangeText={setRecurrenceInterval}
+                    />
+                    <SegmentButton label="Day" selected={recurrenceCadence === 'day'} onPress={() => setRecurrenceCadence('day')} />
+                    <SegmentButton label="Week" selected={recurrenceCadence === 'week'} onPress={() => setRecurrenceCadence('week')} />
+                    <SegmentButton label="Month" selected={recurrenceCadence === 'month'} onPress={() => setRecurrenceCadence('month')} />
+                  </View>
+                  <Text style={styles.formLabel}>First date (YYYY-MM-DD)</Text>
+                  <TextInput
+                    accessibilityLabel="Periodic first date"
+                    placeholder="2026-07-29"
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                    value={recurrenceStartDate}
+                    onChangeText={setRecurrenceStartDate}
+                    autoCapitalize="none"
+                  />
+                  <Disclosure
+                    title="More repeat options"
+                    subtitle={recurrenceMissedPolicy === 'all' ? 'Create all old dates' : recurrenceMissedPolicy === 'one' ? 'Create the first old date' : 'Skip old dates'}
+                    open={recurrenceDetailsOpen}
+                    onPress={() => setRecurrenceDetailsOpen(current => !current)}>
+                    <Text style={styles.formLabel}>If dates were missed</Text>
+                    <View style={styles.segmentRow}>
+                      <SegmentButton label="Create all" selected={recurrenceMissedPolicy === 'all'} onPress={() => setRecurrenceMissedPolicy('all')} />
+                      <SegmentButton label="Create one" selected={recurrenceMissedPolicy === 'one'} onPress={() => setRecurrenceMissedPolicy('one')} />
+                      <SegmentButton label="Skip old" selected={recurrenceMissedPolicy === 'skip'} onPress={() => setRecurrenceMissedPolicy('skip')} />
+                    </View>
+                    <Text style={styles.cardDetail}>The operation always advances past every old date, so reopening the app never duplicates an occurrence.</Text>
+                  </Disclosure>
+                </View>
+              )}
+            </>
+          )}
           <Disclosure
             title="More entry details"
             subtitle={payeeId ? 'Payee selected' : note ? 'Note added' : 'Payee and note are optional'}
@@ -1753,7 +1846,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             />
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={editingId ? 'Update entry' : 'Save entry'} onPress={save} />
+          <PrimaryButton label={editingId ? 'Update entry' : recurrenceEnabled ? 'Save periodic operation' : 'Save entry'} onPress={save} />
           {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} />}
         </View>
           </>
@@ -1910,53 +2003,48 @@ interface SplitLineDraft {
   note: string;
 }
 
-function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {colors, styles} = useThemeStyles();
-  const {addMoneyRecurrence, deleteMoneyRecurrence} = useAppStore();
-  const [kind, setKind] = useState<MoneyKind>('expense');
-  const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [accountId, setAccountId] = useState(data.accounts.find(account => !account.isArchived)?.id ?? '');
-  const [cadence, setCadence] = useState<RecurrenceCadence>('month');
-  const [interval, setInterval] = useState('1');
-  const [nextOccurrenceLocalDate, setNextOccurrenceLocalDate] = useState(localDateKey(new Date()));
-  const [missedOccurrencePolicy, setMissedOccurrencePolicy] = useState<MissedOccurrencePolicy>('all');
-  const [note, setNote] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
+function MoneyRecurrenceScreen({data, onBack, onAdd}: {data: AppData; onBack: () => void; onAdd: () => void}) {
+  const {styles} = useThemeStyles();
+  const {setMoneyRecurrencePaused, deleteMoneyRecurrence} = useAppStore();
+  const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const categories = data.categories.filter(category => !category.isArchived && (category.kind === kind || category.kind === 'both'));
-  const accounts = data.accounts.filter(account => !account.isArchived);
-  const activeCategoryId = categoryId || categories[0]?.id;
-  const activeAccountId = accountId || accounts[0]?.id;
-
-  async function save() {
-    const account = accounts.find(item => item.id === activeAccountId);
-    const category = categories.find(item => item.id === activeCategoryId);
-    const parsedAmount = Number.parseFloat(amount.replace(',', '.'));
-    const parsedInterval = Number.parseInt(interval, 10);
-    const input: MoneyRecurrenceInput = {
-      kind,
-      amountMinor: Number.isFinite(parsedAmount) ? Math.round(parsedAmount * 100) : 0,
-      currency: account?.currency ?? data.mainCurrency,
-      accountId: activeAccountId ?? '',
-      categoryId: category?.id ?? null,
-      category: category?.name ?? 'Uncategorized',
-      note: note.trim(),
-      cadence,
-      interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
-      nextOccurrenceLocalDate,
-      missedOccurrencePolicy,
-    };
-    try {
-      await addMoneyRecurrence(input);
-      setAmount('');
-      setNote('');
-      setError(null);
-      setStatus('Recurring rule saved. Due entries were added from the start date.');
-    } catch (saveError) {
-      setStatus(null);
-      setError(saveError instanceof Error ? saveError.message : 'Recurring rule could not be saved.');
+  const rules = [...data.recurrences].sort((left, right) => {
+    if (left.isPaused !== right.isPaused) {
+      return left.isPaused ? 1 : -1;
     }
+    return left.nextOccurrenceLocalDate.localeCompare(right.nextOccurrenceLocalDate);
+  });
+  const accountNames = new Map(data.accounts.map(account => [account.id, account.name]));
+
+  async function toggleRule(rule: AppData['recurrences'][number]) {
+    setBusyRuleId(rule.id);
+    setError(null);
+    try {
+      await setMoneyRecurrencePaused(rule.id, !rule.isPaused);
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : 'The periodic operation could not be updated.');
+    } finally {
+      setBusyRuleId(null);
+    }
+  }
+
+  async function removeRule(ruleId: string) {
+    setBusyRuleId(ruleId);
+    setError(null);
+    try {
+      await deleteMoneyRecurrence(ruleId);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'The periodic operation could not be deleted.');
+    } finally {
+      setBusyRuleId(null);
+    }
+  }
+
+  function confirmDelete(rule: AppData['recurrences'][number]) {
+    Alert.alert('Delete periodic operation?', `Delete the ${rule.kind} for ${rule.category}? Existing entries stay in Money.`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void removeRule(rule.id)},
+    ]);
   }
 
   return (
@@ -1965,96 +2053,29 @@ function MoneyRecurrenceScreen({data, onBack}: {data: AppData; onBack: () => voi
         <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
           <Text style={styles.backButtonText}>‹ Money</Text>
         </Pressable>
-        <Text style={styles.pageTitle}>Recurring money</Text>
-        <Text style={styles.pageIntro}>Rules use local calendar dates. Restarting the app does not create the same occurrence twice.</Text>
-        <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Type</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
-            <SegmentButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
-          </View>
-          <Text style={styles.formLabel}>Amount</Text>
-          <TextInput
-            accessibilityLabel="Recurring amount"
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={amount}
-            onChangeText={setAmount}
-          />
-          <Text style={styles.formLabel}>Category</Text>
-          <View style={styles.chipWrap}>
-            {categories.map(category => (
-              <ChipButton key={category.id} label={category.name} selected={category.id === activeCategoryId} onPress={() => setCategoryId(category.id)} />
-            ))}
-          </View>
-          <Text style={styles.formLabel}>Account</Text>
-          <View style={styles.chipWrap}>
-            {accounts.map(account => (
-              <ChipButton key={account.id} label={account.name} selected={account.id === activeAccountId} onPress={() => setAccountId(account.id)} />
-            ))}
-          </View>
-          <Text style={styles.formLabel}>Cadence</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Day" selected={cadence === 'day'} onPress={() => setCadence('day')} />
-            <SegmentButton label="Week" selected={cadence === 'week'} onPress={() => setCadence('week')} />
-            <SegmentButton label="Month" selected={cadence === 'month'} onPress={() => setCadence('month')} />
-          </View>
-          <Text style={styles.formLabel}>Every</Text>
-          <TextInput
-            accessibilityLabel="Recurring interval"
-            keyboardType="number-pad"
-            placeholder="1"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={interval}
-            onChangeText={setInterval}
-          />
-          <Text style={styles.formLabel}>Start date (YYYY-MM-DD)</Text>
-          <TextInput
-            accessibilityLabel="Recurring start date"
-            placeholder="2026-07-26"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={nextOccurrenceLocalDate}
-            onChangeText={setNextOccurrenceLocalDate}
-          />
-          <Text style={styles.formLabel}>When missed dates are found</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="All" selected={missedOccurrencePolicy === 'all'} onPress={() => setMissedOccurrencePolicy('all')} />
-            <SegmentButton label="One" selected={missedOccurrencePolicy === 'one'} onPress={() => setMissedOccurrencePolicy('one')} />
-            <SegmentButton label="Skip" selected={missedOccurrencePolicy === 'skip'} onPress={() => setMissedOccurrencePolicy('skip')} />
-          </View>
-          <Text style={styles.cardDetail}>All creates every missed date. One creates the first missed date. Skip creates none. The rule then advances past all missed dates.</Text>
-          <Text style={styles.formLabel}>Note (optional)</Text>
-          <TextInput
-            accessibilityLabel="Recurring note"
-            placeholder="What is this recurring item for?"
-            placeholderTextColor={colors.muted}
-            style={[styles.input, styles.multilineInput]}
-            value={note}
-            onChangeText={setNote}
-            multiline
-          />
-          {status && <Text style={styles.successText}>{status}</Text>}
-          {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label="Save recurring rule" onPress={save} />
-        </View>
-        <SectionTitle title="Current recurring rules" />
-        {data.recurrences.length === 0 ? (
-          <EmptyState text="No recurring money rules yet." />
+        <Text style={styles.pageTitle}>Periodic money</Text>
+        <Text style={styles.pageIntro}>These operations add future entries using local calendar dates when you open the app.</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        <SectionTitle title={`Current operations (${rules.length})`} />
+        {rules.length === 0 ? (
+          <>
+            <EmptyState text="No periodic operations yet." />
+            <Text style={styles.cardDetail}>Start from Add money entry, then choose Yes under Repeat this operation.</Text>
+            <PrimaryButton label="Add periodic operation" onPress={onAdd} />
+          </>
         ) : (
-          data.recurrences.map(rule => (
+          rules.map(rule => (
             <View key={rule.id} style={styles.formCard}>
-              <Text style={styles.cardTitle}>{rule.category}</Text>
-              <Text style={styles.cardDetail}>{rule.kind} · {formatMoney(rule.amountMinor, rule.currency)} every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}</Text>
-              <Text style={styles.cardDetail}>Missed dates: {rule.missedOccurrencePolicy}</Text>
-              <Text style={styles.cardDetail}>Next: {rule.nextOccurrenceLocalDate}</Text>
-              <TextButton label="Delete rule" danger onPress={() => deleteMoneyRecurrence(rule.id)} />
+              <Text style={styles.cardTitle}>{rule.kind === 'income' ? 'Income' : 'Expense'}</Text>
+              <Text style={styles.listTitle}>{rule.category}</Text>
+              <Text style={styles.cardDetail}>{accountNames.get(rule.accountId ?? '') ?? 'Archived account'} · Every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}</Text>
+              <Text style={styles.cardDetail}>{rule.isPaused ? `Paused · next date stays ${rule.nextOccurrenceLocalDate}` : `Next date: ${rule.nextOccurrenceLocalDate}`}</Text>
+              <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} disabled={busyRuleId !== null} onPress={() => void toggleRule(rule)} />
+              <TextButton label="Delete" danger disabled={busyRuleId !== null} onPress={() => confirmDelete(rule)} />
             </View>
           ))
         )}
+        {rules.length > 0 && <PrimaryButton label="Add periodic operation" onPress={onAdd} />}
       </ScrollView>
     </KeyboardAvoidingView>
   );

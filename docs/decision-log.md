@@ -695,3 +695,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The user can review and complete current work quickly, switch to the most useful scope, and add only after choosing to do so. Existing reminders, projects, dependencies, recurrence, lists, agenda, and calendar actions remain available without crowding the scan path.
 - Consequence: The pass changes only React Native view state and theme-aware styles. It adds no AppData field, schema boundary, migration, export/import format, network request, worker, timer, or polling loop.
 - Validation: full Jest (52 suites/231 tests), typecheck, lint, signed Java 17 release build, Xiaomi light/dark screenshots, Tasks hierarchy smoke, launcher add-form smoke, and filtered logcat checks.
+
+## DEC-097: Create periodic money from the normal money form
+
+- Status: Accepted.
+- Context: Periodic money already had a deterministic local-date engine, but its separate screen opened a specialized form before showing current operations. That made a periodic operation feel like a different kind of record.
+- Decision: Keep one Add money entry form. A Yes/No Repeat this operation choice is visible only for new entries; Yes reveals cadence, interval, first date, and missed-date options. Keep a separate Periodic money view for current-operation management, pause/resume, and confirmed delete.
+- Reason: The user can enter the amount, type, account, category, and note once, then decide whether the operation repeats. Existing one-time entry behavior stays unchanged, and advanced repeat choices remain out of the way until requested.
+- Consequence: The repeat choice and options are view state only. Existing `MoneyRecurrenceRule` storage, deterministic occurrence IDs, startup expansion, schema boundary, exports, and local-only behavior remain unchanged. No network, worker, timer, or polling loop is added.
+- Validation: focused recurrence tests, typecheck, lint, full Jest, signed Android build, and Xiaomi add-form/periodic-management smoke must cover one-time save, periodic save, pause/resume, delete confirmation, and no duplicate occurrence after restart.
