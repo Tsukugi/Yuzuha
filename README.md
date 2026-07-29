@@ -71,7 +71,7 @@ Use locked dependency versions in implementation branches. The current baseline 
 
 ## Latest Android release
 
-The next Android release is `v0.1.2`. It provides the periodic money weekday controls, alongside the dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. The signed APK will be published at [GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.2). Cloud sync is out of scope for this release.
+The latest Android release is `v0.1.2`. It provides the periodic money weekday controls, alongside the dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.2). Cloud sync is out of scope for this release.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 

@@ -20,13 +20,14 @@ Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The r
 
 The release process does not auto-commit, auto-push, generate a new signing key, or publish import/export changes. Rapunzel's `v<version>` tag and APK asset convention is used as a reference; its older automatic release script is not copied into Yuzuha.
 
-2026-07-29 Android v0.1.2 release candidate:
+2026-07-29 Android v0.1.2 release:
 
 - Android `versionName` is `0.1.2`, matching the embedded bundle version, with version code `3`;
 - the native installer baseline and JavaScript bundle metadata now use `0.1.2`;
 - the release keeps app schema 33 and repository schema 3; no migration or import/export expansion is included;
 - the signed APK is `67,391,395` bytes with SHA-256 `EABFBE442907CA7B01BB391CBF765FB1B33ED6372F744255B7CEAF35E5B598EF`;
-- the release record is [`docs/releases/v0.1.2.md`](releases/v0.1.2.md), ready for GitHub publication;
+- the exact release record is [`docs/releases/v0.1.2.md`](releases/v0.1.2.md), and the published release is [Tsukugi/Yuzuha v0.1.2](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.2);
+- the published GitHub asset is [`Yuzuha-0.1.2.apk`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.2/Yuzuha-0.1.2.apk), matching the local APK at `67,391,395` bytes and SHA-256 `EABFBE442907CA7B01BB391CBF765FB1B33ED6372F744255B7CEAF35E5B598EF`;
 - full tests, static checks, signed release build, APK signature inspection, Xiaomi installation/startup, and filtered logcat checks passed. No emulator was connected for this pass.
 
 2026-07-28 Android Money graphs and theme pass:
