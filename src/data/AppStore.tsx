@@ -191,6 +191,7 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const dataRef = useRef<AppData | null>(null);
+  const commitQueueRef = useRef<Promise<void>>(Promise.resolve());
   dataRef.current = data;
 
   useEffect(() => {
@@ -230,14 +231,18 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
 
   const commit = useCallback(
     async (update: (current: AppData) => AppData) => {
-      const current = dataRef.current;
-      if (!current) {
-        throw new Error('App data is not ready.');
-      }
-      const next = update(current);
-      await store.save(next);
-      dataRef.current = next;
-      setData(next);
+      const commitRun = commitQueueRef.current.then(async () => {
+        const current = dataRef.current;
+        if (!current) {
+          throw new Error('App data is not ready.');
+        }
+        const next = update(current);
+        await store.save(next);
+        dataRef.current = next;
+        setData(next);
+      });
+      commitQueueRef.current = commitRun.catch(() => undefined);
+      await commitRun;
     },
     [store],
   );

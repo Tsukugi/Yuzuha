@@ -992,4 +992,66 @@ describe('AppStore task reminders', () => {
       renderer?.unmount();
     });
   });
+
+  it('keeps concurrent repeated money adds instead of dropping an earlier write', async () => {
+    let saved = emptyAppData();
+    let saveCalls = 0;
+    let releaseFirstSave: (() => void) | null = null;
+    let firstSaveStarted: (() => void) | null = null;
+    const firstSaveStartedPromise = new Promise<void>(resolve => {
+      firstSaveStarted = resolve;
+    });
+    const firstSaveGate = new Promise<void>(resolve => {
+      releaseFirstSave = resolve;
+    });
+    const store = {
+      load: async () => saved,
+      save: async (next: AppData) => {
+        saveCalls += 1;
+        if (saveCalls === 1) {
+          firstSaveStarted?.();
+          await firstSaveGate;
+        }
+        saved = next;
+      },
+    };
+    let value: ReturnType<typeof useAppStore> | null = null;
+    const Probe = () => {
+      value = useAppStore();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(createElement(AppStoreProvider, {store}, createElement(Probe)));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const input = {
+      kind: 'expense' as const,
+      amountMinor: 100,
+      currency: 'EUR',
+      accountId: 'account_everyday',
+      categoryId: 'category_food',
+      payeeId: null,
+      category: 'Food',
+      note: '',
+    };
+    let firstAdd: Promise<void> | undefined;
+    let secondAdd: Promise<void> | undefined;
+    await act(async () => {
+      firstAdd = value!.addMoney(input);
+      await firstSaveStartedPromise;
+      secondAdd = value!.addMoney({...input, amountMinor: 200});
+      await Promise.resolve();
+      releaseFirstSave?.();
+      await Promise.all([firstAdd, secondAdd]);
+    });
+
+    expect(saved.money.map(entry => entry.amountMinor).sort()).toEqual([100, 200]);
+    await act(async () => {
+      renderer?.unmount();
+    });
+  });
 });

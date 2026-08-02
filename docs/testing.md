@@ -7,28 +7,45 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 52 Jest suites and 235 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 52 Jest suites and 236 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 52 suites and 235 tests.
+- Full Jest passes: 52 suites and 236 tests.
 - The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The published release reports package `dev.yuzuha`, version `0.1.2`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
-- Money also renders `Spending overview` after the entry list. Its category bars use the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.
+- Money keeps `Spending overview` collapsed below the entry list. Opening it shows category bars for the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.
 - `moneyChart.test.ts` covers category totals, complete local daily ranges, and split-line aggregation without duplicating the split parent.
 - Android system light and dark mode were each applied before a clean Money launch. Both reached the same Money hierarchy with no filtered fatal or ReactNativeJS errors; the app's System/Light/Dark selector remains view state and adds no data write.
 - The explicit Money add action opens `New money entry` with Type, Amount, Category, Account, collapsed `More entry details`, and `Save entry`. The form does not render the entry list underneath it.
+- New Money and Task forms expose an explicit Cancel action like Notes; primary save actions show `Saving...` and are disabled until the local write completes.
 - Notes opens on the notes list with visible Search notes, All/Pinned/Archived chips, pinned/recent sections, compact cards, and a floating Add note action. The form is only visible after Add note, launcher action, or edit focus; the add form keeps title/body visible and places formatting/tags under More note details.
-- Tasks opens with All/Today/Upcoming/Completed, Today/Upcoming sections, a compact overview, Task tools below the dashboard, and a floating Add task action. The form is only visible after Add task, launcher action, or edit focus; title is visible and optional details are collapsed.
+- Tasks opens with All/Today/Upcoming/Completed, Today/Upcoming sections, a collapsed overview, Task tools below the dashboard, and a floating Add task action. The form is only visible after Add task, launcher action, or edit focus; title is visible and optional details are collapsed.
 - Xiaomi light and dark screenshots show the Tasks tabs, empty Today/Upcoming states, overview, Task tools disclosure, floating Add task action, and the simple task form. The launcher action opens `New task` with title visible and optional details collapsed.
 - Search shows Search options collapsed.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
 - The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form hierarchy shows one `Repeat` switch and no `No, one time`, `Yes`, missed-date, or first-date controls. Xiaomi blocks automated touch injection, so activating the switch and checking the expanded compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggle row remains a manual tap check; the weekday selection and weekend-skipping behavior are covered by recurrence tests. New operations use today as their internal start date. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
-- App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry.
+- App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry; backup sub-options are also collapsed until selected.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
+
+## Floating capture controls
+
+- `quickCapture.test.ts` verifies that the Home submenu stays limited to the existing money, note, and task add forms.
+- The shared FAB uses the current Money, Notes, and Tasks form entry points. Home selection routes through the existing typed pending-add state; no new persistence path is involved.
+- `npm run typecheck`, `npm run lint`, and the full Jest suite pass for this pass.
+
+## Low-noise UI screenshot evidence
+
+- The signed release was rebuilt with the local Java 21 runtime and installed over the existing package on Xiaomi `42adce68` without deleting app data.
+- Xiaomi screenshots cover Home, Money list, Money add form, Notes, Tasks, and App Time after the shared scale pass. The screens show smaller headings, tighter cards and forms, lighter shadows, and a smaller FAB while keeping the existing primary actions.
+- The same signed release was installed on emulator `emulator-5554` without wiping its workspace. The emulator was left on Home with the add submenu open; its UI hierarchy exposes Add money, Add note, and Add task. Emulator screenshots also cover Money, the Money add form, Notes, Tasks, and App Time.
+- The emulator pass checks the remaining optional UI: Data tools keeps encrypted/recovery backup details nested, App Time keeps focus links and app groups nested, Tasks keeps its overview and each management group nested, Budgets keeps new-budget creation collapsed, and Notes keeps one card action until expansion.
+- The repeated-flow emulator smoke on the rebuilt release opened and cancelled Money, Tasks, and Notes forms, then reopened each cleanly. Home was left with the add submenu open; the hierarchy again exposes Add money, Add note, Add task, and Close add menu.
+- `npm run typecheck`, `npm run lint`, `git diff --check`, and the full Jest suite pass after the repeated-flow pass.
 
 ## Money filter evidence
 

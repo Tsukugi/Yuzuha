@@ -69,6 +69,7 @@ import {focusSessionDurationSeconds} from '../shared/focusSessionLifecycle';
 import {validateTaskRecurrenceDraft, type TaskRecurrenceDraft} from '../shared/taskRecurrence';
 import {validateTaskTemplateDraft, type TaskTemplateDraft} from '../shared/taskTemplateLifecycle';
 import {sharedCaptureTitle, type SharedCapture} from '../shared/shareCapture';
+import {QUICK_CAPTURE_OPTIONS} from '../shared/quickCapture';
 import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validateTaskReminderDraft} from '../shared/taskReminder';
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
@@ -128,6 +129,11 @@ export function MainApp() {
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
+
+  const openQuickCapture = useCallback((target: QuickCaptureTab) => {
+    setPendingAddTab(target);
+    setTab(target);
+  }, []);
 
   const openGlobalSearchResult = useCallback((navigation: GlobalSearchNavigation) => {
     setPendingTaskId(navigation.focusTaskId);
@@ -326,7 +332,7 @@ export function MainApp() {
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
@@ -434,12 +440,14 @@ function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'nor
 function HomeScreen({
   data,
   onNavigate,
+  onQuickCapture,
   onOpenDataTools,
   onOpenSearch,
   onOpenReview,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
+  onQuickCapture: (target: QuickCaptureTab) => void;
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
   onOpenReview: () => void;
@@ -447,6 +455,7 @@ function HomeScreen({
   const {styles, mode, resolvedMode, setMode} = useThemeStyles();
   const {setWeekStartsOn} = useAppStore();
   const [homeToolsOpen, setHomeToolsOpen] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
   const [homePeriod, setHomePeriod] = useState<Period>('day');
   const [weekStartError, setWeekStartError] = useState<string | null>(null);
@@ -477,7 +486,8 @@ function HomeScreen({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.flex}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]}>
       <Text style={styles.pageTitle}>Overview</Text>
       <Text style={styles.pageIntro}>{selectedPeriodLabel} · {formatPeriodRange(range)}</Text>
 
@@ -569,7 +579,33 @@ function HomeScreen({
           </View>
         ))
       )}
-    </ScrollView>
+      </ScrollView>
+      <View pointerEvents="box-none" style={styles.fabLayer}>
+        {quickCaptureOpen && (
+          <View style={styles.quickCaptureMenu} accessibilityViewIsModal>
+            <Text style={styles.quickCaptureMenuTitle}>Add</Text>
+            {QUICK_CAPTURE_OPTIONS.map(option => (
+              <Pressable
+                key={option.target}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                style={({pressed}) => [styles.quickCaptureOption, pressed && styles.pressed]}
+                onPress={() => {
+                  setQuickCaptureOpen(false);
+                  onQuickCapture(option.target);
+                }}>
+                <Text style={styles.quickCaptureOptionText}>{option.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+        <FloatingActionButton
+          label={quickCaptureOpen ? 'Close add menu' : 'Open add menu'}
+          onPress={() => setQuickCaptureOpen(current => !current)}
+          isOpen={quickCaptureOpen}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -745,6 +781,8 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
   const [jsonFileBusy, setJsonFileBusy] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [encryptedBackupOpen, setEncryptedBackupOpen] = useState(false);
+  const [recoveryBackupOpen, setRecoveryBackupOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [jsonRestoreOpen, setJsonRestoreOpen] = useState(false);
   const [encryptedRestoreOpen, setEncryptedRestoreOpen] = useState(false);
@@ -1092,46 +1130,58 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
         subtitle="Share or save a copy of this workspace"
         open={exportOpen}
         onPress={() => setExportOpen(current => !current)}>
-        <Text style={styles.formLabel}>Export</Text>
+        <Text style={styles.formLabel}>Share a copy</Text>
         <PrimaryButton label="Share JSON export" onPress={shareJson} />
         <PrimaryButton label="Share money CSV" onPress={shareCsv} />
-        <Text style={styles.formLabel}>Encrypted backup password</Text>
-        <TextInput
-          accessibilityLabel="Encrypted backup password"
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          placeholder="At least 12 characters"
-          placeholderTextColor={colors.muted}
-          style={styles.input}
-          value={backupPassword}
-          onChangeText={setBackupPassword}
-        />
-        <PrimaryButton label="Share encrypted backup" onPress={shareEncryptedBackup} disabled={backupBusy} />
-        <PrimaryButton label="Save encrypted backup file" onPress={saveEncryptedBackupFileToDevice} disabled={backupBusy} />
-        <Text style={styles.formLabel}>Recovery-key backup</Text>
-        <Text style={styles.cardDetail}>Create a separate encrypted backup that uses a high-entropy recovery key. Write the key down and confirm it before saving; Yuzuha does not store it.</Text>
-        <PrimaryButton label={recoveryKey ? 'Generate a new recovery key' : 'Generate recovery key'} onPress={createRecoveryKey} disabled={backupBusy} />
-        {!!recoveryKey && (
-          <>
-            <Text accessibilityLabel="Generated recovery key" style={styles.recoveryKey}>{recoveryKey}</Text>
-            <TextInput
-              accessibilityLabel="Recovery key confirmation"
-              autoCapitalize="characters"
-              autoCorrect={false}
-              placeholder="Enter the recovery key again"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={recoveryKeyConfirmation}
-              onChangeText={setRecoveryKeyConfirmation}
-            />
-            <PrimaryButton
-              label="Save recovery-key backup file"
-              onPress={saveRecoveryBackupFileToDevice}
-              disabled={backupBusy}
-            />
-          </>
-        )}
+        <Disclosure
+          title="Encrypted backup"
+          subtitle={backupPassword ? 'Password entered' : 'Password required'}
+          open={encryptedBackupOpen}
+          compact
+          onPress={() => setEncryptedBackupOpen(current => !current)}>
+          <TextInput
+            accessibilityLabel="Encrypted backup password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            placeholder="At least 12 characters"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={backupPassword}
+            onChangeText={setBackupPassword}
+          />
+          <PrimaryButton label="Share encrypted backup" onPress={shareEncryptedBackup} disabled={backupBusy} />
+          <PrimaryButton label="Save encrypted backup file" onPress={saveEncryptedBackupFileToDevice} disabled={backupBusy} />
+        </Disclosure>
+        <Disclosure
+          title="Recovery-key backup"
+          subtitle={recoveryKey ? 'Key generated' : 'Create a separate encrypted copy'}
+          open={recoveryBackupOpen}
+          compact
+          onPress={() => setRecoveryBackupOpen(current => !current)}>
+          <Text style={styles.cardDetail}>Write the key down and confirm it before saving. Yuzuha does not store it.</Text>
+          <PrimaryButton label={recoveryKey ? 'Generate a new recovery key' : 'Generate recovery key'} onPress={createRecoveryKey} disabled={backupBusy} />
+          {!!recoveryKey && (
+            <>
+              <Text accessibilityLabel="Generated recovery key" style={styles.recoveryKey}>{recoveryKey}</Text>
+              <TextInput
+                accessibilityLabel="Recovery key confirmation"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder="Enter the recovery key again"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+                value={recoveryKeyConfirmation}
+                onChangeText={setRecoveryKeyConfirmation}
+              />
+              <PrimaryButton
+                label="Save recovery-key backup file"
+                onPress={saveRecoveryBackupFileToDevice}
+                disabled={backupBusy}
+              />
+            </>
+          )}
+        </Disclosure>
         {status && <Text style={styles.successText}>{status}</Text>}
         {error && <Text style={styles.errorText}>{error}</Text>}
       </Disclosure>
@@ -1347,12 +1397,14 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<RecurrenceWeekday[]>(ALL_RECURRENCE_WEEKDAYS);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
   const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
   const [entryFiltersOpen, setEntryFiltersOpen] = useState(false);
   const [entryDetailsOpen, setEntryDetailsOpen] = useState(false);
   const [balancesOpen, setBalancesOpen] = useState(false);
   const [accountManagementOpen, setAccountManagementOpen] = useState(false);
+  const [chartOpen, setChartOpen] = useState(false);
   const [entryFilterPeriod, setEntryFilterPeriod] = useState<MoneyFilterPeriod>(emptyMoneyEntryFilter.period);
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
@@ -1436,6 +1488,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     }
 
     setError(null);
+    setSaving(true);
     const selectedCategory =
       currentData.categories.find(item => item.id === categoryId && (item.kind === kind || item.kind === 'both')) ??
       currentData.categories.find(item => item.kind === kind || item.kind === 'both');
@@ -1475,6 +1528,8 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
       resetForm();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'The money entry could not be saved.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -1645,7 +1700,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Money</Text>
         <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
         {!entryFormOpen && (
@@ -1673,7 +1728,15 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           </View>
         )}
         {!entryFormOpen && renderEntryList()}
-        {!entryFormOpen && <MoneyChartCard data={chartData} currency={currentData.mainCurrency} scope={entryFilterSummary} hasDailyRange={chartRange !== null} />}
+        {!entryFormOpen && (
+          <Disclosure
+            title="Spending overview"
+            subtitle={entryFilterSummary}
+            open={chartOpen}
+            onPress={() => setChartOpen(current => !current)}>
+            <MoneyChartCard data={chartData} currency={currentData.mainCurrency} scope={entryFilterSummary} hasDailyRange={chartRange !== null} />
+          </Disclosure>
+        )}
         {!entryFormOpen && (
           <>
         <Disclosure
@@ -1745,7 +1808,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>
-            <TextButton label="Cancel" onPress={resetForm} />
+            <TextButton label="Cancel" onPress={resetForm} disabled={saving} />
           </View>
         )}
         <View style={styles.formCard}>
@@ -1837,6 +1900,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             title="More entry details"
             subtitle={payeeId ? 'Payee selected' : note ? 'Note added' : 'Payee and note are optional'}
             open={entryDetailsOpen}
+            compact
             onPress={() => setEntryDetailsOpen(current => !current)}>
             <Text style={styles.formLabel}>Payee (optional)</Text>
             <View style={styles.chipWrap}>
@@ -1857,8 +1921,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             />
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={editingId ? 'Update entry' : recurrenceEnabled ? 'Save periodic operation' : 'Save entry'} onPress={save} />
-          {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} />}
+          <PrimaryButton label={saving ? 'Saving...' : editingId ? 'Update entry' : recurrenceEnabled ? 'Save periodic operation' : 'Save entry'} onPress={save} disabled={saving} />
+          {!editingId && <TextButton label="Cancel" onPress={resetForm} disabled={saving} />}
+          {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} disabled={saving} />}
         </View>
           </>
         )}
@@ -1945,6 +2010,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
         </Disclosure>}
 
       </ScrollView>
+      {!entryFormOpen && <FloatingActionButton label="Add money entry" onPress={startNewEntry} />}
     </KeyboardAvoidingView>
   );
 }
@@ -1956,7 +2022,7 @@ function MoneyChartCard({data, currency, scope, hasDailyRange}: {data: MoneyChar
   const maxDailyValue = Math.max(...data.daily.flatMap(point => [point.expenseMinor, point.incomeMinor]), 1);
 
   return (
-    <View style={[styles.moneyChartCard, styles.cardShadow]}>
+    <View style={styles.inlinePanel}>
       <View style={styles.moneyChartHeader}>
         <Text style={styles.moneyChartTitle}>Spending overview</Text>
         <Text style={styles.moneyOverviewMeta}>{scope}</Text>
@@ -2104,6 +2170,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
   const [rollover, setRollover] = useState<BudgetRollover>('none');
   const [amount, setAmount] = useState('');
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
+  const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2116,6 +2183,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
       return;
     }
     setEditingBudgetId(budget.id);
+    setBudgetFormOpen(true);
     setCategoryId(budget.categoryId);
     setCurrency(budget.currency);
     setPeriod(budget.period);
@@ -2127,6 +2195,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
 
   function resetForm() {
     setEditingBudgetId(null);
+    setBudgetFormOpen(false);
     setAmount('');
     setError(null);
   }
@@ -2186,8 +2255,11 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
         </Pressable>
         <Text style={styles.pageTitle}>Budgets</Text>
         <Text style={styles.pageIntro}>Budgets count expense entries and split lines in the selected currency and local period.</Text>
-        <View style={styles.formCard}>
-          {editingBudgetId && <Text style={styles.formLabel}>Edit budget</Text>}
+        <Disclosure
+          title={editingBudgetId ? 'Edit budget' : 'New budget'}
+          subtitle={editingBudgetId ? 'Update this category limit' : 'Set a category limit'}
+          open={budgetFormOpen}
+          onPress={() => setBudgetFormOpen(current => !current)}>
           <Text style={styles.formLabel}>Category</Text>
           <View style={styles.chipWrap}>
             {categories.map(category => (
@@ -2229,7 +2301,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label={editingBudgetId ? 'Update budget' : 'Save budget'} onPress={save} />
           {editingBudgetId && <TextButton label="Cancel budget edit" onPress={resetForm} />}
-        </View>
+        </Disclosure>
         <SectionTitle title="Current budgets" />
         {data.budgets.length === 0 ? (
           <EmptyState text="No budgets yet." />
@@ -2818,11 +2890,11 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
       </Pressable>
       <Text style={styles.pageTitle}>App time</Text>
       <Text style={styles.pageIntro}>Read-only totals from Android Usage Access. Nothing leaves this device.</Text>
-      <Disclosure
-        title="Focus sessions"
-        subtitle="Optional manual focus block"
-        open={focusToolsOpen}
-        onPress={() => setFocusToolsOpen(current => !current)}>
+          <Disclosure
+            title="Focus sessions"
+            subtitle="Optional manual focus block"
+            open={focusToolsOpen}
+            onPress={() => setFocusToolsOpen(current => !current)}>
         <FocusSessionPanel data={data} focusAppGroupId={focusAppGroupId} onFocusHandled={onFocusHandled} />
       </Disclosure>
 
@@ -2930,6 +3002,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [appGroupsOpen, setAppGroupsOpen] = useState(false);
+  const [focusLinksOpen, setFocusLinksOpen] = useState(false);
   const activeSession = data.focusSessions.find(session => session.status === 'active') ?? null;
 
   useEffect(() => {
@@ -2955,6 +3028,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
     setAppGroupName(group.name);
     setAppGroupPackages(group.packageNames.join(', '));
     setAppGroupsOpen(true);
+    setFocusLinksOpen(true);
     setError(null);
     setMessage(null);
     onFocusHandled();
@@ -3054,7 +3128,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
   }
 
   return (
-    <View style={styles.formCard}>
+    <View style={styles.inlinePanel}>
       <Text style={styles.cardTitle}>Focus sessions</Text>
       <Text style={styles.cardDetail}>Track one manual focus block locally. It does not block apps.</Text>
       {activeSession ? (
@@ -3068,26 +3142,33 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
         </>
       ) : (
         <>
-          <Text style={styles.formLabel}>Task (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No task" selected={taskId === null} onPress={() => setTaskId(null)} />
-            {data.tasks.slice(0, 12).map(task => <SegmentButton key={task.id} label={task.title} selected={taskId === task.id} onPress={() => setTaskId(task.id)} />)}
-          </View>
-          <Text style={styles.formLabel}>Project (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
-            {data.projects.filter(project => !project.isArchived).map(project => <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />)}
-          </View>
-          <Text style={styles.formLabel}>Note (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No note" selected={noteId === null} onPress={() => setNoteId(null)} />
-            {data.notes.filter(note => !note.isArchived).slice(0, 12).map(note => <SegmentButton key={note.id} label={note.title} selected={noteId === note.id} onPress={() => setNoteId(note.id)} />)}
-          </View>
-          <Text style={styles.formLabel}>App group (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No app group" selected={appGroupId === null} onPress={() => setAppGroupId(null)} />
-            {data.appGroups.filter(group => !group.isArchived).map(group => <SegmentButton key={group.id} label={group.name} selected={appGroupId === group.id} onPress={() => setAppGroupId(group.id)} />)}
-          </View>
+          <Disclosure
+            title="Link to records"
+            subtitle={[taskId, projectId, noteId, appGroupId].filter(value => value !== null).length > 0 ? 'Links selected' : 'Optional task, project, note, or app group'}
+            open={focusLinksOpen}
+            compact
+            onPress={() => setFocusLinksOpen(current => !current)}>
+            <Text style={styles.formLabel}>Task (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No task" selected={taskId === null} onPress={() => setTaskId(null)} />
+              {data.tasks.slice(0, 12).map(task => <SegmentButton key={task.id} label={task.title} selected={taskId === task.id} onPress={() => setTaskId(task.id)} />)}
+            </View>
+            <Text style={styles.formLabel}>Project (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+              {data.projects.filter(project => !project.isArchived).map(project => <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />)}
+            </View>
+            <Text style={styles.formLabel}>Note (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No note" selected={noteId === null} onPress={() => setNoteId(null)} />
+              {data.notes.filter(note => !note.isArchived).slice(0, 12).map(note => <SegmentButton key={note.id} label={note.title} selected={noteId === note.id} onPress={() => setNoteId(note.id)} />)}
+            </View>
+            <Text style={styles.formLabel}>App group (optional)</Text>
+            <View style={styles.segmentRow}>
+              <SegmentButton label="No app group" selected={appGroupId === null} onPress={() => setAppGroupId(null)} />
+              {data.appGroups.filter(group => !group.isArchived).map(group => <SegmentButton key={group.id} label={group.name} selected={appGroupId === group.id} onPress={() => setAppGroupId(group.id)} />)}
+            </View>
+          </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
           {message && <Text style={styles.successText}>{message}</Text>}
           <PrimaryButton label="Start focus session" onPress={() => void start()} />
@@ -3113,6 +3194,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
         title="App groups"
         subtitle={`${data.appGroups.length} saved`}
         open={appGroupsOpen}
+        compact
         onPress={() => setAppGroupsOpen(current => !current)}>
       {editingAppGroupId && <Text style={styles.formLabel}>Edit app group</Text>}
       <TextInput accessibilityLabel="App group name" placeholder="App group name" placeholderTextColor={colors.muted} style={styles.input} value={appGroupName} onChangeText={setAppGroupName} />
@@ -3157,6 +3239,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   const [showArchived, setShowArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyNoteId, setBusyNoteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [busySavedSearchId, setBusySavedSearchId] = useState<string | null>(null);
   const [linkingNoteId, setLinkingNoteId] = useState<string | null>(null);
   const [linkTargetType, setLinkTargetType] = useState<NoteLinkTargetType>('task');
@@ -3226,6 +3309,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
       return;
     }
     setError(null);
+    setSaving(true);
     try {
       if (editingNoteId) {
         await updateNote(editingNoteId, draft);
@@ -3235,6 +3319,8 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
       cancelEditing();
     } catch (noteError) {
       setError(noteError instanceof Error ? noteError.message : 'The note could not be saved.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -3245,6 +3331,8 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
     setBody('');
     setBodySelection({start: 0, end: 0});
     setTags('');
+    setFormattingOpen(false);
+    setError(null);
   }
 
   function startEditing(note: Note) {
@@ -3511,8 +3599,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             {detailParts.length > 0 && <Text style={styles.noteCardMeta}>{detailParts.join(' - ')}</Text>}
           </View>
         </Pressable>
-        <View style={styles.noteCardActions}>
-          <TextButton label="Open" disabled={isBusy} onPress={() => startEditing(note)} />
+          <View style={styles.noteCardActions}>
           <TextButton
             label={expandedNoteId === note.id ? 'Less' : 'More'}
             disabled={isBusy}
@@ -3593,7 +3680,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         <View style={styles.notesHero}>
           <View style={styles.notesHeroCopy}>
             <Text style={styles.pageTitle}>Notes</Text>
@@ -3632,6 +3719,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             title="More note details"
             subtitle={tags.trim() ? 'Tags added' : 'Formatting and tags are optional'}
             open={formattingOpen}
+            compact
             onPress={() => setFormattingOpen(current => !current)}>
             <Text style={styles.formLabel}>Formatting</Text>
             <View style={styles.noteMarkupToolbar}>
@@ -3653,8 +3741,8 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             />
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={editingNoteId ? 'Update note' : 'Save note'} onPress={() => void save()} />
-          <TextButton label="Cancel" onPress={cancelEditing} />
+          <PrimaryButton label={saving ? 'Saving...' : editingNoteId ? 'Update note' : 'Save note'} onPress={() => void save()} disabled={saving} />
+          <TextButton label="Cancel" onPress={cancelEditing} disabled={saving} />
         </View>
           </>
         )}
@@ -3751,11 +3839,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
           </>
         )}
       </ScrollView>
-      {!noteFormOpen && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Add note" style={[styles.notesFab, styles.cardShadow]} onPress={startNewNote}>
-          <Text style={styles.notesFabIcon}>+</Text>
-        </Pressable>
-      )}
+      {!noteFormOpen && <FloatingActionButton label="Add note" onPress={startNewNote} />}
     </KeyboardAvoidingView>
   );
 }
@@ -3778,6 +3862,19 @@ function NoteBodyPreview({body}: {body: string}) {
         </Text>
       ))}
     </Text>
+  );
+}
+
+function FloatingActionButton({label, onPress, isOpen = false}: {label: string; onPress: () => void; isOpen?: boolean}) {
+  const {styles} = useThemeStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({pressed}) => [styles.fab, styles.cardShadow, pressed && styles.pressed]}
+      onPress={onPress}>
+      <Text style={styles.fabIcon}>{isOpen ? '×' : '+'}</Text>
+    </Pressable>
   );
 }
 
@@ -3853,11 +3950,19 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
   const [taskToolsOpen, setTaskToolsOpen] = useState(false);
   const [taskFiltersOpen, setTaskFiltersOpen] = useState(false);
+  const [taskOverviewOpen, setTaskOverviewOpen] = useState(false);
+  const [notificationToolsOpen, setNotificationToolsOpen] = useState(false);
+  const [dependencyToolsOpen, setDependencyToolsOpen] = useState(false);
+  const [projectToolsOpen, setProjectToolsOpen] = useState(false);
+  const [templateToolsOpen, setTemplateToolsOpen] = useState(false);
+  const [listToolsOpen, setListToolsOpen] = useState(false);
+  const [recurringToolsOpen, setRecurringToolsOpen] = useState(false);
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newListName, setNewListName] = useState('');
   const [editingListId, setEditingListId] = useState<string | null>(null);
@@ -3960,6 +4065,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setProjectName(project.name);
     setProjectStatus(project.status);
     setTaskToolsOpen(true);
+    setProjectToolsOpen(true);
     setProjectError(null);
     onProjectFocusHandled();
   }, [data, focusProjectId, onProjectFocusHandled]);
@@ -3981,6 +4087,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setTemplateListId(template.listId);
     setTemplateProjectId(template.projectId);
     setTaskToolsOpen(true);
+    setTemplateToolsOpen(true);
     setTemplateError(null);
     setTemplateMessage(null);
     onTemplateFocusHandled();
@@ -3998,6 +4105,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setEditingListId(taskList.id);
     setEditingListName(taskList.name);
     setTaskToolsOpen(true);
+    setListToolsOpen(true);
     setTaskListError(null);
     onListFocusHandled();
   }, [data, focusListId, onListFocusHandled]);
@@ -4055,6 +4163,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setEditingTaskId(null);
     setTaskFormOpen(false);
     setTaskDetailsOpen(false);
+    setError(null);
   }
 
   function startNewTask() {
@@ -4112,6 +4221,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
       reminderAtMillis = parseTaskReminderLocalDateTime(reminderInput);
     }
     setError(null);
+    setSaving(true);
     try {
       if (editingTaskId) {
         await updateTask(editingTaskId, draft);
@@ -4129,6 +4239,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
       resetForm();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'The task could not be saved.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -4657,7 +4769,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         <View style={styles.tasksHero}>
           <View style={styles.tasksHeroCopy}>
             <Text style={styles.pageTitle}>Tasks</Text>
@@ -4677,6 +4789,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             title="Task details"
             subtitle={dueLocalDate ? `Due ${dueLocalDate}` : 'Optional details, date, priority, and links'}
             open={taskDetailsOpen}
+            compact
             onPress={() => setTaskDetailsOpen(current => !current)}>
             <Text style={styles.formLabel}>Details (optional)</Text>
             <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
@@ -4712,8 +4825,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             </View>
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={editingTaskId ? 'Update task' : 'Save task'} onPress={() => void save()} />
-          {editingTaskId && <TextButton label="Cancel edit" onPress={resetForm} />}
+          <PrimaryButton label={saving ? 'Saving...' : editingTaskId ? 'Update task' : 'Save task'} onPress={() => void save()} disabled={saving} />
+          <TextButton label={editingTaskId ? 'Cancel edit' : 'Cancel'} onPress={resetForm} disabled={saving} />
         </View>
           </>
         )}
@@ -4791,10 +4904,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           </View>
         )}
         {!showAgenda && (
-          <View style={styles.taskOverviewCard}>
+          <Disclosure
+            title="Tasks overview"
+            subtitle={`${currentData.tasks.filter(task => task.status === 'open').length} open · ${completedThisWeek} completed this week`}
+            open={taskOverviewOpen}
+            onPress={() => setTaskOverviewOpen(current => !current)}>
             <View style={styles.taskOverviewHeader}>
               <View>
-                <Text style={styles.taskOverviewTitle}>Tasks overview</Text>
                 <Text style={styles.taskOverviewValue}>{currentData.tasks.filter(task => task.status === 'open').length}</Text>
                 <Text style={styles.taskOverviewMeta}>open tasks</Text>
               </View>
@@ -4814,15 +4930,19 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
                 ))}
               </View>
             )}
-          </View>
+          </Disclosure>
         )}
         <Disclosure
           title="Task tools"
           subtitle="Reminders, dependencies, projects, templates, lists, and recurring tasks"
           open={taskToolsOpen}
           onPress={() => setTaskToolsOpen(current => !current)}>
-        <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Notification settings</Text>
+        <Disclosure
+          title="Notification settings"
+          subtitle={taskRemindersEnabled ? 'Task reminders on' : 'Task reminders off'}
+          compact
+          open={notificationToolsOpen}
+          onPress={() => setNotificationToolsOpen(current => !current)}>
           <Text style={styles.formLabel}>Task reminders</Text>
           <View style={styles.segmentRow}>
             <SegmentButton label="On" selected={taskRemindersEnabled} onPress={() => setTaskRemindersEnabled(true)} />
@@ -4849,9 +4969,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           {notificationSettingsError && <Text style={styles.errorText}>{notificationSettingsError}</Text>}
           {notificationSettingsMessage && <Text style={styles.successText}>{notificationSettingsMessage}</Text>}
           <PrimaryButton label={savingNotificationSettings ? 'Saving...' : 'Save notification settings'} onPress={() => void saveNotificationSettings()} disabled={savingNotificationSettings} />
-        </View>
-        <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Task dependencies</Text>
+        </Disclosure>
+        <Disclosure
+          title="Task dependencies"
+          subtitle={`${currentData.taskDependencies.length} saved`}
+          compact
+          open={dependencyToolsOpen}
+          onPress={() => setDependencyToolsOpen(current => !current)}>
           <Text style={styles.cardDetail}>Make one task wait until another task is completed. Cycles are rejected.</Text>
           <Text style={styles.formLabel}>Must finish first</Text>
           <View style={styles.chipWrap}>
@@ -4882,8 +5006,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             );
           })}
-        </View>
-        <View style={styles.formCard}>
+        </Disclosure>
+        <Disclosure
+          title="Projects"
+          subtitle={`${currentData.projects.length} saved`}
+          compact
+          open={projectToolsOpen}
+          onPress={() => setProjectToolsOpen(current => !current)}>
           <Text style={styles.formLabel}>{editingProjectId ? 'Edit project' : 'Projects'}</Text>
           <TextInput
             accessibilityLabel="Project name"
@@ -4917,8 +5046,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             </View>
           ))}
-        </View>
-        <View style={styles.formCard}>
+        </Disclosure>
+        <Disclosure
+          title="Task templates"
+          subtitle={`${currentData.templates.length} saved`}
+          compact
+          open={templateToolsOpen}
+          onPress={() => setTemplateToolsOpen(current => !current)}>
           <Text style={styles.formLabel}>{editingTemplateId ? 'Edit task template' : 'Task templates'}</Text>
           <TextInput accessibilityLabel="Task template name" placeholder="Template name" placeholderTextColor={colors.muted} style={styles.input} value={templateName} onChangeText={setTemplateName} />
           <TextInput accessibilityLabel="Task template title" placeholder="Task title" placeholderTextColor={colors.muted} style={styles.input} value={templateTitle} onChangeText={setTemplateTitle} />
@@ -4962,8 +5096,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             </View>
           ))}
-        </View>
-        <View style={styles.formCard}>
+        </Disclosure>
+        <Disclosure
+          title="Task lists"
+          subtitle={`${currentData.taskLists.length} saved`}
+          compact
+          open={listToolsOpen}
+          onPress={() => setListToolsOpen(current => !current)}>
           <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>
           <TextInput
             accessibilityLabel="Task list name"
@@ -4989,8 +5128,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             </View>
           ))}
-        </View>
-        <View style={styles.formCard}>
+        </Disclosure>
+        <Disclosure
+          title="Recurring tasks"
+          subtitle={`${currentData.taskRecurrences.length} saved`}
+          compact
+          open={recurringToolsOpen}
+          onPress={() => setRecurringToolsOpen(current => !current)}>
           <Text style={styles.formLabel}>Recurring tasks</Text>
           <TextInput accessibilityLabel="Recurring task title" placeholder="What repeats?" placeholderTextColor={colors.muted} style={styles.input} value={ruleTitle} onChangeText={setRuleTitle} />
           <Text style={styles.formLabel}>Details (optional)</Text>
@@ -5038,7 +5182,6 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             </View>
           ))}
-        </View>
         </Disclosure>
         <Disclosure
           title="Task views and filters"
@@ -5065,14 +5208,11 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
           </View>
         </Disclosure>
+        </Disclosure>
           </>
         )}
       </ScrollView>
-      {!taskFormOpen && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Add task" style={[styles.tasksFab, styles.cardShadow]} onPress={startNewTask}>
-          <Text style={styles.tasksFabIcon}>+</Text>
-        </Pressable>
-      )}
+      {!taskFormOpen && <FloatingActionButton label="Add task" onPress={startNewTask} />}
     </KeyboardAvoidingView>
   );
 }
@@ -5116,15 +5256,15 @@ function SectionTitle({title}: {title: string}) {
   return <Text style={styles.sectionTitle}>{title}</Text>;
 }
 
-function Disclosure({title, subtitle, open, onPress, children}: {title: string; subtitle?: string; open: boolean; onPress: () => void; children: ReactNode}) {
+function Disclosure({title, subtitle, open, onPress, children, compact = false}: {title: string; subtitle?: string; open: boolean; onPress: () => void; children: ReactNode; compact?: boolean}) {
   const {styles} = useThemeStyles();
   return (
-    <View style={styles.disclosure}>
+    <View style={compact ? styles.compactDisclosure : styles.disclosure}>
       <Pressable
         accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title}`}
         accessibilityRole="button"
         accessibilityState={{expanded: open}}
-        style={({pressed}) => [styles.disclosureButton, pressed && styles.pressed]}
+        style={({pressed}) => [styles.disclosureButton, compact && styles.compactDisclosureButton, pressed && styles.pressed]}
         onPress={onPress}>
         <View style={styles.listBody}>
           <Text style={styles.disclosureTitle}>{title}</Text>
@@ -5132,7 +5272,7 @@ function Disclosure({title, subtitle, open, onPress, children}: {title: string; 
         </View>
         <Text style={styles.disclosureIcon}>{open ? '−' : '+'}</Text>
       </Pressable>
-      {open && <View style={styles.disclosureBody}>{children}</View>}
+      {open && <View style={[styles.disclosureBody, compact && styles.compactDisclosureBody]}>{children}</View>}
     </View>
   );
 }
@@ -5241,38 +5381,42 @@ function createStyles(colors: ThemeColors) {
   app: {flex: 1, backgroundColor: colors.background},
   flex: {flex: 1},
   content: {flex: 1},
-  scrollContent: {padding: 20, paddingBottom: 36, paddingTop: 22},
-  pageTitle: {color: colors.text, fontSize: 30, fontWeight: '800', letterSpacing: -0.6},
-  pageIntro: {color: colors.muted, fontSize: 15, lineHeight: 22, marginTop: 6, marginBottom: 18},
+  scrollContent: {padding: 16, paddingBottom: 28, paddingTop: 18},
+  pageTitle: {color: colors.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4},
+  pageIntro: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: 14},
   editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
-  cardGrid: {gap: 12},
-  cardShadow: {elevation: 2, shadowColor: colors.shadow, shadowOffset: {height: 4, width: 0}, shadowOpacity: 0.06, shadowRadius: 12},
-  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: 18},
+  cardGrid: {gap: 8},
+  cardShadow: {elevation: 1, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.035, shadowRadius: 6},
+  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 14},
   disabledCard: {opacity: 0.72},
-  cardTitle: {color: colors.muted, fontSize: 14, fontWeight: '700', textTransform: 'uppercase'},
-  cardValue: {color: colors.text, fontSize: 23, fontWeight: '800', marginTop: 9},
-  cardDetail: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 5, minHeight: 40},
+  cardTitle: {color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase'},
+  cardValue: {color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 6},
+  cardDetail: {color: colors.muted, fontSize: 13, lineHeight: 18, marginTop: 4},
   recoveryKey: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 15, letterSpacing: 1.2, lineHeight: 25, marginTop: 12, padding: 13},
   cardAction: {alignSelf: 'flex-start', marginTop: 12},
   disabledAction: {opacity: 0.6},
   cardActionText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
   backButton: {alignSelf: 'flex-start', marginBottom: 12},
   backButtonText: {color: colors.accent, fontSize: 15, fontWeight: '800'},
-  sectionTitle: {color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 10},
-  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, overflow: 'hidden'},
-  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 62, paddingHorizontal: 14, paddingVertical: 10},
-  disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: 14},
+  sectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 20, marginBottom: 8},
+  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: 'hidden'},
+  compactDisclosure: {backgroundColor: colors.cardRaised, borderRadius: 11, marginTop: 8, overflow: 'hidden'},
+  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: 12, paddingVertical: 8},
+  compactDisclosureButton: {minHeight: 46, paddingHorizontal: 10, paddingVertical: 6},
+  disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: 12},
+  compactDisclosureBody: {padding: 10},
   disclosureTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
   disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: 4},
   disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: 14},
-  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, color: colors.muted, fontSize: 15, lineHeight: 22, padding: 16},
-  listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
+  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.muted, fontSize: 14, lineHeight: 20, padding: 14},
+  listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: 12},
   listBody: {flex: 1},
-  listTitle: {color: colors.text, fontSize: 16, fontWeight: '700'},
-  listMeta: {color: colors.muted, fontSize: 13, marginTop: 5},
+  listTitle: {color: colors.text, fontSize: 15, fontWeight: '700'},
+  listMeta: {color: colors.muted, fontSize: 12, marginTop: 4},
   chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
-  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: 16},
+  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 14},
+  inlinePanel: {backgroundColor: colors.cardRaised, borderRadius: 12, padding: 12},
   searchAccessNote: {color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10},
   searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: 14},
   searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase'},
@@ -5282,7 +5426,7 @@ function createStyles(colors: ThemeColors) {
   linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
   recurrenceOptions: {backgroundColor: colors.cardRaised, borderRadius: 14, marginTop: 12, padding: 14},
-  formLabel: {color: colors.muted, fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 7},
+  formLabel: {color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 10, marginBottom: 6},
   toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14},
   toggleRowSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   toggleMark: {color: colors.muted, fontSize: 22, fontWeight: '800', marginRight: 10},
@@ -5290,7 +5434,7 @@ function createStyles(colors: ThemeColors) {
   toggleTextSelected: {color: colors.accentText},
   noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4},
   segmentRow: {flexDirection: 'row', gap: 8},
-  segmentButton: {borderColor: colors.border, borderRadius: 10, borderWidth: 1, flex: 1, paddingVertical: 11},
+  segmentButton: {borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, paddingVertical: 9},
   segmentButtonSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   segmentText: {color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center'},
   segmentTextSelected: {color: colors.accentText},
@@ -5300,17 +5444,17 @@ function createStyles(colors: ThemeColors) {
   weekdayToggleSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   weekdayToggleText: {color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center'},
   weekdayToggleTextSelected: {color: colors.accentText},
-  chip: {borderColor: colors.border, borderRadius: 20, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 9},
+  chip: {borderColor: colors.border, borderRadius: 18, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8},
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
-  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10},
+  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 44, paddingHorizontal: 12, paddingVertical: 9},
   quietHoursInput: {flex: 1, minWidth: 0},
   smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
-  primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 10, marginTop: 16, paddingVertical: 13},
+  primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 10, marginTop: 14, paddingVertical: 12},
   primaryButtonText: {color: colors.accentText, fontSize: 15, fontWeight: '800'},
-  textButton: {alignSelf: 'flex-start', marginTop: 12, paddingVertical: 5},
+  textButton: {alignSelf: 'flex-start', marginTop: 10, paddingVertical: 4},
   textButtonText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
   pressed: {opacity: 0.72},
   errorText: {color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: 10},
@@ -5321,38 +5465,44 @@ function createStyles(colors: ThemeColors) {
   expenseText: {color: colors.warning},
   notesHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
   notesHeroCopy: {flex: 1},
-  notesCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 18, minWidth: 64, paddingHorizontal: 12, paddingVertical: 9},
-  notesCountValue: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  notesCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: 10, paddingVertical: 8},
+  notesCountValue: {color: colors.text, fontSize: 18, fontWeight: '800'},
   notesCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
-  notesSearchCard: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 18, borderWidth: 1, marginTop: 10, paddingHorizontal: 14, paddingVertical: 4},
+  notesSearchCard: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: 8, paddingHorizontal: 12, paddingVertical: 2},
   notesSearchRow: {alignItems: 'center', flexDirection: 'row'},
-  notesSearchIcon: {color: colors.muted, fontSize: 29, lineHeight: 36, marginRight: 8},
-  notesSearchInput: {color: colors.text, flex: 1, fontSize: 16, minHeight: 50, paddingVertical: 8},
+  notesSearchIcon: {color: colors.muted, fontSize: 25, lineHeight: 32, marginRight: 6},
+  notesSearchInput: {color: colors.text, flex: 1, fontSize: 15, minHeight: 44, paddingVertical: 7},
   notesSearchAction: {alignItems: 'center', height: 40, justifyContent: 'center', width: 36},
   notesSearchActionText: {color: colors.muted, fontSize: 25, fontWeight: '700'},
   notesFilterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12},
   notesSaveSearch: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, flexDirection: 'row', gap: 8, marginTop: 12, paddingHorizontal: 12},
   notesSaveSearchInput: {color: colors.text, flex: 1, fontSize: 14, minHeight: 44, paddingVertical: 7},
-  notesSection: {marginTop: 22},
-  notesSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10},
-  notesSectionTitle: {color: colors.text, fontSize: 19, fontWeight: '800'},
+  notesSection: {marginTop: 18},
+  notesSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
+  notesSectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800'},
   notesSectionCount: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginBottom: 12, overflow: 'hidden'},
+  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: 10, overflow: 'hidden'},
   noteCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 18, paddingHorizontal: 17, paddingBottom: 12},
   noteCardPinned: {borderColor: colors.warning},
   noteCardArchived: {opacity: 0.86},
-  noteCardPressable: {padding: 17},
+  noteCardPressable: {padding: 14},
   noteCardTopline: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   noteCategory: {color: colors.accent, fontSize: 13, fontWeight: '800'},
   notePinIcon: {color: colors.warning, fontSize: 20},
   noteMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
-  noteCardTitle: {color: colors.text, fontSize: 19, fontWeight: '800', lineHeight: 24, marginTop: 10},
+  noteCardTitle: {color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 22, marginTop: 8},
   noteTagRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12},
   noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4},
-  noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14},
+  noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10},
   noteCardMeta: {color: colors.muted, fontSize: 12},
-  notesFab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 31, bottom: 18, height: 62, justifyContent: 'center', position: 'absolute', right: 20, width: 62},
-  notesFabIcon: {color: colors.accentText, fontSize: 36, fontWeight: '300', lineHeight: 40},
+  fabScrollContent: {paddingBottom: 96},
+  fabLayer: {bottom: 0, left: 0, position: 'absolute', right: 0, top: 0},
+  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 28, bottom: 16, height: 56, justifyContent: 'center', position: 'absolute', right: 16, width: 56},
+  fabIcon: {color: colors.accentText, fontSize: 32, fontWeight: '300', lineHeight: 36},
+  quickCaptureMenu: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, bottom: 80, elevation: 3, padding: 6, position: 'absolute', right: 16, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.08, shadowRadius: 6, width: 160},
+  quickCaptureMenuTitle: {color: colors.muted, fontSize: 12, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 8},
+  quickCaptureOption: {borderRadius: 9, paddingHorizontal: 9, paddingVertical: 9},
+  quickCaptureOptionText: {color: colors.text, fontSize: 14, fontWeight: '700'},
   savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 10, paddingTop: 10},
   noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
   attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
@@ -5368,14 +5518,14 @@ function createStyles(colors: ThemeColors) {
   noteMarkupCode: {backgroundColor: colors.cardRaised, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},
   tasksHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
   tasksHeroCopy: {flex: 1},
-  tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 18, minWidth: 64, paddingHorizontal: 12, paddingVertical: 9},
-  tasksCountValue: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: 10, paddingVertical: 8},
+  tasksCountValue: {color: colors.text, fontSize: 18, fontWeight: '800'},
   tasksCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
-  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', gap: 4, marginTop: 8, padding: 4},
-  taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginTop: 16, padding: 16},
+  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 3, marginTop: 6, padding: 3},
+  taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, padding: 14},
   taskSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
   taskSectionTitleRow: {alignItems: 'center', flexDirection: 'row', gap: 8},
-  taskSectionTitle: {color: colors.text, fontSize: 20, fontWeight: '800'},
+  taskSectionTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
   taskSectionMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   taskSectionIntro: {color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: 6},
   taskCountBadge: {backgroundColor: colors.cardRaised, borderRadius: 12, color: colors.accent, fontSize: 13, fontWeight: '800', minWidth: 26, paddingHorizontal: 8, paddingVertical: 4, textAlign: 'center'},
@@ -5396,10 +5546,10 @@ function createStyles(colors: ThemeColors) {
   taskMoreButton: {alignItems: 'center', height: 38, justifyContent: 'center', marginTop: 5, width: 38},
   taskMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
   taskCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 12, paddingTop: 5},
-  taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginTop: 16, padding: 18},
+  taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, padding: 14},
   taskOverviewHeader: {flexDirection: 'row', justifyContent: 'space-between'},
   taskOverviewTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
-  taskOverviewValue: {color: colors.text, fontSize: 32, fontWeight: '800', marginTop: 8},
+  taskOverviewValue: {color: colors.text, fontSize: 28, fontWeight: '800', marginTop: 6},
   taskOverviewMeta: {color: colors.muted, fontSize: 13, marginTop: 3},
   taskCompletedSummary: {alignItems: 'flex-end', backgroundColor: colors.cardRaised, borderRadius: 16, minWidth: 136, paddingHorizontal: 13, paddingVertical: 12},
   taskCompletedValue: {color: colors.accent, fontSize: 28, fontWeight: '800'},
@@ -5409,8 +5559,6 @@ function createStyles(colors: ThemeColors) {
   taskOverviewTrack: {backgroundColor: colors.cardRaised, borderRadius: 4, flex: 1, height: 8, overflow: 'hidden'},
   taskOverviewFill: {backgroundColor: colors.accent, borderRadius: 4, height: 8},
   taskOverviewCount: {color: colors.muted, fontSize: 13, fontWeight: '800', minWidth: 18, textAlign: 'right'},
-  tasksFab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 31, bottom: 18, height: 62, justifyContent: 'center', position: 'absolute', right: 20, width: 62},
-  tasksFabIcon: {color: colors.accentText, fontSize: 36, fontWeight: '300', lineHeight: 40},
   taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
   taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
   taskActions: {alignItems: 'center', flexDirection: 'row'},
@@ -5428,25 +5576,25 @@ function createStyles(colors: ThemeColors) {
   loading: {backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: 28},
   loadingMessage: {color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12},
   dangerText: {color: colors.danger},
-  homeMoneyWidget: {backgroundColor: colors.accent, borderRadius: 22, marginBottom: 16, padding: 20},
-  homeWidgetAction: {color: colors.accentText, fontSize: 14, fontWeight: '800', marginTop: 14},
-  homeBalanceLabel: {color: colors.accentText, fontSize: 16, fontWeight: '700'},
+  homeMoneyWidget: {backgroundColor: colors.accent, borderRadius: 18, marginBottom: 14, padding: 16},
+  homeWidgetAction: {color: colors.accentText, fontSize: 13, fontWeight: '800', marginTop: 10},
+  homeBalanceLabel: {color: colors.accentText, fontSize: 15, fontWeight: '700'},
   homeBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
-  homeBalanceValue: {color: colors.accentText, fontSize: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 14},
-  homeBalanceDetail: {color: colors.accentText, fontSize: 14, marginTop: 12, opacity: 0.85},
+  homeBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: 11},
+  homeBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: 8, opacity: 0.85},
   homeSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   homeMuted: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 14},
-  moneyOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginBottom: 18, overflow: 'hidden'},
-  moneyBalanceCard: {backgroundColor: colors.accent, padding: 20},
-  moneyBalanceLabel: {color: colors.accentText, fontSize: 16, fontWeight: '700'},
+  moneyOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 18, borderWidth: 1, marginBottom: 14, overflow: 'hidden'},
+  moneyBalanceCard: {backgroundColor: colors.accent, padding: 16},
+  moneyBalanceLabel: {color: colors.accentText, fontSize: 15, fontWeight: '700'},
   moneyBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
-  moneyBalanceValue: {color: colors.accentText, fontSize: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 14},
-  moneyBalanceDetail: {color: colors.accentText, fontSize: 14, marginTop: 12, opacity: 0.85},
+  moneyBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: 11},
+  moneyBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: 8, opacity: 0.85},
   moneyOverviewMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, padding: 18},
+  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, padding: 14},
   moneyActivityRight: {alignItems: 'flex-end'},
-  moneyActivityValue: {color: colors.text, fontSize: 16, fontWeight: '800', marginTop: 5},
-  moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginTop: 18, padding: 18},
+  moneyActivityValue: {color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 4},
+  moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 14, padding: 14},
   moneyChartHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   moneyChartTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
   moneyChartSubtitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
