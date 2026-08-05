@@ -2010,7 +2010,7 @@ Known limits:
 
 ## Implementation review: Android verified-remote-bundle pass
 
-Status: Implemented on 2026-07-27; live remote activation remains endpoint-release verification work.
+Status: Implemented on 2026-07-27; GitHub Release publication, live remote activation, pending promotion, and rollback smoke passed on 2026-08-05.
 
 Delivered:
 
@@ -2038,7 +2038,7 @@ Resource cleanup         PASS - both devices force-stopped; Gradle/Kotlin proces
 
 Known limits:
 
-- the GitHub Releases latest metadata asset has no signed release fixture in this workspace, so device smoke proves the offline embedded path, not remote activation;
+- the signed GitHub Releases latest metadata asset and immutable bundle were published and verified; Xiaomi live smoke proved remote activation of 0.1.4, next-launch promotion, and blocked-version rollback to 0.1.4;
 - the native implementation intentionally has no retry loop, polling worker, or background update service;
 - Android API 32 and older are no longer supported; future public releases need release-pipeline key custody and endpoint integration tests.
 

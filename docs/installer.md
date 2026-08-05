@@ -1,6 +1,6 @@
 # JavaScript bundle installer contract
 
-Status: Android native installer and manual OTA implementation for the 0.1.3 release. The native shell checks signed metadata, verifies only a newer compatible bundle, stores manual updates as pending for the next launch, and rolls back a pending bundle that does not report a healthy React root. GitHub Release publication and device activation smoke remain release gates.
+Status: Android native installer and manual OTA implementation for the 0.1.3 release. The native shell checks signed metadata, verifies only a newer compatible bundle, stores manual updates as pending for the next launch, and rolls back a pending bundle that does not report a healthy React root. GitHub Release publication, live activation, pending promotion, and rollback device smoke pass; evidence is in `docs/releases/v0.1.3.md`.
 
 The current project OTA trust anchor is a fresh Ed25519 key. Its public-key
 SHA-256 fingerprint is

@@ -6,6 +6,16 @@ Status: Current Android native release process. The release APK is signed with a
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-08-05 Android v0.1.3 and OTA v0.1.4 release:
+
+- Android `versionName` is `0.1.3`, matching the embedded bundle, with version code `4`;
+- the signed APK is [`Yuzuha-0.1.3.apk`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.3/Yuzuha-0.1.3.apk), at `67,425,831` bytes with SHA-256 `02E1FEB0888EF1AE40FC0F6E25B56C47FF9DABFE4A1C2729164C672F2349BE82`;
+- the OTA trust anchor is the new Ed25519 key with public-key fingerprint `cf181636d6a4ee260f4739a3239c1eb17dd72dcb2bd9c93ad5c74f59a7b28f5e`;
+- [GitHub Release v0.1.3](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.3) contains the APK, and [GitHub Release v0.1.4](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.4) contains `bundle.json` and `Yuzuha-0.1.4.jsbundle`;
+- the OTA bundle is `1,320,896` bytes with SHA-256 `9d2442197f64e714073875ccec56537ba4bbc44b1acccc09b45a4141699ec98f`; published metadata requires native `0.1.3` and was accepted by `npm run ota-check`;
+- Xiaomi `42adce68` proved live remote activation of `0.1.4`, next-launch promotion, and rollback from a temporary failing `0.1.5` to blocked-version `0.1.4`; the temporary release was deleted;
+- the exact artifact, test, device, and release boundary evidence is in [`docs/releases/v0.1.3.md`](releases/v0.1.3.md).
+
 ## Current Android release procedure
 
 Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The release APK must be built from a clean committed tree with the current Java/React Native toolchain, and its SHA-256 must be recorded in the release notes and checked against the uploaded GitHub asset.

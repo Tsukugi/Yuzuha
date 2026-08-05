@@ -91,8 +91,11 @@ must not require a committed private-key fixture.
 
 - Focused Jest covers the typed JavaScript bridge, embedded fallback, native verified result, invalid native result blocking, current metadata shape, and stable signed-payload construction.
 - `:app:compileDebugKotlin` passes for the native installer and `:app:assembleRelease` passes with Java 17 and two workers. The release APK installs on emulator `emulator-5554` and phone `42adce68`.
-- Emulator startup after install rendered `Bundle 0.1.0` and the Home screen. Phone startup completed without filtered fatal or ReactNativeJS errors; its UI automation bridge remains unavailable by device policy.
-- The default update endpoint was unavailable during smoke, so the deterministic `offline-local`/embedded path was exercised. A live signed remote activation requires the release endpoint and is not claimed by this device smoke.
+- The earlier local installer smoke rendered the embedded bundle and Home screen. The
+  current published-release smoke below covers the live GitHub path; phone UI
+  automation remains unavailable by device policy.
+- The installer keeps the deterministic `offline-local` path for network failure,
+  while the published GitHub latest asset is now also verified by the live smoke.
 - Both devices were force-stopped after the check, and no Gradle, Kotlin compiler, or app worker process remained.
 
 ## OTA implementation evidence
@@ -121,8 +124,8 @@ must not require a committed private-key fixture.
 - The fresh production OTA private key is stored outside the repository in the
   user secret directory. `npm run ota-release -- --version 0.1.4` generated a
   signed Android bundle and `npm run ota-check -- dist/ota/0.1.4/bundle.json`
-  accepted it with the new pin. GitHub Release publication and latest-asset
-  activation are the remaining live checks for this pass.
+  accepted it with the new pin. The published `v0.1.4` GitHub Release metadata
+  and bundle were downloaded, checked, and matched their signed size and hash.
 - A fresh signed release APK containing the new OTA pin was built with the
   ignored local signing configuration. It is `67,425,831` bytes with SHA-256
   `02E1FEB0888EF1AE40FC0F6E25B56C47FF9DABFE4A1C2729164C672F2349BE82`, was
@@ -131,12 +134,21 @@ must not require a committed private-key fixture.
 - Release logcat recorded `YuzuhaInstaller: launch kind=offline-local
   version=0.1.3 reason=REMOTE_UNAVAILABLE` and `ReactNativeJS: Running
   "Yuzuha"`, with no filtered fatal startup line.
+- With GitHub latest pointing at `v0.1.4`, Xiaomi recorded
+  `YuzuhaInstaller: launch kind=remote-activated version=0.1.4 reason=none`.
+  A later launch recorded
+  `YuzuhaInstaller: launch kind=local-current version=0.1.4 reason=REMOTE_NOT_NEWER`,
+  proving the healthy bundle was promoted and retained.
+- A temporary signed failing `v0.1.5` prerelease recorded
+  `remote-activated version=0.1.5` on its first launch and
+  `local-current version=0.1.4 reason=BLOCKED_VERSION` on the next launch.
+  The temporary release and tag were deleted after the controlled rollback
+  smoke.
 - The device UI hierarchy shows Home after the release install. Xiaomi blocks
   shell touch/swipe injection with `INJECT_EVENTS`, so opening the nested Data
   tools `Code updates` disclosure remains a manual-tap check.
-- Live signed endpoint activation, pending next-launch activation, and bad
-  bundle rollback still require a controlled endpoint/device smoke. They are
-  not claimed by these local checks.
+- The exact release, endpoint, promotion, and rollback evidence is recorded in
+  `docs/releases/v0.1.3.md`.
 
 ## Home period evidence
 
