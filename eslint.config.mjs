@@ -57,6 +57,8 @@ export default [
         expect: 'readonly',
         it: 'readonly',
         jest: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
       },
     },
   },

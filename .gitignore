@@ -22,6 +22,7 @@ ios/build/
 # Metro
 metro-cache/
 dist/
+dist/ota/
 coverage/
 .tmp/
 

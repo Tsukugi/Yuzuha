@@ -704,3 +704,34 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The user enters the amount, type, account, category, and note once, then decides whether it repeats and which days it uses. Existing one-time entry behavior stays unchanged, and no internal catch-up policy becomes a form question.
 - Consequence: Selected weekdays are persisted in `MoneyRecurrenceRule`; older app, backup, CSV, and SQLite data are rejected without migration. No network, worker, timer, or polling loop is added.
 - Validation: focused recurrence tests, typecheck, lint, full Jest, signed Android build, and Xiaomi add-form/periodic-management smoke must cover one-time save, periodic save, pause/resume, delete confirmation, and no duplicate occurrence after restart.
+
+## DEC-098: Add native-verified Android OTA with pending launch and rollback
+
+- Status: Accepted.
+- Context: Yuzuha already checked one signed bundle at startup, but users had no visible way to check while the app was open, and a bundle selected as current had no bounded first-launch rollback state. Rapunzel provides a useful pending/current pattern, but its ZIP archive format is larger than Yuzuha's current single-bundle contract.
+- Decision: Keep the existing signed schema-1 metadata, native Ed25519/hash/size verification, one startup request, and Android-first scope. Add typed native check/download/health methods, schema-2 current/pending installer state, an exact blocked-version marker, a collapsed Data tools control, and a release command that signs one Android `.jsbundle`. Apply updates on the next launch and never hot-swap the current bridge.
+- Reason: The native shell remains the only executable-code trust boundary, manual preparation is visible, pending activation protects the current bundle, and a blocked version prevents repeated startup crashes. A future multi-file archive needs a new schema and separate asset validation.
+- Consequence: The OTA private key is a release-system secret separate from the APK key. Live endpoint publication and device activation/rollback smoke remain release gates. iOS OTA remains planned.
+- Validation: focused installer and metadata tests, release-core hash/signature tests, TypeScript, lint, Kotlin compilation, and the manual Android smoke matrix in `docs/ota-update-spec.md`.
+
+## DEC-099: Rotate the new-project OTA trust anchor explicitly
+
+- Status: Accepted.
+- Context: The initial OTA implementation used a placeholder Ed25519 public
+  key. This project now needs its own release trust anchor before publishing
+  OTA metadata.
+- Decision: Generate a fresh Ed25519 key pair outside the repository, pin only
+  its public SPKI key in the native installer and release validator, and keep
+  the PKCS#8 private key in ignored local or CI secret storage. Record the
+  public-key fingerprint in the release procedure. Rotation requires a new
+  native APK and republished metadata; the release command never rotates keys
+  implicitly.
+- Reason: A new project must not depend on a placeholder trust anchor, and a
+  native pin change must be explicit because it changes which signed code the
+  APK can accept.
+- Consequence: Existing APKs keep the previous pin. The new APK cannot accept
+  bundles signed by the old key, so the endpoint and release artifact must be
+  updated together.
+- Validation: derive the public key from the external private key, verify a
+  signed metadata fixture with the new pin, run native and TypeScript tests,
+  and confirm no private key is tracked.

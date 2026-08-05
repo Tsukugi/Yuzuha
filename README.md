@@ -49,6 +49,16 @@ Home can open a read-only period Review. It combines main-currency money, includ
 
 Android startup checks one signed update manifest before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. The check has one bounded request and no polling worker.
 
+Data tools now include a collapsed Android `Code updates` control. It can check
+for and prepare a newer signed JavaScript bundle while the current app keeps
+running; the prepared code applies after the next launch and rolls back if it
+does not report a healthy root. Native app changes still require a new APK.
+Live endpoint publication and device activation smoke are release gates.
+The OTA trust anchor is a new project Ed25519 key; its private key stays
+outside the repository, and changing the pin requires a new APK plus
+republished signed metadata. See the release procedure for the public-key
+fingerprint and local secret-loading command.
+
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
 Data tools can import a current Yuzuha money CSV through the system document picker. The file is previewed first; duplicate IDs, broken references, split-linked rows, invalid values, and oversized files block the import. Confirmation appends the entries in one local save. JSON or encrypted backup is required for complete workspace portability.
@@ -73,7 +83,7 @@ Use locked dependency versions in implementation branches. The current baseline 
 
 ## Latest Android release
 
-The latest Android release is `v0.1.2`. It provides the periodic money weekday controls, alongside the dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.2). Cloud sync is out of scope for this release.
+The latest Android release is `v0.1.3`. It provides the periodic money weekday controls, alongside the dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.3). Cloud sync is out of scope for this release.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 
@@ -95,10 +105,16 @@ npm run lint
 npm run typecheck
 npm run test
 npm run check-bundle
+npm run ota-check -- dist/ota/<version>/bundle.json
 ```
+
+Build an OTA bundle with `npm run ota-release -- --version <version>` after
+providing the ignored `YUZUHA_OTA_PRIVATE_KEY_BASE64` secret. See
+[the OTA specification](docs/ota-update-spec.md) and
+[the installer contract](docs/installer.md) for the signing and rollback rules.
 
 The Android build needs Android Studio, an Android SDK, Java 17, and a configured emulator or device. iOS development needs Xcode on macOS.
 
 ## Installer rule
 
-Every startup follows the installer contract in [docs/installer.md](docs/installer.md): check signed metadata, download a newer bundle if available, verify it, activate it atomically, and only then render the main app. If the network is unavailable, use the newest verified local bundle. Never activate an unverified or partially downloaded bundle.
+Every startup follows the installer contract in [docs/installer.md](docs/installer.md): check signed metadata, download and verify a newer bundle if available, store it as pending, and only select it before rendering after the native launch gate completes. The root health signal promotes pending code to current; if the network is unavailable, use the newest compatible verified local bundle or the embedded baseline. Never activate an unverified or partially downloaded bundle.

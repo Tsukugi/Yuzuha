@@ -15,7 +15,7 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 
 ## Android bundle installer controls
 
-The update check sends no account ID, device ID, product record, note text, transaction data, task data, or app-usage data. It makes one HTTPS request for public signed metadata, rejects redirects, caps metadata at 64 KiB and bundles at 64 MiB, and keeps downloaded bytes in app-private storage. Metadata is authenticated with the pinned Ed25519 public key; the bundle hash and exact byte count are checked before activation. Temporary files are removed after failure, and the embedded or previously verified bundle remains selected. Android API 33 is the current minimum for the native verifier.
+The update check sends no account ID, device ID, product record, note text, transaction data, task data, or app-usage data. It makes one HTTPS request for public signed metadata from the GitHub Releases latest-asset URL, follows GitHub's HTTPS redirects, caps metadata at 64 KiB and bundles at 64 MiB, and keeps downloaded bytes in app-private storage. Metadata is authenticated with the pinned Ed25519 public key; the bundle hash and exact byte count are checked before a pending record is written. Temporary files are removed after failure, the current bundle is kept until a pending launch reports health, and a failed pending version is blocked instead of retried forever. Android API 33 is the current minimum for the native verifier. The OTA private key is never part of the app or repository.
 
 ## Sensitive data controls
 

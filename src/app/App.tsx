@@ -1,19 +1,26 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {AppStoreProvider} from '../data/AppStore';
-import {NativeBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
+import {nativeBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
 import {MainApp} from './MainApp';
 import {ThemeProvider, useAppTheme} from './theme';
 
-const installer = new NativeBundleInstaller();
-
 export function App() {
   const [decision, setDecision] = useState<LaunchDecision | null>(null);
+  const launchHealthReported = useRef(false);
 
   useEffect(() => {
-    installer.launch().then(setDecision);
+    nativeBundleInstaller.launch().then(setDecision);
   }, []);
+
+  useEffect(() => {
+    if (!decision || decision.kind === 'blocked' || launchHealthReported.current) {
+      return;
+    }
+    launchHealthReported.current = true;
+    void nativeBundleInstaller.markLaunchSuccessful().catch(() => undefined);
+  }, [decision]);
 
   return (
     <SafeAreaProvider>
@@ -24,7 +31,7 @@ export function App() {
           <StartupScreen message={decision.reason} />
         ) : (
           <AppStoreProvider>
-            <MainApp />
+            <MainApp bundleVersion={decision.version} />
           </AppStoreProvider>
         )}
       </ThemeProvider>

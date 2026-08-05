@@ -30,4 +30,6 @@ class MainApplication : Application(), ReactApplication {
   }
 
   fun bundleLaunchResult(): BundleLaunchResult = bundleInstaller.await()
+
+  fun bundleInstaller(): YuzuhaBundleInstaller = bundleInstaller
 }

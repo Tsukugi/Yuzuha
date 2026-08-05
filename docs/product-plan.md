@@ -130,7 +130,7 @@ Before implementation starts, answer these questions:
 - Which apps should be excluded from app-time reporting by default, if any?
 - Is a task list enough for the first release, or are recurring tasks required?
 - Should the app support Android backup, and if so, should sensitive data be excluded?
-- What is the source of truth and signing process for `updates.yuzuha.dev`?
+- What is the source of truth and signing process for the GitHub Releases OTA assets?
 - What is the minimum Android API level for the first device build?
 
 ## Full-product north star

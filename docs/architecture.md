@@ -22,7 +22,7 @@ Current pass addition: Notes support stable links to tasks, projects, money entr
 
 Current App Time addition: the Android report can select Today, This week, or This month. `getLocalDayRanges` splits the selected local period into one native query per local day. Queries run sequentially, snapshots are aggregated with the queried day as their local date, and `replaceUsageSnapshots` runs once after all queries succeed. The selected range is a derived view and adds no schema, worker, timer, or polling loop.
 
-Current startup installer addition: `MainApplication` starts `YuzuhaBundleInstaller` before the React host is created. The installer performs one bounded HTTPS metadata request, validates the current Android/runtime/native-version fields, verifies the signed canonical metadata with the pinned Ed25519 public key, downloads a newer bundle into an app-private temporary file, checks its exact size and SHA-256, and atomically promotes both the immutable bundle and activation state. A valid remote bundle is passed to `DefaultReactHost` through `jsBundleFilePath`; otherwise the newest verified private bundle or embedded asset is used. JavaScript reads only the native launch status through `YuzuhaInstaller`. The Android minimum API is now 33 so the supported shell has the required Ed25519 runtime.
+Current startup installer addition: `MainApplication` starts `YuzuhaBundleInstaller` before the React host is created. The installer performs one bounded HTTPS metadata request, validates the current Android/runtime/native-version fields, verifies the signed canonical metadata with the pinned Ed25519 public key, downloads a newer bundle into an app-private temporary file, checks its exact size and SHA-256, and atomically stores the immutable bundle plus a pending activation state. A valid remote or pending bundle is passed to `DefaultReactHost` through `jsBundleFilePath`; after the root reports health, native code promotes pending to current. Otherwise the newest compatible verified private bundle or embedded asset is used. JavaScript reads only the native launch status through `YuzuhaInstaller`. The Android minimum API is now 33 so the supported shell has the required Ed25519 runtime.
 
 Current Home period addition: `HomeScreen` derives one local Day/Week/Month range with the shared period helpers. Main-currency money totals, included app-time totals, open-task due counts, and recent note updates use that same range. The selector is local component state; it does not write AppData, change usage permission state, refresh native data, or start a timer.
 
@@ -138,7 +138,10 @@ Hide platform APIs behind typed interfaces. The first Android adapter is app usa
 7. JavaScript starts from the selected verified bundle.
 8. `MainApp` opens the local database, requires repository schema 3 and app schema 33, and renders the first screen.
 
-If a step fails, the installer returns a named result such as `offline-local`, `invalid-remote`, or `no-verified-bundle`. The UI may explain the result, but it must not silently run an unverified file. See `installer.md`.
+If a step fails, the installer returns a named result such as `offline-local`,
+`invalid-remote`, or `INVALID_STATE` while keeping the embedded or last valid
+bundle as the deterministic launch choice. The UI may explain the result, but
+it must not silently run an unverified file. See `installer.md`.
 
 ## Planned module tree
 
@@ -185,6 +188,15 @@ Every layer returns typed errors with a stable code and user-safe message. UI co
 ## Developer note: installer-aware changes
 
 Any change that touches startup order, bundle cache paths, metadata fields, version comparison, verification, or activation must update `installer.md`, add or adjust installer tests in `testing.md`, and add a release checklist item in `release.md`. A feature is not complete until the bundle gate still runs before `MainApp`.
+
+The current OTA extension keeps executable-code ownership in the Android shell.
+`YuzuhaBundleInstaller` owns signed metadata checks, bundle download and hash
+verification, schema-2 current/pending state, blocked-version rollback, and the
+launch health signal. `YuzuhaInstallerModule` exposes typed check, download,
+status, and health methods. The React Data tools control only renders those
+results; it never fetches or activates a JavaScript file. A manual update is
+prepared while the current bridge is running and is selected only on the next
+launch. iOS OTA and multi-file asset archives remain planned.
 
 ## Full-product components
 

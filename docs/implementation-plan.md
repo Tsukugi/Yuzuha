@@ -2038,7 +2038,7 @@ Resource cleanup         PASS - both devices force-stopped; Gradle/Kotlin proces
 
 Known limits:
 
-- the live `updates.yuzuha.dev` endpoint has no signed release fixture in this workspace, so device smoke proves the offline embedded path, not remote activation;
+- the GitHub Releases latest metadata asset has no signed release fixture in this workspace, so device smoke proves the offline embedded path, not remote activation;
 - the native implementation intentionally has no retry loop, polling worker, or background update service;
 - Android API 32 and older are no longer supported; future public releases need release-pipeline key custody and endpoint integration tests.
 

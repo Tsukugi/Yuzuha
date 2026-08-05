@@ -2,7 +2,6 @@ package dev.yuzuha
 
 import android.content.Context
 import android.util.Log
-import android.util.Base64
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -18,12 +17,20 @@ import java.security.MessageDigest
 import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
+import java.util.Base64
 import java.util.concurrent.CountDownLatch
 
 data class BundleLaunchResult(
   val kind: String,
   val version: String,
   val bundlePath: String?,
+  val reasonCode: String? = null,
+)
+
+data class BundleUpdateResult(
+  val kind: String,
+  val currentVersion: String,
+  val availableVersion: String? = null,
   val reasonCode: String? = null,
 )
 
@@ -54,17 +61,56 @@ private data class RemoteBundleMetadata(
   ).joinToString("\n")
 }
 
+internal data class BundleFileReference(
+  val version: String,
+  val fileName: String,
+  val sizeBytes: Long,
+  val sha256: String,
+  val runtime: String = YuzuhaBundleInstaller.RUNTIME,
+  val minNativeVersion: String = YuzuhaBundleInstaller.NATIVE_VERSION,
+)
+
+internal data class PendingBundleReference(
+  val reference: BundleFileReference,
+  val attempted: Boolean,
+)
+
+internal data class InstallerState(
+  val current: BundleFileReference?,
+  val pending: PendingBundleReference?,
+  val blockedVersion: String?,
+)
+
+internal fun interface BundleInstallerConnectionFactory {
+  fun open(url: URL): HttpURLConnection
+}
+
+private val defaultConnectionFactory = BundleInstallerConnectionFactory { url ->
+  url.openConnection() as HttpURLConnection
+}
+
 /**
- * Native launch gate. It performs one bounded metadata check per process start,
- * verifies a newer bundle before downloading it, and only returns a private
- * bundle file after its hash and signature checks pass.
+ * Native launch gate and OTA update owner.
+ *
+ * It verifies metadata and bundle bytes before any private bundle path reaches
+ * the React host. Manual updates are stored as pending and only become current
+ * after the next launch reports a healthy React root.
  */
-class YuzuhaBundleInstaller(
-  private val context: Context,
-  private val metadataUrl: URL = URL(DEFAULT_METADATA_URL),
-  private val nativeVersion: String = NATIVE_VERSION,
+class YuzuhaBundleInstaller internal constructor(
+  private val filesDirectory: File,
+  private val metadataUrl: URL,
+  private val nativeVersion: String,
+  private val pinnedPublicKey: String,
+  private val connectionFactory: BundleInstallerConnectionFactory,
 ) {
+  constructor(
+    context: Context,
+    metadataUrl: URL = URL(DEFAULT_METADATA_URL),
+    nativeVersion: String = NATIVE_VERSION,
+  ) : this(context.filesDir, metadataUrl, nativeVersion, PINNED_PUBLIC_KEY, defaultConnectionFactory)
+
   private val resultLatch = CountDownLatch(1)
+  private val operationLock = Any()
   @Volatile private var started = false
   @Volatile private var result: BundleLaunchResult? = null
 
@@ -74,7 +120,24 @@ class YuzuhaBundleInstaller(
         return
       }
       started = true
-      Thread({run()}, "yuzuha-installer").apply {
+      Thread({
+        try {
+          run()
+        } catch (error: Throwable) {
+          try {
+            Log.e(LOG_TAG, "installer thread failed", error)
+          } catch (_: Throwable) {
+            // Android local unit tests do not provide the framework logger.
+          }
+          if (result == null) {
+            publish(BundleLaunchResult("embedded", EMBEDDED_VERSION, null, "INSTALLER_FAILED"))
+          }
+        } finally {
+          if (result == null) {
+            publish(BundleLaunchResult("embedded", EMBEDDED_VERSION, null, "INSTALLER_FAILED"))
+          }
+        }
+      }, "yuzuha-installer").apply {
         isDaemon = true
         start()
       }
@@ -87,85 +150,159 @@ class YuzuhaBundleInstaller(
     return requireNotNull(result)
   }
 
+  fun checkForUpdate(): BundleUpdateResult {
+    await()
+    synchronized(operationLock) {
+      var currentVersion = EMBEDDED_VERSION
+      try {
+        val state = readInstallerState()
+        val current = usableReference(state?.current).takeIf { it == null || compareVersions(it.version, EMBEDDED_VERSION) >= 0 }
+        val pending = state?.pending?.reference?.takeIf {
+          usableReference(it) != null && compareVersions(it.version, current?.version ?: EMBEDDED_VERSION) > 0
+        }
+        currentVersion = current?.version ?: EMBEDDED_VERSION
+        val metadata = fetchAndVerifyMetadata()
+        if (metadata.version == state?.blockedVersion) {
+          return BundleUpdateResult("current", currentVersion, reasonCode = "BLOCKED_VERSION")
+        }
+        if (pending != null && compareVersions(metadata.version, pending.version) <= 0) {
+          return BundleUpdateResult("prepared", currentVersion, pending.version)
+        }
+        if (compareVersions(metadata.version, currentVersion) <= 0) {
+          return BundleUpdateResult("current", currentVersion, reasonCode = "REMOTE_NOT_NEWER")
+        }
+        return BundleUpdateResult("available", currentVersion, metadata.version)
+      } catch (_: InvalidStateException) {
+        return BundleUpdateResult("error", EMBEDDED_VERSION, reasonCode = "INVALID_STATE")
+      } catch (_: InvalidRemoteException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "INVALID_REMOTE")
+      } catch (_: IOException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "REMOTE_UNAVAILABLE")
+      } catch (_: Exception) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "INSTALLER_FAILED")
+      }
+    }
+  }
+
+  fun downloadUpdate(): BundleUpdateResult {
+    await()
+    synchronized(operationLock) {
+      var currentVersion = EMBEDDED_VERSION
+      try {
+        val state = readInstallerState()
+        val current = usableReference(state?.current).takeIf { it == null || compareVersions(it.version, EMBEDDED_VERSION) >= 0 }
+        val pending = state?.pending?.reference?.takeIf {
+          usableReference(it) != null && compareVersions(it.version, current?.version ?: EMBEDDED_VERSION) > 0
+        }
+        currentVersion = current?.version ?: EMBEDDED_VERSION
+        val metadata = fetchAndVerifyMetadata()
+        if (metadata.version == state?.blockedVersion) {
+          return BundleUpdateResult("error", currentVersion, reasonCode = "BLOCKED_VERSION")
+        }
+        if (pending != null && compareVersions(metadata.version, pending.version) <= 0) {
+          return BundleUpdateResult("prepared", currentVersion, pending.version)
+        }
+        if (compareVersions(metadata.version, currentVersion) <= 0) {
+          return BundleUpdateResult("current", currentVersion, reasonCode = "REMOTE_NOT_NEWER")
+        }
+
+        val prepared = downloadAndPrepare(metadata)
+        return BundleUpdateResult("prepared", currentVersion, prepared.version)
+      } catch (_: InvalidStateException) {
+        return BundleUpdateResult("error", EMBEDDED_VERSION, reasonCode = "INVALID_STATE")
+      } catch (_: InvalidRemoteException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "INVALID_REMOTE")
+      } catch (_: IOException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "REMOTE_UNAVAILABLE")
+      } catch (_: Exception) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "INSTALLER_FAILED")
+      }
+    }
+  }
+
+  fun markLaunchSuccessful() {
+    await()
+    synchronized(operationLock) {
+      val state = readInstallerState() ?: return
+      val pending = state.pending ?: return
+      if (usableReference(pending.reference) == null) {
+        throw IOException("The pending bundle is no longer valid.")
+      }
+      writeInstallerState(BundleInstallerStateRules.promote(state))
+    }
+  }
+
   private fun run() {
-    val embedded = BundleLaunchResult("embedded", EMBEDDED_VERSION, null)
-    val local = loadVerifiedLocal()
-    val baseline = local ?: embedded
-    try {
-      val metadata = fetchMetadata()
-      validateMetadata(metadata)
-      if (compareVersions(metadata.version, baseline.version) <= 0) {
-        publish(BundleLaunchResult("local-current", baseline.version, baseline.bundlePath, "REMOTE_NOT_NEWER"))
+    synchronized(operationLock) {
+      val embedded = BundleLaunchResult("embedded", EMBEDDED_VERSION, null)
+      val local = try {
+        loadVerifiedLocal()
+      } catch (_: InvalidStateException) {
+        publish(embedded.copy(reasonCode = "INVALID_STATE"))
+        return
+      } catch (_: Exception) {
+        publish(embedded.copy(reasonCode = "INSTALLER_FAILED"))
         return
       }
-      verifySignature(metadata)
-      val activated = downloadAndActivate(metadata)
-      publish(BundleLaunchResult("remote-activated", activated.version, activated.bundlePath))
-    } catch (_: InvalidRemoteException) {
-      publish(BundleLaunchResult("invalid-remote", baseline.version, baseline.bundlePath, "INVALID_REMOTE"))
-    } catch (_: IOException) {
-      publish(BundleLaunchResult("offline-local", baseline.version, baseline.bundlePath, "REMOTE_UNAVAILABLE"))
-    } catch (_: Exception) {
-      publish(BundleLaunchResult("invalid-remote", baseline.version, baseline.bundlePath, "INSTALLER_FAILED"))
+      val baseline = local ?: embedded
+      try {
+        val metadata = fetchAndVerifyMetadata()
+        val state = readInstallerState()
+        if (metadata.version == state?.blockedVersion) {
+          publish(baseline.copy(reasonCode = "BLOCKED_VERSION"))
+          return
+        }
+        if (compareVersions(metadata.version, baseline.version) <= 0) {
+          publish(baseline.copy(kind = "local-current", reasonCode = "REMOTE_NOT_NEWER"))
+          return
+        }
+
+        val prepared = downloadAndPrepare(metadata)
+        val selected = markPendingAttempted(prepared)
+        publish(BundleLaunchResult("remote-activated", selected.version, selectedPath(selected)))
+      } catch (_: InvalidStateException) {
+        publish(embedded.copy(reasonCode = "INVALID_STATE"))
+      } catch (_: InvalidRemoteException) {
+        publish(baseline.copy(kind = "invalid-remote", reasonCode = "INVALID_REMOTE"))
+      } catch (_: IOException) {
+        publish(baseline.copy(kind = "offline-local", reasonCode = "REMOTE_UNAVAILABLE"))
+      } catch (_: Exception) {
+        publish(baseline.copy(kind = "invalid-remote", reasonCode = "INSTALLER_FAILED"))
+      }
     }
   }
 
   private fun publish(next: BundleLaunchResult) {
     result = next
-    Log.i(LOG_TAG, "launch kind=${next.kind} version=${next.version} reason=${next.reasonCode ?: "none"}")
+    try {
+      Log.i(LOG_TAG, "launch kind=${next.kind} version=${next.version} reason=${next.reasonCode ?: "none"}")
+    } catch (_: Throwable) {
+      // Android local unit tests do not provide the framework logger.
+    }
     resultLatch.countDown()
   }
 
-  private fun compareVersions(left: String, right: String): Int {
-    val leftParts = left.split("-", limit = 2)
-    val rightParts = right.split("-", limit = 2)
-    val leftCore = leftParts[0].split('.').map { it.toLong() }
-    val rightCore = rightParts[0].split('.').map { it.toLong() }
-    for (index in 0 until 3) {
-      if (leftCore[index] != rightCore[index]) {
-        return leftCore[index].compareTo(rightCore[index])
-      }
-    }
+  private fun fetchAndVerifyMetadata(): RemoteBundleMetadata {
+    val metadata = fetchMetadata()
+    validateMetadata(metadata)
+    verifySignature(metadata)
+    return metadata
+  }
 
-    val leftPre = leftParts.getOrNull(1)
-    val rightPre = rightParts.getOrNull(1)
-    if (leftPre == null && rightPre == null) {
-      return 0
-    }
-    if (leftPre == null) {
-      return 1
-    }
-    if (rightPre == null) {
-      return -1
-    }
-    val leftIdentifiers = leftPre.split('.')
-    val rightIdentifiers = rightPre.split('.')
-    for (index in 0 until maxOf(leftIdentifiers.size, rightIdentifiers.size)) {
-      val leftIdentifier = leftIdentifiers.getOrNull(index) ?: return -1
-      val rightIdentifier = rightIdentifiers.getOrNull(index) ?: return 1
-      if (leftIdentifier == rightIdentifier) {
-        continue
-      }
-      val leftNumber = leftIdentifier.toLongOrNull()
-      val rightNumber = rightIdentifier.toLongOrNull()
-      return when {
-        leftNumber != null && rightNumber != null -> leftNumber.compareTo(rightNumber)
-        leftNumber != null -> -1
-        rightNumber != null -> 1
-        else -> leftIdentifier.compareTo(rightIdentifier)
-      }
-    }
-    return leftIdentifiers.size.compareTo(rightIdentifiers.size)
+  private fun compareVersions(left: String, right: String): Int {
+    return BundleInstallerRules.compareVersions(left, right)
   }
 
   private fun fetchMetadata(): RemoteBundleMetadata {
     if (metadataUrl.protocol != "https" || metadataUrl.userInfo != null || metadataUrl.query != null || metadataUrl.ref != null) {
       throw InvalidRemoteException()
     }
-    val connection = (metadataUrl.openConnection() as HttpURLConnection).apply {
+    val connection = connectionFactory.open(metadataUrl).apply {
       connectTimeout = METADATA_TIMEOUT_MILLIS
       readTimeout = METADATA_TIMEOUT_MILLIS
-      instanceFollowRedirects = false
+      // GitHub's /releases/latest/download URL redirects to the immutable
+      // release asset. Signature and hash checks still decide trust.
+      instanceFollowRedirects = true
       requestMethod = "GET"
     }
     return try {
@@ -201,26 +338,26 @@ class YuzuhaBundleInstaller(
   }
 
   private fun validateMetadata(metadata: RemoteBundleMetadata) {
-    val semver = Regex("^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$")
-    val sha256 = Regex("^[a-f0-9]{64}$")
-    val signature = Regex("^[A-Za-z0-9+/]{86}==$")
     val bundleUrl = try { URL(metadata.bundleUrl) } catch (error: Exception) { throw InvalidRemoteException(error) }
+    val versionPath = "/${metadata.version}/"
     if (
       metadata.schema != 1 ||
       metadata.appId != APP_ID ||
       metadata.platform != "android" ||
       metadata.runtime != RUNTIME ||
-      !semver.matches(metadata.version) ||
-      !semver.matches(metadata.minNativeVersion) ||
+      !BundleInstallerRules.isVersion(metadata.version) ||
+      !BundleInstallerRules.isVersion(metadata.minNativeVersion) ||
       compareVersions(metadata.minNativeVersion, nativeVersion) > 0 ||
       bundleUrl.protocol != "https" ||
       bundleUrl.userInfo != null ||
       bundleUrl.query != null ||
       bundleUrl.ref != null ||
-      !sha256.matches(metadata.sha256) ||
+      (!bundleUrl.path.contains(versionPath) && !bundleUrl.path.contains("/v${metadata.version}/")) ||
+      !bundleUrl.path.endsWith(".jsbundle") ||
+      !BundleInstallerRules.isSha256(metadata.sha256) ||
       metadata.sizeBytes <= 0 ||
       metadata.sizeBytes > MAX_BUNDLE_BYTES ||
-      !signature.matches(metadata.signature)
+      !BundleInstallerRules.isSignature(metadata.signature)
     ) {
       throw InvalidRemoteException()
     }
@@ -233,12 +370,12 @@ class YuzuhaBundleInstaller(
 
   private fun verifySignature(metadata: RemoteBundleMetadata) {
     try {
-      val keyBytes = Base64.decode(PINNED_PUBLIC_KEY, Base64.DEFAULT)
+      val keyBytes = Base64.getDecoder().decode(pinnedPublicKey)
       val publicKey = KeyFactory.getInstance("Ed25519").generatePublic(X509EncodedKeySpec(keyBytes))
       val verifier = Signature.getInstance("Ed25519")
       verifier.initVerify(publicKey)
       verifier.update(metadata.signingPayload().toByteArray(StandardCharsets.UTF_8))
-      if (!verifier.verify(Base64.decode(metadata.signature, Base64.DEFAULT))) {
+      if (!verifier.verify(Base64.getDecoder().decode(metadata.signature))) {
         throw InvalidRemoteException()
       }
     } catch (error: InvalidRemoteException) {
@@ -248,26 +385,42 @@ class YuzuhaBundleInstaller(
     }
   }
 
-  private fun downloadAndActivate(metadata: RemoteBundleMetadata): BundleLaunchResult {
-    val directory = File(context.filesDir, "installer/verified").apply { mkdirs() }
-    val target = File(directory, "bundle-${metadata.version}.jsbundle")
+  private fun downloadAndPrepare(metadata: RemoteBundleMetadata): BundleFileReference {
+    val directory = verifiedDirectory().apply { mkdirs() }
+    val reference = BundleFileReference(
+      version = metadata.version,
+      fileName = "bundle-${metadata.version}.jsbundle",
+      sizeBytes = metadata.sizeBytes,
+      sha256 = metadata.sha256,
+      runtime = metadata.runtime,
+      minNativeVersion = metadata.minNativeVersion,
+    )
+    val target = File(directory, reference.fileName)
     if (target.exists()) {
-      if (!matchesFile(target, metadata.sizeBytes, metadata.sha256)) {
+      if (!matchesFile(target, reference.sizeBytes, reference.sha256)) {
         throw InvalidRemoteException()
       }
-      writeState(directory, metadata)
-      return BundleLaunchResult("local-current", metadata.version, target.absolutePath)
+      writeInstallerState(
+        InstallerState(
+          current = readInstallerState()?.current,
+          pending = PendingBundleReference(reference, attempted = false),
+          blockedVersion = null,
+        ),
+      )
+      return reference
     }
 
     val temporary = File(directory, ".bundle-${metadata.version}.tmp")
-    if (temporary.exists()) {
-      temporary.delete()
+    if (temporary.exists() && !temporary.delete()) {
+      throw IOException("Installer could not clear its temporary bundle.")
     }
     try {
-      val connection = (URL(metadata.bundleUrl).openConnection() as HttpURLConnection).apply {
+      val connection = connectionFactory.open(URL(metadata.bundleUrl)).apply {
         connectTimeout = DOWNLOAD_TIMEOUT_MILLIS
         readTimeout = DOWNLOAD_TIMEOUT_MILLIS
-        instanceFollowRedirects = false
+        // GitHub release assets redirect to their immutable CDN object. The
+        // signed metadata, exact size, and SHA-256 remain the trust checks.
+        instanceFollowRedirects = true
         requestMethod = "GET"
       }
       try {
@@ -281,9 +434,7 @@ class YuzuhaBundleInstaller(
             val buffer = ByteArray(32 * 1024)
             while (true) {
               val read = input.read(buffer)
-              if (read < 0) {
-                break
-              }
+              if (read < 0) break
               total += read
               if (total > metadata.sizeBytes || total > MAX_BUNDLE_BYTES) {
                 throw InvalidRemoteException()
@@ -300,100 +451,192 @@ class YuzuhaBundleInstaller(
       } finally {
         connection.disconnect()
       }
-      if (!temporary.renameTo(target)) {
-        throw IOException("Installer could not activate the verified bundle.")
-      }
-      writeState(directory, metadata)
-      return BundleLaunchResult("remote-activated", metadata.version, target.absolutePath)
+      moveAtomically(temporary, target)
+      val previous = readInstallerState()
+      writeInstallerState(
+        InstallerState(
+          current = previous?.current,
+          pending = PendingBundleReference(reference, attempted = false),
+          blockedVersion = null,
+        ),
+      )
+      return reference
     } finally {
-      if (temporary.exists()) {
-        temporary.delete()
-      }
+      if (temporary.exists()) temporary.delete()
     }
   }
+
+  private fun markPendingAttempted(reference: BundleFileReference): BundleFileReference {
+    val state = readInstallerState() ?: throw IOException("Installer state is missing.")
+    val pending = state.pending ?: throw IOException("Installer pending state is missing.")
+    if (pending.reference != reference || usableReference(reference) == null) {
+      throw IOException("Installer pending state does not match the selected bundle.")
+    }
+    writeInstallerState(BundleInstallerStateRules.markAttempted(state))
+    return reference
+  }
+
+  private fun selectedPath(reference: BundleFileReference): String =
+    File(verifiedDirectory(), reference.fileName).absolutePath
 
   private fun loadVerifiedLocal(): BundleLaunchResult? {
-    val directory = File(context.filesDir, "installer/verified")
-    val stateFile = File(context.filesDir, "installer/state.json")
-    if (!stateFile.isFile) {
-      return null
+    val state = readInstallerState() ?: return null
+    val current = usableReference(state.current).takeIf { it == null || compareVersions(it.version, EMBEDDED_VERSION) >= 0 }
+    val pending = state.pending
+    if (pending != null) {
+      if (
+        usableReference(pending.reference) == null ||
+        compareVersions(pending.reference.version, EMBEDDED_VERSION) < 0 ||
+        (current != null && compareVersions(pending.reference.version, current.version) <= 0)
+      ) {
+        writeInstallerState(BundleInstallerStateRules.rollback(state))
+        return current?.let { BundleLaunchResult("local-current", it.version, selectedPath(it), "PENDING_INVALID") }
+      }
+      if (pending.attempted) {
+        writeInstallerState(BundleInstallerStateRules.rollback(state))
+        return current?.let { BundleLaunchResult("local-current", it.version, selectedPath(it), "PENDING_ROLLBACK") }
+      }
+      writeInstallerState(BundleInstallerStateRules.markAttempted(state))
+      return BundleLaunchResult("local-current", pending.reference.version, selectedPath(pending.reference), "PENDING_ATTEMPT")
     }
+    return current?.let { BundleLaunchResult("local-current", it.version, selectedPath(it)) }
+  }
+
+  private fun readInstallerState(): InstallerState? {
+    val stateFile = File(filesDirectory, "installer/state.json")
+    if (!stateFile.isFile) return null
     return try {
       val json = JSONObject(stateFile.readText(StandardCharsets.UTF_8))
-      val version = json.getString("version")
-      val fileName = json.getString("fileName")
-      val sizeBytes = json.getLong("sizeBytes")
-      val sha256 = json.getString("sha256")
-      val target = File(directory, fileName)
-      if (
-        !Regex("^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$").matches(version) ||
-        !Regex("^[a-f0-9]{64}$").matches(sha256) ||
-        sizeBytes <= 0 ||
-        sizeBytes > MAX_BUNDLE_BYTES ||
-        !Regex("^bundle-\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?\\.jsbundle$").matches(fileName) ||
-        !isChildOf(directory, target)
-      ) {
-        return null
+      val schema = if (json.has("schema")) json.getInt("schema") else LEGACY_STATE_SCHEMA
+      if (schema == STATE_SCHEMA) {
+        val current = json.optJSONObject("current")?.let { parseFileReference(it) }
+        val pendingObject = json.optJSONObject("pending")
+        val pending = pendingObject?.let {
+          val attempted = it.opt("attempted")
+          if (attempted !is Boolean) throw InvalidStateException()
+          PendingBundleReference(parseFileReference(it), attempted)
+        }
+        val blockedVersion = json.optString("blockedVersion", null)
+        if (blockedVersion != null && !isVersion(blockedVersion)) throw InvalidStateException()
+        InstallerState(current, pending, blockedVersion)
+      } else if (schema == LEGACY_STATE_SCHEMA && json.has("version")) {
+        InstallerState(
+          current = parseFileReference(json),
+          pending = null,
+          blockedVersion = null,
+        )
+      } else {
+        throw InvalidStateException()
       }
-      if (!matchesFile(target, sizeBytes, sha256)) {
-        return null
-      }
-      BundleLaunchResult("local-current", version, target.absolutePath)
-    } catch (_: Exception) {
-      null
+    } catch (error: InvalidStateException) {
+      throw error
+    } catch (error: Exception) {
+      throw InvalidStateException(error)
     }
   }
 
-  private fun writeState(directory: File, metadata: RemoteBundleMetadata) {
-    val stateDirectory = directory.parentFile ?: throw IOException("Installer state directory is missing.")
-    val stateFile = File(stateDirectory, "state.json")
-    val temporary = File(stateDirectory, ".state.tmp")
-    val json = JSONObject()
-      .put("version", metadata.version)
-      .put("fileName", "bundle-${metadata.version}.jsbundle")
-      .put("sizeBytes", metadata.sizeBytes)
-      .put("sha256", metadata.sha256)
+  private fun parseFileReference(json: JSONObject): BundleFileReference {
+    val reference = BundleFileReference(
+      version = json.getString("version"),
+      fileName = json.getString("fileName"),
+      sizeBytes = json.getLong("sizeBytes"),
+      sha256 = json.getString("sha256"),
+      runtime = json.optString("runtime", RUNTIME),
+      minNativeVersion = json.optString("minNativeVersion", NATIVE_VERSION),
+    )
+    if (
+      !isVersion(reference.version) ||
+      !BundleInstallerRules.isBundleFileName(reference.fileName) ||
+      reference.sizeBytes <= 0 ||
+      reference.sizeBytes > MAX_BUNDLE_BYTES ||
+      !BundleInstallerRules.isSha256(reference.sha256) ||
+      reference.runtime != RUNTIME ||
+      !isVersion(reference.minNativeVersion) ||
+      compareVersions(reference.minNativeVersion, nativeVersion) > 0
+    ) {
+      throw InvalidStateException()
+    }
+    return reference
+  }
+
+  private fun usableReference(reference: BundleFileReference?): BundleFileReference? {
+    if (reference == null) return null
+    val file = File(verifiedDirectory(), reference.fileName)
+    return if (isChildOf(verifiedDirectory(), file) && matchesFile(file, reference.sizeBytes, reference.sha256)) reference else null
+  }
+
+  private fun writeInstallerState(state: InstallerState) {
+    val directory = installerDirectory().apply { mkdirs() }
+    val stateFile = File(directory, "state.json")
+    val temporary = File(directory, ".state.tmp")
+    val json = JSONObject().put("schema", STATE_SCHEMA)
+    state.current?.let { json.put("current", referenceJson(it)) }
+    state.pending?.let {
+      json.put("pending", referenceJson(it.reference).put("attempted", it.attempted))
+    }
+    state.blockedVersion?.let { json.put("blockedVersion", it) }
     FileOutputStream(temporary).use { output ->
       output.write(json.toString().toByteArray(StandardCharsets.UTF_8))
       output.fd.sync()
     }
+    moveAtomically(temporary, stateFile)
+  }
+
+  private fun referenceJson(reference: BundleFileReference): JSONObject = JSONObject()
+    .put("version", reference.version)
+    .put("fileName", reference.fileName)
+    .put("sizeBytes", reference.sizeBytes)
+    .put("sha256", reference.sha256)
+    .put("runtime", reference.runtime)
+    .put("minNativeVersion", reference.minNativeVersion)
+
+  private fun installerDirectory(): File = File(filesDirectory, "installer")
+
+  private fun verifiedDirectory(): File = File(installerDirectory(), "verified")
+
+  private fun moveAtomically(source: File, target: File) {
     try {
       Files.move(
-        temporary.toPath(),
-        stateFile.toPath(),
+        source.toPath(),
+        target.toPath(),
         StandardCopyOption.REPLACE_EXISTING,
         StandardCopyOption.ATOMIC_MOVE,
       )
     } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
-      Files.move(temporary.toPath(), stateFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
   }
 
   private fun matchesFile(file: File, expectedSize: Long, expectedSha256: String): Boolean {
-    if (expectedSize <= 0 || expectedSize > MAX_BUNDLE_BYTES || !Regex("^[a-f0-9]{64}$").matches(expectedSha256) || !file.isFile || file.length() != expectedSize) {
+    if (expectedSize <= 0 || expectedSize > MAX_BUNDLE_BYTES || !BundleInstallerRules.isSha256(expectedSha256) || !file.isFile || file.length() != expectedSize) {
       return false
     }
-    FileInputStream(file).use { input ->
-      val digest = MessageDigest.getInstance("SHA-256")
-      val buffer = ByteArray(32 * 1024)
-      while (true) {
-        val read = input.read(buffer)
-        if (read < 0) {
-          break
+    return try {
+      FileInputStream(file).use { input ->
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(32 * 1024)
+        while (true) {
+          val read = input.read(buffer)
+          if (read < 0) break
+          digest.update(buffer, 0, read)
         }
-        digest.update(buffer, 0, read)
+        digest.digest().toHex() == expectedSha256
       }
-      return digest.digest().toHex() == expectedSha256
+    } catch (_: Exception) {
+      false
     }
   }
 
   private fun isChildOf(parent: File, child: File): Boolean {
     return try {
-      child.canonicalFile.parentFile == parent.canonicalFile
+      val rootPath = parent.canonicalFile.path + File.separator
+      child.canonicalFile.path.startsWith(rootPath)
     } catch (_: IOException) {
       false
     }
   }
+
+  private fun isVersion(value: String): Boolean = BundleInstallerRules.isVersion(value)
 
   private fun readBounded(input: java.io.InputStream, maxBytes: Long): ByteArray {
     val output = java.io.ByteArrayOutputStream()
@@ -401,13 +644,9 @@ class YuzuhaBundleInstaller(
     var total = 0L
     while (true) {
       val read = input.read(buffer)
-      if (read < 0) {
-        break
-      }
+      if (read < 0) break
       total += read
-      if (total > maxBytes) {
-        throw InvalidRemoteException()
-      }
+      if (total > maxBytes) throw InvalidRemoteException()
       output.write(buffer, 0, read)
     }
     return output.toByteArray()
@@ -417,17 +656,21 @@ class YuzuhaBundleInstaller(
 
   private class InvalidRemoteException(cause: Throwable? = null) : Exception(cause)
 
+  private class InvalidStateException(cause: Throwable? = null) : Exception(cause)
+
   companion object {
-    const val DEFAULT_METADATA_URL = "https://updates.yuzuha.dev/installer/bundle.json"
-    const val EMBEDDED_VERSION = "0.1.2"
-    const val NATIVE_VERSION = "0.1.2"
+    const val DEFAULT_METADATA_URL = "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json"
+    const val EMBEDDED_VERSION = "0.1.3"
+    const val NATIVE_VERSION = "0.1.3"
     const val APP_ID = "yuzuha-mobile"
     const val RUNTIME = "0.86.0"
     const val MAX_BUNDLE_BYTES = 64L * 1024L * 1024L
+    const val PINNED_PUBLIC_KEY = "MCowBQYDK2VwAyEAHtg4xjISeTsnO7iXTHPfyv6MTBQvEKcbYXot6em3V8s="
+    private const val STATE_SCHEMA = 2
+    private const val LEGACY_STATE_SCHEMA = 1
     private const val LOG_TAG = "YuzuhaInstaller"
     private const val MAX_METADATA_BYTES = 64L * 1024L
     private const val METADATA_TIMEOUT_MILLIS = 1_500
     private const val DOWNLOAD_TIMEOUT_MILLIS = 5_000
-    private const val PINNED_PUBLIC_KEY = "MCowBQYDK2VwAyEArRLIQBBtDHvW3gZ41eGFtO/e1xvDManBmIhpF401L5g="
   }
 }

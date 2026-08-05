@@ -18,7 +18,69 @@ Use the `Tsukugi/Yuzuha` GitHub repository and a `v<package-version>` tag. The r
 6. Commit source and documentation changes, push the branch, and create the GitHub Release with `gh release create v<version> <apk> --title ... --notes-file ...`.
 7. Download or inspect the published asset and compare its byte size and SHA-256 with the local release record.
 
-The release process does not auto-commit, auto-push, generate a new signing key, or publish import/export changes. Rapunzel's `v<version>` tag and APK asset convention is used as a reference; its older automatic release script is not copied into Yuzuha.
+The release process does not auto-commit, auto-push, generate or rotate an
+Android APK signing key, or publish import/export changes. Rapunzel's
+`v<version>` tag and APK asset convention is used as a reference; its older
+automatic release script is not copied into Yuzuha.
+
+## OTA trust anchor rotation (2026-08-05)
+
+This project now has a new Ed25519 OTA signing key. The new public SPKI key is
+pinned in both `BundleInstaller.kt` and `src/installer/metadata.ts`.
+
+- Public-key SHA-256 fingerprint: `cf181636d6a4ee260f4739a3239c1eb17dd72dcb2bd9c93ad5c74f59a7b28f5e`
+- The PKCS#8 private key was generated outside the repository and is stored in
+  the local user secret directory. It is not present in Git or in the APK.
+- Existing APKs keep their old pin. A new APK must be released before devices
+  can accept bundles signed by this new key.
+- The GitHub Release must contain `bundle.json` and the matching immutable
+  bundle asset, signed by the new private key, before the new APK is announced.
+
+For a local release, load the ignored secret into the current PowerShell
+process, then run the normal OTA command:
+
+```powershell
+$env:YUZUHA_OTA_PRIVATE_KEY_BASE64 = (Get-Content "$env:USERPROFILE\Yuzuha-secrets\ota-ed25519-private-2026-08-05.base64" -Raw).Trim()
+npm run ota-release -- --version <version>
+```
+
+## Android OTA release procedure
+
+The OTA release is a JavaScript bundle release, not an APK release. It must
+use a version higher than the embedded/native baseline and must not change
+native modules, permissions, app schema, repository schema, backup schema, or
+CSV schema.
+
+1. Set `YUZUHA_OTA_PRIVATE_KEY_BASE64` only in ignored local or CI secret
+   storage. It must be a PKCS#8 Ed25519 private key matching the public key
+   pinned in `BundleInstaller.kt`. The new key fingerprint is recorded above.
+2. Build the bundle and signed metadata:
+
+   ```text
+   npm run ota-release -- --version <version>
+   ```
+
+3. Check the generated metadata:
+
+   ```text
+   npm run ota-check -- dist/ota/<version>/bundle.json
+   ```
+
+4. Upload `bundle.json` and the immutable bundle to the matching GitHub
+   Release. An existing release can receive both generated files with
+   `--upload`; a new release can use `gh release create` with both assets.
+5. Confirm `https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json`
+   serves the exact signed metadata and that its immutable bundle URL is
+   reachable before announcing the release.
+6. Run the manual update, next-launch activation, tamper rejection, and
+   rollback smoke checks from `docs/ota-update-spec.md`.
+
+The command rejects generated Metro assets because the current Yuzuha OTA
+contract carries one Android `.jsbundle` only. A future asset archive needs a
+new signed metadata schema and a separate review.
+
+The OTA private key is not the Android APK keystore. Both are private release
+credentials and both must stay outside the committed tree.
 
 2026-07-29 Android v0.1.2 release:
 

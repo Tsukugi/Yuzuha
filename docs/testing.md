@@ -1,21 +1,27 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-08-05 Android OTA pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+
+The OTA trust anchor was freshly generated for this project on 2026-08-05.
+The public-key fingerprint is
+`cf181636d6a4ee260f4739a3239c1eb17dd72dcb2bd9c93ad5c74f59a7b28f5e`. The
+private key is outside the repository; tests must prove the public pin and
+must not require a committed private-key fixture.
 
 ## Test pyramid
 
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 52 Jest suites and 236 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 53 Jest suites and 251 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 52 suites and 236 tests.
-- The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The published release reports package `dev.yuzuha`, version `0.1.2`, and the private release signer.
+- Full Jest passes: 53 suites and 251 tests.
+- The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The current release reports package `dev.yuzuha`, version `0.1.3`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
 - Money keeps `Spending overview` collapsed below the entry list. Opening it shows category bars for the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.
@@ -88,6 +94,49 @@ Status: Current test strategy through the 2026-07-29 periodic-money UX pass. Uni
 - Emulator startup after install rendered `Bundle 0.1.0` and the Home screen. Phone startup completed without filtered fatal or ReactNativeJS errors; its UI automation bridge remains unavailable by device policy.
 - The default update endpoint was unavailable during smoke, so the deterministic `offline-local`/embedded path was exercised. A live signed remote activation requires the release endpoint and is not claimed by this device smoke.
 - Both devices were force-stopped after the check, and no Gradle, Kotlin compiler, or app worker process remained.
+
+## OTA implementation evidence
+
+- Focused installer tests cover the typed launch bridge, invalid native update
+  results, current/available results, launch health no-op behavior, strict
+  metadata URLs and versions, exact version comparison, state transitions for
+  attempted/promotion/rollback, and stable signing payloads.
+- Release-core tests cover exact bundle byte size and SHA-256 calculation,
+  invalid production-key rejection, and pinned public-key signature rejection.
+- Native controlled-fixture tests cover signed startup preparation, health
+  promotion, manual no-hot-swap preparation, product-file preservation,
+  tamper rejection, next-launch pending selection, rollback, and blocked-version
+  refusal, plus embedded-baseline and runtime-compatibility rejection. The
+  native unit suite passes 15 tests. The controlled fixture key is generated
+  only inside the JVM test; one additional fixture is signed by the new
+  project's production key and verified against the new native pin.
+- `npm run typecheck` and `npm run lint` pass after the native pending/current
+  state and Data tools `Code updates` control were added.
+- Full Jest passes with 53 suites and 251 tests. Native `:app:testDebugUnitTest`
+  also passes with Java 17.
+- `android\gradlew.bat :app:compileDebugKotlin --no-daemon --max-workers=2 --offline`
+  passes with Java 17 (`C:\Users\Tsukugi\.jdks\ms-17.0.15`).
+- `npm run ota-release -- --help` passes and reports the private-key, staging,
+  metadata-check, and upload rules.
+- The fresh production OTA private key is stored outside the repository in the
+  user secret directory. `npm run ota-release -- --version 0.1.4` generated a
+  signed Android bundle and `npm run ota-check -- dist/ota/0.1.4/bundle.json`
+  accepted it with the new pin. GitHub Release publication and latest-asset
+  activation are the remaining live checks for this pass.
+- A fresh signed release APK containing the new OTA pin was built with the
+  ignored local signing configuration. It is `67,425,831` bytes with SHA-256
+  `02E1FEB0888EF1AE40FC0F6E25B56C47FF9DABFE4A1C2729164C672F2349BE82`, was
+  installed over the existing same-signed `dev.yuzuha` package on Xiaomi
+  `42adce68` without clearing data, and started `MainActivity` successfully.
+- Release logcat recorded `YuzuhaInstaller: launch kind=offline-local
+  version=0.1.3 reason=REMOTE_UNAVAILABLE` and `ReactNativeJS: Running
+  "Yuzuha"`, with no filtered fatal startup line.
+- The device UI hierarchy shows Home after the release install. Xiaomi blocks
+  shell touch/swipe injection with `INJECT_EVENTS`, so opening the nested Data
+  tools `Code updates` disclosure remains a manual-tap check.
+- Live signed endpoint activation, pending next-launch activation, and bad
+  bundle rollback still require a controlled endpoint/device smoke. They are
+  not claimed by these local checks.
 
 ## Home period evidence
 

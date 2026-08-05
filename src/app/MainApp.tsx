@@ -84,6 +84,7 @@ import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import {nativeBundleInstaller, type UpdateCheckResult} from '../installer/BundleInstaller';
 import {useAppTheme, type ThemeColors} from './theme';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
@@ -100,6 +101,23 @@ const RECURRENCE_WEEKDAY_OPTIONS: Array<{value: RecurrenceWeekday; label: string
   {value: 0, label: 'Sun'},
 ];
 
+function formatCodeUpdateError(reasonCode: string): string {
+  switch (reasonCode) {
+    case 'REMOTE_UNAVAILABLE':
+      return 'The update service could not be reached. Your current code is unchanged.';
+    case 'BLOCKED_VERSION':
+      return 'This release was rejected after a failed startup. Wait for a newer release.';
+    case 'INVALID_REMOTE':
+      return 'The update was rejected because its metadata or signature was invalid.';
+    case 'BRIDGE_CHECK_FAILED':
+      return 'The update check could not be completed.';
+    case 'BRIDGE_DOWNLOAD_FAILED':
+      return 'The update could not be prepared. Your current code is unchanged.';
+    default:
+      return 'The update could not be prepared. Your current code is unchanged.';
+  }
+}
+
 function formatRecurrenceWeekdays(weekdays: RecurrenceWeekday[]): string {
   return RECURRENCE_WEEKDAY_OPTIONS.filter(day => weekdays.includes(day.value)).map(day => day.label).join(' ');
 }
@@ -110,7 +128,7 @@ function useThemeStyles() {
   return {colors, styles, mode, resolvedMode, setMode};
 }
 
-export function MainApp() {
+export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
   const {styles} = useThemeStyles();
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
@@ -325,7 +343,7 @@ export function MainApp() {
             onSaved={closeSharedCapture}
           />
         ) : dataToolsOpen ? (
-          <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
+          <DataToolsScreen data={data} bundleVersion={bundleVersion} onBack={() => setDataToolsOpen(false)} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={openGlobalSearchResult} />
         ) : reviewOpen ? (
@@ -762,7 +780,7 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
   }
 }
 
-function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVersion: string; onBack: () => void}) {
   const {colors, styles} = useThemeStyles();
   const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
@@ -787,6 +805,58 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const [jsonRestoreOpen, setJsonRestoreOpen] = useState(false);
   const [encryptedRestoreOpen, setEncryptedRestoreOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [codeUpdatesOpen, setCodeUpdatesOpen] = useState(false);
+  const [codeUpdateState, setCodeUpdateState] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'prepared' | 'current' | 'error'>('idle');
+  const [codeUpdateResult, setCodeUpdateResult] = useState<UpdateCheckResult | null>(null);
+  const [codeUpdateError, setCodeUpdateError] = useState<string | null>(null);
+
+  async function checkForCodeUpdate() {
+    const preparedUpdate = codeUpdateResult?.kind === 'prepared' ? codeUpdateResult : null;
+    setCodeUpdateState('checking');
+    setCodeUpdateError(null);
+    const result = await nativeBundleInstaller.checkForUpdate();
+    if (preparedUpdate && (result.kind === 'error' || result.kind === 'unavailable')) {
+      setCodeUpdateResult(preparedUpdate);
+      setCodeUpdateState('prepared');
+      return;
+    }
+    setCodeUpdateResult(result);
+    if (result.kind === 'available') {
+      setCodeUpdateState('available');
+    } else if (result.kind === 'prepared') {
+      setCodeUpdateState('prepared');
+    } else if (result.kind === 'current') {
+      setCodeUpdateState('current');
+    } else {
+      setCodeUpdateState('error');
+      setCodeUpdateError(result.kind === 'unavailable' ? 'Code updates are not available in this build.' : formatCodeUpdateError(result.reasonCode));
+    }
+  }
+
+  async function downloadCodeUpdate() {
+    const preparedUpdate = codeUpdateResult?.kind === 'prepared' ? codeUpdateResult : null;
+    setCodeUpdateState('downloading');
+    setCodeUpdateError(null);
+    const result = await nativeBundleInstaller.downloadUpdate();
+    if (preparedUpdate && (result.kind === 'error' || result.kind === 'unavailable')) {
+      setCodeUpdateResult(preparedUpdate);
+      setCodeUpdateState('prepared');
+      return;
+    }
+    setCodeUpdateResult(result);
+    if (result.kind === 'prepared') {
+      setCodeUpdateState('prepared');
+    } else {
+      setCodeUpdateState(result.kind === 'current' ? 'current' : 'error');
+      if (result.kind === 'unavailable') {
+        setCodeUpdateError('Code updates are not available in this build.');
+      } else if (result.kind === 'error') {
+        setCodeUpdateError(formatCodeUpdateError(result.reasonCode));
+      } else if (result.kind !== 'current') {
+        setCodeUpdateError('The update could not be prepared. Your current code is unchanged.');
+      }
+    }
+  }
 
   async function shareJson() {
     try {
@@ -1125,6 +1195,22 @@ function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
       </Pressable>
       <Text style={styles.pageTitle}>Data tools</Text>
       <Text style={styles.pageIntro}>Exports include supported local records. Restore validates a JSON export and shows a preview before replacing this workspace.</Text>
+      <Disclosure
+        title="Code updates"
+        subtitle={`Running bundle ${bundleVersion}`}
+        open={codeUpdatesOpen}
+        onPress={() => setCodeUpdatesOpen(current => !current)}>
+        <Text style={styles.cardDetail}>Yuzuha can download a newer verified JavaScript bundle. Native app changes still need a new APK. The update applies after you close and reopen Yuzuha.</Text>
+        {codeUpdateResult?.kind === 'available' && <Text style={styles.cardDetail}>Version {codeUpdateResult.availableVersion} is available.</Text>}
+        {codeUpdateState === 'current' && <Text style={styles.successText}>The installed code is up to date.</Text>}
+        {codeUpdateState === 'prepared' && codeUpdateResult?.kind === 'prepared' && <Text style={styles.successText}>Version {codeUpdateResult.availableVersion} is ready. Close and reopen Yuzuha to apply it.</Text>}
+        {codeUpdateState === 'error' && codeUpdateError && <Text style={styles.errorText}>{codeUpdateError}</Text>}
+        <PrimaryButton
+          label={codeUpdateState === 'checking' ? 'Checking...' : codeUpdateState === 'downloading' ? 'Downloading...' : codeUpdateState === 'available' ? 'Download update' : codeUpdateState === 'prepared' ? 'Update ready' : 'Check for code update'}
+          onPress={codeUpdateState === 'available' ? () => void downloadCodeUpdate() : () => void checkForCodeUpdate()}
+          disabled={codeUpdateState === 'checking' || codeUpdateState === 'downloading' || codeUpdateState === 'prepared'}
+        />
+      </Disclosure>
       <Disclosure
         title="Export and backup"
         subtitle="Share or save a copy of this workspace"
