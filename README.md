@@ -49,11 +49,12 @@ Home can open a read-only period Review. It combines main-currency money, includ
 
 Android startup checks one signed update manifest before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. The check has one bounded request and no polling worker.
 
-Data tools now include a collapsed Android `Code updates` control. It can check
-for and prepare a newer signed JavaScript bundle while the current app keeps
-running; the prepared code applies after the next launch and rolls back if it
-does not report a healthy root. Native app changes still require a new APK.
-Live endpoint publication and device activation smoke are release gates.
+Home now opens a dedicated `Settings` view. On Android, its expanded `Code
+updates` section can check for and prepare a newer signed JavaScript bundle
+while the current app keeps running; the prepared code applies after the next
+launch and rolls back if it does not report a healthy root. Native app changes
+still require a new APK. Data tools keeps the same update control as a
+secondary path.
 The OTA trust anchor is a new project Ed25519 key; its private key stays
 outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key

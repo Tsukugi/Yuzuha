@@ -4,7 +4,7 @@ Status: Planned work order for the first working Android release. The current Ta
 
 ## Current implementation review: Tasks UX
 
-The 2026-07-28 pass applies the supplied card/filter visual language to Tasks while keeping the local record workflow first. Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.
+The 2026-07-28 pass applies the supplied card/filter visual language to Tasks while keeping the local record workflow first. Home, Money, Notes, Tasks, Search, App Time, Settings, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.
 
 Delivered:
 

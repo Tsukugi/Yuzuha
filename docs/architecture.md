@@ -6,6 +6,8 @@ Status: Core implementation through the Android weekday-aware periodic-money UX 
 
 Current UI pass addition: the React shell no longer renders the Yuzuha title, description, or bundle label. Home renders one derived Money widget for main-currency balance and selected-period activity, while Money renders a derived balance/activity card before the list. The list-first Add money entry flow remains unchanged; no new record, schema field, migration, network request, worker, or background process is added.
 
+Current Settings addition: Home exposes a dedicated Settings view with an Appearance disclosure and an expanded Android Code updates disclosure. The update controls call the existing typed native installer bridge; JavaScript does not fetch, hash, verify, or activate executable code. Data tools reuses the same control in its collapsed secondary section. The view adds no schema, migration, permission, worker, timer, or new network path.
+
 Current floating-capture addition: Home, Money, Notes, and Tasks share one local floating add action while their forms are closed. Home opens a small submenu for Add money, Add note, and Add task; Money, Notes, and Tasks open their current add forms directly. The submenu only changes local tab/form state and adds no schema, migration, network request, worker, timer, or polling loop.
 
 Current low-noise UI addition: shared React style tokens reduce heading, card, list, form, shadow, and FAB scale across Home, Money, Notes, Tasks, and App Time. Optional secondary UI uses smaller nested disclosures for backup choices, focus links, task management groups, task overview, budget creation, and the Money spending chart; note cards expose one action until expanded. The pass preserves the existing information and actions, adds no schema or migration, and starts no network request, worker, timer, or polling loop.
@@ -193,10 +195,10 @@ The current OTA extension keeps executable-code ownership in the Android shell.
 `YuzuhaBundleInstaller` owns signed metadata checks, bundle download and hash
 verification, schema-2 current/pending state, blocked-version rollback, and the
 launch health signal. `YuzuhaInstallerModule` exposes typed check, download,
-status, and health methods. The React Data tools control only renders those
-results; it never fetches or activates a JavaScript file. A manual update is
-prepared while the current bridge is running and is selected only on the next
-launch. iOS OTA and multi-file asset archives remain planned.
+status, and health methods. The React Settings and Data tools controls only
+render those results; they never fetch or activate a JavaScript file. A manual
+update is prepared while the current bridge is running and is selected only on
+the next launch. iOS OTA and multi-file asset archives remain planned.
 
 ## Full-product components
 

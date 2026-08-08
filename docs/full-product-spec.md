@@ -210,6 +210,12 @@ Settings are grouped as:
 - storage, export, backup, sync, and devices;
 - privacy, diagnostics, help, and legal.
 
+Current Android settings slice: Home opens Settings. The view exposes temporary
+appearance choices and an Android Code updates control backed by the native
+verified-bundle bridge. A prepared bundle is applied after closing and
+reopening the app; native changes still require an APK. Other settings groups
+remain planned.
+
 Every setting has a current value, a reset rule, and a statement of which data it affects.
 
 ## 11. Product limits

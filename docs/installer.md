@@ -110,13 +110,14 @@ The installer returns one typed result:
 
 The UI may provide retry for a failed remote check, but retry must call the same deterministic installer path. Do not activate an unverified file or silently ignore a failed first install.
 
-The Data tools screen also has a collapsed `Code updates` section. `Check for
-code update` and `Download update` call the native bridge. JavaScript does not
-fetch, hash, verify, or select a bundle. A downloaded update stays pending and
-the current process continues to run its current bundle. The user is told to
-close and reopen Yuzuha to apply it. A failed check does not remove a prepared
-update. A valid pending version is also retained when the endpoint currently
-points to an older release.
+The Settings screen has an expanded Android `Code updates` section. Data tools
+keeps the same control collapsed as a secondary path. `Check for updates` and
+`Download update` call the native bridge. JavaScript does not fetch, hash,
+verify, or select a bundle. A downloaded update stays pending and the current
+process continues to run its current bundle. The user is told to close and
+reopen Yuzuha to apply it. A failed check does not remove a prepared update. A
+valid pending version is also retained when the endpoint currently points to
+an older release.
 
 ## Verification order
 

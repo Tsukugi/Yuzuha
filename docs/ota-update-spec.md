@@ -24,8 +24,9 @@ Yuzuha now has an Android startup bundle gate and manual OTA path:
   exact size and SHA-256 hash before it is stored as pending.
 - The app uses the newest verified private bundle or the embedded bundle when
   the remote check is unavailable or invalid.
-- Data tools has a visible manual `Code updates` action. It checks and prepares
-  a verified bundle while the current process keeps running.
+- Settings has a visible Android `Code updates` action. It checks and prepares
+  a verified bundle while the current process keeps running; Data tools keeps
+  the same action as a collapsed secondary path.
 - State schema 2 stores current, pending, attempted, and blocked-version data.
   A pending bundle is selected only on a later launch and is promoted after
   the React root reports health.
@@ -133,16 +134,17 @@ the release notes before it can accept OTA code.
 
 ### Entry point
 
-Add a collapsed `Code updates` disclosure to `Data tools`. The existing data
-tool sections start closed, so the OTA control follows the same progressive
-disclosure rule and does not compete with money, notes, or tasks.
+Add a Home `Settings` action and a Settings view. The Settings view keeps
+Appearance closed and opens the Android `Code updates` disclosure by default,
+so the user can find the OTA action without searching through data operations.
+Data tools keeps a collapsed copy of the same control as a secondary path.
 
 The disclosure shows:
 
 - the currently running JavaScript bundle version;
 - whether an update is being checked, prepared, ready, current, or failed;
 - the available version when one is found;
-- a `Check for code update` action;
+  - a `Check for updates` action;
 - a `Download update` action after a newer release is found;
 - a clear message that the update applies after closing and reopening Yuzuha.
 
@@ -579,7 +581,8 @@ changes active state.
 
 - Extend `src/installer/BundleInstaller.ts` with typed update results.
 - Keep JavaScript out of the download and verification path.
-- Add a `Code updates` disclosure to `DataToolsScreen`.
+- Add a Home Settings action and a Settings view with Appearance and Code
+  updates disclosures; keep the DataToolsScreen control as a secondary path.
 - Add the deterministic UI states and user messages.
 - Call the health signal after the root app has rendered.
 

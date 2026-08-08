@@ -147,6 +147,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
   const [pendingBudgetId, setPendingBudgetId] = useState<string | null>(null);
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const openQuickCapture = useCallback((target: QuickCaptureTab) => {
     setPendingAddTab(target);
@@ -175,6 +176,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setReviewOpen(false);
+    setSettingsOpen(false);
     setSharedCapture(capture);
   }, []);
 
@@ -192,6 +194,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setReviewOpen(false);
+    setSettingsOpen(false);
     setPendingAddTab(action === 'appTime' ? null : action);
     setTab(action);
   }, []);
@@ -202,6 +205,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setReviewOpen(false);
+    setSettingsOpen(false);
     setTab(target);
   }, []);
 
@@ -210,6 +214,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
     setDataToolsOpen(false);
     setGlobalSearchOpen(false);
     setReviewOpen(false);
+    setSettingsOpen(false);
     setTab('tasks');
   }, []);
 
@@ -344,13 +349,15 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
           />
         ) : dataToolsOpen ? (
           <DataToolsScreen data={data} bundleVersion={bundleVersion} onBack={() => setDataToolsOpen(false)} />
+        ) : settingsOpen ? (
+          <SettingsScreen bundleVersion={bundleVersion} onBack={() => setSettingsOpen(false)} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={openGlobalSearchResult} />
         ) : reviewOpen ? (
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
@@ -462,6 +469,7 @@ function HomeScreen({
   onOpenDataTools,
   onOpenSearch,
   onOpenReview,
+  onOpenSettings,
 }: {
   data: AppData;
   onNavigate: (tab: Tab) => void;
@@ -469,6 +477,7 @@ function HomeScreen({
   onOpenDataTools: () => void;
   onOpenSearch: () => void;
   onOpenReview: () => void;
+  onOpenSettings: () => void;
 }) {
   const {styles, mode, resolvedMode, setMode} = useThemeStyles();
   const {setWeekStartsOn} = useAppStore();
@@ -506,8 +515,19 @@ function HomeScreen({
   return (
     <View style={styles.flex}>
       <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]}>
-      <Text style={styles.pageTitle}>Overview</Text>
-      <Text style={styles.pageIntro}>{selectedPeriodLabel} · {formatPeriodRange(range)}</Text>
+      <View style={styles.pageHeader}>
+        <View style={styles.pageHeaderCopy}>
+          <Text style={styles.pageTitle}>Overview</Text>
+          <Text style={styles.pageIntro}>{selectedPeriodLabel} · {formatPeriodRange(range)}</Text>
+        </View>
+        <Pressable
+          accessibilityLabel="Open Settings"
+          accessibilityRole="button"
+          style={({pressed}) => [styles.headerAction, pressed && styles.pressed]}
+          onPress={onOpenSettings}>
+          <Text style={styles.headerActionText}>Settings</Text>
+        </Pressable>
+      </View>
 
       <Pressable
         accessibilityLabel="Open money"
@@ -780,32 +800,37 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
   }
 }
 
-function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVersion: string; onBack: () => void}) {
-  const {colors, styles} = useThemeStyles();
-  const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [importText, setImportText] = useState('');
-  const [importPreview, setImportPreview] = useState<JsonImportPreview | null>(null);
-  const [backupPassword, setBackupPassword] = useState('');
-  const [backupText, setBackupText] = useState('');
-  const [backupPreview, setBackupPreview] = useState<EncryptedBackupPreview | null>(null);
-  const [backupBusy, setBackupBusy] = useState(false);
-  const [recoveryKey, setRecoveryKey] = useState('');
-  const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
-  const [moneyCsvPreview, setMoneyCsvPreview] = useState<MoneyCsvImportFilePreview | null>(null);
-  const [moneyCsvBusy, setMoneyCsvBusy] = useState(false);
-  const [moneyCsvUndoBusy, setMoneyCsvUndoBusy] = useState(false);
-  const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
-  const [jsonFileBusy, setJsonFileBusy] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [encryptedBackupOpen, setEncryptedBackupOpen] = useState(false);
-  const [recoveryBackupOpen, setRecoveryBackupOpen] = useState(false);
-  const [csvImportOpen, setCsvImportOpen] = useState(false);
-  const [jsonRestoreOpen, setJsonRestoreOpen] = useState(false);
-  const [encryptedRestoreOpen, setEncryptedRestoreOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [codeUpdatesOpen, setCodeUpdatesOpen] = useState(false);
+export function SettingsScreen({bundleVersion, onBack}: {bundleVersion: string; onBack: () => void}) {
+  const {styles, mode, resolvedMode, setMode} = useThemeStyles();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
+        <Text style={styles.backButtonText}>‹ Home</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>Settings</Text>
+      <Text style={styles.pageIntro}>Manage the app appearance and get verified Yuzuha code updates.</Text>
+      <Disclosure
+        title="Appearance"
+        subtitle={mode === 'system' ? `System (${resolvedMode})` : mode}
+        open={appearanceOpen}
+        onPress={() => setAppearanceOpen(current => !current)}>
+        <Text style={styles.cardDetail}>Choose how Yuzuha looks on this device. System follows Android again when selected.</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
+          <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
+          <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+        </View>
+      </Disclosure>
+      <CodeUpdatesSection bundleVersion={bundleVersion} initiallyOpen />
+    </ScrollView>
+  );
+}
+
+function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersion: string; initiallyOpen?: boolean}) {
+  const {styles} = useThemeStyles();
+  const [open, setOpen] = useState(initiallyOpen);
   const [codeUpdateState, setCodeUpdateState] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'prepared' | 'current' | 'error'>('idle');
   const [codeUpdateResult, setCodeUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [codeUpdateError, setCodeUpdateError] = useState<string | null>(null);
@@ -857,6 +882,52 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
       }
     }
   }
+
+  return (
+    <Disclosure
+      title="Code updates"
+      subtitle={`Running bundle ${bundleVersion}`}
+      open={open}
+      onPress={() => setOpen(current => !current)}>
+      <Text style={styles.cardDetail}>Yuzuha checks GitHub Releases for a newer verified JavaScript bundle. Native app changes still need a new APK. A downloaded update applies after you close and reopen Yuzuha.</Text>
+      {codeUpdateResult?.kind === 'available' && <Text style={styles.cardDetail}>Version {codeUpdateResult.availableVersion} is available.</Text>}
+      {codeUpdateState === 'current' && <Text style={styles.successText}>The installed code is up to date.</Text>}
+      {codeUpdateState === 'prepared' && codeUpdateResult?.kind === 'prepared' && <Text style={styles.successText}>Version {codeUpdateResult.availableVersion} is ready. Close and reopen Yuzuha to apply it.</Text>}
+      {codeUpdateState === 'error' && codeUpdateError && <Text style={styles.errorText}>{codeUpdateError}</Text>}
+      <PrimaryButton
+        label={codeUpdateState === 'checking' ? 'Checking...' : codeUpdateState === 'downloading' ? 'Downloading...' : codeUpdateState === 'available' ? 'Download update' : codeUpdateState === 'prepared' ? 'Update ready' : 'Check for updates'}
+        onPress={codeUpdateState === 'available' ? () => void downloadCodeUpdate() : () => void checkForCodeUpdate()}
+        disabled={codeUpdateState === 'checking' || codeUpdateState === 'downloading' || codeUpdateState === 'prepared'}
+      />
+    </Disclosure>
+  );
+}
+
+function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVersion: string; onBack: () => void}) {
+  const {colors, styles} = useThemeStyles();
+  const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [importText, setImportText] = useState('');
+  const [importPreview, setImportPreview] = useState<JsonImportPreview | null>(null);
+  const [backupPassword, setBackupPassword] = useState('');
+  const [backupText, setBackupText] = useState('');
+  const [backupPreview, setBackupPreview] = useState<EncryptedBackupPreview | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [recoveryKeyConfirmation, setRecoveryKeyConfirmation] = useState('');
+  const [moneyCsvPreview, setMoneyCsvPreview] = useState<MoneyCsvImportFilePreview | null>(null);
+  const [moneyCsvBusy, setMoneyCsvBusy] = useState(false);
+  const [moneyCsvUndoBusy, setMoneyCsvUndoBusy] = useState(false);
+  const [jsonFilePreview, setJsonFilePreview] = useState<JsonImportFilePreview | null>(null);
+  const [jsonFileBusy, setJsonFileBusy] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [encryptedBackupOpen, setEncryptedBackupOpen] = useState(false);
+  const [recoveryBackupOpen, setRecoveryBackupOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [jsonRestoreOpen, setJsonRestoreOpen] = useState(false);
+  const [encryptedRestoreOpen, setEncryptedRestoreOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function shareJson() {
     try {
@@ -1195,22 +1266,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
       </Pressable>
       <Text style={styles.pageTitle}>Data tools</Text>
       <Text style={styles.pageIntro}>Exports include supported local records. Restore validates a JSON export and shows a preview before replacing this workspace.</Text>
-      <Disclosure
-        title="Code updates"
-        subtitle={`Running bundle ${bundleVersion}`}
-        open={codeUpdatesOpen}
-        onPress={() => setCodeUpdatesOpen(current => !current)}>
-        <Text style={styles.cardDetail}>Yuzuha can download a newer verified JavaScript bundle. Native app changes still need a new APK. The update applies after you close and reopen Yuzuha.</Text>
-        {codeUpdateResult?.kind === 'available' && <Text style={styles.cardDetail}>Version {codeUpdateResult.availableVersion} is available.</Text>}
-        {codeUpdateState === 'current' && <Text style={styles.successText}>The installed code is up to date.</Text>}
-        {codeUpdateState === 'prepared' && codeUpdateResult?.kind === 'prepared' && <Text style={styles.successText}>Version {codeUpdateResult.availableVersion} is ready. Close and reopen Yuzuha to apply it.</Text>}
-        {codeUpdateState === 'error' && codeUpdateError && <Text style={styles.errorText}>{codeUpdateError}</Text>}
-        <PrimaryButton
-          label={codeUpdateState === 'checking' ? 'Checking...' : codeUpdateState === 'downloading' ? 'Downloading...' : codeUpdateState === 'available' ? 'Download update' : codeUpdateState === 'prepared' ? 'Update ready' : 'Check for code update'}
-          onPress={codeUpdateState === 'available' ? () => void downloadCodeUpdate() : () => void checkForCodeUpdate()}
-          disabled={codeUpdateState === 'checking' || codeUpdateState === 'downloading' || codeUpdateState === 'prepared'}
-        />
-      </Disclosure>
+      <CodeUpdatesSection bundleVersion={bundleVersion} />
       <Disclosure
         title="Export and backup"
         subtitle="Share or save a copy of this workspace"
@@ -5468,8 +5524,12 @@ function createStyles(colors: ThemeColors) {
   flex: {flex: 1},
   content: {flex: 1},
   scrollContent: {padding: 16, paddingBottom: 28, paddingTop: 18},
+  pageHeader: {alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between'},
+  pageHeaderCopy: {flex: 1, paddingRight: 12},
   pageTitle: {color: colors.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4},
   pageIntro: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: 14},
+  headerAction: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 10, borderWidth: 1, marginTop: 1, paddingHorizontal: 11, paddingVertical: 8},
+  headerActionText: {color: colors.accent, fontSize: 13, fontWeight: '800'},
   editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
   cardGrid: {gap: 8},
