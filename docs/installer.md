@@ -8,6 +8,13 @@ SHA-256 fingerprint is
 private key is outside the repository. A new APK is required for this pin to
 reach devices.
 
+The Android `localTest` build type is a device-smoke variant only. It uses the
+application ID `dev.yuzuha.localtest`, signs with the debug key, selects the
+embedded bundle, and disables metadata and bundle downloads through the typed
+`YUZUHA_LOCAL_BUNDLE_ONLY` build flag. It keeps its own app data and cannot
+change the production `dev.yuzuha` installer behavior. Native tests prove that
+the variant does not fetch remote metadata or download an OTA bundle.
+
 ## Purpose
 
 The native shell ships an embedded JavaScript bundle. On every launch it checks whether a newer compatible bundle is available. It may activate a remote bundle only after verification. `MainApp` must not be presented before this launch gate completes.

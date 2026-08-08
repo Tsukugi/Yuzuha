@@ -47,6 +47,33 @@ class BundleInstallerFlowTest {
   }
 
   @Test
+  fun localBundleOnlyBuildUsesEmbeddedBundleWithoutFetchingRemoteOta() {
+    val release = ReleaseFixture.create("0.2.0")
+    val network = FixtureNetwork(release.metadata, release.bundle)
+    val root = temporaryFolder.newFolder("files")
+    val installer = YuzuhaBundleInstaller(
+      filesDirectory = root,
+      metadataUrl = URL("https://updates.test/installer/bundle.json"),
+      nativeVersion = "0.1.3",
+      pinnedPublicKey = release.publicKey,
+      connectionFactory = network,
+      remoteUpdatesEnabled = false,
+    )
+
+    val launch = installer.await()
+
+    assertEquals("embedded", launch.kind)
+    assertEquals("0.1.3", launch.version)
+    assertEquals("LOCAL_BUNDLE_ONLY", launch.reasonCode)
+    assertEquals(0, network.metadataRequests)
+    assertEquals(0, network.bundleRequests)
+    assertEquals("unavailable", installer.checkForUpdate().kind)
+    assertEquals("unavailable", installer.downloadUpdate().kind)
+    assertEquals(0, network.metadataRequests)
+    assertEquals(0, network.bundleRequests)
+  }
+
+  @Test
   fun newProjectProductionPinAcceptsSignedGithubReleaseFixture() {
     val bundle = "new-project-ota-key".toByteArray(StandardCharsets.UTF_8)
     val metadata = """
@@ -257,10 +284,12 @@ class BundleInstallerFlowTest {
     var metadata: ByteArray?,
     var bundle: ByteArray?,
   ) : BundleInstallerConnectionFactory {
+    var metadataRequests = 0
     var bundleRequests = 0
 
     override fun open(url: URL): HttpURLConnection {
       val body = if (url.path.endsWith("bundle.json")) {
+        metadataRequests += 1
         metadata ?: throw IOException("metadata unavailable")
       } else {
         bundleRequests += 1

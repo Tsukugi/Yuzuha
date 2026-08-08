@@ -64,6 +64,7 @@ class LaunchActionsModule(private val context: ReactApplicationContext) : ReactC
       ACTION_OPEN_NOTES -> ACTION_OPEN_NOTES
       ACTION_OPEN_TASKS -> ACTION_OPEN_TASKS
       ACTION_OPEN_APP_TIME -> ACTION_OPEN_APP_TIME
+      ACTION_OPEN_APPEARANCE -> ACTION_OPEN_APPEARANCE.takeIf { BuildConfig.YUZUHA_LOCAL_BUNDLE_ONLY }
       else -> null
     }
 
@@ -76,5 +77,6 @@ class LaunchActionsModule(private val context: ReactApplicationContext) : ReactC
     const val ACTION_OPEN_NOTES = "dev.yuzuha.OPEN_NOTES"
     const val ACTION_OPEN_TASKS = "dev.yuzuha.OPEN_TASKS"
     const val ACTION_OPEN_APP_TIME = "dev.yuzuha.OPEN_APP_TIME"
+    const val ACTION_OPEN_APPEARANCE = "dev.yuzuha.OPEN_APPEARANCE"
   }
 }

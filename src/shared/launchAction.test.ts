@@ -12,6 +12,10 @@ describe('launcher action contract', () => {
     expect(actions.map(normalizeLaunchAction)).toEqual(tabs);
   });
 
+  it('maps the local device-smoke Appearance action', () => {
+    expect(normalizeLaunchAction('dev.yuzuha.OPEN_APPEARANCE')).toBe('settingsAppearance');
+  });
+
   it('rejects unknown, empty, and non-string actions', () => {
     expect(normalizeLaunchAction('dev.yuzuha.OPEN_SETTINGS')).toBeNull();
     expect(normalizeLaunchAction('')).toBeNull();

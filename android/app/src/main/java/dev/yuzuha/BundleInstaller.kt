@@ -102,12 +102,13 @@ class YuzuhaBundleInstaller internal constructor(
   private val nativeVersion: String,
   private val pinnedPublicKey: String,
   private val connectionFactory: BundleInstallerConnectionFactory,
+  private val remoteUpdatesEnabled: Boolean = true,
 ) {
   constructor(
     context: Context,
     metadataUrl: URL = URL(DEFAULT_METADATA_URL),
     nativeVersion: String = NATIVE_VERSION,
-  ) : this(context.filesDir, metadataUrl, nativeVersion, PINNED_PUBLIC_KEY, defaultConnectionFactory)
+  ) : this(context.filesDir, metadataUrl, nativeVersion, PINNED_PUBLIC_KEY, defaultConnectionFactory, !BuildConfig.YUZUHA_LOCAL_BUNDLE_ONLY)
 
   private val resultLatch = CountDownLatch(1)
   private val operationLock = Any()
@@ -153,6 +154,9 @@ class YuzuhaBundleInstaller internal constructor(
   fun checkForUpdate(): BundleUpdateResult {
     await()
     synchronized(operationLock) {
+      if (!remoteUpdatesEnabled) {
+        return BundleUpdateResult("unavailable", EMBEDDED_VERSION, reasonCode = "LOCAL_BUNDLE_ONLY")
+      }
       var currentVersion = EMBEDDED_VERSION
       try {
         val state = readInstallerState()
@@ -187,6 +191,9 @@ class YuzuhaBundleInstaller internal constructor(
   fun downloadUpdate(): BundleUpdateResult {
     await()
     synchronized(operationLock) {
+      if (!remoteUpdatesEnabled) {
+        return BundleUpdateResult("unavailable", EMBEDDED_VERSION, reasonCode = "LOCAL_BUNDLE_ONLY")
+      }
       var currentVersion = EMBEDDED_VERSION
       try {
         val state = readInstallerState()
@@ -245,6 +252,10 @@ class YuzuhaBundleInstaller internal constructor(
         return
       }
       val baseline = local ?: embedded
+      if (!remoteUpdatesEnabled) {
+        publish(baseline.copy(kind = if (local == null) "embedded" else "local-current", reasonCode = "LOCAL_BUNDLE_ONLY"))
+        return
+      }
       try {
         val metadata = fetchAndVerifyMetadata()
         val state = readInstallerState()

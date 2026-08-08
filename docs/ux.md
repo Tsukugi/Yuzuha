@@ -30,7 +30,7 @@ The disclosure control uses a visible title, a short state summary, a plus/minus
 
 ## Theme behavior
 
-The default theme is `System`, which follows Android light or dark mode. Settings offers temporary `Light` and `Dark` overrides. Selecting System removes the override. Theme choice is presentation state only and is not stored in AppData or included in exports.
+The default contrast mode is `System`, which follows Android light or dark mode. Settings offers temporary `Light` and `Dark` overrides and five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. The selected palette keeps its light and dark contrast values. Selecting System removes the contrast override. Contrast and palette choices are presentation state only, reset on relaunch, and are not stored in AppData or included in exports. Preview cards for the five ideas live in `docs/theme-ideas/`.
 
 ## First run
 

@@ -12,7 +12,7 @@ Delivered:
 - one derived Home Money widget with main-currency balance and selected-period spending/income;
 - a Money balance/activity card followed by the current entry list and separate Add money entry action;
 - split-aware category spending bars and a local daily income/spending chart using pure derived data;
-- System, Light, and Dark theme tokens applied to startup, shell, Money, and secondary screens;
+- System, Light, and Dark contrast tokens plus Moss, Ocean, Sunset, Plum, and Citrus palette tokens applied to startup, shell, Money, and secondary screens;
 - Notes search kept visible with All/Pinned/Archived filters, pinned/recent sections, compact tappable cards, collapsed card details, and a floating Add note action;
 - Tasks primary tabs, Today/Upcoming/no-date sections, compact task rows, a task overview, collapsed advanced tools, and a floating Add task action;
 - list-first Money, Notes, and Tasks entry with separate Add actions;

@@ -85,7 +85,7 @@ import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 import {nativeBundleInstaller, type UpdateCheckResult} from '../installer/BundleInstaller';
-import {useAppTheme, type ThemeColors} from './theme';
+import {THEME_PALETTE_OPTIONS, THEME_PALETTES, useAppTheme, type ThemeColors} from './theme';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
@@ -123,9 +123,9 @@ function formatRecurrenceWeekdays(weekdays: RecurrenceWeekday[]): string {
 }
 
 function useThemeStyles() {
-  const {colors, mode, resolvedMode, setMode} = useAppTheme();
+  const {colors, mode, palette, resolvedMode, setMode, setPalette} = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  return {colors, styles, mode, resolvedMode, setMode};
+  return {colors, styles, mode, palette, resolvedMode, setMode, setPalette};
 }
 
 export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
@@ -148,6 +148,7 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
   const [pendingReminderAction, setPendingReminderAction] = useState<TaskReminderTarget | null>(null);
   const lastSharedCaptureKey = useRef<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsAppearanceOpen, setSettingsAppearanceOpen] = useState(false);
 
   const openQuickCapture = useCallback((target: QuickCaptureTab) => {
     setPendingAddTab(target);
@@ -195,6 +196,13 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
     setGlobalSearchOpen(false);
     setReviewOpen(false);
     setSettingsOpen(false);
+    setSettingsAppearanceOpen(false);
+    if (action === 'settingsAppearance') {
+      setSettingsOpen(true);
+      setSettingsAppearanceOpen(true);
+      setPendingAddTab(null);
+      return;
+    }
     setPendingAddTab(action === 'appTime' ? null : action);
     setTab(action);
   }, []);
@@ -350,14 +358,14 @@ export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
         ) : dataToolsOpen ? (
           <DataToolsScreen data={data} bundleVersion={bundleVersion} onBack={() => setDataToolsOpen(false)} />
         ) : settingsOpen ? (
-          <SettingsScreen bundleVersion={bundleVersion} onBack={() => setSettingsOpen(false)} />
+          <SettingsScreen bundleVersion={bundleVersion} initiallyOpenAppearance={settingsAppearanceOpen} onBack={() => {setSettingsAppearanceOpen(false); setSettingsOpen(false);}} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={openGlobalSearchResult} />
         ) : reviewOpen ? (
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsOpen(true);}} />}
             {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
             {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
             {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
@@ -794,9 +802,9 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
   }
 }
 
-export function SettingsScreen({bundleVersion, onBack}: {bundleVersion: string; onBack: () => void}) {
-  const {styles, mode, resolvedMode, setMode} = useThemeStyles();
-  const [appearanceOpen, setAppearanceOpen] = useState(false);
+export function SettingsScreen({bundleVersion, onBack, initiallyOpenAppearance = false}: {bundleVersion: string; onBack: () => void; initiallyOpenAppearance?: boolean}) {
+  const {styles, mode, palette, resolvedMode, setMode, setPalette} = useThemeStyles();
+  const [appearanceOpen, setAppearanceOpen] = useState(initiallyOpenAppearance);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -807,14 +815,33 @@ export function SettingsScreen({bundleVersion, onBack}: {bundleVersion: string; 
       <Text style={styles.pageIntro}>Manage the app appearance and get verified Yuzuha code updates.</Text>
       <Disclosure
         title="Appearance"
-        subtitle={mode === 'system' ? `System (${resolvedMode})` : mode}
+        subtitle={`${THEME_PALETTES[palette].label} · ${mode === 'system' ? `System (${resolvedMode})` : mode}`}
         open={appearanceOpen}
         onPress={() => setAppearanceOpen(current => !current)}>
-        <Text style={styles.cardDetail}>Choose how Yuzuha looks on this device. System follows Android again when selected.</Text>
+        <Text style={styles.cardDetail}>Choose the contrast mode and color palette for this device. System follows Android again when selected. These choices reset when Yuzuha relaunches.</Text>
         <View style={styles.segmentRow}>
           <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
           <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
           <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+        </View>
+        <Text style={styles.formLabel}>Color palette</Text>
+        <Text style={styles.cardDetail}>Pick an accent color. Each palette has matching light and dark values.</Text>
+        <View style={styles.paletteGrid}>
+          {THEME_PALETTE_OPTIONS.map(option => (
+            <Pressable
+              key={option.value}
+              accessibilityLabel={`Use ${option.label} color palette`}
+              accessibilityRole="button"
+              accessibilityState={{selected: palette === option.value}}
+              style={[styles.paletteOption, palette === option.value && styles.paletteOptionSelected]}
+              onPress={() => setPalette(option.value)}>
+              <View style={[styles.paletteSwatch, {backgroundColor: option.swatch}]} />
+              <View style={styles.paletteOptionCopy}>
+                <Text style={styles.paletteLabel}>{option.label}</Text>
+                <Text style={styles.paletteDescription}>{option.description}</Text>
+              </View>
+            </Pressable>
+          ))}
         </View>
       </Disclosure>
       <CodeUpdatesSection bundleVersion={bundleVersion} initiallyOpen />
@@ -5578,6 +5605,13 @@ function createStyles(colors: ThemeColors) {
   segmentButtonSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   segmentText: {color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center'},
   segmentTextSelected: {color: colors.accentText},
+  paletteGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10},
+  paletteOption: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 62, paddingHorizontal: 10, paddingVertical: 9, width: '48%'},
+  paletteOptionSelected: {backgroundColor: colors.cardRaised, borderColor: colors.accent, borderWidth: 2},
+  paletteSwatch: {borderRadius: 16, height: 28, width: 28},
+  paletteOptionCopy: {flex: 1, marginLeft: 9, minWidth: 0},
+  paletteLabel: {color: colors.text, fontSize: 14, fontWeight: '800'},
+  paletteDescription: {color: colors.muted, fontSize: 11, lineHeight: 14, marginTop: 2},
   chipWrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   weekdayRow: {flexDirection: 'row', gap: 6},
   weekdayToggle: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, minWidth: 0, paddingVertical: 10},

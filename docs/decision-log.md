@@ -735,3 +735,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Validation: derive the public key from the external private key, verify a
   signed metadata fixture with the new pin, run native and TypeScript tests,
   and confirm no private key is tracked.
+
+## DEC-100: Add temporary color palettes without expanding the data model
+
+- Status: Accepted.
+- Context: The app already had centralized System/Light/Dark theme tokens, but users could not change the accent color. The new visual directions need to be reviewable before they become selectable UI.
+- Decision: Keep the existing contrast mode and add five temporary palettes: Moss, Ocean, Sunset, Plum, and Citrus. Store palette definitions as typed light/dark token pairs in `ThemeProvider`, expose them from Settings Appearance, and keep five preview-only concept cards in `docs/theme-ideas/`.
+- Reason: All screens already resolve styles through one provider, so palette changes stay consistent and do not add a theme dependency or per-screen color branching. Temporary view state avoids inventing a persistence and migration contract for a presentation choice.
+- Consequence: Palette and contrast choices reset on relaunch and are excluded from AppData, backups, exports, and imports. No schema, network request, worker, timer, or background process is added.
+- Validation: Settings tests find all five choices and the selected state; `theme.test.tsx` proves the provider changes its accent token; typecheck, lint, full Jest, and diff checks remain release gates.

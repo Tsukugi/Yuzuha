@@ -4,6 +4,15 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-08-08 unreleased Android UI pass:
+
+- added five temporary color palettes in Settings Appearance: Moss, Ocean, Sunset, Plum, and Citrus;
+- kept System, Light, and Dark contrast modes and applied the selected palette to startup, shell, charts, forms, lists, and secondary screens;
+- added five preview-only concept cards under [`docs/theme-ideas/`](theme-ideas/);
+- added the `localTest` device-smoke variant so Xiaomi can run the current embedded JavaScript without clearing the production workspace or selecting an older cached OTA;
+- Xiaomi `42adce68` passed the current-code Appearance smoke through `dev.yuzuha.localtest`; the five palette selectors rendered in the device screenshot and no filtered app errors appeared;
+- no schema, data, export/import, network, worker, timer, or background behavior changed. The pass is not a published APK or OTA bundle.
+
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
 2026-08-08 Android OTA v0.1.6 release:

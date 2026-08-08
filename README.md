@@ -23,7 +23,9 @@ The Android Money/Home UI pass removes the app title/description block from the 
 
 Primary Money, Notes, and Tasks add forms now have the same explicit Cancel action. Save buttons show a saving state and ignore repeat taps while the local write is in progress. The AppStore also serializes local commits so overlapping writes keep both changes instead of allowing a later save to replace an earlier one.
 
-The app supports System, Light, and Dark themes. System follows the Android setting; Light and Dark are temporary in-app overrides. Theme colors are applied to the startup screen, shell, Money charts, forms, lists, and secondary screens without changing local data.
+The app supports System, Light, and Dark contrast modes plus five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. System follows the Android setting; contrast and palette choices reset on relaunch and do not change local data. Theme colors are applied to the startup screen, shell, Money charts, forms, lists, and secondary screens.
+
+Five preview-only theme idea cards are kept in [`docs/theme-ideas/`](docs/theme-ideas/). They document the palette directions used by the current Settings selectors.
 
 Notes now opens with an always-visible search field, All/Pinned/Archived filters, pinned and recent sections, compact tappable note cards, collapsed note actions/details, and one floating Add note action. The note form still appears only after Add note, edit focus, or a launcher action. This is local view state and styling only; note data, attachments, links, and saved searches keep their current behavior.
 
