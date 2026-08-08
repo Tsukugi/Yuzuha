@@ -124,8 +124,8 @@ must not require a committed private-key fixture.
   metadata-check, and upload rules.
 - The fresh production OTA private key is stored outside the repository in the
   user secret directory. `npm run ota-release -- --version 0.1.5` generated a
-  signed Android bundle and `npm run ota-check -- dist/ota/0.1.5/bundle.json`
-  accepted it with the new pin. The published `v0.1.5` GitHub Release metadata
+  signed Android bundle and `npm run ota-check -- dist/ota/0.1.6/bundle.json`
+  accepted it with the new pin. The published `v0.1.6` GitHub Release metadata
   and bundle were downloaded, checked, and matched their signed size and hash.
 - A fresh signed release APK containing the new OTA pin was built with the
   ignored local signing configuration. It is `67,425,831` bytes with SHA-256

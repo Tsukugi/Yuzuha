@@ -6,6 +6,14 @@ Status: Current Android native release process. The release APK is signed with a
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 
+2026-08-08 Android OTA v0.1.6 release:
+
+- the published OTA bundle is [`Yuzuha-0.1.6.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.6/Yuzuha-0.1.6.jsbundle), at `1,322,538` bytes with SHA-256 `ae8d3a335bb501feaf83271f60ad84c53d60f0f80f75dbdb2928f66dd38787ae`;
+- [GitHub Release v0.1.6](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.6) also contains the signed `bundle.json`; the latest-release URL now serves this metadata;
+- the bundle requires native `0.1.3` and contains the final Home-to-Settings flow, Settings-owned Appearance controls, and Android Code updates controls;
+- local and downloaded metadata checks passed, and the full JavaScript suite is 54 suites/252 tests. The previous v0.1.4 device smoke remains the live activation/promotion/rollback evidence;
+- the exact OTA record is [`docs/releases/v0.1.6.md`](releases/v0.1.6.md).
+
 2026-08-08 Android OTA v0.1.5 release:
 
 - the published OTA bundle is [`Yuzuha-0.1.5.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.5/Yuzuha-0.1.5.jsbundle), at `1,323,051` bytes with SHA-256 `1b0124737e4ea9446fb6bb453a2916c4cfbc25a6a064303916859daa8716126e`;
