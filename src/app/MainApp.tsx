@@ -479,7 +479,7 @@ function HomeScreen({
   onOpenReview: () => void;
   onOpenSettings: () => void;
 }) {
-  const {styles, mode, resolvedMode, setMode} = useThemeStyles();
+  const {styles} = useThemeStyles();
   const {setWeekStartsOn} = useAppStore();
   const [homeToolsOpen, setHomeToolsOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
@@ -592,13 +592,7 @@ function HomeScreen({
         subtitle="Review and data tools"
         open={homeToolsOpen}
         onPress={() => setHomeToolsOpen(current => !current)}>
-        <Text style={styles.formLabel}>Theme</Text>
-        <Text style={styles.cardDetail}>Current: {mode === 'system' ? `System (${resolvedMode})` : mode}. This setting is temporary and follows the device again when System is selected.</Text>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
-          <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
-          <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
-        </View>
+        <TextButton label="Open settings" onPress={onOpenSettings} />
         <TextButton label="Review this period" onPress={onOpenReview} />
         <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
       </Disclosure>

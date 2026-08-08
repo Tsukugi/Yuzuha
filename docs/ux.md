@@ -16,7 +16,7 @@ Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/no
 
 The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
 
-- Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools sit under More home tools; week-start setup sits under Dashboard period.
+- Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Settings, Review, and data tools sit behind labeled Home actions; week-start setup stays under Dashboard period.
 - Settings opens from the Home header. It shows Appearance as a closed disclosure and Code updates expanded by default so the Android update action is easy to find. The code-update text states that native changes still need an APK and that a prepared bundle applies after reopening.
 - Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, periodic-money management, filters, optional payee/note fields, balances, and account/payee/category management use closed sections. A new operation can be marked Repeat inside the normal add form; only then do its period and weekday toggles appear.
 - Notes opens on the current note list with an always-visible search field, All/Pinned/Archived chips, pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Attachments, links, and destructive actions stay behind each card's More action.
@@ -30,7 +30,7 @@ The disclosure control uses a visible title, a short state summary, a plus/minus
 
 ## Theme behavior
 
-The default theme is `System`, which follows Android light or dark mode. The Home More home tools section also offers temporary `Light` and `Dark` overrides. Selecting System removes the override. Theme choice is presentation state only and is not stored in AppData or included in exports.
+The default theme is `System`, which follows Android light or dark mode. Settings offers temporary `Light` and `Dark` overrides. Selecting System removes the override. Theme choice is presentation state only and is not stored in AppData or included in exports.
 
 ## First run
 
