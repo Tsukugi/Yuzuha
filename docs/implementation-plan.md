@@ -2038,7 +2038,7 @@ Resource cleanup         PASS - both devices force-stopped; Gradle/Kotlin proces
 
 Known limits:
 
-- the signed GitHub Releases latest metadata asset and immutable bundle were published and verified; Xiaomi live smoke proved remote activation of 0.1.4, next-launch promotion, and blocked-version rollback to 0.1.4;
+- the signed GitHub Releases latest metadata asset and immutable Settings bundle 0.1.5 were published and verified; Xiaomi live smoke on 0.1.4 proved remote activation, next-launch promotion, and blocked-version rollback, while the new Settings bundle passed local and downloaded metadata checks;
 - the native implementation intentionally has no retry loop, polling worker, or background update service;
 - Android API 32 and older are no longer supported; future public releases need release-pipeline key custody and endpoint integration tests.
 

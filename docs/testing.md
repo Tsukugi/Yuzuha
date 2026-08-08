@@ -13,14 +13,14 @@ must not require a committed private-key fixture.
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 53 Jest suites and 251 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, and current money CSV behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 54 Jest suites and 252 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, and the Settings OTA entry point have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 53 suites and 251 tests.
+- Full Jest passes: 54 suites and 252 tests.
 - The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The current release reports package `dev.yuzuha`, version `0.1.3`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
@@ -116,16 +116,16 @@ must not require a committed private-key fixture.
   project's production key and verified against the new native pin.
 - `npm run typecheck` and `npm run lint` pass after the native pending/current
   state and Data tools `Code updates` control were added.
-- Full Jest passes with 53 suites and 251 tests. Native `:app:testDebugUnitTest`
+- Full Jest passes with 54 suites and 252 tests. Native `:app:testDebugUnitTest`
   also passes with Java 17.
 - `android\gradlew.bat :app:compileDebugKotlin --no-daemon --max-workers=2 --offline`
   passes with Java 17 (`C:\Users\Tsukugi\.jdks\ms-17.0.15`).
 - `npm run ota-release -- --help` passes and reports the private-key, staging,
   metadata-check, and upload rules.
 - The fresh production OTA private key is stored outside the repository in the
-  user secret directory. `npm run ota-release -- --version 0.1.4` generated a
-  signed Android bundle and `npm run ota-check -- dist/ota/0.1.4/bundle.json`
-  accepted it with the new pin. The published `v0.1.4` GitHub Release metadata
+  user secret directory. `npm run ota-release -- --version 0.1.5` generated a
+  signed Android bundle and `npm run ota-check -- dist/ota/0.1.5/bundle.json`
+  accepted it with the new pin. The published `v0.1.5` GitHub Release metadata
   and bundle were downloaded, checked, and matched their signed size and hash.
 - A fresh signed release APK containing the new OTA pin was built with the
   ignored local signing configuration. It is `67,425,831` bytes with SHA-256
@@ -140,7 +140,7 @@ must not require a committed private-key fixture.
   A later launch recorded
   `YuzuhaInstaller: launch kind=local-current version=0.1.4 reason=REMOTE_NOT_NEWER`,
   proving the healthy bundle was promoted and retained.
-- A temporary signed failing `v0.1.5` prerelease recorded
+- Before the stable release, a temporary signed failing `v0.1.5` prerelease recorded
   `remote-activated version=0.1.5` on its first launch and
   `local-current version=0.1.4 reason=BLOCKED_VERSION` on the next launch.
   The temporary release and tag were deleted after the controlled rollback

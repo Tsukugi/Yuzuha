@@ -76,7 +76,7 @@ The current state record is schema `2`:
 {
   "schema": 2,
   "current": {"version": "0.1.3", "fileName": "bundle-0.1.3.jsbundle", "sizeBytes": 1234567, "sha256": "...", "runtime": "0.86.0", "minNativeVersion": "0.1.3"},
-  "pending": {"version": "0.1.4", "fileName": "bundle-0.1.4.jsbundle", "sizeBytes": 1234567, "sha256": "...", "runtime": "0.86.0", "minNativeVersion": "0.1.3", "attempted": false},
+  "pending": {"version": "0.1.5", "fileName": "bundle-0.1.5.jsbundle", "sizeBytes": 1234567, "sha256": "...", "runtime": "0.86.0", "minNativeVersion": "0.1.3", "attempted": false},
   "blockedVersion": null
 }
 ```
@@ -160,7 +160,7 @@ The current JavaScript path still checks the embedded bundle gate before mountin
 
 The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, writes a pending record, and only then selects the private bundle path. The root app reports launch health through `YuzuhaInstaller.markLaunchSuccessful`, which promotes the pending record to current. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the newest verified candidate; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. A failed pending launch is rolled back and its exact version is blocked. The Data tools screen can run the same native check and prepare a pending update while the current process continues. No retry loop or background update worker is started.
 
-For Android 0.1.3, the embedded and native installer baseline is `0.1.3`; the next OTA bundle is `0.1.4` and requires native `0.1.3`. The release uses app schema 33 and repository schema 3, with no legacy bundle or data migration path.
+For Android 0.1.3, the embedded and native installer baseline is `0.1.3`; the current OTA bundle is `0.1.5` and requires native `0.1.3`. The release uses app schema 33 and repository schema 3, with no legacy bundle or data migration path.
 
 ## Developer note
 
