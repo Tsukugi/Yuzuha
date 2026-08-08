@@ -61,7 +61,7 @@ The OTA trust anchor is a new project Ed25519 key; its private key stays
 outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key
 fingerprint and local secret-loading command.
-The current signed Settings bundle is GitHub OTA `v0.1.6` and requires native
+The current signed Settings bundle is GitHub OTA `v0.1.7` and requires native
 `0.1.3`.
 
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.

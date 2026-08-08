@@ -4,14 +4,14 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
-2026-08-08 unreleased Android UI pass:
+2026-08-08 Android OTA v0.1.7 release:
 
-- added five temporary color palettes in Settings Appearance: Moss, Ocean, Sunset, Plum, and Citrus;
-- kept System, Light, and Dark contrast modes and applied the selected palette to startup, shell, charts, forms, lists, and secondary screens;
-- added five preview-only concept cards under [`docs/theme-ideas/`](theme-ideas/);
-- added the `localTest` device-smoke variant so Xiaomi can run the current embedded JavaScript without clearing the production workspace or selecting an older cached OTA;
-- Xiaomi `42adce68` passed the current-code Appearance smoke through `dev.yuzuha.localtest`; the five palette selectors rendered in the device screenshot and no filtered app errors appeared;
-- no schema, data, export/import, network, worker, timer, or background behavior changed. The pass is not a published APK or OTA bundle.
+- the published OTA bundle is [`Yuzuha-0.1.7.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.7/Yuzuha-0.1.7.jsbundle), at `1,327,153` bytes with SHA-256 `0d71b1ccfce2cec9db383f545589931db5cfecd4d0e76a5bdf41ea5aac8314ca`;
+- [GitHub Release v0.1.7](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.7) also contains the signed `bundle.json`; the latest-release URL serves this metadata;
+- the bundle requires native `0.1.3` and adds five temporary Settings Appearance palettes: Moss, Ocean, Sunset, Plum, and Citrus;
+- the `localTest` device-smoke variant keeps Xiaomi testing on the embedded current bundle, and Xiaomi `42adce68` passed the current-code Appearance smoke with all five selectors visible and no filtered app errors;
+- the full JavaScript suite is 55 suites/256 tests. TypeScript, lint, native unit tests, localTest build, metadata checks, and the Xiaomi smoke passed;
+- the exact OTA record is [`docs/releases/v0.1.7.md`](releases/v0.1.7.md).
 
 The latest-only entry below supersedes compatibility statements in older historical pass notes. Those older entries describe behavior before the app had a public release.
 

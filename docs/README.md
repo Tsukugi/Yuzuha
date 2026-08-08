@@ -28,11 +28,12 @@ The current Money report pass adds derived period, type, category, and account f
 18. [API contract](api-contract.md) - sync service requests, responses, errors, and versioning.
 19. [Traceability](traceability.md) - requirement families, authoritative documents, and evidence.
 20. [Decision log](decision-log.md) - decisions that affect future work.
-21. [v0.1.6 OTA release record](releases/v0.1.6.md) - latest OTA artifact, final Settings flow, verification, and release boundary.
-22. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
-23. [v0.1.3 release record](releases/v0.1.3.md) - latest native APK artifact identity and release boundary.
-24. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
-25. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
+21. [v0.1.7 OTA release record](releases/v0.1.7.md) - latest color-palette OTA artifact, verification, and release boundary.
+22. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
+23. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
+24. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
+25. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
+26. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
 
 ## Documentation rules
 
