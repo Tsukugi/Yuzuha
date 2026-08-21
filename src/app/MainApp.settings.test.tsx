@@ -24,8 +24,16 @@ jest.mock('../shared/attachmentFiles', () => ({
   stageAttachmentBackupFiles: jest.fn(),
 }));
 
-import {SettingsScreen} from './MainApp';
-import {ThemeProvider} from './theme';
+import {SettingsScreen, createStyles} from './MainApp';
+import {THEME_PALETTES, ThemeProvider} from './theme';
+
+describe('Main app layout', () => {
+  it('keeps breathing room between note filters and their results', () => {
+    const styles = createStyles(THEME_PALETTES.moss.light);
+
+    expect(styles.notesFilterRow).toMatchObject({marginBottom: 16});
+  });
+});
 
 describe('Settings screen', () => {
   it('shows the OTA update controls when opened', () => {

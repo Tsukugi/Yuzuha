@@ -60,9 +60,9 @@ Home offers one compact Money widget. It shows the main-currency balance and sel
 ### Money
 
 - Add income or expense manually.
-- Set amount, currency, date, category, account label, and optional note.
+- Set amount, currency, date, category, and optional note; choose an account only when multiple active accounts exist.
 - Edit or delete an entry.
-- Filter by period, type, category, and account label.
+- Filter by period, type, and category; filter by account when multiple active accounts exist.
 - Show totals and a simple category breakdown.
 - Export entries as CSV or JSON.
 

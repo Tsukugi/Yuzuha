@@ -1,6 +1,9 @@
 # UX plan
 
-Status: Current Android MVP through the 2026-07-29 periodic-money UX pass.
+Status: Current Android MVP through the 2026-08-21 UI standardization pass.
+
+Shared visual and control rules are defined in [UI standardization](ui-standardization.md).
+This document remains the source for product flows, screen behavior, and empty states.
 
 ## Navigation
 
@@ -28,6 +31,11 @@ The first visible action on a screen should match the main job for that screen. 
 
 The disclosure control uses a visible title, a short state summary, a plus/minus state, an accessible expanded state, and a touch target of at least 44 dp. The layout change is local view state only: it adds no record, schema field, migration, network request, worker, or polling loop.
 
+The UI standardization pass applies the shared typed spacing scale to `App.tsx`
+and the full `MainApp.tsx` screen style set: no app-level padding, margin, or
+gap is a raw number. It keeps the existing flows and temporary theme behavior;
+shared primitive extraction remains planned in [UI standardization](ui-standardization.md).
+
 ## Theme behavior
 
 The default contrast mode is `System`, which follows Android light or dark mode. Settings offers temporary `Light` and `Dark` overrides and five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. The selected palette keeps its light and dark contrast values. Selecting System removes the contrast override. Contrast and palette choices are presentation state only, reset on relaunch, and are not stored in AppData or included in exports. Preview cards for the five ideas live in `docs/theme-ideas/`.
@@ -54,7 +62,7 @@ Do not force account creation, cloud sync, or Usage Access permission during onb
 
 ### Add money
 
-The form asks for type, amount, currency, category, date, account label, and note. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
+The form asks for type, amount, category, date, and note; currency comes from the selected account. When there is one active account, Yuzuha assigns it automatically and does not show an account selector. The account selector appears only when there are at least two active accounts. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
 
 ### Read Money graphs
 
@@ -213,7 +221,7 @@ Money has an `Add transfer` flow. The user chooses two active accounts, enters a
 
 ## Split entry shipped controls
 
-Money has an `Add split entry` flow. The user chooses the parent type and account, enters the parent amount, then enters at least two category lines. Save rejects missing, invalid, or non-reconciling lines with an inline message. After save, reports show the line categories and the split screen shows the parent total and delete action.
+Money has an `Add split entry` flow. The user chooses the parent type and, when there are multiple active accounts, the account; with one active account it is assigned automatically. The user then enters the parent amount and at least two category lines. Save rejects missing, invalid, or non-reconciling lines with an inline message. After save, reports show the line categories and the split screen shows the parent total and delete action.
 
 ## Budget shipped controls
 
@@ -235,8 +243,8 @@ Home uses the same selector. It shows the selected local range above the cards. 
 
 Home's `Review this period` action opens a read-only source-backed Review. Review offers the same Day/Week/Month choices, shows the exact local range, and links each summary card back to Money, App Time, Tasks, or Notes. It does not save a reflection or review history yet.
 
-Money entry history has a compact filter card with Period, Type, Category, and Account controls. The list title shows the matching count, and a currency-separated Filtered totals section shows count, spending, income, and net. An empty result says that no entries match. Filters affect the current history list and totals, and the existing split-entry display rules stay unchanged.
+Money entry history has a compact filter card with Period, Type, and Category controls. An Account filter is shown only when there are multiple active accounts; with one active account the scope is always all accounts. The list title shows the matching count, and a currency-separated Filtered totals section shows count, spending, income, and net. An empty result says that no entries match. Filters affect the current history list and totals, and the existing split-entry display rules stay unchanged.
 
-Money reports have Day/Week/Month controls and All/Expense/Income, Category, and Account chips. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
+Money reports have Day/Week/Month controls and All/Expense/Income and Category chips. An Account filter is shown only when there are multiple active accounts; with one active account the report scope is all accounts. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
 
 The Money form has an optional Payee selector with `No payee`, active payees, and an archived selected payee only while editing old history. The management card can create and archive payees; duplicate names show an inline store error and no record is written.

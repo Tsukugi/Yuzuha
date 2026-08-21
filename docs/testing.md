@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-08-08 color-palette theme pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-08-21 UI standardization pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 The OTA trust anchor was freshly generated for this project on 2026-08-05.
 The public-key fingerprint is
@@ -13,21 +13,21 @@ must not require a committed private-key fixture.
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 55 Jest suites and 256 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, and the five-palette theme behavior have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 57 Jest suites and 262 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
 ## UI simplification evidence
 
 - `npm run typecheck`, `npm run lint`, and `git diff --check` pass after the reference UI changes.
-- Full Jest passes: 55 suites and 256 tests.
+- Full Jest passes: 57 suites and 262 tests.
 - The signed release APK was rebuilt with Java 17 and two Gradle workers, installed on Xiaomi `42adce68` (`M2012K11AG`), and launched successfully. The current release reports package `dev.yuzuha`, version `0.1.3`, and the private release signer.
 - Xiaomi UI hierarchy shows Home `Overview` with one compact Money widget containing the live `EUR 7.38` balance and selected-period spending/income. The shell does not render the Yuzuha title or description block.
 - Xiaomi UI hierarchy shows Money `Total balance`, `All entries`, `Entries (3)`, current entry rows, `Add money entry`, and collapsed `More money actions`/`Filter entries` sections.
 - Money keeps `Spending overview` collapsed below the entry list. Opening it shows category bars for the current main-currency scope; the daily movement graph is available when Day, Week, or Month is selected.
 - `moneyChart.test.ts` covers category totals, complete local daily ranges, and split-line aggregation without duplicating the split parent.
 - Android system light and dark mode were each applied before a clean Money launch. Both reached the same Money hierarchy with no filtered fatal or ReactNativeJS errors; the app's System/Light/Dark selector remains view state and adds no data write.
-- The explicit Money add action opens `New money entry` with Type, Amount, Category, Account, collapsed `More entry details`, and `Save entry`. The form does not render the entry list underneath it.
+- The explicit Money add action opens `New money entry` with Type, Amount, Category, collapsed `More entry details`, and `Save entry` on the seeded one-account workspace. The form does not render the entry list underneath it or a redundant Account selector. A focused account-selector test covers the multiple-account form path.
 - New Money and Task forms expose an explicit Cancel action like Notes; primary save actions show `Saving...` and are disabled until the local write completes.
 - Notes opens on the notes list with visible Search notes, All/Pinned/Archived chips, pinned/recent sections, compact cards, and a floating Add note action. The form is only visible after Add note, launcher action, or edit focus; the add form keeps title/body visible and places formatting/tags under More note details.
 - Tasks opens with All/Today/Upcoming/Completed, Today/Upcoming sections, a collapsed overview, Task tools below the dashboard, and a floating Add task action. The form is only visible after Add task, launcher action, or edit focus; title is visible and optional details are collapsed.
@@ -42,6 +42,18 @@ must not require a committed private-key fixture.
 - Xiaomi `42adce68` passed the current-code `localTest` smoke: `dev.yuzuha.localtest` installed without clearing `dev.yuzuha`, the explicit `dev.yuzuha.OPEN_APPEARANCE` route opened Settings with Appearance expanded, and the screenshot shows Moss, Ocean, Sunset, Plum, and Citrus. Logcat reports `embedded` version `0.1.3` with `LOCAL_BUNDLE_ONLY`, `Running "Yuzuha"`, and no filtered app fatal or React Native errors. The screenshot is `dist/ui-audit/xiaomi-localtest-appearance.png`.
 - The current Java 17 release APK was installed over the existing same-signed package on Xiaomi `42adce68` (`M2012K11AG`). `MainActivity` resumed and the UI hierarchy showed Home `Overview`, `Open Settings`, Money, Notes, and Tasks with no app fatal or React Native error. The native installer selected the cached verified OTA bundle `0.1.6`, so this phone run proves package/startup health but does not prove that the newly embedded palette JavaScript ran. MIUI rejects `adb shell input tap` with `INJECT_EVENTS`; Settings palette interaction therefore remains manual on this device.
 - Android logcat after launch contains no filtered `FATAL EXCEPTION`, `ReactNativeJS` fatal/error, or startup failure line. The UI pass changes no schema, data, network, worker, or background behavior.
+
+## UI standardization evidence
+
+- `src/app/uiTokens.ts` defines the shared spacing, radius, and interactive-size tokens. `src/app/uiTokens.test.ts` verifies the 44 dp touch target, 48 dp primary action, 56 dp FAB, 48 dp tab, the shared spacing/radius scale, and the absence of raw numeric `padding`, `margin`, or `gap` in `App.tsx` and `MainApp.tsx`.
+- `npm run typecheck`, `npm run lint`, `git diff --check`, and the full Jest suite pass: 57 suites and 262 tests.
+- `android\gradlew.bat :app:assembleLocalTest` passes with Java 17 from `G:\Apps\jdk-17`. The installed APK is `android\app\build\outputs\apk\localTest\app-localTest.apk` and uses package `dev.yuzuha.localtest`, leaving `dev.yuzuha` installed and untouched.
+- Emulator `emulator-5554` UI smoke shows Home, the Add menu, Money, the New money entry form, Notes, Tasks, Settings Appearance, the Ocean palette selection, and Ocean dark mode. The UI hierarchy shows 44 dp-class hit areas for segments/chips/actions, a 48 dp-class primary save control, a 56 dp FAB, and a 48 dp bottom tab.
+- Screenshots and UI dumps are saved under `artifacts\ui-standardization\`: `home.png`, `home-add-menu.png`, `money-form.png`, `notes.png`, `tasks.png`, `settings-appearance.png`, and `settings-ocean-dark.png`, with matching XML dumps.
+- The rebuilt `localTest` APK was installed and reviewed again on `emulator-5554` without clearing either package. Fresh screenshots and UI dumps are under `artifacts\ui-standardization-spacing\`: `final-home.png`, `final-money.png`, `final-money-form.png`, `final-money-report.png`, `final-notes.png`, `final-tasks.png`, `final-app-time.png`, `final-review.png`, `final-data-tools.png`, and `final-settings.png`, with matching XML dumps.
+- The standard UI sizes remain 44 dp-class for segments/chips, 48 dp for the primary save action, 56 dp for the FAB, and 48 dp for the bottom tab. The one-account Money form omits the account label/chip, and the focused account-selector tests prove that two active accounts still render account choices. Money report renders `Back to Money` correctly and Tasks renders `✓` correctly. Home, Money, Money form, Money report, Notes, Tasks, App Time, Review, Data tools, and Settings show no horizontal clipping or layout crash.
+- The latest filtered logcat, excluding normal `AccessibilityNodeInfoDumper` lines, has no `FATAL EXCEPTION`, `ReactNativeJS`, or `dev.yuzuha` error. Both `dev.yuzuha.localtest` and the production `dev.yuzuha` package remain installed.
+- The smoke did not create records and the local-test app was force-stopped and relaunched after the theme check. This pass changes no schema, data, network, worker, or background behavior.
 
 ## Floating capture controls
 
@@ -120,7 +132,7 @@ must not require a committed private-key fixture.
   project's production key and verified against the new native pin.
 - `npm run typecheck` and `npm run lint` pass after the native pending/current
   state and Data tools `Code updates` control were added.
-- Full Jest passes with 55 suites and 256 tests. Native `:app:testDebugUnitTest`
+- Full Jest passes with 57 suites and 262 tests. Native `:app:testDebugUnitTest`
   also passes with Java 17.
 - `android\gradlew.bat :app:compileDebugKotlin --no-daemon --max-workers=2 --offline`
   passes with Java 17 (`C:\Users\Tsukugi\.jdks\ms-17.0.15`).

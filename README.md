@@ -21,6 +21,8 @@ Home now shows one compact Money widget with the current main-currency balance a
 
 The Android Money/Home UI pass removes the app title/description block from the shell, keeps the primary action visible, and puts optional controls behind labeled sections. Money shows a reference-style balance/activity card, current entries, Add money entry, split-aware spending bars, and a daily income/spending chart. Home keeps only the compact Money widget. The shared UI scale uses tighter headings, cards, lists, forms, shadows, and FAB spacing across the primary screens to keep the layout quiet. Secondary tools now use smaller nested disclosures for backup choices, focus links, task management, task overview, and budget creation; note cards show one action until expanded. This is derived view state and styling only and adds no schema, network request, worker, or background process.
 
+The UI standardization pass applies typed shared spacing, radius, and touch-target tokens across the app-level `App.tsx` and `MainApp.tsx` styles. Padding, margins, and gaps no longer use raw numbers; standard targets are 44 dp for interactive controls, 48 dp for primary form actions, 56 dp for the FAB, and 48 dp for bottom tabs. See [the UI standard](docs/ui-standardization.md) and the current emulator evidence in [testing](docs/testing.md).
+
 Primary Money, Notes, and Tasks add forms now have the same explicit Cancel action. Save buttons show a saving state and ignore repeat taps while the local write is in progress. The AppStore also serializes local commits so overlapping writes keep both changes instead of allowing a later save to replace an earlier one.
 
 The app supports System, Light, and Dark contrast modes plus five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. System follows the Android setting; contrast and palette choices reset on relaunch and do not change local data. Theme colors are applied to the startup screen, shell, Money charts, forms, lists, and secondary screens.
@@ -43,7 +45,7 @@ App Time offers Today, This week, and This month reports. Refresh reads each loc
 
 Home now uses the same local Day/Week/Month selector. Money totals use only the main currency in that range; app time, due-task counts, and recent note updates state the selected range. The selector is view state only and adds no schema or background work.
 
-Money entry history now has local Period, Type, Category, and Account filters. The visible list and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
+Money entry history now has local Period, Type, and Category filters. The Account filter appears only when there are multiple active accounts; with one active account the all-accounts scope is automatic. The visible list and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
 
 Periodic money operations start from the normal Add money entry form. Turning on Repeat reveals the cadence and interval; repeating every day also shows compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggles. New operations start today, and only selected weekdays are applied. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay in history.
 
@@ -76,7 +78,7 @@ The current encrypted backup flow can also save and open the current authenticat
 
 The current note-link pass supersedes that earlier schema sentence: the unreleased build uses app schema 33 and repository schema 3. Money entries can reference local payees by stable ID, and all week-based views use the saved Sunday/Monday setting. Periodic money rules also preserve selected weekdays. Notes can link to tasks, projects, money entries, and focus sessions; links persist through current JSON, encrypted backup, and SQLite. JSON, encrypted backups, and SQLite also preserve the latest import receipt. Older versions remain rejected because there are no external users to upgrade.
 
-The current Money report pass adds local Day/Week/Month, type, category, and account filters. The report states its exact range, active filters, and exclusions; split lines match category filters, transfers stay excluded, and currencies remain separate. This is derived screen state with no schema, migration, network request, or background process.
+The current Money report pass adds local Day/Week/Month, type, and category filters, plus an Account filter when there are multiple active accounts. With one active account, the report uses the all-accounts scope automatically. The report states its exact range, active filters, and exclusions; split lines match category filters, transfers stay excluded, and currencies remain separate. This is derived screen state with no schema, migration, network request, or background process.
 
 - React Native `0.86.0` (current implementation baseline, verified July 2026)
 - React `19.2.8`

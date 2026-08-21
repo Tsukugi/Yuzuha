@@ -86,6 +86,7 @@ import {validateCalendarTaskDraft} from '../shared/calendarDraft';
 import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
 import {nativeBundleInstaller, type UpdateCheckResult} from '../installer/BundleInstaller';
 import {THEME_PALETTE_OPTIONS, THEME_PALETTES, useAppTheme, type ThemeColors} from './theme';
+import {UI_TOKENS} from './uiTokens';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
@@ -1655,7 +1656,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     const selectedCategory =
       currentData.categories.find(item => item.id === categoryId && (item.kind === kind || item.kind === 'both')) ??
       currentData.categories.find(item => item.kind === kind || item.kind === 'both');
-    const selectedAccount = currentData.accounts.find(item => item.id === accountId) ?? currentData.accounts[0];
+    const selectedAccount = currentData.accounts.find(item => item.id === (accountId || activeAccountId)) ?? activeAccounts[0];
     const input = {
       kind,
       amountMinor: Math.round(parsed * 100),
@@ -1789,14 +1790,16 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     item => !item.isArchived && (item.kind === kind || item.kind === 'both'),
   );
   const activeCategoryId = categoryId || visibleCategories[0]?.id;
-  const activeAccountId = accountId || data.accounts.find(account => !account.isArchived)?.id;
+  const activeAccounts = data.accounts.filter(account => !account.isArchived);
+  const hasAccountChoice = activeAccounts.length > 1;
+  const activeAccountId = accountId || activeAccounts[0]?.id;
   const visiblePayees = data.payees.filter(payee => !payee.isArchived || payee.id === payeeId);
   const payeeNames = new Map(data.payees.map(payee => [payee.id, payee.name]));
   const entryFilter = {
     period: entryFilterPeriod,
     kind: entryFilterKind,
     categoryId: entryFilterCategoryId,
-    accountId: entryFilterAccountId,
+    accountId: hasAccountChoice ? entryFilterAccountId : 'all',
   } as const;
   const listSourceEntries = data.money.filter(
     entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id),
@@ -1815,7 +1818,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     currentData.splits,
     chartRange,
     currentData.mainCurrency,
-    {kind: entryFilterKind, categoryId: entryFilterCategoryId, accountId: entryFilterAccountId},
+    {kind: entryFilterKind, categoryId: entryFilterCategoryId, accountId: entryFilter.accountId},
   );
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
@@ -1823,7 +1826,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     entryFilterPeriod !== 'all' ? periodLabel(entryFilterPeriod) : null,
     entryFilterKind !== 'all' ? entryFilterKind : null,
     entryFilterCategoryId !== 'all' ? 'category' : null,
-    entryFilterAccountId !== 'all' ? 'account' : null,
+    entryFilter.accountId !== 'all' ? 'account' : null,
   ].filter(Boolean);
   const entryFilterSummary = activeEntryFilterLabels.length > 0 ? activeEntryFilterLabels.join(' · ') : 'All entries';
 
@@ -1938,13 +1941,17 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               <ChipButton key={category.id} label={category.name} selected={entryFilterCategoryId === category.id} onPress={() => setEntryFilterCategoryId(category.id)} />
             ))}
           </View>
-          <Text style={styles.formLabel}>Account</Text>
-          <View style={styles.chipWrap}>
-            <ChipButton label="All" selected={entryFilterAccountId === 'all'} onPress={() => setEntryFilterAccountId('all')} />
-            {filterAccounts.map(account => (
-              <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
-            ))}
-          </View>
+          {hasAccountChoice && (
+            <>
+              <Text style={styles.formLabel}>Account</Text>
+              <View style={styles.chipWrap}>
+                <ChipButton label="All" selected={entryFilterAccountId === 'all'} onPress={() => setEntryFilterAccountId('all')} />
+                {filterAccounts.map(account => (
+                  <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
+                ))}
+              </View>
+            </>
+          )}
         </Disclosure>
         <SectionTitle title="Filtered totals" />
         {filteredTotals.length === 0 ? (
@@ -2001,17 +2008,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               />
             ))}
           </View>
-          <Text style={styles.formLabel}>Account</Text>
-          <View style={styles.chipWrap}>
-            {data.accounts.filter(account => !account.isArchived).map(account => (
-              <ChipButton
-                key={account.id}
-                label={account.name}
-                selected={account.id === activeAccountId}
-                onPress={() => setAccountId(account.id)}
-              />
-            ))}
-          </View>
+          <AccountSelector accounts={activeAccounts} selectedAccountId={activeAccountId ?? ''} onSelect={setAccountId} />
           {!editingId && (
             <>
               <ToggleButton label="Repeat" value={recurrenceEnabled} onPress={() => setRecurrenceEnabled(current => !current)} />
@@ -2617,17 +2614,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
             <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => changeKind('expense')} />
             <SegmentButton label="Income" selected={kind === 'income'} onPress={() => changeKind('income')} />
           </View>
-          <Text style={styles.formLabel}>Account</Text>
-          <View style={styles.chipWrap}>
-            {activeAccounts.map(account => (
-              <ChipButton
-                key={account.id}
-                label={`${account.name} (${account.currency})`}
-                selected={account.id === accountId}
-                onPress={() => setAccountId(account.id)}
-              />
-            ))}
-          </View>
+          <AccountSelector accounts={activeAccounts} selectedAccountId={accountId} onSelect={setAccountId} includeCurrency />
           <Text style={styles.formLabel}>Parent amount ({currency})</Text>
           <TextInput
             accessibilityLabel="Split parent amount"
@@ -2865,18 +2852,21 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
   const [reportFiltersOpen, setReportFiltersOpen] = useState(false);
   const range = getPeriodRange(new Date(), period, data.weekStartsOn);
-  const filter: MoneyReportFilter = {kind, categoryId, accountId};
+  const activeAccounts = data.accounts.filter(account => !account.isArchived);
+  const hasAccountChoice = activeAccounts.length > 1;
+  const effectiveAccountId = hasAccountChoice ? accountId : 'all';
+  const filter: MoneyReportFilter = {kind, categoryId, accountId: effectiveAccountId};
   const report = buildMoneyReport(data.money, range, data.splits, filter);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === categoryId);
-  const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === accountId);
+  const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === effectiveAccountId);
   const kindLabel = kind === 'all' ? 'All types' : kind === 'expense' ? 'Expenses' : 'Income';
   const categoryLabel = categoryId === 'all' ? 'All categories' : data.categories.find(category => category.id === categoryId)?.name ?? 'Selected category';
-  const accountLabel = accountId === 'all' ? 'All accounts' : data.accounts.find(account => account.id === accountId)?.name ?? 'Selected account';
+  const accountLabel = effectiveAccountId === 'all' ? 'All accounts' : data.accounts.find(account => account.id === effectiveAccountId)?.name ?? 'Selected account';
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
       <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>â€¹ Money</Text>
+        <Text style={styles.backButtonText}>Back to Money</Text>
       </Pressable>
       <Text style={styles.pageTitle}>Money report</Text>
       <Text style={styles.pageIntro}>Totals stay separate by currency and use the selected local period.</Text>
@@ -2909,13 +2899,17 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
             <ChipButton key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
           ))}
         </View>
-        <Text style={styles.formLabel}>Account</Text>
-        <View style={styles.chipWrap}>
-          <ChipButton label="All" selected={accountId === 'all'} onPress={() => setAccountId('all')} />
-          {filterAccounts.map(account => (
-            <ChipButton key={account.id} label={account.name} selected={accountId === account.id} onPress={() => setAccountId(account.id)} />
-          ))}
-        </View>
+        {hasAccountChoice && (
+          <>
+            <Text style={styles.formLabel}>Account</Text>
+            <View style={styles.chipWrap}>
+              <ChipButton label="All" selected={accountId === 'all'} onPress={() => setAccountId('all')} />
+              {filterAccounts.map(account => (
+                <ChipButton key={account.id} label={account.name} selected={accountId === account.id} onPress={() => setAccountId(account.id)} />
+              ))}
+            </View>
+          </>
+        )}
       </Disclosure>
       {report.currencies.length === 0 ? (
         <EmptyState text="No money entries match this report scope." />
@@ -4894,7 +4888,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
         <View style={styles.taskCardMain}>
           <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskCheckButton} onPress={() => void toggleTaskFromList(task.id)}>
             <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
-              {task.status === 'completed' && <Text style={styles.checkmark}>âœ“</Text>}
+              {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
             </View>
           </Pressable>
           <Pressable accessibilityLabel={`Open ${task.title}`} accessibilityRole="button" style={styles.taskContentButton} onPress={() => startEditing(task)}>
@@ -5511,6 +5505,40 @@ function SegmentButton({label, selected, onPress}: {label: string; selected: boo
   );
 }
 
+export function AccountSelector({
+  accounts,
+  selectedAccountId,
+  onSelect,
+  label = 'Account',
+  includeCurrency = false,
+}: {
+  accounts: AppData['accounts'];
+  selectedAccountId: string;
+  onSelect: (accountId: string) => void;
+  label?: string;
+  includeCurrency?: boolean;
+}) {
+  const {styles} = useThemeStyles();
+  if (accounts.length <= 1) {
+    return null;
+  }
+  return (
+    <>
+      <Text style={styles.formLabel}>{label}</Text>
+      <View style={styles.chipWrap}>
+        {accounts.map(account => (
+          <ChipButton
+            key={account.id}
+            label={includeCurrency ? `${account.name} (${account.currency})` : account.name}
+            selected={account.id === selectedAccountId}
+            onPress={() => onSelect(account.id)}
+          />
+        ))}
+      </View>
+    </>
+  );
+}
+
 function ChipButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
   const {styles} = useThemeStyles();
   return (
@@ -5539,258 +5567,258 @@ function TabButton({label, icon, selected, onPress}: {label: string; icon: strin
   );
 }
 
-function createStyles(colors: ThemeColors) {
+export function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
   app: {flex: 1, backgroundColor: colors.background},
   flex: {flex: 1},
   content: {flex: 1},
-  scrollContent: {padding: 16, paddingBottom: 28, paddingTop: 18},
+  scrollContent: {padding: UI_TOKENS.spacing.lg, paddingBottom: UI_TOKENS.spacing.xxl, paddingTop: UI_TOKENS.spacing.lg},
   pageHeader: {alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between'},
-  pageHeaderCopy: {flex: 1, paddingRight: 12},
+  pageHeaderCopy: {flex: 1, paddingRight: UI_TOKENS.spacing.md},
   pageTitle: {color: colors.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4},
-  pageIntro: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 4, marginBottom: 14},
-  headerAction: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 10, borderWidth: 1, marginTop: 1, paddingHorizontal: 11, paddingVertical: 8},
+  pageIntro: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: UI_TOKENS.spacing.xs, marginBottom: UI_TOKENS.spacing.md},
+  headerAction: {alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.control, borderWidth: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.md},
   headerActionText: {color: colors.accent, fontSize: 13, fontWeight: '800'},
-  editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 14, paddingVertical: 9},
+  editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.md, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
-  cardGrid: {gap: 8},
+  cardGrid: {gap: UI_TOKENS.spacing.sm},
   cardShadow: {elevation: 1, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.035, shadowRadius: 6},
-  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 14},
+  summaryCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.card, borderWidth: 1, padding: UI_TOKENS.spacing.lg},
   disabledCard: {opacity: 0.72},
   cardTitle: {color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase'},
-  cardValue: {color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 6},
-  cardDetail: {color: colors.muted, fontSize: 13, lineHeight: 18, marginTop: 4},
-  recoveryKey: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 15, letterSpacing: 1.2, lineHeight: 25, marginTop: 12, padding: 13},
-  cardAction: {alignSelf: 'flex-start', marginTop: 12},
+  cardValue: {color: colors.text, fontSize: 20, fontWeight: '800', marginTop: UI_TOKENS.spacing.sm},
+  cardDetail: {color: colors.muted, fontSize: 13, lineHeight: 18, marginTop: UI_TOKENS.spacing.xs},
+  recoveryKey: {backgroundColor: colors.background, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 15, letterSpacing: 1.2, lineHeight: 25, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
+  cardAction: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginTop: UI_TOKENS.spacing.sm, minHeight: UI_TOKENS.target.touch, paddingVertical: UI_TOKENS.spacing.sm},
   disabledAction: {opacity: 0.6},
   cardActionText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
-  backButton: {alignSelf: 'flex-start', marginBottom: 12},
+  backButton: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginBottom: UI_TOKENS.spacing.sm, minHeight: UI_TOKENS.target.touch, paddingVertical: UI_TOKENS.spacing.sm},
   backButtonText: {color: colors.accent, fontSize: 15, fontWeight: '800'},
-  sectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 20, marginBottom: 8},
-  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: 10, overflow: 'hidden'},
-  compactDisclosure: {backgroundColor: colors.cardRaised, borderRadius: 11, marginTop: 8, overflow: 'hidden'},
-  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: 12, paddingVertical: 8},
-  compactDisclosureButton: {minHeight: 46, paddingHorizontal: 10, paddingVertical: 6},
-  disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: 12},
-  compactDisclosureBody: {padding: 10},
+  sectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800', marginTop: UI_TOKENS.spacing.xl, marginBottom: UI_TOKENS.spacing.sm},
+  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.panel, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, overflow: 'hidden'},
+  compactDisclosure: {backgroundColor: colors.cardRaised, borderRadius: 11, marginTop: UI_TOKENS.spacing.sm, overflow: 'hidden'},
+  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
+  compactDisclosureButton: {minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs},
+  disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: UI_TOKENS.spacing.md},
+  compactDisclosureBody: {padding: UI_TOKENS.spacing.md},
   disclosureTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
-  disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: 4},
-  disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: 14},
-  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.muted, fontSize: 14, lineHeight: 20, padding: 14},
-  listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: 12},
+  disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: UI_TOKENS.spacing.xs},
+  disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: UI_TOKENS.spacing.md},
+  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.muted, fontSize: 14, lineHeight: 20, padding: UI_TOKENS.spacing.lg},
+  listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: UI_TOKENS.spacing.md},
   listBody: {flex: 1},
   listTitle: {color: colors.text, fontSize: 15, fontWeight: '700'},
-  listMeta: {color: colors.muted, fontSize: 12, marginTop: 4},
-  chevron: {color: colors.muted, fontSize: 28, marginLeft: 12},
-  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: 14},
-  inlinePanel: {backgroundColor: colors.cardRaised, borderRadius: 12, padding: 12},
-  searchAccessNote: {color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 10},
-  searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: 14},
-  searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase'},
-  importPreview: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
-  linkSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 10, paddingTop: 4},
-  linkRow: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 8},
-  linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 12, padding: 12},
-  splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: 14, padding: 12},
-  recurrenceOptions: {backgroundColor: colors.cardRaised, borderRadius: 14, marginTop: 12, padding: 14},
-  formLabel: {color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 10, marginBottom: 6},
-  toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 14},
+  listMeta: {color: colors.muted, fontSize: 12, marginTop: UI_TOKENS.spacing.xs},
+  chevron: {color: colors.muted, fontSize: 28, marginLeft: UI_TOKENS.spacing.md},
+  formCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, padding: UI_TOKENS.spacing.lg},
+  inlinePanel: {backgroundColor: colors.cardRaised, borderRadius: 12, padding: UI_TOKENS.spacing.md},
+  searchAccessNote: {color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: UI_TOKENS.spacing.md},
+  searchResultRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, padding: UI_TOKENS.spacing.lg},
+  searchResultKind: {color: colors.accent, fontSize: 12, fontWeight: '800', marginBottom: UI_TOKENS.spacing.xs, textTransform: 'uppercase'},
+  importPreview: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
+  linkSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: UI_TOKENS.spacing.md, paddingTop: UI_TOKENS.spacing.xs},
+  linkRow: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: UI_TOKENS.spacing.sm},
+  linkEditor: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
+  splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
+  recurrenceOptions: {backgroundColor: colors.cardRaised, borderRadius: 14, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.lg},
+  formLabel: {color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: UI_TOKENS.spacing.md, marginBottom: UI_TOKENS.spacing.sm},
+  toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', marginTop: UI_TOKENS.spacing.sm, minHeight: 48, paddingHorizontal: UI_TOKENS.spacing.md},
   toggleRowSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
-  toggleMark: {color: colors.muted, fontSize: 22, fontWeight: '800', marginRight: 10},
+  toggleMark: {color: colors.muted, fontSize: 22, fontWeight: '800', marginRight: UI_TOKENS.spacing.md},
   toggleLabel: {color: colors.text, fontSize: 15, fontWeight: '800'},
   toggleTextSelected: {color: colors.accentText},
-  noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4},
-  segmentRow: {flexDirection: 'row', gap: 8},
-  segmentButton: {borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, paddingVertical: 9},
+  noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.xs},
+  segmentRow: {flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
+  segmentButton: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
   segmentButtonSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   segmentText: {color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center'},
   segmentTextSelected: {color: colors.accentText},
-  paletteGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10},
-  paletteOption: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 62, paddingHorizontal: 10, paddingVertical: 9, width: '48%'},
+  paletteGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
+  paletteOption: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 62, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm, width: '48%'},
   paletteOptionSelected: {backgroundColor: colors.cardRaised, borderColor: colors.accent, borderWidth: 2},
   paletteSwatch: {borderRadius: 16, height: 28, width: 28},
-  paletteOptionCopy: {flex: 1, marginLeft: 9, minWidth: 0},
+  paletteOptionCopy: {flex: 1, marginLeft: UI_TOKENS.spacing.sm, minWidth: 0},
   paletteLabel: {color: colors.text, fontSize: 14, fontWeight: '800'},
-  paletteDescription: {color: colors.muted, fontSize: 11, lineHeight: 14, marginTop: 2},
-  chipWrap: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  weekdayRow: {flexDirection: 'row', gap: 6},
-  weekdayToggle: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, minWidth: 0, paddingVertical: 10},
+  paletteDescription: {color: colors.muted, fontSize: 11, lineHeight: 14, marginTop: UI_TOKENS.spacing.micro},
+  chipWrap: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm},
+  weekdayRow: {flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
+  weekdayToggle: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, minWidth: 0, paddingVertical: UI_TOKENS.spacing.sm},
   weekdayToggleSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   weekdayToggleText: {color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center'},
   weekdayToggleTextSelected: {color: colors.accentText},
-  chip: {borderColor: colors.border, borderRadius: 18, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8},
+  chip: {alignItems: 'center', borderColor: colors.border, borderRadius: 18, borderWidth: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
-  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 44, paddingHorizontal: 12, paddingVertical: 9},
+  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: UI_TOKENS.radius.control, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
   quietHoursInput: {flex: 1, minWidth: 0},
   smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
-  primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 10, marginTop: 14, paddingVertical: 12},
+  primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.control, justifyContent: 'center', marginTop: UI_TOKENS.spacing.md, minHeight: UI_TOKENS.target.primary, paddingHorizontal: UI_TOKENS.spacing.lg, paddingVertical: UI_TOKENS.spacing.md},
   primaryButtonText: {color: colors.accentText, fontSize: 15, fontWeight: '800'},
-  textButton: {alignSelf: 'flex-start', marginTop: 10, paddingVertical: 4},
+  textButton: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginTop: UI_TOKENS.spacing.xs, minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.xs, paddingVertical: UI_TOKENS.spacing.sm},
   textButtonText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
   pressed: {opacity: 0.72},
-  errorText: {color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: 10},
-  warningText: {color: colors.warning, fontSize: 13, lineHeight: 19, marginTop: 10},
-  successText: {color: colors.accent, fontSize: 14, lineHeight: 20, marginTop: 12},
-  amount: {fontSize: 15, fontWeight: '800', marginLeft: 12},
+  errorText: {color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: UI_TOKENS.spacing.md},
+  warningText: {color: colors.warning, fontSize: 13, lineHeight: 19, marginTop: UI_TOKENS.spacing.md},
+  successText: {color: colors.accent, fontSize: 14, lineHeight: 20, marginTop: UI_TOKENS.spacing.md},
+  amount: {fontSize: 15, fontWeight: '800', marginLeft: UI_TOKENS.spacing.md},
   incomeText: {color: colors.accent},
   expenseText: {color: colors.warning},
-  notesHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
+  notesHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.sm},
   notesHeroCopy: {flex: 1},
-  notesCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: 10, paddingVertical: 8},
+  notesCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
   notesCountValue: {color: colors.text, fontSize: 18, fontWeight: '800'},
-  notesCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
-  notesSearchCard: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: 8, paddingHorizontal: 12, paddingVertical: 2},
+  notesCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: UI_TOKENS.spacing.micro},
+  notesSearchCard: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: UI_TOKENS.spacing.sm, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.micro},
   notesSearchRow: {alignItems: 'center', flexDirection: 'row'},
-  notesSearchIcon: {color: colors.muted, fontSize: 25, lineHeight: 32, marginRight: 6},
-  notesSearchInput: {color: colors.text, flex: 1, fontSize: 15, minHeight: 44, paddingVertical: 7},
-  notesSearchAction: {alignItems: 'center', height: 40, justifyContent: 'center', width: 36},
+  notesSearchIcon: {color: colors.muted, fontSize: 25, lineHeight: 32, marginRight: UI_TOKENS.spacing.sm},
+  notesSearchInput: {color: colors.text, flex: 1, fontSize: 15, minHeight: 44, paddingVertical: UI_TOKENS.spacing.sm},
+  notesSearchAction: {alignItems: 'center', height: UI_TOKENS.target.touch, justifyContent: 'center', width: UI_TOKENS.target.touch},
   notesSearchActionText: {color: colors.muted, fontSize: 25, fontWeight: '700'},
-  notesFilterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12},
-  notesSaveSearch: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, flexDirection: 'row', gap: 8, marginTop: 12, paddingHorizontal: 12},
-  notesSaveSearchInput: {color: colors.text, flex: 1, fontSize: 14, minHeight: 44, paddingVertical: 7},
-  notesSection: {marginTop: 18},
-  notesSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
+  notesFilterRow: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginBottom: UI_TOKENS.spacing.lg, marginTop: UI_TOKENS.spacing.md},
+  notesSaveSearch: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, flexDirection: 'row', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md, paddingHorizontal: UI_TOKENS.spacing.md},
+  notesSaveSearchInput: {color: colors.text, flex: 1, fontSize: 14, minHeight: 44, paddingVertical: UI_TOKENS.spacing.sm},
+  notesSection: {marginTop: UI_TOKENS.spacing.lg},
+  notesSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.sm},
   notesSectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800'},
   notesSectionCount: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: 10, overflow: 'hidden'},
-  noteCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 18, paddingHorizontal: 17, paddingBottom: 12},
+  noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: UI_TOKENS.spacing.md, overflow: 'hidden'},
+  noteCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.lg, paddingHorizontal: UI_TOKENS.spacing.lg, paddingBottom: UI_TOKENS.spacing.md},
   noteCardPinned: {borderColor: colors.warning},
   noteCardArchived: {opacity: 0.86},
-  noteCardPressable: {padding: 14},
+  noteCardPressable: {padding: UI_TOKENS.spacing.lg},
   noteCardTopline: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   noteCategory: {color: colors.accent, fontSize: 13, fontWeight: '800'},
   notePinIcon: {color: colors.warning, fontSize: 20},
   noteMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
-  noteCardTitle: {color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 22, marginTop: 8},
-  noteTagRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12},
-  noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4},
-  noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10},
+  noteCardTitle: {color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 22, marginTop: UI_TOKENS.spacing.sm},
+  noteTagRow: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
+  noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs},
+  noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
   noteCardMeta: {color: colors.muted, fontSize: 12},
-  fabScrollContent: {paddingBottom: 96},
+  fabScrollContent: {paddingBottom: UI_TOKENS.spacing.fabClearance},
   fabLayer: {bottom: 0, left: 0, position: 'absolute', right: 0, top: 0},
-  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: 28, bottom: 16, height: 56, justifyContent: 'center', position: 'absolute', right: 16, width: 56},
+  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.fab, bottom: UI_TOKENS.spacing.lg, height: UI_TOKENS.target.fab, justifyContent: 'center', position: 'absolute', right: UI_TOKENS.spacing.lg, width: UI_TOKENS.target.fab},
   fabIcon: {color: colors.accentText, fontSize: 32, fontWeight: '300', lineHeight: 36},
-  quickCaptureMenu: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, bottom: 80, elevation: 3, padding: 6, position: 'absolute', right: 16, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.08, shadowRadius: 6, width: 160},
-  quickCaptureMenuTitle: {color: colors.muted, fontSize: 12, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 8},
-  quickCaptureOption: {borderRadius: 9, paddingHorizontal: 9, paddingVertical: 9},
+  quickCaptureMenu: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, bottom: UI_TOKENS.spacing.menuBottom, elevation: 3, padding: UI_TOKENS.spacing.xs, position: 'absolute', right: UI_TOKENS.spacing.lg, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.08, shadowRadius: 6, width: 160},
+  quickCaptureMenuTitle: {color: colors.muted, fontSize: 12, fontWeight: '800', paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
+  quickCaptureOption: {borderRadius: 9, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
   quickCaptureOptionText: {color: colors.text, fontSize: 14, fontWeight: '700'},
-  savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 10, paddingTop: 10},
-  noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: 10},
-  attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 14, paddingTop: 4},
-  attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 4},
+  savedSearchRow: {borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: UI_TOKENS.spacing.sm, paddingTop: UI_TOKENS.spacing.sm},
+  noteActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', marginTop: UI_TOKENS.spacing.sm},
+  attachmentSection: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: UI_TOKENS.spacing.md, paddingTop: UI_TOKENS.spacing.xs},
+  attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: UI_TOKENS.spacing.xs},
   attachmentName: {color: colors.text, fontSize: 14, fontWeight: '700'},
-  manageRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8},
-  rowActions: {alignItems: 'flex-end', marginLeft: 10},
-  noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: 8},
+  manageRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: UI_TOKENS.spacing.sm},
+  rowActions: {alignItems: 'flex-end', marginLeft: UI_TOKENS.spacing.sm},
+  noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: UI_TOKENS.spacing.sm},
   noteHeading: {color: colors.text, fontSize: 15, fontWeight: '800'},
   noteBulletMarker: {color: colors.accent, fontWeight: '800'},
   noteMarkupBold: {fontWeight: '800'},
   noteMarkupItalic: {fontStyle: 'italic'},
   noteMarkupCode: {backgroundColor: colors.cardRaised, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'},
-  tasksHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6},
+  tasksHero: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.xs},
   tasksHeroCopy: {flex: 1},
-  tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: 10, paddingVertical: 8},
+  tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
   tasksCountValue: {color: colors.text, fontSize: 18, fontWeight: '800'},
-  tasksCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
-  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 3, marginTop: 6, padding: 3},
-  taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, padding: 14},
-  taskSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
-  taskSectionTitleRow: {alignItems: 'center', flexDirection: 'row', gap: 8},
+  tasksCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: UI_TOKENS.spacing.micro},
+  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: UI_TOKENS.spacing.micro, marginTop: UI_TOKENS.spacing.xs, padding: UI_TOKENS.spacing.micro},
+  taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
+  taskSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.sm},
+  taskSectionTitleRow: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
   taskSectionTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
   taskSectionMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  taskSectionIntro: {color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: 6},
-  taskCountBadge: {backgroundColor: colors.cardRaised, borderRadius: 12, color: colors.accent, fontSize: 13, fontWeight: '800', minWidth: 26, paddingHorizontal: 8, paddingVertical: 4, textAlign: 'center'},
-  taskAgendaDay: {color: colors.accent, fontSize: 14, fontWeight: '800', marginTop: 16, marginBottom: 4},
-  taskCard: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: 13},
+  taskSectionIntro: {color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: UI_TOKENS.spacing.xs},
+  taskCountBadge: {backgroundColor: colors.cardRaised, borderRadius: 12, color: colors.accent, fontSize: 13, fontWeight: '800', minWidth: 26, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs, textAlign: 'center'},
+  taskAgendaDay: {color: colors.accent, fontSize: 14, fontWeight: '800', marginTop: UI_TOKENS.spacing.lg, marginBottom: UI_TOKENS.spacing.xs},
+  taskCard: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, paddingVertical: UI_TOKENS.spacing.md},
   taskCardCompleted: {opacity: 0.78},
   taskCardMain: {alignItems: 'flex-start', flexDirection: 'row'},
-  taskCheckButton: {paddingRight: 11, paddingTop: 2},
-  taskContentButton: {flex: 1, minWidth: 0, paddingRight: 8},
+  taskCheckButton: {alignItems: 'center', height: UI_TOKENS.target.touch, justifyContent: 'center', width: UI_TOKENS.target.touch},
+  taskContentButton: {flex: 1, minWidth: 0, paddingRight: UI_TOKENS.spacing.sm},
   taskCardTitle: {color: colors.text, fontSize: 16, fontWeight: '800', lineHeight: 21},
-  taskMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6},
+  taskMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.xs},
   taskDueMeta: {color: colors.accent, fontSize: 13, fontWeight: '700'},
   taskMetaAccent: {color: colors.accent, fontSize: 13},
-  taskMeta: {color: colors.muted, fontSize: 12, marginTop: 5},
-  taskCardRight: {alignItems: 'center', marginLeft: 4},
+  taskMeta: {color: colors.muted, fontSize: 12, marginTop: UI_TOKENS.spacing.xs},
+  taskCardRight: {alignItems: 'center', marginLeft: UI_TOKENS.spacing.xs},
   taskPriorityHigh: {color: colors.warning, fontSize: 21, lineHeight: 26},
   taskPriorityNormal: {color: colors.muted, fontSize: 21, lineHeight: 26},
-  taskMoreButton: {alignItems: 'center', height: 38, justifyContent: 'center', marginTop: 5, width: 38},
+  taskMoreButton: {alignItems: 'center', height: UI_TOKENS.target.touch, justifyContent: 'center', marginTop: UI_TOKENS.spacing.micro, width: UI_TOKENS.target.touch},
   taskMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
-  taskCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 12, paddingTop: 5},
-  taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 12, padding: 14},
+  taskCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.lg, marginTop: UI_TOKENS.spacing.md, paddingTop: UI_TOKENS.spacing.xs},
+  taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
   taskOverviewHeader: {flexDirection: 'row', justifyContent: 'space-between'},
   taskOverviewTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
-  taskOverviewValue: {color: colors.text, fontSize: 28, fontWeight: '800', marginTop: 6},
-  taskOverviewMeta: {color: colors.muted, fontSize: 13, marginTop: 3},
-  taskCompletedSummary: {alignItems: 'flex-end', backgroundColor: colors.cardRaised, borderRadius: 16, minWidth: 136, paddingHorizontal: 13, paddingVertical: 12},
+  taskOverviewValue: {color: colors.text, fontSize: 28, fontWeight: '800', marginTop: UI_TOKENS.spacing.xs},
+  taskOverviewMeta: {color: colors.muted, fontSize: 13, marginTop: UI_TOKENS.spacing.micro},
+  taskCompletedSummary: {alignItems: 'flex-end', backgroundColor: colors.cardRaised, borderRadius: 16, minWidth: 136, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.md},
   taskCompletedValue: {color: colors.accent, fontSize: 28, fontWeight: '800'},
-  taskOverviewList: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 16, paddingTop: 14},
-  taskOverviewRow: {alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 9},
+  taskOverviewList: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: UI_TOKENS.spacing.lg, paddingTop: UI_TOKENS.spacing.md},
+  taskOverviewRow: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.sm},
   taskOverviewLabel: {color: colors.text, fontSize: 13, width: 96},
   taskOverviewTrack: {backgroundColor: colors.cardRaised, borderRadius: 4, flex: 1, height: 8, overflow: 'hidden'},
   taskOverviewFill: {backgroundColor: colors.accent, borderRadius: 4, height: 8},
   taskOverviewCount: {color: colors.muted, fontSize: 13, fontWeight: '800', minWidth: 18, textAlign: 'right'},
-  taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: 14},
-  taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: 12},
+  taskRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 66, paddingHorizontal: UI_TOKENS.spacing.md},
+  taskToggle: {alignItems: 'center', flex: 1, flexDirection: 'row', paddingVertical: UI_TOKENS.spacing.md},
   taskActions: {alignItems: 'center', flexDirection: 'row'},
-  taskListRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: 10},
+  taskListRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: UI_TOKENS.spacing.sm},
   taskListActions: {alignItems: 'center', flexDirection: 'row'},
-  checkbox: {alignItems: 'center', borderColor: colors.muted, borderRadius: 6, borderWidth: 1, height: 23, justifyContent: 'center', marginRight: 12, width: 23},
+  checkbox: {alignItems: 'center', borderColor: colors.muted, borderRadius: 6, borderWidth: 1, height: 23, justifyContent: 'center', marginRight: UI_TOKENS.spacing.md, width: 23},
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},
   completedText: {color: colors.muted, textDecorationLine: 'line-through'},
-  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: 8, paddingTop: 8, shadowColor: colors.shadow, shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
-  tab: {alignItems: 'center', flex: 1, paddingVertical: 3},
+  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: UI_TOKENS.spacing.sm, paddingTop: UI_TOKENS.spacing.sm, shadowColor: colors.shadow, shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
+  tab: {alignItems: 'center', flex: 1, minHeight: UI_TOKENS.target.tab, paddingVertical: UI_TOKENS.spacing.micro},
   tabIcon: {color: colors.muted, fontSize: 20, height: 25},
-  tabLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: 2},
+  tabLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: UI_TOKENS.spacing.micro},
   tabSelected: {color: colors.accent},
-  loading: {backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: 28},
-  loadingMessage: {color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: 12},
+  loading: {backgroundColor: colors.background, flex: 1, justifyContent: 'center', padding: UI_TOKENS.spacing.xxl},
+  loadingMessage: {color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: UI_TOKENS.spacing.md},
   dangerText: {color: colors.danger},
-  homeMoneyWidget: {backgroundColor: colors.accent, borderRadius: 18, marginBottom: 14, padding: 16},
-  homeWidgetAction: {color: colors.accentText, fontSize: 13, fontWeight: '800', marginTop: 10},
+  homeMoneyWidget: {backgroundColor: colors.accent, borderRadius: 18, marginBottom: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.lg},
+  homeWidgetAction: {color: colors.accentText, fontSize: 13, fontWeight: '800', marginTop: UI_TOKENS.spacing.sm},
   homeBalanceLabel: {color: colors.accentText, fontSize: 15, fontWeight: '700'},
   homeBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
-  homeBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: 11},
-  homeBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: 8, opacity: 0.85},
+  homeBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: UI_TOKENS.spacing.md},
+  homeBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: UI_TOKENS.spacing.sm, opacity: 0.85},
   homeSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
-  homeMuted: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 14},
-  moneyOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 18, borderWidth: 1, marginBottom: 14, overflow: 'hidden'},
-  moneyBalanceCard: {backgroundColor: colors.accent, padding: 16},
+  homeMuted: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: UI_TOKENS.spacing.md},
+  moneyOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 18, borderWidth: 1, marginBottom: UI_TOKENS.spacing.md, overflow: 'hidden'},
+  moneyBalanceCard: {backgroundColor: colors.accent, padding: UI_TOKENS.spacing.lg},
   moneyBalanceLabel: {color: colors.accentText, fontSize: 15, fontWeight: '700'},
   moneyBalanceCurrency: {color: colors.accentText, fontSize: 13, fontWeight: '800', opacity: 0.78},
-  moneyBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: 11},
-  moneyBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: 8, opacity: 0.85},
+  moneyBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: UI_TOKENS.spacing.md},
+  moneyBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: UI_TOKENS.spacing.sm, opacity: 0.85},
   moneyOverviewMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, padding: 14},
+  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: UI_TOKENS.spacing.sm, padding: UI_TOKENS.spacing.md},
   moneyActivityRight: {alignItems: 'flex-end'},
-  moneyActivityValue: {color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 4},
-  moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 14, padding: 14},
+  moneyActivityValue: {color: colors.text, fontSize: 15, fontWeight: '800', marginTop: UI_TOKENS.spacing.xs},
+  moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
   moneyChartHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   moneyChartTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
   moneyChartSubtitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
-  chartBarRow: {marginTop: 14},
+  chartBarRow: {marginTop: UI_TOKENS.spacing.md},
   chartBarHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   chartBarLabel: {color: colors.text, flex: 1, fontSize: 14, fontWeight: '700'},
-  chartBarAmount: {color: colors.muted, fontSize: 13, fontWeight: '700', marginLeft: 10},
-  chartBarTrack: {backgroundColor: colors.cardRaised, borderRadius: 5, height: 8, marginTop: 7, overflow: 'hidden'},
+  chartBarAmount: {color: colors.muted, fontSize: 13, fontWeight: '700', marginLeft: UI_TOKENS.spacing.sm},
+  chartBarTrack: {backgroundColor: colors.cardRaised, borderRadius: 5, height: 8, marginTop: UI_TOKENS.spacing.sm, overflow: 'hidden'},
   chartBarFill: {backgroundColor: colors.accent, borderRadius: 5, height: 8},
-  chartEmpty: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 12},
-  chartDivider: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: 20, paddingTop: 16},
-  chartLegend: {flexDirection: 'row', gap: 10},
-  chartLegendItem: {alignItems: 'center', flexDirection: 'row', gap: 4},
+  chartEmpty: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: UI_TOKENS.spacing.md},
+  chartDivider: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: UI_TOKENS.spacing.xl, paddingTop: UI_TOKENS.spacing.lg},
+  chartLegend: {flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
+  chartLegendItem: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.xs},
   chartLegendExpense: {backgroundColor: colors.warning, borderRadius: 3, height: 8, width: 8},
   chartLegendIncome: {backgroundColor: colors.accent, borderRadius: 3, height: 8, width: 8},
   chartLegendText: {color: colors.muted, fontSize: 11, fontWeight: '700'},
-  chartStrip: {alignItems: 'stretch', flexDirection: 'row', height: 96, marginTop: 12},
+  chartStrip: {alignItems: 'stretch', flexDirection: 'row', height: 96, marginTop: UI_TOKENS.spacing.md},
   chartColumn: {alignItems: 'center', flex: 1, minWidth: 0},
-  chartColumnBars: {alignItems: 'flex-end', flex: 1, flexDirection: 'row', gap: 2, justifyContent: 'center'},
+  chartColumnBars: {alignItems: 'flex-end', flex: 1, flexDirection: 'row', gap: UI_TOKENS.spacing.micro, justifyContent: 'center'},
   chartColumnBar: {borderRadius: 3, minHeight: 0, width: 5},
   chartColumnExpense: {backgroundColor: colors.warning},
   chartColumnIncome: {backgroundColor: colors.accent},
-  chartDayLabel: {color: colors.muted, fontSize: 9, marginTop: 5},
+  chartDayLabel: {color: colors.muted, fontSize: 9, marginTop: UI_TOKENS.spacing.xs},
 });
 }

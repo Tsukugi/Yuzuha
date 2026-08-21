@@ -30,4 +30,5 @@ coverage/
 *.log
 *.tmp
 *.swp
+artifacts/
 yarn.lock

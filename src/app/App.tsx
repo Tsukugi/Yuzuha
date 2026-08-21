@@ -5,6 +5,7 @@ import {AppStoreProvider} from '../data/AppStore';
 import {nativeBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
 import {MainApp} from './MainApp';
 import {ThemeProvider, useAppTheme} from './theme';
+import {UI_TOKENS} from './uiTokens';
 
 export function App() {
   const [decision, setDecision] = useState<LaunchDecision | null>(null);
@@ -52,7 +53,7 @@ function StartupScreen({message}: {message: string}) {
 }
 
 const styles = StyleSheet.create({
-  startup: {flex: 1, justifyContent: 'center', padding: 28},
-  message: {fontSize: 16, lineHeight: 24, marginTop: 12},
-  spinner: {alignSelf: 'flex-start', marginTop: 24},
+  startup: {flex: 1, justifyContent: 'center', padding: UI_TOKENS.spacing.xxl},
+  message: {fontSize: 16, lineHeight: 24, marginTop: UI_TOKENS.spacing.md},
+  spinner: {alignSelf: 'flex-start', marginTop: UI_TOKENS.spacing.xl},
 });

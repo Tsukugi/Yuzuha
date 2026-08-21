@@ -4,7 +4,7 @@ This is the product and engineering baseline for Yuzuha. Core code exists throug
 
 The latest current-schema pass adds weekday-aware periodic money rules after the local note-link pass. It uses app schema 33 and repository schema 3; old versions remain intentionally rejected.
 
-The current Money report pass adds derived period, type, category, and account filters with an explicit scope disclosure. Split-line categories are matched by stable IDs, transfers stay out of reports, and currencies remain separate.
+The current Money report pass adds derived period, type, and category filters, plus an account filter when multiple active accounts make that choice meaningful. With one active account it uses the all-accounts scope automatically. The report has an explicit scope disclosure; split-line categories are matched by stable IDs, transfers stay out of reports, and currencies remain separate.
 
 ## Read in this order
 
@@ -17,23 +17,24 @@ The current Money report pass adds derived period, type, category, and account f
 7. [Notifications and automation](notifications-and-automation.md) - reminders, recurring work, budgets, and review prompts.
 8. [Integrations](integrations.md) - Android/iOS entry points, widgets, imports, and exports.
 9. [UX plan](ux.md) - screens, flows, empty states, and accessibility.
-10. [Accessibility and localization](accessibility-and-localization.md) - inclusive interaction and language/region support.
-11. [Security and privacy](security-and-privacy.md) - sensitive data handling and permissions.
-12. [Installer contract](installer.md) - bundle metadata, verification, caching, and launch rules.
-13. [Testing strategy](testing.md) - test levels, examples, and release gates.
-14. [Code standards](codeStandards.md) - TypeScript, React Native, naming, and review rules.
-15. [Implementation plan](implementation-plan.md) - phases, work slices, and definition of done.
-16. [Release process](release.md) - native releases, JavaScript releases, rollback, and checklists.
-17. [Analytics and operations](analytics-and-operations.md) - telemetry, SLOs, support, and incidents.
-18. [API contract](api-contract.md) - sync service requests, responses, errors, and versioning.
-19. [Traceability](traceability.md) - requirement families, authoritative documents, and evidence.
-20. [Decision log](decision-log.md) - decisions that affect future work.
-21. [v0.1.7 OTA release record](releases/v0.1.7.md) - latest color-palette OTA artifact, verification, and release boundary.
-22. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
-23. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
-24. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
-25. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
-26. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
+10. [UI standardization](ui-standardization.md) - shared sizes, theme roles, controls, layout, flow, and quality gates.
+11. [Accessibility and localization](accessibility-and-localization.md) - inclusive interaction and language/region support.
+12. [Security and privacy](security-and-privacy.md) - sensitive data handling and permissions.
+13. [Installer contract](installer.md) - bundle metadata, verification, caching, and launch rules.
+14. [Testing strategy](testing.md) - test levels, examples, and release gates.
+15. [Code standards](codeStandards.md) - TypeScript, React Native, naming, and review rules.
+16. [Implementation plan](implementation-plan.md) - phases, work slices, and definition of done.
+17. [Release process](release.md) - native releases, JavaScript releases, rollback, and checklists.
+18. [Analytics and operations](analytics-and-operations.md) - telemetry, SLOs, support, and incidents.
+19. [API contract](api-contract.md) - sync service requests, responses, errors, and versioning.
+20. [Traceability](traceability.md) - requirement families, authoritative documents, and evidence.
+21. [Decision log](decision-log.md) - decisions that affect future work.
+22. [v0.1.7 OTA release record](releases/v0.1.7.md) - latest color-palette OTA artifact, verification, and release boundary.
+23. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
+24. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
+25. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
+26. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
+27. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
 
 ## Documentation rules
 

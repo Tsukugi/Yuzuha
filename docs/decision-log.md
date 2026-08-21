@@ -744,3 +744,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: All screens already resolve styles through one provider, so palette changes stay consistent and do not add a theme dependency or per-screen color branching. Temporary view state avoids inventing a persistence and migration contract for a presentation choice.
 - Consequence: Palette and contrast choices reset on relaunch and are excluded from AppData, backups, exports, and imports. No schema, network request, worker, timer, or background process is added.
 - Validation: Settings tests find all five choices and the selected state; `theme.test.tsx` proves the provider changes its accent token; typecheck, lint, full Jest, and diff checks remain release gates.
+
+## DEC-101: Hide redundant account choices when one active account exists
+
+- Status: Accepted.
+- Context: The default workspace has one active account, but Money entry, split-entry, history-filter, and report-filter UI still presented an account choice with only one possible value.
+- Decision: Assign the only active account automatically and omit the account selector wherever choosing it cannot change the result. Show account choices again when at least two active accounts exist. Keep transfer source and target choices because transfers require two different accounts.
+- Reason: A control with one possible outcome adds noise and makes a required implementation detail look like a user decision. The rule keeps account choice visible only when it changes the operation or scope.
+- Consequence: This changes only derived React view state and form rendering. It adds no AppData field, schema boundary, migration, export/import change, network request, worker, timer, or polling loop.
+- Validation: Focused `AccountSelector` tests cover one and two active accounts; typecheck, lint, full Jest, and diff checks remain release gates.
