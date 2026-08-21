@@ -4,6 +4,14 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-08-21 Android OTA v0.1.8 release:
+
+- the published OTA bundle is [`Yuzuha-0.1.8.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.8/Yuzuha-0.1.8.jsbundle), at `1,334,856` bytes with SHA-256 `061ee059fa85ba8e6945b91f91075eb407763ab84c70b074ce023aa1e1c5e422`;
+- [GitHub Release v0.1.8](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.8) also contains the signed `bundle.json`; the latest-release URL serves this metadata;
+- the bundle requires native `0.1.3` and includes the shared UI standardization pass plus automatic single-account handling: account choices are shown only when multiple active accounts can change the operation or scope;
+- the full JavaScript suite is 57 suites/262 tests. TypeScript, lint, bundle checks, signed metadata creation, and metadata verification passed; no native production module, permission, schema, migration, worker, timer, or background update service changed;
+- the exact OTA record is [`docs/releases/v0.1.8.md`](releases/v0.1.8.md).
+
 2026-08-08 Android OTA v0.1.7 release:
 
 - the published OTA bundle is [`Yuzuha-0.1.7.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.7/Yuzuha-0.1.7.jsbundle), at `1,327,153` bytes with SHA-256 `0d71b1ccfce2cec9db383f545589931db5cfecd4d0e76a5bdf41ea5aac8314ca`;

@@ -12,7 +12,7 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 
 6. Android release builds must use a private non-debug keystore supplied through ignored `android/keystore.properties` or `YUZUHA_RELEASE_*` environment variables. Release keystores, signing properties, and passwords must never be committed.
 
-Current release status: GitHub release `Tsukugi/Yuzuha` `v0.1.7` is published with the signed Android OTA bundle and metadata for native `0.1.3`; native `v0.1.3` remains the current APK baseline, and the local release keys remain outside the committed tree.
+Current release status: GitHub release `Tsukugi/Yuzuha` `v0.1.8` is published with the signed Android OTA bundle and metadata for native `0.1.3`; native `v0.1.3` remains the current APK baseline, and the local release keys remain outside the committed tree.
 
 ## Work style
 
