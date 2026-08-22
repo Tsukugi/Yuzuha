@@ -206,7 +206,9 @@ launch health signal. `YuzuhaInstallerModule` exposes typed check, download,
 status, and health methods. The React Settings and Data tools controls only
 render those results; they never fetch or activate a JavaScript file. A manual
 update is prepared while the current bridge is running and is selected only on
-the next launch. iOS OTA and multi-file asset archives remain planned.
+the next launch. The current native compatibility baseline is `0.1.9`; the
+current OTA bundle is `0.1.10`. iOS OTA and multi-file asset archives remain
+planned.
 
 ## Full-product components
 

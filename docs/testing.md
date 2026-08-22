@@ -17,6 +17,22 @@ must not require a committed private-key fixture.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
+## v0.1.9 native and v0.1.10 OTA release evidence
+
+- Release source commit `0be9c9d` passed 60 Jest suites/283 tests, typecheck,
+  lint, bundle validation, Java 17 Android unit tests, and the signed release
+  build.
+- The APK reports package `dev.yuzuha`, version code `5`, version name `0.1.9`,
+  and the private release signer; `apksigner verify` passed. The APK SHA-256 is
+  `cb1ad0bbce8ce44c45b34b1ba717abb07431db74628214f44ed139e0a26cf779`.
+- The OTA metadata for `0.1.10` passed signature validation and requires native
+  `0.1.9`; its bundle is `1,349,142` bytes with SHA-256
+  `f869a4242f2f10417c376a555f94d5a5ce81537b71dc7ba27fd5a304628ebe7e`.
+- No ADB device was connected during the release session, so the exact signed
+  APK install smoke remains unclaimed for this release artifact. The feature
+  pass's populated App Time and Money/date-time local-test evidence is recorded
+  above and under `artifacts/live-test-2026-08-22-final/`.
+
 ## Money range, ordering, and picker evidence
 
 - `moneyRange.test.ts` covers Year boundaries, Custom inclusive-start/exclusive-end behavior, invalid dates, reversed intervals, and local period selection. `moneyReport.test.ts` covers the same Year/Custom boundaries through report totals.

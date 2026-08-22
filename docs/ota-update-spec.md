@@ -3,8 +3,9 @@
 Status: Android implementation present. Local tests, lint, typecheck, Android
 builds, signed release build, GitHub Release publication, live activation,
 pending promotion, and rollback device smoke pass. This document is the
-contract, implementation plan, and auto-grill record for the pass. Evidence is
-recorded in `docs/releases/v0.1.3.md`.
+contract, implementation plan, and auto-grill record for the pass. The current
+native and OTA artifact evidence is recorded in `docs/releases/v0.1.9.md` and
+`docs/releases/v0.1.10.md`.
 
 The goal is to let an installed Yuzuha app receive a new React Native
 JavaScript bundle without installing a new APK. The Android native shell stays

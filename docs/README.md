@@ -31,12 +31,14 @@ The current Money report pass adds derived period, type, and category filters, p
 21. [Decision log](decision-log.md) - decisions that affect future work.
 22. [Backlog](Backlog.md) - open bugs, improvements, and planned work.
 23. [Resolved backlog](BacklogResolved.md) - completed backlog items with evidence.
-24. [v0.1.8 OTA release record](releases/v0.1.8.md) - latest current-schema OTA artifact, verification, and release boundary.
-25. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
-26. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
-27. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
-28. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
-29. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
+24. [v0.1.10 OTA release record](releases/v0.1.10.md) - latest current-schema OTA artifact, verification, and release boundary.
+25. [v0.1.9 native release record](releases/v0.1.9.md) - current Android APK artifact identity and native compatibility boundary.
+26. [v0.1.8 OTA release record](releases/v0.1.8.md) - previous OTA artifact, verification, and release boundary.
+27. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
+28. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
+29. [v0.1.3 release record](releases/v0.1.3.md) - previous native APK artifact identity and release boundary.
+30. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
+31. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
 
 ## Documentation rules
 

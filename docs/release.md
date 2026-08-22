@@ -4,6 +4,13 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-08-22 Android v0.1.9 and OTA v0.1.10 release:
+
+- Android `versionName` is `0.1.9`, version code `5`, and the signed APK is [`Yuzuha-0.1.9.apk`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.9/Yuzuha-0.1.9.apk), at `67,478,775` bytes with SHA-256 `cb1ad0bbce8ce44c45b34b1ba717abb07431db74628214f44ed139e0a26cf779`;
+- the published OTA is [`Yuzuha-0.1.10.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.10/Yuzuha-0.1.10.jsbundle), at `1,349,142` bytes with SHA-256 `f869a4242f2f10417c376a555f94d5a5ce81537b71dc7ba27fd5a304628ebe7e`; its metadata requires native `0.1.9`;
+- the native APK passed `apksigner verify` with the private release signer, and the OTA metadata passed `npm run ota-check`;
+- the exact artifact and compatibility records are [`docs/releases/v0.1.9.md`](releases/v0.1.9.md) and [`docs/releases/v0.1.10.md`](releases/v0.1.10.md). No connected ADB target was available for a repeat install smoke in this release session.
+
 2026-08-22 Android local money-range, OS-picker, and App Time-analysis pass:
 
 - Money history and the Money report now support All/Day/Week/Month/Year/Custom local ranges, including an inclusive-start/exclusive-end custom interval, and the visible history orders entries chronologically without changing stored insertion order;
