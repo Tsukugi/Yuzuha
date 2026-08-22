@@ -12,7 +12,7 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 
 6. Android release builds must use a private non-debug keystore supplied through ignored `android/keystore.properties` or `YUZUHA_RELEASE_*` environment variables. Release keystores, signing properties, and passwords must never be committed.
 
-Current release status: GitHub release `Tsukugi/Yuzuha` `v0.1.8` is published with the signed Android OTA bundle and metadata for native `0.1.3`; native `v0.1.3` remains the current APK baseline, and the local release keys remain outside the committed tree.
+Current release status: GitHub release `Tsukugi/Yuzuha` `v0.1.10` is the signed Android OTA bundle and metadata for native `0.1.9`; native `v0.1.9` is the current APK baseline, and the local release keys remain outside the committed tree.
 
 ## Work style
 
@@ -21,6 +21,14 @@ Current release status: GitHub release `Tsukugi/Yuzuha` `v0.1.8` is published wi
 - Do not use blind fixes, recovery fixes, or vague best-effort behavior. Define a deterministic rule and test it.
 - When planning, challenge the assumptions using the review questions in `docs/product-plan.md`.
 - Prefer small, typed modules with clear ownership.
+
+## Backlog workflow
+
+- `docs/Backlog.md` is the source of truth for open bugs, improvements, and TODOs.
+- Use unique `YZ-###` IDs. Add a matching entry before implementation when no tracked item exists.
+- A bug entry needs a deterministic failing test before its fix is accepted. An improvement entry must state the current behavior and its validation target.
+- Use `Planned`, `Open decision`, or `In progress` honestly. Move an item to `docs/BacklogResolved.md` only after implementation, tests, and required documentation prove the resolved claim.
+- Keep intentionally rejected legacy paths and already shipped behavior out of the backlog. Update the backlog when a release or implementation decision changes the open work.
 
 ## Current repository status
 
@@ -50,7 +58,7 @@ Current note-link status: Notes can link to tasks, projects, money entries, and 
 
 The current core also includes the Home Quick capture menu. Its Add money, Add note, and Add task actions open the matching form directly; normal screen navigation opens the current list view. It adds no schema and starts no background process. Check implementation evidence before describing planned work as shipped.
 
-Current App Time status: the Android screen offers Today, This week, and This month. Each refresh reads one local calendar day at a time, runs sequentially, and saves all selected-day snapshots in one local commit after every query succeeds. The screen states the exact local date range and last-read time. The selector is UI state only; it adds no schema, worker, timer, or polling loop. Check implementation evidence before describing planned work as shipped.
+Current App Time status: the Android screen offers Today, This week, and This month. Each refresh reads one local calendar day at a time, runs sequentially, and saves all selected-day snapshots in one local commit after every query succeeds. The screen states the exact local date range and last-read time. Its Analysis disclosure derives daily average, active-app count, top-app share, busiest local day, and previous-equivalent-period change from included local snapshots; excluded packages stay out, and empty or unavailable data is stated honestly. The selector and analysis are UI state only; they add no schema, worker, timer, or polling loop. Check implementation evidence before describing planned work as shipped.
 
 Current installer status: Android `MainApplication` starts the native verified-bundle gate before React host creation. It checks one signed HTTPS metadata response, accepts only a newer compatible release, verifies Ed25519 metadata plus exact size and SHA-256, atomically stores the bundle in app-private files, and otherwise uses the newest verified local or embedded bundle. Android API 33 is the current minimum. No legacy bundle path, retry loop, or polling worker is shipped. Check implementation evidence before describing planned work as shipped.
 
@@ -58,13 +66,15 @@ Current device-test installer status: Android `localTest` uses package `dev.yuzu
 
 Current Home status: Home offers the same Today, This week, and This month local period choices as App Time. Money cards filter to the main currency and selected range; app-time totals, open-task due counts, and recent note updates use that range. This is derived view state only and adds no schema or background process. Check implementation evidence before describing planned work as shipped.
 
-Current Money status: Money entry history offers local All/Day/Week/Month, type, category, and account filters. The visible current non-split entry list and currency-separated filtered totals use the same filter, archived selected references remain visible, and the pass adds no schema, migration, network request, or background process. Check implementation evidence before describing planned work as shipped.
+Current Money status: Money entry history offers local All/Day/Week/Month/Year/Custom, type, category, and account filters. Custom intervals use an inclusive start date and exclusive end date. The visible current non-split entry list and currency-separated filtered totals use the same filter, archived selected references remain visible, and entries are displayed by ascending `occurredAt` with a stable ID tie-breaker without mutating stored order. The pass adds no schema, migration, network request, or background process. Check implementation evidence before describing planned work as shipped.
+
+Current date-picker status: Android money occurrence dates/times, task due dates and reminders, recurring-task dates/times, and quiet-hour times use the native date/time dialogs. Cancel leaves the value unchanged; selected local values are strictly validated. Money occurrences and reminders use UTC ISO storage; date-only due/recurrence values and quiet-hour times remain local strings. The typed bridge currently reports iOS as unsupported; iOS picker parity remains part of the scoped iOS work.
 
 Current periodic-money status: a new operation starts from the normal Money add form. The Repeat toggle reveals cadence and interval; when the cadence is every day, it shows compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggles. New operations start today and only selected weekdays are applied. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay unchanged. App schema 33 stores the selected days. No migration, network request, worker, timer, or polling loop is added. Check implementation evidence before describing this as shipped.
 
 Current Payee status: Money has optional stable payee references on entries, local payee creation, case-insensitive unique names, archive controls, JSON/encrypted-backup/SQLite persistence, current CSV fields, and global-search matching. Payees are local records and add no account, network, or background process.
 
-Current Money report status: the separate report screen uses one typed local period/type/category/account filter over source entries and split lines, shows exact scope text, excludes transfers and out-of-range entries, and keeps each currency in its own card. It adds no persisted filter preference or background work.
+Current Money report status: the separate report screen uses one typed local Day/Week/Month/Year/Custom period plus type/category/account filter over source entries and split lines, shows exact scope text, uses an inclusive-start/exclusive-end custom interval, excludes transfers and out-of-range entries, and keeps each currency in its own card. It adds no persisted filter preference or background work.
 
 Current date status: Home exposes a persisted Sunday/Monday week-start setting. Home, Review, Money, App Time, and budget projections use that same setting; JSON, encrypted backup, and SQLite require it as current data. No old-data migration or background process was added.
 

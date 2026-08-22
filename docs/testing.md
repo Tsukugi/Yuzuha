@@ -1,6 +1,6 @@
 # Testing strategy
 
-Status: Current test strategy through the 2026-08-21 UI standardization pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
+Status: Current test strategy through the 2026-08-22 money-range, OS-picker, and App Time-analysis pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 The OTA trust anchor was freshly generated for this project on 2026-08-05.
 The public-key fingerprint is
@@ -13,9 +13,17 @@ must not require a committed private-key fixture.
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 57 Jest suites and 262 tests. Money chart validation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 60 Jest suites and 283 tests. Money range/sort/filter/report validation, native-picker bridge rules, usage-metric derivation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
+
+## Money range, ordering, and picker evidence
+
+- `moneyRange.test.ts` covers Year boundaries, Custom inclusive-start/exclusive-end behavior, invalid dates, reversed intervals, and local period selection. `moneyReport.test.ts` covers the same Year/Custom boundaries through report totals.
+- `moneyFilter.test.ts` covers the shared custom range and chronological filtered result without mutating source order. `moneyEntrySort.test.ts` covers date ordering, same-timestamp ID ties, offsets, and invalid timestamps.
+- `DateTimePickerRulesTest.kt` covers strict local date/time parsing and formatting, impossible calendar days, and out-of-range values. The Android module implementation returns `null` on cancel and rejects an active second dialog; those dialog-state paths are not unit-tested in that parser test.
+- Code and focused tests prove the custom start/end behavior. The archived `emulator-5554` hierarchy smoke proves the Money Year/Custom selectors; the current live hierarchy also showed the custom start/end controls, Money occurrence `Choose date`/`Choose time` controls, Android date picker, Android time picker, and Task due-date picker. The archived artifacts are under `artifacts/live-smoke/`.
+- Money occurrence values are saved through the existing timestamp field; no schema, migration, network request, worker, timer, or polling loop was added. iOS picker parity remains planned.
 
 ## UI simplification evidence
 
@@ -183,9 +191,15 @@ must not require a committed private-key fixture.
 ## App Time period evidence
 
 - Focused usage tests cover local Day/Week/Month range splitting and aggregation from separate local-day query results.
-- Emulator `emulator-5554`: Usage Access was granted; Day, Week, and Month selectors showed the correct local range, and a Week refresh completed with `0 app records read for this week.` and a saved last-read time.
+- Emulator `emulator-5554`: Usage Access was granted; Day, Week, and Month selectors showed the correct local range. After rebooting the test emulator to reset a stale UsageStats bucket, the current `localTest` APK refreshed Today and returned `3 app records read for today.` without clearing the Yuzuha workspace; the saved hierarchy is `artifacts/live-test-2026-08-22-final/54-final-app-time-refresh.xml`.
 - The refresh path made bounded sequential day queries and called the AppStore replacement once after all queries completed. The emulator log had no filtered fatal or ReactNativeJS errors.
 - Phone `42adce68`: release App Time cold launch showed the honest Usage Access unavailable state with no filtered app errors. UI automation is blocked by the device policy.
+
+## App Time analysis evidence
+
+- `usageMetrics.test.ts` covers included/excluded snapshots, daily-average denominator, active-app count, deterministic top-app and busiest-day ties, previous-period change, permission-unavailable, empty, and missing-previous-period states.
+- Emulator `emulator-5554` shows the expanded Analysis disclosure after a populated refresh: `3 min` daily average, `3` active apps, `Yuzuha · 84%` top-app share, and `2026-08-22 · 3 min` busiest day. The equivalent previous period correctly reports `No data`; the saved hierarchies are `artifacts/live-test-2026-08-22-final/56-final-app-time-analysis.xml` and `57-final-app-time-analysis-bottom.xml`. An earlier pre-reboot run also proves the explicit empty/no-data state.
+- The metric layer operates only on local `usageSnapshots`; it adds no schema, network request, worker, timer, polling loop, or raw-usage export path. Hourly and category metrics remain unimplemented because the current native query does not provide those boundaries.
 
 ## Task reminder evidence
 

@@ -1,6 +1,6 @@
 # Requirements traceability
 
-Status: Traceability baseline through the 2026-08-08 color-palette theme pass.
+Status: Traceability baseline through the 2026-08-22 money-range, OS-picker, and App Time-analysis pass.
 
 ## Authoritative source by concern
 
@@ -78,6 +78,14 @@ Current budget-search-focus evidence: `CROSS-02` also maps to `globalSearchNavig
 Current UI simplification evidence: `UX-01` maps to `Disclosure`, `HomeScreen`, `GlobalSearchScreen`, `DataToolsScreen`, `MoneyScreen`, `MoneyReportScreen`, `NotesScreen`, `TasksScreen`, `AppTimeScreen`, and `FocusSessionPanel`. The 2026-07-28 signed Xiaomi smoke checks the title-free shell, compact Home Money widget, Money balance/activity card, current entry list, Add money entry, spending overview, daily movement scope, Notes search/chips/pinned-recent cards/floating Add note, Tasks primary tabs/Today/Upcoming/overview/compact dashboard/Add task, collapsed secondary sections, and the form-open state in system light and dark modes. Pure chart-data tests cover category totals, complete daily ranges, and split-line handling. The pass adds no schema, migration, network request, worker, or background process.
 
 Current theme evidence: `UX-01` also maps to `ThemeProvider`, `THEME_PALETTES`, `SettingsScreen`, `src/app/theme.test.tsx`, the palette case in `MainApp.settings.test.tsx`, the native `localTest` installer path, and Xiaomi screenshot smoke at `dist/ui-audit/xiaomi-localtest-appearance.png`. The provider keeps System/Light/Dark contrast modes and adds five temporary palettes with matching light/dark tokens. The pass adds no AppData field, schema, export/import field, network request, worker, timer, or background process.
+
+Current money-range evidence: `MONEY-04` maps to `moneyRange.ts`, `moneyFilter.ts`, `moneyReport.ts`, `MoneyScreen`, `MoneyReportScreen`, `src/shared/moneyRange.test.ts`, `src/shared/moneyFilter.test.ts`, `src/shared/moneyReport.test.ts`, and the emulator Year/Custom hierarchy smoke. Money history supports All/Day/Week/Month/Year/Custom and reports support Day/Week/Month/Year/Custom; Custom uses an inclusive local start and exclusive local end, and the derived scope is shared by the list, totals, chart, report totals, and split lines without persistence or background work.
+
+Current money-order evidence: `MONEY-14` maps to `moneyEntrySort.ts`, `moneyFilter.ts`, `MoneyScreen`, `src/shared/moneyEntrySort.test.ts`, and the filtered-list assertion in `src/shared/moneyFilter.test.ts`. The visible list sorts by `occurredAt` ascending with a stable ID tie-breaker while preserving source order.
+
+Current Android picker evidence: `MONEY-15` maps to `DateTimePickerModule.kt`, `YuzuhaNativePackage.kt`, `src/platform/dateTimePicker.ts`, the Money and Tasks forms, `DateTimePickerRulesTest.kt`, and emulator date/time picker hierarchy smoke. Native dialogs return strict local date/time values; cancellation is explicit, invalid values are rejected, and money occurrence/reminder instants are stored in the existing UTC timestamp field while date-only and quiet-hour values remain local strings. iOS parity remains planned.
+
+Current App Time-analysis evidence: `TIME-11` maps to `usageMetrics.ts`, `AppTimeScreen`, `src/shared/usageMetrics.test.ts`, the existing Usage Access day-query path, and emulator App Time analysis/refresh smoke. The derived metrics are daily average, active-app count, top-app share, busiest local day, and previous-equivalent-period change. Excluded apps are omitted, raw usage remains local, and denied/empty states are explicit. The emulator smoke now proves both the explicit empty state and populated values after a real on-device Usage Access refresh.
 
 ## Open decision register
 

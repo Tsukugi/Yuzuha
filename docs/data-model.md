@@ -4,6 +4,8 @@ The Android summary widget is a live non-database projection over the current ta
 
 Current schema boundary: app schema 33 and repository schema 3 are the only accepted versions. Payees are typed JSON source records; `money_entries.payee_id` stores each nullable stable reference. `weekStartsOn` stores the current Sunday/Monday local-week preference. Money recurrence rules store selected weekdays for every-day operations. `lastMoneyCsvImport` stores only the latest money CSV receipt with its source, import time, and imported entry timestamps. `noteLinks` stores stable note-to-task/project/money/focus-session links. Global Search derives linked-target search fields in memory and stores no index. Note rich formatting is parsed from the existing plain `Note.body` string and adds no field. Older schemas are rejected without migration.
 
+Money Year/Custom ranges and chronological ordering are derived projections over the existing `occurredAt` field. Android money-occurrence and reminder picker selections are local wall-clock values converted to the existing UTC timestamp field; date-only due/recurrence values and quiet-hour times remain local strings. No new schema field is stored. App Time analysis is also derived from existing included `usageSnapshots`; excluded packages, permission state, and empty periods are handled at projection time.
+
 The detailed status paragraph below retains earlier schema numbers as historical implementation notes. The current data boundary above is authoritative.
 
 The current implementation uses app schema 33 and repository schema 3. The older schema numbers in the next status paragraph are retained only to explain the sequence of completed passes.
@@ -20,7 +22,7 @@ JSON export file restore is external file input only. It preserves the validated
 
 - Product records use SQLite with the current schema check. The unreleased build does not migrate old product data.
 - Monetary values use integer minor units plus an ISO 4217 currency code.
-- Timestamps are stored as UTC; the user timezone is stored with date-based records where local-day grouping matters.
+- Instant timestamp fields are stored as UTC; date-only due/recurrence values and daily quiet-hour values are stored as local strings.
 - IDs are generated locally as opaque UUIDs.
 - Soft deletion is used only where undo or audit behavior needs it. Permanent delete is required for the user data deletion flow.
 - No raw note content or transaction description is written to logs.

@@ -15,6 +15,7 @@ class YuzuhaNativePackage : ReactPackage {
       LaunchActionsModule(reactContext),
       DeepLinkModule(reactContext),
       CalendarDraftModule(reactContext),
+      DateTimePickerModule(reactContext),
       YuzuhaWidgetModule(reactContext),
       YuzuhaInstallerModule(reactContext),
     )

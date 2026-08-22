@@ -1,4 +1,5 @@
 import {getPeriodRange} from './period';
+import {getMoneyRange} from './moneyRange';
 import {buildMoneyReport} from './moneyReport';
 import type {MoneyEntry, MoneySplit} from '../types/domain';
 
@@ -51,6 +52,25 @@ describe('money reports', () => {
     );
 
     expect(report.currencies[0].expenseMinor).toBe(100);
+  });
+
+  it('supports year and custom local intervals', () => {
+    const entries = [
+      entry({id: 'year-start', occurredAt: '2026-01-01T12:00:00.000Z'}),
+      entry({id: 'custom-start', occurredAt: '2026-07-01T12:00:00.000Z'}),
+      entry({id: 'custom-end', occurredAt: '2026-08-01T12:00:00.000Z'}),
+      entry({id: 'next-year', occurredAt: '2027-01-01T12:00:00.000Z'}),
+    ];
+
+    const yearReport = buildMoneyReport(entries, getMoneyRange(new Date(2026, 6, 26), {period: 'year'})!);
+    expect(yearReport.currencies[0].expenseMinor).toBe(300);
+
+    const customReport = buildMoneyReport(entries, getMoneyRange(new Date(2026, 6, 26), {
+      period: 'custom',
+      startLocalDate: '2026-07-01',
+      endLocalDate: '2026-08-01',
+    })!);
+    expect(customReport.currencies[0].expenseMinor).toBe(100);
   });
 
   it('reports split lines by their categories without duplicating the parent total', () => {

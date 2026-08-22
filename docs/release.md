@@ -4,6 +4,14 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-08-22 Android local money-range, OS-picker, and App Time-analysis pass:
+
+- Money history and the Money report now support All/Day/Week/Month/Year/Custom local ranges, including an inclusive-start/exclusive-end custom interval, and the visible history orders entries chronologically without changing stored insertion order;
+- Android Money and task date/time fields use native OS dialogs with strict local-value validation and explicit cancel behavior. Money occurrences and reminders use the existing UTC timestamp storage; date-only and quiet-hour values remain local strings. The native picker bridge is Android-only; iOS parity remains planned;
+- App Time now derives daily average, active-app count, top-app share, busiest local day, and previous-equivalent-period change from included local Usage Access snapshots, with explicit denied and empty states;
+- no app or repository schema, migration, network request, worker, timer, or polling loop was added;
+- 60 Jest suites and 283 tests passed, along with typecheck, lint, bundle validation, Android picker-rule tests, and the Java 17 `:app:testLocalTestUnitTest` plus `:app:assembleLocalTest` build; emulator hierarchy smoke covered Money Year/Custom controls, Money/task date/time dialogs, and App Time empty/analysis states. A final post-reboot local-test smoke also returned real Usage Access rows and populated the App Time metrics; report Year/Custom boundaries remain covered by focused report tests.
+
 2026-08-21 Android OTA v0.1.8 release:
 
 - the published OTA bundle is [`Yuzuha-0.1.8.jsbundle`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.8/Yuzuha-0.1.8.jsbundle), at `1,334,856` bytes with SHA-256 `061ee059fa85ba8e6945b91f91075eb407763ab84c70b074ce023aa1e1c5e422`;

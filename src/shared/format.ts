@@ -19,3 +19,13 @@ export function formatDate(isoDate: string): string {
     year: 'numeric',
   }).format(new Date(isoDate));
 }
+
+export function formatDateTime(isoDate: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(isoDate));
+}

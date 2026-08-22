@@ -62,11 +62,11 @@ Do not force account creation, cloud sync, or Usage Access permission during onb
 
 ### Add money
 
-The form asks for type, amount, category, date, and note; currency comes from the selected account. When there is one active account, Yuzuha assigns it automatically and does not show an account selector. The account selector appears only when there are at least two active accounts. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
+The form asks for type, amount, category, local occurrence date/time, and note; currency comes from the selected account. On Android, the date and time controls open the OS dialogs. Cancel keeps the current value, and the selected local value is validated before it is stored as UTC. When there is one active account, Yuzuha assigns it automatically and does not show an account selector. The account selector appears only when there are at least two active accounts. Validation is inline. The save action remains disabled until required fields are valid. After save, return to the previous context and show the updated total.
 
 ### Read Money graphs
 
-Money shows a split-aware spending overview after the current entry list. Category bars use the main currency and active type/category/account scope; the chart shows the top categories and keeps exact amounts visible. The daily chart appears for Day, Week, or Month scopes and shows separate spending and income bars for each local date. All-time scope keeps the category view and explains that a daily trend needs a bounded period. Empty scopes show a clear no-spending state. Transfers are excluded and currencies never mix.
+Money shows a split-aware spending overview after the current entry list. Category bars use the main currency and active type/category/account scope; the chart shows the top categories and keeps exact amounts visible. The daily chart appears for Day, Week, Month, Year, or Custom scopes and shows separate spending and income bars for each local date. All-time scope keeps the category view and explains that a daily trend needs a bounded period. Empty scopes show a clear no-spending state. Transfers are excluded and currencies never mix. The separate Money report uses the same period choices and custom interval boundary rule.
 
 ### Read Notes
 
@@ -78,7 +78,7 @@ Tasks shows current work before the form. All, Today, Upcoming, and Completed ar
 
 ### Read app time
 
-The permission explanation appears before the system settings page. After returning, the app checks permission again, reads the selected range, stores a local snapshot, and shows the read timestamp. If permission was not granted, the app remains useful and explains how to try again.
+The permission explanation appears before the system settings page. After returning, the app checks permission again, reads the selected range, stores a local snapshot, and shows the read timestamp. Analysis then derives daily average, active-app count, top-app share, busiest day, and previous-period change from included local snapshots. If permission was not granted or the range is empty, the app remains useful and explains the state instead of inventing a value.
 
 ### Manage tasks
 
@@ -245,6 +245,6 @@ Home's `Review this period` action opens a read-only source-backed Review. Revie
 
 Money entry history has a compact filter card with Period, Type, and Category controls. An Account filter is shown only when there are multiple active accounts; with one active account the scope is always all accounts. The list title shows the matching count, and a currency-separated Filtered totals section shows count, spending, income, and net. An empty result says that no entries match. Filters affect the current history list and totals, and the existing split-entry display rules stay unchanged.
 
-Money reports have Day/Week/Month controls and All/Expense/Income and Category chips. An Account filter is shown only when there are multiple active accounts; with one active account the report scope is all accounts. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
+Money reports have Day/Week/Month/Year/Custom controls and All/Expense/Income and Category chips. An Account filter is shown only when there are multiple active accounts; with one active account the report scope is all accounts. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
 
 The Money form has an optional Payee selector with `No payee`, active payees, and an archived selected payee only while editing old history. The management card can create and archive payees; duplicate names show an inline store error and no record is written.

@@ -29,8 +29,10 @@ Status: Current implementation trace plus planned requirements. Requirement IDs 
 | MONEY-01 | The user can add income or expense entries. | Required fields are validated before save. |
 | MONEY-02 | Amounts use integer minor units, not floating-point math. | `10.99` in EUR is stored as `1099` minor units. |
 | MONEY-03 | The user can edit and delete entries. | Totals update immediately and remain correct after restart. |
-| MONEY-04 | The user can filter by date, type, category, and account label. | Filter results and totals use the same filter. |
+| MONEY-04 | The user can filter by date, type, category, and account label. | Money history offers All/Day/Week/Month/Year/Custom and reports offer Day/Week/Month/Year/Custom local ranges; a custom interval includes its start date and excludes its end date, and filtered results, totals, charts, and split lines use the same range. |
 | MONEY-05 | The user can export entries. | CSV and JSON exports contain a schema version and currency fields. |
+| MONEY-14 | The visible money history is chronological. | Entries are sorted by `occurredAt` ascending, then by stable ID for equal timestamps, without changing stored insertion order. |
+| MONEY-15 | The user can choose a local money occurrence date and time. | Android uses the system date/time dialogs, preserves cancel behavior, rejects invalid local values, and stores the selected instant as UTC ISO. |
 
 ## App time
 
@@ -41,6 +43,7 @@ Status: Current implementation trace plus planned requirements. Requirement IDs 
 | TIME-03 | The app shows period totals, per-app totals, and last-read time. | Android offers Today, This week, and This month; the display states the selected local date range and data age, and a refresh reads the bounded local days before one final save. |
 | TIME-04 | The user can exclude apps from summaries. | Exclusions apply to future dashboard totals and are visible in settings. |
 | TIME-05 | Usage reads are deterministic for a timezone and date range. | Re-reading the same system data produces the same result. |
+| TIME-11 | App Time explains included usage for the selected period. | With granted Usage Access, the screen derives daily average, active-app count, top-app share, busiest local day, and previous-equivalent-period change from included local snapshots; denied and empty states are explicit. |
 
 ## Notes
 
@@ -359,11 +362,11 @@ Current Home period extension: Home offers Today, This week, and This month usin
 
 Current Review extension: Home opens a read-only Review for Today, This week, or This month. Its summary uses main-currency money, included usage snapshots, open tasks due in the range, completed tasks updated in the range, current overdue open tasks, and active notes updated in the range. Cards link to existing source screens; no review record or reflection persistence is implemented.
 
-Current Money filter extension: Money history supports All/Day/Week/Month period, expense/income type, category, and account filters. One derived filter drives the existing non-split list and currency-separated minor-unit totals, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
+Current Money filter extension: Money history supports All/Day/Week/Month/Year/Custom periods, expense/income type, category, and account filters. One derived filter drives the existing non-split list and currency-separated minor-unit totals, keeps an archived selected category or account available, and adds no schema, migration, network request, or background process.
 
 Current Money payee extension: Money supports optional stable `payeeId` references, local payee creation, case-insensitive unique names, archive controls, and current JSON/CSV/encrypted-backup/SQLite/global-search preservation. App schema 33 and repository schema 3 are current; older versions are rejected rather than migrated.
 
-Current Money report extension: `MONEY-11` now has Day/Week/Month local range filters plus type, category, and account filters. The report discloses its exact range, active filters, and exclusions; split lines match by stable category ID, transfers are excluded, and currencies stay separate. This adds no schema, migration, network request, or background process.
+Current Money report extension: `MONEY-11` now has Day/Week/Month/Year/Custom local range filters plus type, category, and account filters. The report discloses its exact range, active filters, and exclusions; split lines match by stable category ID, transfers are excluded, and currencies stay separate. This adds no schema, migration, network request, or background process.
 
 Current date extension: `CORE-04` and `TASK-08` now have a persisted Sunday/Monday week-start setting. Home, Review, Money, App Time, and budget week ranges use it consistently; current JSON, encrypted backup, and SQLite validation require the setting, while older schemas remain rejected.
 

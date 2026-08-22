@@ -41,11 +41,12 @@ The Android summary widget shows only the number of open tasks and active notes.
 
 Android also accepts four strict local deep links: `yuzuha://open/money`, `yuzuha://open/notes`, `yuzuha://open/tasks`, and `yuzuha://open/app-time`. They open existing tabs only. IDs, query data, remote URLs, and network fetching are rejected.
 
-App Time offers Today, This week, and This month reports. Refresh reads each local day once, shows the exact local date range and last-read time, and saves the complete selected-period result together. It adds no background polling.
+App Time offers Today, This week, and This month reports. Refresh reads each local day once, shows the exact local date range and last-read time, and saves the complete selected-period result together. Its Analysis section derives daily average, active-app count, top-app share, busiest day, and previous-period change from included local usage. It adds no background polling.
 
 Home now uses the same local Day/Week/Month selector. Money totals use only the main currency in that range; app time, due-task counts, and recent note updates state the selected range. The selector is view state only and adds no schema or background work.
 
-Money entry history now has local Period, Type, and Category filters. The Account filter appears only when there are multiple active accounts; with one active account the all-accounts scope is automatic. The visible list and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
+Money entry history now has local All/Day/Week/Month/Year/Custom, Type, and Category filters. Custom intervals include the selected start date and exclude the selected end date. The Account filter appears only when there are multiple active accounts; with one active account the all-accounts scope is automatic. The visible list is chronological by occurrence time, and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
+Money forms use Android's OS date and time dialogs for local occurrence values; task due/reminder fields and other local date/time fields use the same bridge. Cancel leaves the previous value unchanged. Money occurrences and task reminders are stored as UTC ISO timestamps after validation; date-only due/recurrence values and quiet-hour times remain local strings. iOS picker parity remains planned.
 
 Periodic money operations start from the normal Add money entry form. Turning on Repeat reveals the cadence and interval; repeating every day also shows compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggles. New operations start today, and only selected weekdays are applied. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay in history.
 
@@ -63,8 +64,8 @@ The OTA trust anchor is a new project Ed25519 key; its private key stays
 outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key
 fingerprint and local secret-loading command.
-The current signed Settings bundle is GitHub OTA `v0.1.7` and requires native
-`0.1.3`.
+The current signed Settings bundle is GitHub OTA `v0.1.10` and requires native
+`0.1.9`.
 
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
@@ -78,7 +79,7 @@ The current encrypted backup flow can also save and open the current authenticat
 
 The current note-link pass supersedes that earlier schema sentence: the unreleased build uses app schema 33 and repository schema 3. Money entries can reference local payees by stable ID, and all week-based views use the saved Sunday/Monday setting. Periodic money rules also preserve selected weekdays. Notes can link to tasks, projects, money entries, and focus sessions; links persist through current JSON, encrypted backup, and SQLite. JSON, encrypted backups, and SQLite also preserve the latest import receipt. Older versions remain rejected because there are no external users to upgrade.
 
-The current Money report pass adds local Day/Week/Month, type, and category filters, plus an Account filter when there are multiple active accounts. With one active account, the report uses the all-accounts scope automatically. The report states its exact range, active filters, and exclusions; split lines match category filters, transfers stay excluded, and currencies remain separate. This is derived screen state with no schema, migration, network request, or background process.
+The current Money report pass adds local Day/Week/Month/Year/Custom, type, and category filters, plus an Account filter when there are multiple active accounts. With one active account, the report uses the all-accounts scope automatically. The report states its exact range, active filters, and exclusions; split lines match category filters, transfers stay excluded, and currencies remain separate. This is derived screen state with no schema, migration, network request, or background process.
 
 - React Native `0.86.0` (current implementation baseline, verified July 2026)
 - React `19.2.8`
@@ -90,7 +91,7 @@ Use locked dependency versions in implementation branches. The current baseline 
 
 ## Latest Android release
 
-The current Android APK baseline is `v0.1.3`. It provides the periodic money weekday controls, alongside the dashboard, manual money entries, daily app-time summaries, searchable notes, and task lists. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.3). The latest JavaScript OTA is [`v0.1.8`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.8), which requires native `0.1.3`. Cloud sync is out of scope for this release.
+The current Android APK baseline is `v0.1.9`. It provides the money interval/order controls, Android OS date/time pickers, populated App Time analysis, and the existing dashboard, notes, and task flows. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.9). The latest JavaScript OTA is [`v0.1.10`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.10), which requires native `0.1.9`. Cloud sync is out of scope for this release.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 

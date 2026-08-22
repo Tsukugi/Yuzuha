@@ -73,6 +73,7 @@ interface AppStoreValue {
     payeeId: string | null;
     category: string;
     note: string;
+    occurredAt?: string;
   }) => Promise<void>;
   importMoneyEntries: (entries: MoneyEntry[], sourceName?: string) => Promise<void>;
   undoMoneyCsvImport: () => Promise<void>;
@@ -85,6 +86,7 @@ interface AppStoreValue {
     payeeId: string | null;
     category: string;
     note: string;
+    occurredAt?: string;
   }) => Promise<void>;
   deleteMoney: (entryId: string) => Promise<void>;
   resetWorkspace: () => Promise<void>;
@@ -257,15 +259,20 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       payeeId: string | null;
       category: string;
       note: string;
+      occurredAt?: string;
     }) => {
       const now = new Date().toISOString();
+      const occurredAt = input.occurredAt ?? now;
+      if (!Number.isFinite(Date.parse(occurredAt))) {
+        throw new Error('Choose a valid local money date and time.');
+      }
       if (input.payeeId !== null && !(dataRef.current?.payees ?? []).some(payee => payee.id === input.payeeId)) {
         throw new Error('Choose a current payee or no payee.');
       }
       const entry: MoneyEntry = {
         ...input,
         id: createId('money'),
-        occurredAt: now,
+        occurredAt,
         createdAt: now,
         updatedAt: now,
       };
@@ -335,8 +342,12 @@ export function AppStoreProvider({children, store = defaultWorkspaceStore}: Prop
       payeeId: string | null;
       category: string;
       note: string;
+      occurredAt?: string;
     }) => {
       const updatedAt = new Date().toISOString();
+      if (input.occurredAt !== undefined && !Number.isFinite(Date.parse(input.occurredAt))) {
+        throw new Error('Choose a valid local money date and time.');
+      }
       if (input.payeeId !== null && !(dataRef.current?.payees ?? []).some(payee => payee.id === input.payeeId)) {
         throw new Error('Choose a current payee or no payee.');
       }

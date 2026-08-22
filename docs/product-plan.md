@@ -60,9 +60,9 @@ Home offers one compact Money widget. It shows the main-currency balance and sel
 ### Money
 
 - Add income or expense manually.
-- Set amount, currency, date, category, and optional note; choose an account only when multiple active accounts exist.
+- Set amount, currency, local occurrence date/time, category, and optional note; choose an account only when multiple active accounts exist. Android uses OS date/time dialogs for the local value.
 - Edit or delete an entry.
-- Filter by period, type, and category; filter by account when multiple active accounts exist.
+- Filter by All/Day/Week/Month/Year or a custom local interval, type, and category; filter by account when multiple active accounts exist. Show entries chronologically.
 - Show totals and a simple category breakdown.
 - Export entries as CSV or JSON.
 
@@ -70,6 +70,7 @@ Home offers one compact Money widget. It shows the main-currency balance and sel
 
 - Explain Android Usage Access before asking for it.
 - Show daily totals and a per-app breakdown for Today, This week, or This month.
+- Show derived daily average, active-app count, top-app share, busiest local day, and previous-period change when the selected range has included data.
 - Show when the data was last read and which apps were included.
 - Allow the user to exclude apps from the dashboard.
 - Keep the raw usage data local.

@@ -54,7 +54,7 @@ class BundleInstallerFlowTest {
     val installer = YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-      nativeVersion = "0.1.3",
+       nativeVersion = "0.1.9",
       pinnedPublicKey = release.publicKey,
       connectionFactory = network,
       remoteUpdatesEnabled = false,
@@ -63,7 +63,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.1.3", launch.version)
+    assertEquals("0.1.9", launch.version)
     assertEquals("LOCAL_BUNDLE_ONLY", launch.reasonCode)
     assertEquals(0, network.metadataRequests)
     assertEquals(0, network.bundleRequests)
@@ -77,14 +77,14 @@ class BundleInstallerFlowTest {
   fun newProjectProductionPinAcceptsSignedGithubReleaseFixture() {
     val bundle = "new-project-ota-key".toByteArray(StandardCharsets.UTF_8)
     val metadata = """
-      {"schema":1,"appId":"yuzuha-mobile","platform":"android","runtime":"0.86.0","version":"0.1.4","minNativeVersion":"0.1.3","bundleUrl":"https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.4/Yuzuha-0.1.4.jsbundle","sha256":"3cd85130c1f0bef0756475fe270f90cdb5e080ad65f30cd7fbb0ea4095477586","sizeBytes":19,"publishedAt":"2026-08-05T00:00:00Z","signature":"+SYf3260+9knmao0EDFp358ARs2hBsrh6oTKUojgEG7d29WciI6wviDHKpcs1KWlaR69OxFfq2aWU4dd2h07BA=="}
+      {"schema":1,"appId":"yuzuha-mobile","platform":"android","runtime":"0.86.0","version":"0.1.10","minNativeVersion":"0.1.9","bundleUrl":"https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.10/Yuzuha-0.1.10.jsbundle","sha256":"3cd85130c1f0bef0756475fe270f90cdb5e080ad65f30cd7fbb0ea4095477586","sizeBytes":19,"publishedAt":"2026-08-05T00:00:00Z","signature":"arejKGLWwzwkd9PSLK3ZqZr67wbf18mcr4ZtBoHaQ5rFQoomPT7v9WXqy0bv3zr07osDLYtFevB1npNDk09/Bw=="}
     """.trimIndent().toByteArray(StandardCharsets.UTF_8)
     val network = FixtureNetwork(metadata, bundle)
     val root = temporaryFolder.newFolder("files")
     val installer = YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-      nativeVersion = "0.1.3",
+       nativeVersion = "0.1.9",
       pinnedPublicKey = YuzuhaBundleInstaller.PINNED_PUBLIC_KEY,
       connectionFactory = network,
     )
@@ -92,7 +92,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("remote-activated", launch.kind)
-    assertEquals("0.1.4", launch.version)
+    assertEquals("0.1.10", launch.version)
     assertEquals(bundle.toList(), File(requireNotNull(launch.bundlePath)).readBytes().toList())
   }
 
@@ -106,14 +106,14 @@ class BundleInstallerFlowTest {
 
     val launch = installer.await()
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.1.3", launch.version)
+    assertEquals("0.1.9", launch.version)
 
     network.metadata = release.metadata
     network.bundle = release.bundle
     val check = installer.checkForUpdate()
     assertEquals("reason=${check.reasonCode}", "available", check.kind)
     assertEquals("prepared", installer.downloadUpdate().kind)
-    assertEquals("0.1.3", installer.await().version)
+    assertEquals("0.1.9", installer.await().version)
     assertEquals("keep me", productFile.readText())
     assertEquals(1, network.bundleRequests)
 
@@ -160,7 +160,7 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.1.3", launch.version)
+    assertEquals("0.1.9", launch.version)
     assertEquals(null, launch.bundlePath)
   }
 
@@ -180,7 +180,7 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.1.3", launch.version)
+    assertEquals("0.1.9", launch.version)
     assertEquals("INVALID_STATE", launch.reasonCode)
     assertEquals(null, launch.bundlePath)
   }
@@ -204,7 +204,7 @@ class BundleInstallerFlowTest {
     val rollback = rolledBackInstaller.await()
 
     assertEquals("embedded", rollback.kind)
-    assertEquals("0.1.3", rollback.version)
+    assertEquals("0.1.9", rollback.version)
     assertEquals("BLOCKED_VERSION", rollback.reasonCode)
     assertEquals("BLOCKED_VERSION", rolledBackInstaller.checkForUpdate().reasonCode)
     assertEquals(1, network.bundleRequests)
@@ -238,7 +238,7 @@ class BundleInstallerFlowTest {
     return YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-      nativeVersion = "0.1.3",
+      nativeVersion = "0.1.9",
       pinnedPublicKey = release.publicKey,
       connectionFactory = network,
     )

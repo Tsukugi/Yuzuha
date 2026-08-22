@@ -1,6 +1,6 @@
 # Yuzuha documentation
 
-This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, selected App Time period reports, selected Home dashboard periods, read-only period Reviews, local Money entry filters and filtered totals, and the native verified-remote-bundle startup gate, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
+This is the product and engineering baseline for Yuzuha. Core code exists through the Android summary widget, launcher shortcuts, strict local deep links, text/file share capture, the one-way task calendar draft, strict current-format money CSV import, current JSON export file restore, bounded encrypted-backup file opening, selected App Time period reports and derived usage analysis, selected Home dashboard periods, read-only period Reviews, local Money Year/Custom filters and chronological history, Android OS date/time dialogs for local date fields, and the native verified-remote-bundle startup gate, while later documents use clear labels for current behavior and planned behavior. The specification covers the full personal product, not only the first MVP.
 
 The latest current-schema pass adds weekday-aware periodic money rules after the local note-link pass. It uses app schema 33 and repository schema 3; old versions remain intentionally rejected.
 
@@ -29,16 +29,19 @@ The current Money report pass adds derived period, type, and category filters, p
 19. [API contract](api-contract.md) - sync service requests, responses, errors, and versioning.
 20. [Traceability](traceability.md) - requirement families, authoritative documents, and evidence.
 21. [Decision log](decision-log.md) - decisions that affect future work.
-22. [v0.1.7 OTA release record](releases/v0.1.7.md) - latest color-palette OTA artifact, verification, and release boundary.
-23. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
-24. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
-25. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
-26. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
-27. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
+22. [Backlog](Backlog.md) - open bugs, improvements, and planned work.
+23. [Resolved backlog](BacklogResolved.md) - completed backlog items with evidence.
+24. [v0.1.8 OTA release record](releases/v0.1.8.md) - latest current-schema OTA artifact, verification, and release boundary.
+25. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
+26. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
+27. [v0.1.3 release record](releases/v0.1.3.md) - current native APK artifact identity and release boundary.
+28. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
+29. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.
 
 ## Documentation rules
 
 - Update the relevant document in the same change as the code or configuration change.
 - Mark items as `Current`, `Planned`, or `Open decision`.
+- Keep `docs/Backlog.md` synchronized with implementation and release records.
 - Keep examples deterministic. A fallback must have a defined condition and a defined result.
 - Do not store secrets, private user data, or production credentials in this tree.

@@ -18,6 +18,10 @@ function entry(overrides: Partial<MoneyEntry>): MoneyEntry {
   };
 }
 
+function localIso(year: number, month: number, day: number, hour = 12): string {
+  return new Date(year, month - 1, day, hour).toISOString();
+}
+
 describe('money entry filters', () => {
   const entries = [
     entry({id: 'matching', categoryId: 'category_food', accountId: 'account_everyday'}),
@@ -59,5 +63,39 @@ describe('money entry filters', () => {
 
     expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['sunday', 'monday']);
     expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 1).map(item => item.id)).toEqual(['monday']);
+  });
+
+  it('filters a year and a strict custom local interval', () => {
+    const intervalEntries = [
+      entry({id: 'year-start', occurredAt: localIso(2026, 1, 1)}),
+      entry({id: 'custom-start', occurredAt: localIso(2026, 7, 1)}),
+      entry({id: 'custom-end', occurredAt: localIso(2026, 8, 1)}),
+      entry({id: 'next-year', occurredAt: localIso(2027, 1, 1)}),
+    ];
+
+    expect(filterMoneyEntries(intervalEntries, {
+      period: 'year',
+      kind: 'all',
+      categoryId: 'all',
+      accountId: 'all',
+    }, new Date(2026, 6, 26)).map(item => item.id)).toEqual(['year-start', 'custom-start', 'custom-end']);
+    expect(filterMoneyEntries(intervalEntries, {
+      period: 'custom',
+      customInterval: {startLocalDate: '2026-07-01', endLocalDate: '2026-08-01'},
+      kind: 'all',
+      categoryId: 'all',
+      accountId: 'all',
+    }).map(item => item.id)).toEqual(['custom-start']);
+  });
+
+  it('sorts filtered entries chronologically without changing source order', () => {
+    const entries = [
+      entry({id: 'later', occurredAt: '2026-07-28T12:00:00.000Z'}),
+      entry({id: 'earlier', occurredAt: '2026-07-26T12:00:00.000Z'}),
+    ];
+    const filter: MoneyEntryFilter = {period: 'week', kind: 'all', categoryId: 'all', accountId: 'all'};
+
+    expect(filterMoneyEntries(entries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['earlier', 'later']);
+    expect(entries.map(item => item.id)).toEqual(['later', 'earlier']);
   });
 });

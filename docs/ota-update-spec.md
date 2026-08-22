@@ -122,7 +122,7 @@ The first OTA contract is tied to:
 - app ID: `yuzuha-mobile`;
 - platform: `android`;
 - React Native runtime: `0.86.0`;
-- native version: `0.1.3` for the current release;
+- native version: `0.1.9` for the current release;
 - Android minimum API: 33;
 - maximum bundle size: 64 MiB.
 

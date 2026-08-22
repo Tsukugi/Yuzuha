@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppStore} from '../data/AppStore';
-import {formatDate, formatMoney, sumMoney} from '../shared/format';
+import {formatDate, formatDateTime, formatMoney, sumMoney} from '../shared/format';
 import {formatDuration} from '../shared/duration';
 import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey, periodLabel} from '../shared/period';
 import type {Period} from '../shared/period';
@@ -74,6 +74,7 @@ import {formatTaskReminderLocalDateTime, parseTaskReminderLocalDateTime, validat
 import {DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES, TASK_REMINDER_SNOOZE_DURATION_OPTIONS} from '../shared/notificationSettings';
 import {createId} from '../shared/id';
 import {usageAccess} from '../platform/usageAccess';
+import {dateTimePicker} from '../platform/dateTimePicker';
 import {taskReminders} from '../platform/taskReminders';
 import {shareCapture} from '../platform/shareCapture';
 import {launchActions} from '../platform/launchActions';
@@ -83,7 +84,9 @@ import type {TaskReminderTarget} from '../platform/taskReminders';
 import type {LaunchAction} from '../shared/launchAction';
 import type {DeepLinkTarget} from '../shared/deepLink';
 import {validateCalendarTaskDraft} from '../shared/calendarDraft';
-import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import type {AppData, Attachment, BudgetPeriod, BudgetRollover, MissedOccurrencePolicy, MoneyEntry, MoneyKind, MoneyTransfer, Note, NoteLink, NoteLinkTargetType, RecurrenceCadence, RecurrenceWeekday, SavedSearch, Task, TaskPriority, TaskProject, TaskReminderSnoozeDurationMinutes, TaskTemplate, WeekStartDay} from '../types/domain';
+import {deriveUsageMetrics, type UsageMetric} from '../shared/usageMetrics';
+import {getMoneyRange, type MoneyCustomInterval, type MoneyRangePeriod} from '../shared/moneyRange';
 import {nativeBundleInstaller, type UpdateCheckResult} from '../installer/BundleInstaller';
 import {THEME_PALETTE_OPTIONS, THEME_PALETTES, useAppTheme, type ThemeColors} from './theme';
 import {UI_TOKENS} from './uiTokens';
@@ -129,7 +132,7 @@ function useThemeStyles() {
   return {colors, styles, mode, palette, resolvedMode, setMode, setPalette};
 }
 
-export function MainApp({bundleVersion = '0.1.3'}: {bundleVersion?: string}) {
+export function MainApp({bundleVersion = '0.1.9'}: {bundleVersion?: string}) {
   const {styles} = useThemeStyles();
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
@@ -1516,6 +1519,52 @@ function appTimeTopAppsLabel(period: Period): string {
   return 'Top apps today';
 }
 
+function formatLocalTime(date: Date): string {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function currentLocalDateTime(): string {
+  const now = new Date();
+  return `${localDateKey(now)}T${formatLocalTime(now)}`;
+}
+
+function moneyFilterPeriodLabel(period: MoneyRangePeriod, customInterval?: MoneyCustomInterval): string {
+  if (period === 'all') {
+    return 'All entries';
+  }
+  if (period === 'year') {
+    return 'This year';
+  }
+  if (period === 'custom') {
+    return customInterval ? `${customInterval.startLocalDate} to ${customInterval.endLocalDate}` : 'Custom interval';
+  }
+  return periodLabel(period);
+}
+
+function previousUsageRange(now: Date, period: Period, weekStartsOn: WeekStartDay) {
+  const current = getPeriodRange(now, period, weekStartsOn);
+  if (period === 'month') {
+    const start = new Date(current.start.getFullYear(), current.start.getMonth() - 1, 1);
+    return {start, end: new Date(start.getFullYear(), start.getMonth() + 1, 1)};
+  }
+  const days = period === 'day' ? 1 : 7;
+  const start = new Date(current.start);
+  const end = new Date(current.end);
+  start.setDate(start.getDate() - days);
+  end.setDate(end.getDate() - days);
+  return {start, end};
+}
+
+function formatUsageMetric<T>(metric: UsageMetric<T>, format: (value: T) => string): string {
+  if (metric.status === 'available') {
+    return format(metric.value);
+  }
+  if (metric.status === 'empty') {
+    return 'No data';
+  }
+  return 'Unavailable';
+}
+
 function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): string | null {
   if (!generatedKey || !confirmation) {
     return null;
@@ -1550,6 +1599,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [accountId, setAccountId] = useState('');
   const [payeeId, setPayeeId] = useState('');
   const [note, setNote] = useState('');
+  const [occurredAtLocalDateTime, setOccurredAtLocalDateTime] = useState(currentLocalDateTime());
   const [newCategory, setNewCategory] = useState('');
   const [newAccount, setNewAccount] = useState('');
   const [newPayee, setNewPayee] = useState('');
@@ -1570,6 +1620,8 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [accountManagementOpen, setAccountManagementOpen] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const [entryFilterPeriod, setEntryFilterPeriod] = useState<MoneyFilterPeriod>(emptyMoneyEntryFilter.period);
+  const [entryFilterCustomStart, setEntryFilterCustomStart] = useState(localDateKey(new Date()));
+  const [entryFilterCustomEnd, setEntryFilterCustomEnd] = useState(localDateKey(new Date()));
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
   const [entryFilterAccountId, setEntryFilterAccountId] = useState<string | 'all'>(emptyMoneyEntryFilter.accountId);
@@ -1584,6 +1636,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAccountId('');
     setPayeeId('');
     setNote('');
+    setOccurredAtLocalDateTime(currentLocalDateTime());
     setEditingId(null);
     setRecurrenceEnabled(false);
     setRecurrenceCadence('month');
@@ -1612,6 +1665,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAccountId(entry.accountId ?? '');
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
+    setOccurredAtLocalDateTime(formatTaskReminderLocalDateTime(new Date(entry.occurredAt).getTime()));
     setEntryFormOpen(true);
     setError(null);
     onFocusHandled();
@@ -1653,6 +1707,13 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
 
     setError(null);
     setSaving(true);
+    const occurredAtMillis = parseTaskReminderLocalDateTime(occurredAtLocalDateTime.trim());
+    if (occurredAtMillis === null) {
+      setError('Choose a valid money date and time.');
+      setSaving(false);
+      return;
+    }
+    const occurredAt = new Date(occurredAtMillis).toISOString();
     const selectedCategory =
       currentData.categories.find(item => item.id === categoryId && (item.kind === kind || item.kind === 'both')) ??
       currentData.categories.find(item => item.kind === kind || item.kind === 'both');
@@ -1666,6 +1727,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
       payeeId: payeeId || null,
       category: selectedCategory?.name ?? 'Uncategorized',
       note: note.trim(),
+      occurredAt,
     };
     try {
       if (editingId) {
@@ -1683,7 +1745,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           cadence: recurrenceCadence,
           interval: Number.isFinite(parsedInterval) ? parsedInterval : 0,
           weekdays: recurrenceCadence === 'day' && parsedInterval === 1 ? recurrenceWeekdays : ALL_RECURRENCE_WEEKDAYS,
-          nextOccurrenceLocalDate: localDateKey(new Date()),
+          nextOccurrenceLocalDate: occurredAtLocalDateTime.slice(0, 10),
           missedOccurrencePolicy: 'all',
         });
       } else {
@@ -1701,6 +1763,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAmount('');
     setPayeeId('');
     setNote('');
+    setOccurredAtLocalDateTime(currentLocalDateTime());
     setEditingId(null);
     setRecurrenceEnabled(false);
     setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
@@ -1715,6 +1778,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAccountId('');
     setPayeeId('');
     setNote('');
+    setOccurredAtLocalDateTime(currentLocalDateTime());
     setEditingId(null);
     setRecurrenceEnabled(false);
     setRecurrenceCadence('month');
@@ -1733,6 +1797,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setAccountId(entry.accountId ?? '');
     setPayeeId(entry.payeeId ?? '');
     setNote(entry.note);
+    setOccurredAtLocalDateTime(formatTaskReminderLocalDateTime(new Date(entry.occurredAt).getTime()));
     setRecurrenceEnabled(false);
     setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
     setEntryFormOpen(true);
@@ -1800,11 +1865,18 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     kind: entryFilterKind,
     categoryId: entryFilterCategoryId,
     accountId: hasAccountChoice ? entryFilterAccountId : 'all',
+    ...(entryFilterPeriod === 'custom' ? {customInterval: {startLocalDate: entryFilterCustomStart, endLocalDate: entryFilterCustomEnd}} : {}),
   } as const;
   const listSourceEntries = data.money.filter(
     entry => !entry.splitId && !data.splits.some(split => split.parentEntryId === entry.id),
   );
-  const listEntries = filterMoneyEntries(listSourceEntries, entryFilter, new Date(), data.weekStartsOn);
+  let listEntries: MoneyEntry[] = [];
+  let entryFilterError: string | null = null;
+  try {
+    listEntries = filterMoneyEntries(listSourceEntries, entryFilter, new Date(), data.weekStartsOn);
+  } catch (filterError) {
+    entryFilterError = filterError instanceof Error ? filterError.message : 'Choose a valid money interval.';
+  }
   const filteredTotals = summarizeMoneyEntries(listEntries);
   const mainCurrencyAccounts = data.accounts.filter(account => !account.isArchived && account.currency === currentData.mainCurrency);
   const totalBalanceMinor = mainCurrencyAccounts.reduce(
@@ -1812,7 +1884,14 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     0,
   );
   const mainFilteredTotal = filteredTotals.find(total => total.currency === currentData.mainCurrency);
-  const chartRange = entryFilterPeriod === 'all' ? null : getPeriodRange(new Date(), entryFilterPeriod, currentData.weekStartsOn);
+  let chartRange: ReturnType<typeof getMoneyRange> = null;
+  try {
+    chartRange = getMoneyRange(new Date(), entryFilterPeriod === 'custom'
+      ? {period: 'custom', startLocalDate: entryFilterCustomStart, endLocalDate: entryFilterCustomEnd}
+      : {period: entryFilterPeriod}, currentData.weekStartsOn);
+  } catch {
+    chartRange = null;
+  }
   const chartData = buildMoneyChartData(
     currentData.money,
     currentData.splits,
@@ -1823,7 +1902,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === entryFilterCategoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
   const activeEntryFilterLabels = [
-    entryFilterPeriod !== 'all' ? periodLabel(entryFilterPeriod) : null,
+    entryFilterPeriod !== 'all' ? moneyFilterPeriodLabel(entryFilterPeriod, entryFilter.customInterval) : null,
     entryFilterKind !== 'all' ? entryFilterKind : null,
     entryFilterCategoryId !== 'all' ? 'category' : null,
     entryFilter.accountId !== 'all' ? 'account' : null,
@@ -1834,12 +1913,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     return (
       <>
         <SectionTitle title={`Entries (${listEntries.length})`} />
-        {listEntries.length === 0 ? (
+        {entryFilterError ? (
+          <EmptyState text={entryFilterError} />
+        ) : listEntries.length === 0 ? (
           <EmptyState text="No money entries match these filters." />
         ) : (
-          listEntries
-            .slice(0, 20)
-            .map(entry => (
+          listEntries.map(entry => (
             <Pressable
               key={entry.id}
               accessibilityLabel={`Edit ${entry.category} ${formatMoney(entry.amountMinor, entry.currency)}`}
@@ -1849,7 +1928,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               <View style={styles.listBody}>
                 <Text style={styles.listTitle}>{entry.category}</Text>
                 <Text style={styles.listMeta}>
-                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || formatDate(entry.occurredAt)].filter(Boolean).join(' · ')}
+                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || null, formatDateTime(entry.occurredAt)].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
@@ -1927,7 +2006,32 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             <SegmentButton label="Day" selected={entryFilterPeriod === 'day'} onPress={() => setEntryFilterPeriod('day')} />
             <SegmentButton label="Week" selected={entryFilterPeriod === 'week'} onPress={() => setEntryFilterPeriod('week')} />
             <SegmentButton label="Month" selected={entryFilterPeriod === 'month'} onPress={() => setEntryFilterPeriod('month')} />
+            <SegmentButton label="Year" selected={entryFilterPeriod === 'year'} onPress={() => setEntryFilterPeriod('year')} />
           </View>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Custom" selected={entryFilterPeriod === 'custom'} onPress={() => setEntryFilterPeriod('custom')} />
+          </View>
+          {entryFilterPeriod === 'custom' && (
+            <View style={styles.inlinePanel}>
+              <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
+              <TextButton label={`Start date: ${entryFilterCustomStart}`} onPress={() => void (async () => {
+                try {
+                  const selected = await dateTimePicker.pickDate(entryFilterCustomStart);
+                  if (selected) setEntryFilterCustomStart(selected);
+                } catch (pickerError) {
+                  setError(pickerError instanceof Error ? pickerError.message : 'The start date picker failed.');
+                }
+              })()} />
+              <TextButton label={`End date: ${entryFilterCustomEnd}`} onPress={() => void (async () => {
+                try {
+                  const selected = await dateTimePicker.pickDate(entryFilterCustomEnd);
+                  if (selected) setEntryFilterCustomEnd(selected);
+                } catch (pickerError) {
+                  setError(pickerError instanceof Error ? pickerError.message : 'The end date picker failed.');
+                }
+              })()} />
+            </View>
+          )}
           <Text style={styles.formLabel}>Type</Text>
           <View style={styles.chipWrap}>
             <ChipButton label="All" selected={entryFilterKind === 'all'} onPress={() => setEntryFilterKind('all')} />
@@ -1997,6 +2101,32 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             value={amount}
             onChangeText={setAmount}
           />
+          <Text style={styles.formLabel}>Occurred date and time</Text>
+          <View style={styles.inlinePanel}>
+            <Text style={styles.cardDetail}>{occurredAtLocalDateTime || 'Choose a local date and time'}</Text>
+            <TextButton label="Choose date" onPress={() => void (async () => {
+              try {
+                const currentDate = occurredAtLocalDateTime.slice(0, 10) || localDateKey(new Date());
+                const selectedDate = await dateTimePicker.pickDate(currentDate);
+                if (!selectedDate) return;
+                const currentTime = occurredAtLocalDateTime.slice(11, 16) || formatLocalTime(new Date());
+                setOccurredAtLocalDateTime(`${selectedDate}T${currentTime}`);
+              } catch (pickerError) {
+                setError(pickerError instanceof Error ? pickerError.message : 'The money date picker failed.');
+              }
+            })()} />
+            <TextButton label="Choose time" onPress={() => void (async () => {
+              try {
+                const currentTime = occurredAtLocalDateTime.slice(11, 16) || formatLocalTime(new Date());
+                const selectedTime = await dateTimePicker.pickTime(currentTime);
+                if (!selectedTime) return;
+                const currentDate = occurredAtLocalDateTime.slice(0, 10) || localDateKey(new Date());
+                setOccurredAtLocalDateTime(`${currentDate}T${selectedTime}`);
+              } catch (pickerError) {
+                setError(pickerError instanceof Error ? pickerError.message : 'The money time picker failed.');
+              }
+            })()} />
+          </View>
           <Text style={styles.formLabel}>Category</Text>
           <View style={styles.chipWrap}>
             {visibleCategories.map(categoryOption => (
@@ -2846,22 +2976,54 @@ function TransferRow({
 
 function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const {styles} = useThemeStyles();
-  const [period, setPeriod] = useState<Period>('month');
+  const [period, setPeriod] = useState<MoneyRangePeriod>('month');
+  const [customStart, setCustomStart] = useState(localDateKey(new Date()));
+  const [customEnd, setCustomEnd] = useState(localDateKey(new Date()));
+  const [pickerError, setPickerError] = useState<string | null>(null);
   const [kind, setKind] = useState<MoneyReportFilter['kind']>(emptyMoneyReportFilter.kind);
   const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
   const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
   const [reportFiltersOpen, setReportFiltersOpen] = useState(false);
-  const range = getPeriodRange(new Date(), period, data.weekStartsOn);
+  let range: ReturnType<typeof getMoneyRange> = null;
+  let rangeError: string | null = null;
+  try {
+    range = getMoneyRange(new Date(), period === 'custom'
+      ? {period: 'custom', startLocalDate: customStart, endLocalDate: customEnd}
+      : {period}, data.weekStartsOn);
+  } catch (error) {
+    rangeError = error instanceof Error ? error.message : 'Choose a valid report interval.';
+  }
   const activeAccounts = data.accounts.filter(account => !account.isArchived);
   const hasAccountChoice = activeAccounts.length > 1;
   const effectiveAccountId = hasAccountChoice ? accountId : 'all';
   const filter: MoneyReportFilter = {kind, categoryId, accountId: effectiveAccountId};
-  const report = buildMoneyReport(data.money, range, data.splits, filter);
+  const report = range === null ? null : buildMoneyReport(data.money, range, data.splits, filter);
   const filterCategories = data.categories.filter(category => !category.isArchived || category.id === categoryId);
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === effectiveAccountId);
   const kindLabel = kind === 'all' ? 'All types' : kind === 'expense' ? 'Expenses' : 'Income';
   const categoryLabel = categoryId === 'all' ? 'All categories' : data.categories.find(category => category.id === categoryId)?.name ?? 'Selected category';
   const accountLabel = effectiveAccountId === 'all' ? 'All accounts' : data.accounts.find(account => account.id === effectiveAccountId)?.name ?? 'Selected account';
+  const reportRangeLabel = period === 'custom'
+    ? `${customStart} to ${customEnd}${customStart === customEnd ? ' (empty; end excluded)' : ' (end excluded)'}`
+    : range
+      ? formatPeriodRange(range)
+      : 'Invalid custom interval';
+
+  async function pickCustomDate(which: 'start' | 'end') {
+    try {
+      const current = which === 'start' ? customStart : customEnd;
+      const selected = await dateTimePicker.pickDate(current);
+      if (!selected) return;
+      setPickerError(null);
+      if (which === 'start') {
+        setCustomStart(selected);
+      } else {
+        setCustomEnd(selected);
+      }
+    } catch (error) {
+      setPickerError(error instanceof Error ? error.message : 'The report date picker failed.');
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -2874,10 +3036,22 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
         <SegmentButton label="Day" selected={period === 'day'} onPress={() => setPeriod('day')} />
         <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
         <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
+        <SegmentButton label="Year" selected={period === 'year'} onPress={() => setPeriod('year')} />
       </View>
+      <View style={styles.segmentRow}>
+        <SegmentButton label="Custom" selected={period === 'custom'} onPress={() => setPeriod('custom')} />
+      </View>
+      {period === 'custom' && (
+        <View style={styles.inlinePanel}>
+          <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
+          <TextButton label={`Start date: ${customStart}`} onPress={() => void pickCustomDate('start')} />
+          <TextButton label={`End date: ${customEnd}`} onPress={() => void pickCustomDate('end')} />
+        </View>
+      )}
+      {pickerError && <Text style={styles.errorText}>{pickerError}</Text>}
       <View style={styles.formCard}>
         <Text style={styles.formLabel}>Report scope</Text>
-        <Text style={styles.cardDetail}>Range: {formatPeriodRange(range)}</Text>
+        <Text style={styles.cardDetail}>Range: {reportRangeLabel}</Text>
         <Text style={styles.cardDetail}>Filters: {kindLabel}, {categoryLabel}, {accountLabel}</Text>
         <Text style={styles.cardDetail}>Excluded: transfers and entries outside the range; currencies stay in separate cards.</Text>
       </View>
@@ -2911,7 +3085,9 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
           </>
         )}
       </Disclosure>
-      {report.currencies.length === 0 ? (
+      {rangeError ? (
+        <EmptyState text={rangeError} />
+      ) : !report || report.currencies.length === 0 ? (
         <EmptyState text="No money entries match this report scope." />
       ) : (
         report.currencies.map(currencyReport => (
@@ -2952,6 +3128,7 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
   const [goalMinutes, setGoalMinutes] = useState('300');
   const [focusToolsOpen, setFocusToolsOpen] = useState(false);
   const [timeGoalOpen, setTimeGoalOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   useEffect(() => {
     void checkPermission();
@@ -2997,7 +3174,10 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
       const sourceReadAt = new Date().toISOString();
       const dailyRecords: Array<{records: UsageRecord[]; rangeStartMillis: number}> = [];
       for (const dayRange of dayRanges) {
-        const rawRecords = await usageAccess.query(dayRange.start.getTime(), dayRange.end.getTime());
+        const queryEndMillis = Math.min(dayRange.end.getTime(), Date.now());
+        const rawRecords = queryEndMillis > dayRange.start.getTime()
+          ? await usageAccess.query(dayRange.start.getTime(), queryEndMillis)
+          : [];
         dailyRecords.push({records: rawRecords, rangeStartMillis: dayRange.start.getTime()});
       }
       const snapshots = aggregateUsagePeriod(dailyRecords, sourceReadAt);
@@ -3021,6 +3201,18 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
   const allPeriodSnapshots = data.usageSnapshots
     .filter(snapshot => periodDates.has(snapshot.localDate))
     .sort((left, right) => right.durationSeconds - left.durationSeconds);
+  const previousRange = previousUsageRange(new Date(), usagePeriod, currentData.weekStartsOn);
+  const previousDates = getLocalDateKeys(previousRange);
+  const usageMetrics = deriveUsageMetrics({
+    snapshots: data.usageSnapshots,
+    localDates: periodDates,
+    permission,
+    previous: {
+      snapshots: data.usageSnapshots,
+      localDates: previousDates,
+      permission,
+    },
+  });
   const totalSeconds = sumUsage(data.usageSnapshots, periodDates);
   const todaySeconds = sumUsage(data.usageSnapshots, new Set([localDateKey(new Date())]));
   const weekRange = getPeriodRange(new Date(), 'week', data.weekStartsOn);
@@ -3108,6 +3300,21 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
               </View>
             ))
           )}
+          <Disclosure
+            title="Analysis"
+            subtitle="Derived from included local usage"
+            open={analysisOpen}
+            onPress={() => setAnalysisOpen(current => !current)}>
+          <View style={styles.formCard}>
+            <Text style={styles.cardTitle}>Selected-period metrics</Text>
+            <Text style={styles.cardDetail}>Excluded apps are not counted.</Text>
+            <View style={styles.manageRow}><Text style={styles.listTitle}>Daily average</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.averageSecondsPerLocalDay, formatDuration)}</Text></View>
+            <View style={styles.manageRow}><Text style={styles.listTitle}>Active apps</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.activeAppCount, value => String(value))}</Text></View>
+            <View style={styles.manageRow}><Text style={styles.listTitle}>Top-app share</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.topAppShare, value => `${value.displayName} · ${Math.round(value.share * 100)}%`)}</Text></View>
+            <View style={styles.manageRow}><Text style={styles.listTitle}>Busiest day</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.busiestLocalDay, value => `${value.localDate} · ${formatDuration(value.durationSeconds)}`)}</Text></View>
+            <View style={styles.manageRow}><Text style={styles.listTitle}>Previous period</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.previousEquivalentPeriodChange, value => `${value.deltaSeconds >= 0 ? '+' : ''}${formatDuration(value.deltaSeconds)} · ${value.fraction >= 0 ? '+' : ''}${Math.round(value.fraction * 100)}%`)}</Text></View>
+          </View>
+          </Disclosure>
           <Disclosure
             title="Time goal"
             subtitle={activeGoal ? `${formatDuration(goalSeconds)} of ${formatDuration(activeGoal.targetSeconds)}` : 'Optional daily or weekly target'}
@@ -4308,6 +4515,59 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     .slice(0, 4);
   const maxListCount = Math.max(...listOverview.map(item => item.count), 1);
 
+  async function pickTaskDueDate() {
+    try {
+      const selected = await dateTimePicker.pickDate(dueLocalDate || todayLocalDate);
+      if (selected) {
+        setDueLocalDate(selected);
+      }
+    } catch (pickerError) {
+      setError(pickerError instanceof Error ? pickerError.message : 'The task date picker failed.');
+    }
+  }
+
+  async function pickTaskReminder() {
+    try {
+      const currentDate = reminderAtLocalDateTime.slice(0, 10) || dueLocalDate || todayLocalDate;
+      const currentTime = reminderAtLocalDateTime.slice(11, 16) || '09:00';
+      const selectedDate = await dateTimePicker.pickDate(currentDate);
+      if (!selectedDate) return;
+      const selectedTime = await dateTimePicker.pickTime(currentTime);
+      if (selectedTime) {
+        setReminderAtLocalDateTime(`${selectedDate}T${selectedTime}`);
+      }
+    } catch (pickerError) {
+      setError(pickerError instanceof Error ? pickerError.message : 'The task reminder picker failed.');
+    }
+  }
+
+  async function pickQuietHour(setter: (value: string) => void, current: string) {
+    try {
+      const selected = await dateTimePicker.pickTime(current || '22:00');
+      if (selected) setter(selected);
+    } catch (pickerError) {
+      setNotificationSettingsError(pickerError instanceof Error ? pickerError.message : 'The quiet-hours picker failed.');
+    }
+  }
+
+  async function pickRecurringRuleDate() {
+    try {
+      const selected = await dateTimePicker.pickDate(ruleNextDate || todayLocalDate);
+      if (selected) setRuleNextDate(selected);
+    } catch (pickerError) {
+      setTaskRecurrenceError(pickerError instanceof Error ? pickerError.message : 'The recurring-task date picker failed.');
+    }
+  }
+
+  async function pickRecurringRuleTime() {
+    try {
+      const selected = await dateTimePicker.pickTime(ruleReminderLocalTime || '09:00');
+      if (selected) setRuleReminderLocalTime(selected);
+    } catch (pickerError) {
+      setTaskRecurrenceError(pickerError instanceof Error ? pickerError.message : 'The recurring-task time picker failed.');
+    }
+  }
+
   function resetForm() {
     setTitle('');
     setDetails('');
@@ -4951,9 +5211,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <Text style={styles.formLabel}>Details (optional)</Text>
             <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
             <Text style={styles.formLabel}>Due date (optional)</Text>
-            <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} autoCapitalize="none" />
+            <Text style={styles.cardDetail}>{dueLocalDate || 'No due date'}</Text>
+            <TextButton label={dueLocalDate ? 'Change due date' : 'Choose due date'} onPress={() => void pickTaskDueDate()} />
+            {dueLocalDate && <TextButton label="Clear due date" onPress={() => setDueLocalDate('')} />}
             <Text style={styles.formLabel}>Reminder (optional)</Text>
-            <TextInput accessibilityLabel="Task reminder time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} autoCapitalize="none" />
+            <Text style={styles.cardDetail}>{reminderAtLocalDateTime || 'No reminder'}</Text>
+            <TextButton label={reminderAtLocalDateTime ? 'Change reminder' : 'Choose reminder'} onPress={() => void pickTaskReminder()} />
+            {reminderAtLocalDateTime && <TextButton label="Clear reminder" onPress={() => setReminderAtLocalDateTime('')} />}
             <Text style={styles.formLabel}>Priority</Text>
             <View style={styles.segmentRow}>
               <SegmentButton label="Low" selected={priority === 'low'} onPress={() => setPriority('low')} />
@@ -5114,8 +5378,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <Text style={styles.cardDetail}>Off pauses reminders on tasks created from recurring rules. One-off task reminders stay active.</Text>
           <Text style={styles.searchAccessNote}>Reminders that fall inside quiet hours are delivered at the quiet-hours end.</Text>
           <View style={styles.segmentRow}>
-            <TextInput accessibilityLabel="Quiet hours start" placeholder="Start HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} autoCapitalize="none" />
-            <TextInput accessibilityLabel="Quiet hours end" placeholder="End HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} autoCapitalize="none" />
+            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursStartLocalTime || 'Quiet hours start off'}</Text><TextButton label="Choose start" onPress={() => void pickQuietHour(setQuietHoursStartLocalTime, quietHoursStartLocalTime)} /></View>
+            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursEndLocalTime || 'Quiet hours end off'}</Text><TextButton label="Choose end" onPress={() => void pickQuietHour(setQuietHoursEndLocalTime, quietHoursEndLocalTime)} /></View>
           </View>
           <Text style={styles.formLabel}>Snooze duration</Text>
           <View style={styles.segmentRow}>
@@ -5297,9 +5561,12 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <Text style={styles.formLabel}>Details (optional)</Text>
           <TextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
           <Text style={styles.formLabel}>First due date</Text>
-          <TextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} autoCapitalize="none" />
+          <Text style={styles.cardDetail}>{ruleNextDate}</Text>
+          <TextButton label="Choose first due date" onPress={() => void pickRecurringRuleDate()} />
           <Text style={styles.formLabel}>Reminder time (optional)</Text>
-          <TextInput accessibilityLabel="Recurring task reminder time" placeholder="HH:mm" placeholderTextColor={colors.muted} style={styles.input} value={ruleReminderLocalTime} onChangeText={setRuleReminderLocalTime} autoCapitalize="none" />
+          <Text style={styles.cardDetail}>{ruleReminderLocalTime || 'No reminder time'}</Text>
+          <TextButton label="Choose reminder time" onPress={() => void pickRecurringRuleTime()} />
+          {ruleReminderLocalTime && <TextButton label="Clear reminder time" onPress={() => setRuleReminderLocalTime('')} />}
           <Text style={styles.formLabel}>Repeat every</Text>
           <View style={styles.segmentRow}>
             <TextInput accessibilityLabel="Recurring task interval" placeholder="1" placeholderTextColor={colors.muted} style={[styles.input, styles.smallInput]} value={ruleInterval} onChangeText={setRuleInterval} keyboardType="number-pad" />

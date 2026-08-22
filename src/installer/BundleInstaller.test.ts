@@ -4,7 +4,7 @@ describe('NativeBundleInstaller', () => {
   it('uses the embedded baseline when the native bridge is unavailable', async () => {
     await expect(new NativeBundleInstaller(null).launch()).resolves.toEqual({
       kind: 'embedded',
-      version: '0.1.3',
+      version: '0.1.9',
     });
   });
 
@@ -28,12 +28,12 @@ describe('NativeBundleInstaller', () => {
 
   it('returns an available update from the native bridge', async () => {
     const bridge = {
-      getLaunchStatus: jest.fn().mockResolvedValue({kind: 'local-current', version: '0.1.3'}),
-      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.1.3', availableVersion: '0.2.0'}),
+      getLaunchStatus: jest.fn().mockResolvedValue({kind: 'local-current', version: '0.1.9'}),
+      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.1.9', availableVersion: '0.2.0'}),
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'available',
-      currentVersion: '0.1.3',
+      currentVersion: '0.1.9',
       availableVersion: '0.2.0',
     });
   });
@@ -41,11 +41,11 @@ describe('NativeBundleInstaller', () => {
   it('rejects an invalid native update result', async () => {
     const bridge = {
       getLaunchStatus: jest.fn(),
-      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.1.3', availableVersion: 'not-a-version'}),
+      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.1.9', availableVersion: 'not-a-version'}),
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.1.3',
+      currentVersion: '0.1.9',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });
@@ -57,7 +57,7 @@ describe('NativeBundleInstaller', () => {
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.1.3',
+      currentVersion: '0.1.9',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });

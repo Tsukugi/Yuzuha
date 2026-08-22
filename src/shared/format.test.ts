@@ -1,4 +1,4 @@
-import {formatMoney, sumMoney} from './format';
+import {formatDateTime, formatMoney, sumMoney} from './format';
 import type {MoneyEntry} from '../types/domain';
 
 const entry = (kind: MoneyEntry['kind'], amountMinor: number): MoneyEntry => ({
@@ -23,5 +23,9 @@ describe('money helpers', () => {
 
   it('formats minor units without floating point storage', () => {
     expect(formatMoney(1099, 'EUR')).toBe('EUR 10.99');
+  });
+
+  it('formats money timestamps with both date and time', () => {
+    expect(formatDateTime('2026-07-26T12:34:00.000Z')).toContain('2026');
   });
 });

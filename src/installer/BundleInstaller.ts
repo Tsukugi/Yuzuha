@@ -1,7 +1,7 @@
 import {NativeModules} from 'react-native';
 import {compareBundleVersions, isBundleVersion} from './metadata';
 
-export const EMBEDDED_BUNDLE_VERSION = '0.1.3';
+export const EMBEDDED_BUNDLE_VERSION = '0.1.9';
 
 export type LaunchDecision =
   | {kind: 'remote-activated' | 'local-current' | 'offline-local' | 'invalid-remote' | 'embedded'; version: string; reasonCode?: string}

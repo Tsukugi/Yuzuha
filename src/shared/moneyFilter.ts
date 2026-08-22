@@ -1,13 +1,16 @@
-import {getPeriodRange, isInPeriod, type Period, type WeekStartDay} from './period';
+import {isInMoneyRange, getMoneyRange, type MoneyCustomInterval, type MoneyRangePeriod} from './moneyRange';
+import {type WeekStartDay} from './period';
+import {sortMoneyEntriesChronologically} from './moneyEntrySort';
 import type {MoneyEntry} from '../types/domain';
 
-export type MoneyFilterPeriod = 'all' | Period;
+export type MoneyFilterPeriod = MoneyRangePeriod;
 
-export interface MoneyEntryFilter {
-  period: MoneyFilterPeriod;
+export interface MoneyEntryFilter<P extends MoneyRangePeriod = MoneyRangePeriod> {
+  period: P;
   kind: MoneyEntry['kind'] | 'all';
   categoryId: string | 'all';
   accountId: string | 'all';
+  customInterval?: MoneyCustomInterval;
 }
 
 export interface MoneyEntryTotal {
@@ -17,7 +20,7 @@ export interface MoneyEntryTotal {
   incomeMinor: number;
 }
 
-export const emptyMoneyEntryFilter: MoneyEntryFilter = {
+export const emptyMoneyEntryFilter: MoneyEntryFilter<'all'> = {
   period: 'all',
   kind: 'all',
   categoryId: 'all',
@@ -25,13 +28,21 @@ export const emptyMoneyEntryFilter: MoneyEntryFilter = {
 };
 
 export function filterMoneyEntries(entries: MoneyEntry[], filter: MoneyEntryFilter, now = new Date(), weekStartsOn: WeekStartDay = 1): MoneyEntry[] {
-  const range = filter.period === 'all' ? null : getPeriodRange(now, filter.period, weekStartsOn);
-  return entries.filter(entry => (
-    (range === null || isInPeriod(entry.occurredAt, range)) &&
+  let range;
+  if (filter.period === 'custom') {
+    if (!filter.customInterval) {
+      return [];
+    }
+    range = getMoneyRange(now, {period: 'custom', ...filter.customInterval}, weekStartsOn);
+  } else {
+    range = getMoneyRange(now, {period: filter.period}, weekStartsOn);
+  }
+  return sortMoneyEntriesChronologically(entries.filter(entry => (
+    isInMoneyRange(entry.occurredAt, range) &&
     (filter.kind === 'all' || entry.kind === filter.kind) &&
     (filter.categoryId === 'all' || entry.categoryId === filter.categoryId) &&
     (filter.accountId === 'all' || entry.accountId === filter.accountId)
-  ));
+  )));
 }
 
 export function summarizeFilteredMoneyEntries(
