@@ -143,6 +143,7 @@ android {
 }
 
 dependencies {
+    implementation("org.bouncycastle:bcprov-jdk18on:1.79")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20180813")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

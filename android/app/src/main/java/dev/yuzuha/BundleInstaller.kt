@@ -390,8 +390,8 @@ class YuzuhaBundleInstaller internal constructor(
   private fun verifySignature(metadata: RemoteBundleMetadata) {
     try {
       val keyBytes = Base64.getDecoder().decode(pinnedPublicKey)
-      val publicKey = KeyFactory.getInstance("Ed25519").generatePublic(X509EncodedKeySpec(keyBytes))
-      val verifier = Signature.getInstance("Ed25519")
+      val publicKey = AndroidEd25519.keyFactory().generatePublic(X509EncodedKeySpec(keyBytes))
+      val verifier = AndroidEd25519.signature()
       verifier.initVerify(publicKey)
       verifier.update(metadata.signingPayload().toByteArray(StandardCharsets.UTF_8))
       if (!verifier.verify(Base64.getDecoder().decode(metadata.signature))) {

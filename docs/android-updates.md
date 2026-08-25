@@ -98,7 +98,9 @@ latest release is on a newer major/minor line:
    storage. For example, `0.2.8` installs APK `0.3.4` directly when `0.3.4` is
    latest.
 5. Enforce the byte limit, exact size, SHA-256, package ID, version name,
-   increasing version code, and same release signing certificate.
+   increasing version code, and same release signing certificate. Ed25519
+   metadata verification uses the app-bundled Bouncy Castle provider because
+   Android API 35 does not expose a software Ed25519 provider.
 6. Keep the current application and product data unchanged on any failure.
 7. After the main activity is available, try the root installer path.
 8. If a bounded `su` probe succeeds, run `pm install -r` with the fixed,
