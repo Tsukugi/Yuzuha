@@ -37,7 +37,7 @@ class BundleInstallerRulesTest {
   @Test
   fun usesTheGitHubLatestReleaseMetadataAsset() {
     assertEquals(
-      "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json",
+      "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.2.json",
       YuzuhaBundleInstaller.DEFAULT_METADATA_URL,
     )
   }

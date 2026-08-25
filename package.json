@@ -1,6 +1,6 @@
 {
   "name": "yuzuha-mobile",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "private": true,
   "description": "React Native shell for the Yuzuha installer-enabled experience",
   "engines": {
@@ -18,7 +18,9 @@
     "test": "jest --runInBand",
     "check-bundle": "tsx src/installer/checkBundle.ts",
     "ota-release": "tsx scripts/otaRelease.ts",
-    "ota-check": "tsx scripts/otaRelease.ts --check"
+    "ota-check": "tsx scripts/otaRelease.ts --check",
+    "native-release": "tsx scripts/nativeRelease.ts",
+    "native-check": "tsx scripts/nativeRelease.ts --check"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

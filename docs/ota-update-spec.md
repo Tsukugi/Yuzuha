@@ -1,11 +1,10 @@
 # Yuzuha OTA update specification and implementation plan
 
-Status: Android implementation present. Local tests, lint, typecheck, Android
-builds, signed release build, GitHub Release publication, live activation,
-pending promotion, and rollback device smoke pass. This document is the
-contract, implementation plan, and auto-grill record for the pass. The current
-native and OTA artifact evidence is recorded in `docs/releases/v0.1.9.md` and
-`docs/releases/v0.1.10.md`.
+Status: The bundle installer is implemented and its older published flow has
+device evidence. `YZ-012` adds compatibility-line feeds and a separate APK
+updater; local tests and artifacts exist, but publication and new APK device
+smoke remain open. This document specifies bundle activation. The cross-line
+APK contract and auto-grill are authoritative in `docs/android-updates.md`.
 
 The goal is to let an installed Yuzuha app receive a new React Native
 JavaScript bundle without installing a new APK. The Android native shell stays
@@ -33,8 +32,9 @@ Yuzuha now has an Android startup bundle gate and manual OTA path:
   the React root reports health.
 - `npm run ota-release` builds the Android bundle and signs the exact metadata;
   `npm run ota-check` validates and verifies a metadata file.
-- GitHub Releases carry the signed `bundle.json` and immutable bundle assets;
-  the latest-release asset URL is the native metadata source.
+- GitHub Releases carry immutable bundle assets and one signed metadata asset
+  per native major/minor line. Legacy native `0.1.3` keeps `bundle.json`; new
+  lines use names such as `bundle-0.2.json`.
 - iOS does not have an OTA bundle loader yet.
 
 Rapunzel is the reference for the missing product flow. Its useful parts are a
@@ -63,9 +63,10 @@ This pass must:
 
 ## 3. Non-goals
 
-The first pass will not:
+The bundle path will not:
 
-- install a new APK or change native code;
+- install a new APK or change native code through JavaScript. Native `0.2.0`
+  has a separate signed APK updater described in `docs/android-updates.md`;
 - add native modules, permissions, resources, or configuration through OTA;
 - download TypeScript source and compile it on the device;
 - hot-swap the running React Native bridge;
@@ -88,18 +89,16 @@ the Android meaning.
 
 ### Update source
 
-The source is the latest GitHub Release metadata asset:
+The source is the compatibility-line metadata asset. For native `0.2.x`:
 
 ```text
-https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json
+https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.2.json
 ```
 
-GitHub redirects this stable URL to the latest release's immutable
-`bundle.json` asset. The native verifier follows that redirect, then checks
-the signed metadata. The response contains one Android release for the current
-Yuzuha runtime. The bundle URL must be an immutable HTTPS GitHub Release URL.
-The release publisher uploads the immutable bundle and metadata assets before
-the release is made latest.
+GitHub redirects this stable URL to the latest release asset with that name.
+Every new latest release must carry forward signed pointers for supported old
+lines. The native verifier follows the redirect and checks the signed metadata.
+The bundle URL must be an immutable HTTPS GitHub Release URL.
 
 ### Startup behavior
 
@@ -123,13 +122,14 @@ The first OTA contract is tied to:
 - app ID: `yuzuha-mobile`;
 - platform: `android`;
 - React Native runtime: `0.86.0`;
-- native version: `0.1.9` for the current release;
+- working native line: `0.2.x`; published `0.1.9`/`0.1.10` remains historical;
 - Android minimum API: 33;
 - maximum bundle size: 64 MiB.
 
-Any native release that changes the runtime, bundle format, verifier, or
-required native APIs must publish a new native compatibility value and update
-the release notes before it can accept OTA code.
+Any change to the runtime, bundle format, verifier, native APIs, permissions,
+resources, or native configuration starts a new minor line at patch zero. Every
+version also publishes a full APK. Same-line shells prefer OTA; older-line
+shells install the newest patch APK directly.
 
 ## 5. User experience
 

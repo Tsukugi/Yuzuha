@@ -17,6 +17,8 @@ MVP data is user-entered money, notes, and tasks, plus locally read Android app-
 
 The update check sends no account ID, device ID, product record, note text, transaction data, task data, or app-usage data. It makes one HTTPS request for public signed metadata from the GitHub Releases latest-asset URL, follows GitHub's HTTPS redirects, caps metadata at 64 KiB and bundles at 64 MiB, and keeps downloaded bytes in app-private storage. Metadata is authenticated with the pinned Ed25519 public key; the bundle hash and exact byte count are checked before a pending record is written. Temporary files are removed after failure, the current bundle is kept until a pending launch reports health, and a failed pending version is blocked instead of retried forever. Android API 33 is the current minimum for the native verifier. The OTA private key is never part of the app or repository.
 
+Native `0.2.0` and later make a separate public native-release metadata request after launch health. A cross-line APK is capped at 256 MiB and remains app-private. Before Yuzuha opens any installer, it verifies the signed metadata, exact bytes, package ID, increasing version code, version name, and installed release signer. Root commands contain only fixed command text and the verifier-owned path; remote metadata cannot supply shell input. Non-root installation grants one read-only FileProvider URI to Android's installer. The update request carries no workspace or stable device identifier.
+
 ## Sensitive data controls
 
 - Protect encryption keys with Android Keystore where supported.
@@ -56,6 +58,8 @@ Usage Access is a special permission. Explain exactly what it provides, why Yuzu
 | Threat | Control |
 | --- | --- |
 | Tampered OTA bundle | HTTPS, signature/hash verification, compatibility checks, atomic activation, last-known-good record. |
+| Tampered or substituted APK | Signed manifest, exact size/hash, package/version/code inspection, installed-signer match, and Android package-manager signature enforcement. |
+| Root command injection | Fixed commands and verifier-owned app-private path; metadata never supplies command text or a filesystem path. |
 | Data read from an unlocked device | App lock is a later option; document Android device-security assumptions. Use encrypted storage where supported. |
 | Sensitive logs | Redaction helper, log review, and tests for forbidden fields. |
 | Malformed input | Typed validation, length limits, SQL parameters, and safe serialization. |

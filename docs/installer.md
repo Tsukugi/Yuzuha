@@ -1,6 +1,6 @@
-# JavaScript bundle installer contract
+# Android bundle and APK installer contract
 
-Status: Android native installer and manual OTA implementation for the 0.1.9 release. The native shell checks signed metadata, verifies only a newer compatible bundle, stores manual updates as pending for the next launch, and rolls back a pending bundle that does not report a healthy React root. GitHub Release publication, live activation, pending promotion, and rollback device smoke pass; the current release record is `docs/releases/v0.1.9.md`.
+Status: `YZ-012` implementation is present and locally tested. Published `0.1.10` is still the latest public OTA. Recovery `0.1.11` and native `0.2.0` are prepared but not published. API 35 emulator tests prove signed-package replacement with preserved workspace, the real non-root Android installer UI, and controlled root installation. A physical Pixel and the unpublished live-feed transition remain open.
 
 The current project OTA trust anchor is a fresh Ed25519 key. Its public-key
 SHA-256 fingerprint is
@@ -17,17 +17,18 @@ the variant does not fetch remote metadata or download an OTA bundle.
 
 ## Purpose
 
-The native shell ships an embedded JavaScript bundle. On every launch it checks whether a newer compatible bundle is available. It may activate a remote bundle only after verification. `MainApp` must not be presented before this launch gate completes.
+The native shell ships an embedded JavaScript bundle. Before `MainApp`, it checks its compatibility-line bundle feed and may select only verified same-line code. After React launch health is reported, native `0.2.0` and later check a separate signed native-release feed. A cross-line release downloads the latest patch APK directly.
 
 ## Remote endpoint
 
-Default metadata URL:
+Bundle metadata URLs are compatibility-line assets:
 
 ```text
-https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json
+https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json       # legacy native 0.1.3
+https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.2.json   # native 0.2.x
 ```
 
-The endpoint must be HTTPS, use a stable response schema, and return immutable bundle URLs. The update service must not require user identity for a public bundle.
+Each later native line uses its own `bundle-<major>.<minor>.json`. A new minor release must not replace an older line's asset with incompatible metadata. The separate `android-update.json` latest asset points to the newest release's complete APK. All endpoints use HTTPS and immutable release URLs and require no user identity.
 
 ## Metadata schema
 
@@ -55,7 +56,7 @@ Rules:
 
 - `appId`, `platform`, and `runtime` must match the running shell.
 - `version` uses strict semantic version comparison. Never downgrade.
-- `minNativeVersion` must be less than or equal to the installed native version.
+- `minNativeVersion` must have the same major/minor line as the installed native version.
 - `bundleUrl` must use HTTPS, must not contain user data, and must include an
   exact version path segment (`/<version>/` or `/v<version>/`).
 - `sha256` must be a lowercase 64-character hex digest.
@@ -130,8 +131,8 @@ an older release.
 
 1. Parse JSON and reject unknown critical schema versions.
 2. Validate all required fields and fixed values.
-3. Compare versions and native compatibility.
-4. Verify the metadata signature using the pinned public key.
+3. Verify the metadata signature using the pinned public key.
+4. Compare versions and native-line compatibility. A verified incompatible release reports `NATIVE_UPDATE_REQUIRED`; it is not mislabeled as a bad signature.
 5. Download with a timeout and bounded size.
 6. Check actual byte size against `sizeBytes`.
 7. Compute SHA-256 and compare to `sha256`.
@@ -153,6 +154,14 @@ Keep the previous last-known-good bundle until the new bundle has started succes
 - Test metadata shape with `npm run check-bundle` and a signed release record with `npm run ota-check -- <bundle.json>` before release.
 - Build a bundle and signed metadata with `npm run ota-release -- --version <version>`. Supply `YUZUHA_OTA_PRIVATE_KEY_BASE64` from ignored CI/local secret storage; never commit it.
 
+## Native APK updates
+
+Every release version has both a complete signed APK and a bundle. A native-incompatible change starts the next minor at patch zero. A same-line device prefers OTA; an older-line device reads `android-update.json` and installs the latest patch APK directly. For example, `0.2.8` installs APK `0.3.4`, while an installed `0.3.x` shell uses bundle `0.3.4`.
+
+Before any install action, native code verifies the manifest signature, bounded size, exact SHA-256, archive package `dev.yuzuha`, version name and increasing version code, and the installed release signer certificate. It stores only the verified APK below `filesDir/installer/apk`. A successful bounded Magisk `su -c` or AOSP `su 0 sh -c` uid-0 probe selects fixed `pm install -r`; otherwise a one-file FileProvider grant opens Android's installer. A failed root install reports an error and does not start a second installer over ambiguous package state.
+
+Native `0.1.3` cannot gain this bridge through OTA. Recovery `0.1.11` restores its valid bundle feed and links to the latest release for one manual bootstrap. See `docs/android-updates.md` for the complete policy and auto-grill.
+
 ## Developer note: local data starts after bundle verification
 
 Current data boundary: the accepted app schema is 33 and the repository schema is 3. A fresh database seeds current payees, the Monday week-start default, and an empty latest-import receipt directly; old versions are rejected rather than upgraded.
@@ -167,7 +176,7 @@ The current JavaScript path still checks the embedded bundle gate before mountin
 
 The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, writes a pending record, and only then selects the private bundle path. The root app reports launch health through `YuzuhaInstaller.markLaunchSuccessful`, which promotes the pending record to current. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the newest verified candidate; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. A failed pending launch is rolled back and its exact version is blocked. The Data tools screen can run the same native check and prepare a pending update while the current process continues. No retry loop or background update worker is started.
 
-For Android 0.1.9, the embedded and native installer baseline is `0.1.9`; the current OTA bundle is `0.1.10` and requires native `0.1.9`. The release uses app schema 33 and repository schema 3, with no legacy bundle or data migration path.
+The current public pairing remains native `0.1.9` plus OTA `0.1.10`. The working native baseline is `0.2.0`, using version code `7`, embedded bundle `0.2.0`, `bundle-0.2.json`, and `android-update.json`. It is not public yet. Emulator installer evidence is recorded in `testing.md`; physical Pixel and live-feed checks remain open. The release uses app schema 33 and repository schema 3, with no legacy product-data migration path.
 
 ## Developer note
 

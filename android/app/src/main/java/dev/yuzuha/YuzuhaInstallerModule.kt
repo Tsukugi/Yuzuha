@@ -12,7 +12,17 @@ class YuzuhaInstallerModule(private val context: ReactApplicationContext) : Reac
   private fun installer(): YuzuhaBundleInstaller =
     (context.applicationContext as MainApplication).bundleInstaller()
 
+  private fun nativeUpdater(): AndroidNativeUpdater =
+    (context.applicationContext as MainApplication).nativeUpdater()
+
   private fun updateResultMap(result: BundleUpdateResult) = Arguments.createMap().apply {
+    putString("kind", result.kind)
+    putString("currentVersion", result.currentVersion)
+    result.availableVersion?.let { putString("availableVersion", it) }
+    result.reasonCode?.let { putString("reasonCode", it) }
+  }
+
+  private fun nativeUpdateResultMap(result: NativeUpdateResult) = Arguments.createMap().apply {
     putString("kind", result.kind)
     putString("currentVersion", result.currentVersion)
     result.availableVersion?.let { putString("availableVersion", it) }
@@ -68,6 +78,20 @@ class YuzuhaInstallerModule(private val context: ReactApplicationContext) : Reac
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject("INSTALLER_HEALTH_FAILED", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun applyNativeUpdate(promise: Promise) {
+    Thread({
+      try {
+        promise.resolve(nativeUpdateResultMap(nativeUpdater().applyLatest()))
+      } catch (error: Exception) {
+        promise.reject("NATIVE_UPDATE_FAILED", error.message, error)
+      }
+    }, "yuzuha-native-update").apply {
+      isDaemon = true
+      start()
     }
   }
 }

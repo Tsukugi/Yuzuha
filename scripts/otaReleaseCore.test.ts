@@ -27,9 +27,10 @@ describe('OTA release core', () => {
     writeFileSync(bundlePath, 'bundle bytes', 'utf8');
     const metadata = createUnsignedBundleMetadata(
       bundlePath,
-      '0.2.0',
-      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.2.0/Yuzuha-0.2.0.jsbundle',
+      '0.1.11',
+      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.11/Yuzuha-0.1.11.jsbundle',
       '2026-08-05T12:00:00.000Z',
+      '0.1.3',
     );
     expect(metadata.sizeBytes).toBe(Buffer.byteLength('bundle bytes'));
     expect(metadata.sha256).toBe('f40a912044d47ea7c32f37340db4fd5eb853ffb8fcd983f605d9eb4f8b02fbc2');
@@ -59,10 +60,11 @@ describe('OTA release core', () => {
     const privateKey = pair.privateKey.export({format: 'der', type: 'pkcs8'}).toString('base64');
     expect(() => createSignedBundleMetadata(
       bundlePath,
-      '0.2.0',
-      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.2.0/Yuzuha-0.2.0.jsbundle',
+      '0.1.11',
+      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.11/Yuzuha-0.1.11.jsbundle',
       '2026-08-05T12:00:00.000Z',
       privateKey,
+      '0.1.3',
     )).toThrow('does not match the pinned public key');
   });
 
@@ -92,5 +94,30 @@ describe('OTA release core', () => {
       publishedAt: '2026-08-05T12:00:00.000Z',
       privateKeyBase64: '',
     })).toThrow('Invalid OTA version');
+  });
+
+  it('rejects an OTA on a different native major/minor line', () => {
+    const bundlePath = join(directory, 'bundle.jsbundle');
+    writeFileSync(bundlePath, 'bundle bytes', 'utf8');
+    expect(() => createUnsignedBundleMetadata(
+      bundlePath,
+      '0.3.1',
+      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.3.1/Yuzuha-0.3.1.jsbundle',
+      '2026-08-05T12:00:00.000Z',
+      '0.2.8',
+    )).toThrow('must stay on native line 0.2');
+  });
+
+  it('allows an exact embedded baseline only when release tooling opts in', () => {
+    const bundlePath = join(directory, 'bundle.jsbundle');
+    writeFileSync(bundlePath, 'bundle bytes', 'utf8');
+    expect(createUnsignedBundleMetadata(
+      bundlePath,
+      '0.2.0',
+      'https://github.com/Tsukugi/Yuzuha/releases/download/v0.2.0/Yuzuha-0.2.0.jsbundle',
+      '2026-08-25T12:00:00.000Z',
+      '0.2.0',
+      true,
+    ).version).toBe('0.2.0');
   });
 });

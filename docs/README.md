@@ -31,11 +31,14 @@ The current Money report pass adds derived period, type, and category filters, p
 21. [Decision log](decision-log.md) - decisions that affect future work.
 22. [Backlog](Backlog.md) - open bugs, improvements, and planned work.
 23. [Resolved backlog](BacklogResolved.md) - completed backlog items with evidence.
-24. [v0.1.10 OTA release record](releases/v0.1.10.md) - latest current-schema OTA artifact, verification, and release boundary.
-25. [v0.1.9 native release record](releases/v0.1.9.md) - current Android APK artifact identity and native compatibility boundary.
-26. [v0.1.8 OTA release record](releases/v0.1.8.md) - previous OTA artifact, verification, and release boundary.
-27. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
-28. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
+24. [Android update channels](android-updates.md) - every-version APK rule, compatibility-line OTA feeds, cross-line latest-patch install, security boundary, and auto-grill.
+25. [v0.2.0 prepared release record](releases/v0.2.0.md) - working native updater baseline and open device/publication gates.
+26. [v0.1.11 prepared recovery record](releases/v0.1.11.md) - native-0.1.3-compatible recovery bundle and bootstrap limit.
+27. [v0.1.10 OTA release record](releases/v0.1.10.md) - published incompatible-global-pointer incident boundary.
+28. [v0.1.9 native release record](releases/v0.1.9.md) - current published Android APK identity and native compatibility boundary.
+29. [v0.1.8 OTA release record](releases/v0.1.8.md) - previous OTA artifact, verification, and release boundary.
+30. [v0.1.6 OTA release record](releases/v0.1.6.md) - previous OTA artifact and Settings flow record.
+31. [v0.1.5 OTA release record](releases/v0.1.5.md) - previous OTA artifact and Settings rollout record.
 29. [v0.1.3 release record](releases/v0.1.3.md) - previous native APK artifact identity and release boundary.
 30. [v0.1.2 release record](releases/v0.1.2.md) - previous artifact identity and release boundary.
 31. [v0.1.0 release record](releases/v0.1.0.md) - earlier artifact identity and release boundary.

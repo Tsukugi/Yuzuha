@@ -1,7 +1,7 @@
 import {NativeModules} from 'react-native';
 import {compareBundleVersions, isBundleVersion} from './metadata';
 
-export const EMBEDDED_BUNDLE_VERSION = '0.1.9';
+export const EMBEDDED_BUNDLE_VERSION = '0.2.0';
 
 export type LaunchDecision =
   | {kind: 'remote-activated' | 'local-current' | 'offline-local' | 'invalid-remote' | 'embedded'; version: string; reasonCode?: string}
@@ -14,11 +14,18 @@ export type UpdateCheckResult =
   | {kind: 'error'; currentVersion: string; reasonCode: string}
   | {kind: 'unavailable'; currentVersion: string};
 
+export type NativeApkUpdateResult =
+  | {kind: 'current' | 'same-line' | 'prompted' | 'root-installed'; currentVersion: string; availableVersion?: string; reasonCode?: string}
+  | {kind: 'error'; currentVersion: string; availableVersion?: string; reasonCode: string}
+  | {kind: 'unavailable'; currentVersion: string; reasonCode?: string};
+
 export interface BundleInstaller {
   launch(): Promise<LaunchDecision>;
   checkForUpdate(): Promise<UpdateCheckResult>;
   downloadUpdate(): Promise<UpdateCheckResult>;
   markLaunchSuccessful(): Promise<void>;
+  applyNativeUpdate(): Promise<NativeApkUpdateResult>;
+  markHealthyAndApplyNativeUpdate(): Promise<NativeApkUpdateResult>;
 }
 
 export interface NativeInstallerBridge {
@@ -26,6 +33,7 @@ export interface NativeInstallerBridge {
   checkForUpdate?: () => Promise<unknown>;
   downloadUpdate?: () => Promise<unknown>;
   markLaunchSuccessful?: () => Promise<void>;
+  applyNativeUpdate?: () => Promise<unknown>;
 }
 
 const allowedLaunchKinds = new Set(['remote-activated', 'local-current', 'offline-local', 'invalid-remote', 'embedded']);
@@ -60,6 +68,37 @@ function parseUpdateResult(value: unknown): UpdateCheckResult | null {
   }
   if (result.kind === 'error' && typeof result.reasonCode === 'string' && result.reasonCode.length > 0) {
     return {kind: 'error', currentVersion: result.currentVersion, reasonCode: result.reasonCode};
+  }
+  return null;
+}
+
+function parseNativeUpdateResult(value: unknown): NativeApkUpdateResult | null {
+  if (!value || typeof value !== 'object') return null;
+  const result = value as Record<string, unknown>;
+  if (!isVersion(result.currentVersion)) return null;
+  const availableVersion = result.availableVersion === undefined
+    ? undefined
+    : isVersion(result.availableVersion) ? result.availableVersion : null;
+  if (availableVersion === null) return null;
+  const reasonCode = typeof result.reasonCode === 'string' && result.reasonCode.length > 0 ? result.reasonCode : undefined;
+  if (result.kind === 'error') {
+    if (!reasonCode) return null;
+    return {kind: 'error', currentVersion: result.currentVersion, ...(availableVersion ? {availableVersion} : {}), reasonCode};
+  }
+  if (result.kind === 'unavailable') {
+    return {kind: 'unavailable', currentVersion: result.currentVersion, ...(reasonCode ? {reasonCode} : {})};
+  }
+  if (result.kind === 'current' || result.kind === 'same-line' || result.kind === 'prompted' || result.kind === 'root-installed') {
+    if ((result.kind === 'same-line' || result.kind === 'prompted' || result.kind === 'root-installed') &&
+      (!availableVersion || compareBundleVersions(availableVersion, result.currentVersion) <= 0)) {
+      return null;
+    }
+    return {
+      kind: result.kind,
+      currentVersion: result.currentVersion,
+      ...(availableVersion ? {availableVersion} : {}),
+      ...(reasonCode ? {reasonCode} : {}),
+    };
   }
   return null;
 }
@@ -119,6 +158,26 @@ export class NativeBundleInstaller implements BundleInstaller {
     if (this.bridge?.markLaunchSuccessful) {
       await this.bridge.markLaunchSuccessful();
     }
+  }
+
+  async applyNativeUpdate(): Promise<NativeApkUpdateResult> {
+    if (!this.bridge?.applyNativeUpdate) {
+      return {kind: 'unavailable', currentVersion: EMBEDDED_BUNDLE_VERSION};
+    }
+    try {
+      return parseNativeUpdateResult(await this.bridge.applyNativeUpdate()) ?? {
+        kind: 'error',
+        currentVersion: EMBEDDED_BUNDLE_VERSION,
+        reasonCode: 'INVALID_NATIVE_RESULT',
+      };
+    } catch {
+      return {kind: 'error', currentVersion: EMBEDDED_BUNDLE_VERSION, reasonCode: 'BRIDGE_NATIVE_UPDATE_FAILED'};
+    }
+  }
+
+  async markHealthyAndApplyNativeUpdate(): Promise<NativeApkUpdateResult> {
+    await this.markLaunchSuccessful();
+    return this.applyNativeUpdate();
   }
 }
 

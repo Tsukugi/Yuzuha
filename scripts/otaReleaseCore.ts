@@ -6,14 +6,13 @@ import {basename, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {
   BUNDLE_NATIVE_VERSION,
   BUNDLE_RUNTIME,
-  EMBEDDED_BUNDLE_VERSION,
   PINNED_PUBLIC_KEY,
   bundleMetadataSigningPayload,
-  compareBundleVersions,
   isBundleVersion,
   validateBundleMetadata,
   type BundleMetadata,
 } from '../src/installer/metadata';
+import {isOtaVersionForNative} from '../src/installer/versionPolicy';
 
 export type ReleaseOptions = {
   projectRoot: string;
@@ -22,6 +21,9 @@ export type ReleaseOptions = {
   outputRoot: string;
   publishedAt: string;
   privateKeyBase64: string;
+  minNativeVersion?: string;
+  legacyGlobalPointer?: boolean;
+  embeddedBaseline?: boolean;
 };
 
 export type ReactNativeBundleCommand = {
@@ -87,8 +89,10 @@ export function createSignedBundleMetadata(
   bundleUrl: string,
   publishedAt: string,
   privateKeyBase64: string,
+  minNativeVersion: string = BUNDLE_NATIVE_VERSION,
+  embeddedBaseline: boolean = false,
 ): BundleMetadata {
-  const unsigned = createUnsignedBundleMetadata(bundlePath, version, bundleUrl, publishedAt);
+  const unsigned = createUnsignedBundleMetadata(bundlePath, version, bundleUrl, publishedAt, minNativeVersion, embeddedBaseline);
   const privateKey = publicKeyFromPrivateKey(privateKeyBase64);
   const payload = bundleMetadataSigningPayload({...unsigned, signature: `${'A'.repeat(86)}==`});
   const signature = sign(null, Buffer.from(payload, 'utf8'), privateKey).toString('base64');
@@ -105,10 +109,13 @@ export function createUnsignedBundleMetadata(
   version: string,
   bundleUrl: string,
   publishedAt: string,
+  minNativeVersion: string = BUNDLE_NATIVE_VERSION,
+  embeddedBaseline: boolean = false,
 ): Omit<BundleMetadata, 'signature'> {
   if (!isBundleVersion(version)) throw new Error(`Invalid OTA version: ${version}`);
-  if (compareBundleVersions(version, EMBEDDED_BUNDLE_VERSION) <= 0) {
-    throw new Error(`OTA version ${version} must be newer than ${EMBEDDED_BUNDLE_VERSION}.`);
+  if (!isOtaVersionForNative(version, minNativeVersion) && !(embeddedBaseline && version === minNativeVersion)) {
+    const nativeLine = minNativeVersion.split('.').slice(0, 2).join('.');
+    throw new Error(`OTA version ${version} must stay on native line ${nativeLine} and be newer than ${minNativeVersion}.`);
   }
   const bundle = readFileSync(bundlePath);
   const unsigned: Omit<BundleMetadata, 'signature'> = {
@@ -117,7 +124,7 @@ export function createUnsignedBundleMetadata(
     platform: 'android',
     runtime: BUNDLE_RUNTIME,
     version,
-    minNativeVersion: BUNDLE_NATIVE_VERSION,
+    minNativeVersion,
     bundleUrl,
     sha256: createHash('sha256').update(bundle).digest('hex'),
     sizeBytes: bundle.byteLength,
@@ -189,8 +196,9 @@ export function buildOtaRelease(options: ReleaseOptions): {metadataPath: string;
   rmSync(versionDirectory, {recursive: true, force: true});
   mkdirSync(versionDirectory, {recursive: true});
   const bundlePath = buildBundle(options.projectRoot, versionDirectory);
-  const metadata = createSignedBundleMetadata(bundlePath, options.version, options.bundleUrl, options.publishedAt, options.privateKeyBase64);
-  const metadataPath = join(versionDirectory, 'bundle.json');
+  const metadata = createSignedBundleMetadata(bundlePath, options.version, options.bundleUrl, options.publishedAt, options.privateKeyBase64, options.minNativeVersion, options.embeddedBaseline);
+  const nativeLine = (options.minNativeVersion ?? BUNDLE_NATIVE_VERSION).split('.').slice(0, 2).join('.');
+  const metadataPath = join(versionDirectory, options.legacyGlobalPointer ? 'bundle.json' : `bundle-${nativeLine}.json`);
   writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
   return {metadataPath, bundlePath, metadata};
 }

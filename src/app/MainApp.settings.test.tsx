@@ -93,4 +93,20 @@ describe('Settings screen', () => {
     expect(renderer!.root.findByProps({accessibilityLabel: 'Hide Appearance'})).toBeDefined();
     expect(renderer!.root.findAllByType(Text).map(node => String(node.props.children))).toContain('Citrus');
   });
+
+  it('shows the one-time native transition clearly on legacy OTA 0.1.11', () => {
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+    act(() => {
+      renderer = TestRenderer.create(
+        <ThemeProvider>
+          <SettingsScreen bundleVersion="0.1.11" onBack={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+
+    expect(renderer!.root.findAllByType(Text).map(node => String(node.props.children))).toContain(
+      'This is the final update for the old Android shell. Install the latest Yuzuha APK once to enable automatic future APK updates.',
+    );
+    expect(renderer!.root.findByProps({accessibilityLabel: 'Open latest Yuzuha APK'})).toBeDefined();
+  });
 });

@@ -94,12 +94,14 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "dev.yuzuha"
+    testBuildType "localTest"
     defaultConfig {
         applicationId "dev.yuzuha"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "0.1.9"
+        versionCode 7
+        versionName "0.2.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "boolean", "YUZUHA_LOCAL_BUNDLE_ONLY", "false"
         manifestPlaceholders = [usesCleartextTraffic: "false"]
     }
@@ -143,6 +145,9 @@ android {
 dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20180813")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")

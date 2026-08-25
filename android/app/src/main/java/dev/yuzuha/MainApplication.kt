@@ -10,6 +10,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 class MainApplication : Application(), ReactApplication {
 
   private val bundleInstaller by lazy { YuzuhaBundleInstaller(applicationContext) }
+  private val nativeUpdater by lazy { AndroidNativeUpdater(applicationContext) }
 
   override val reactHost: ReactHost by lazy {
     val launchResult = bundleInstaller.await()
@@ -32,4 +33,6 @@ class MainApplication : Application(), ReactApplication {
   fun bundleLaunchResult(): BundleLaunchResult = bundleInstaller.await()
 
   fun bundleInstaller(): YuzuhaBundleInstaller = bundleInstaller
+
+  fun nativeUpdater(): AndroidNativeUpdater = nativeUpdater
 }

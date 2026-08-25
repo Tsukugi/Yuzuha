@@ -24,7 +24,7 @@ class BundleInstallerFlowTest {
 
   @Test
   fun signedStartupBundleIsPromotedOnlyAfterHealth() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(release.metadata, release.bundle)
     val root = temporaryFolder.newFolder("files")
     val installer = createInstaller(root, release, network)
@@ -32,7 +32,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("reason=${launch.reasonCode}", "remote-activated", launch.kind)
-    assertEquals("0.2.0", launch.version)
+    assertEquals("0.2.1", launch.version)
     assertEquals(release.bundle.toList(), File(requireNotNull(launch.bundlePath)).readBytes().toList())
     var state = File(root, "installer/state.json").readText()
     assertTrue(state.contains("\"pending\""))
@@ -42,19 +42,19 @@ class BundleInstallerFlowTest {
 
     state = File(root, "installer/state.json").readText()
     assertTrue(state.contains("\"current\""))
-    assertTrue(state.contains("\"version\":\"0.2.0\""))
+    assertTrue(state.contains("\"version\":\"0.2.1\""))
     assertFalse(state.contains("\"pending\""))
   }
 
   @Test
   fun localBundleOnlyBuildUsesEmbeddedBundleWithoutFetchingRemoteOta() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(release.metadata, release.bundle)
     val root = temporaryFolder.newFolder("files")
     val installer = YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-       nativeVersion = "0.1.9",
+       nativeVersion = "0.2.0",
       pinnedPublicKey = release.publicKey,
       connectionFactory = network,
       remoteUpdatesEnabled = false,
@@ -63,7 +63,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.1.9", launch.version)
+    assertEquals("0.2.0", launch.version)
     assertEquals("LOCAL_BUNDLE_ONLY", launch.reasonCode)
     assertEquals(0, network.metadataRequests)
     assertEquals(0, network.bundleRequests)
@@ -84,21 +84,21 @@ class BundleInstallerFlowTest {
     val installer = YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-       nativeVersion = "0.1.9",
+       nativeVersion = "0.2.0",
       pinnedPublicKey = YuzuhaBundleInstaller.PINNED_PUBLIC_KEY,
       connectionFactory = network,
     )
 
     val launch = installer.await()
 
-    assertEquals("remote-activated", launch.kind)
-    assertEquals("0.1.10", launch.version)
-    assertEquals(bundle.toList(), File(requireNotNull(launch.bundlePath)).readBytes().toList())
+    assertEquals("local-current", launch.kind)
+    assertEquals("0.2.0", launch.version)
+    assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun manualDownloadKeepsCurrentProcessAndPreservesProductFiles() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val productFile = File(root, "workspace.db").apply { writeText("keep me") }
@@ -106,14 +106,14 @@ class BundleInstallerFlowTest {
 
     val launch = installer.await()
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.1.9", launch.version)
+    assertEquals("0.2.0", launch.version)
 
     network.metadata = release.metadata
     network.bundle = release.bundle
     val check = installer.checkForUpdate()
     assertEquals("reason=${check.reasonCode}", "available", check.kind)
     assertEquals("prepared", installer.downloadUpdate().kind)
-    assertEquals("0.1.9", installer.await().version)
+    assertEquals("0.2.0", installer.await().version)
     assertEquals("keep me", productFile.readText())
     assertEquals(1, network.bundleRequests)
 
@@ -124,7 +124,7 @@ class BundleInstallerFlowTest {
 
   @Test
   fun olderEndpointDoesNotReplaceNewerPendingBundle() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val olderRelease = ReleaseFixture.create("0.1.5", release.keyPair)
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
@@ -140,13 +140,13 @@ class BundleInstallerFlowTest {
     val result = installer.downloadUpdate()
 
     assertEquals("prepared", result.kind)
-    assertEquals("0.2.0", result.availableVersion)
+    assertEquals("0.2.1", result.availableVersion)
     assertEquals(1, network.bundleRequests)
   }
 
   @Test
   fun olderVerifiedLocalBundleDoesNotOverrideEmbeddedBaseline() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val verifiedDirectory = File(root, "installer/verified").apply { mkdirs() }
@@ -160,13 +160,13 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.1.9", launch.version)
+    assertEquals("0.2.0", launch.version)
     assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun incompatibleCachedStateFailsClosedToEmbeddedBundle() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val verifiedDirectory = File(root, "installer/verified").apply { mkdirs() }
@@ -180,14 +180,14 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.1.9", launch.version)
+    assertEquals("0.2.0", launch.version)
     assertEquals("INVALID_STATE", launch.reasonCode)
     assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun pendingBundleIsRolledBackAndBlockedAfterUnhealthyLaunch() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val firstInstaller = createInstaller(root, release, network)
@@ -198,24 +198,24 @@ class BundleInstallerFlowTest {
     assertEquals("reason=${prepared.reasonCode}", "prepared", prepared.kind)
 
     val attemptedInstaller = createInstaller(root, release, network)
-    assertEquals("0.2.0", attemptedInstaller.await().version)
+    assertEquals("0.2.1", attemptedInstaller.await().version)
     val rolledBackInstaller = createInstaller(root, release, network)
 
     val rollback = rolledBackInstaller.await()
 
     assertEquals("embedded", rollback.kind)
-    assertEquals("0.1.9", rollback.version)
+    assertEquals("0.2.0", rollback.version)
     assertEquals("BLOCKED_VERSION", rollback.reasonCode)
     assertEquals("BLOCKED_VERSION", rolledBackInstaller.checkForUpdate().reasonCode)
     assertEquals(1, network.bundleRequests)
     val state = File(root, "installer/state.json").readText()
     assertFalse(state.contains("\"pending\""))
-    assertTrue(state.contains("\"blockedVersion\":\"0.2.0\""))
+    assertTrue(state.contains("\"blockedVersion\":\"0.2.1\""))
   }
 
   @Test
   fun tamperedBundleDoesNotCreatePendingState() {
-    val release = ReleaseFixture.create("0.2.0")
+    val release = ReleaseFixture.create("0.2.1")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val installer = createInstaller(root, release, network)
@@ -234,11 +234,24 @@ class BundleInstallerFlowTest {
     assertTrue(File(root, "installer/verified").listFiles().isNullOrEmpty())
   }
 
+  @Test
+  fun newerNativeRequirementIsReportedAsCompatibilityInsteadOfSignatureFailure() {
+    val release = ReleaseFixture.create("0.2.1", minNativeVersion = "0.3.0")
+    val network = FixtureNetwork(release.metadata, release.bundle)
+    val installer = createInstaller(temporaryFolder.newFolder("incompatible-native"), release, network)
+
+    val result = installer.checkForUpdate()
+
+    assertEquals("error", result.kind)
+    assertEquals("NATIVE_UPDATE_REQUIRED", result.reasonCode)
+    assertEquals(0, network.bundleRequests)
+  }
+
   private fun createInstaller(root: File, release: ReleaseFixture, network: FixtureNetwork): YuzuhaBundleInstaller {
     return YuzuhaBundleInstaller(
       filesDirectory = root,
       metadataUrl = URL("https://updates.test/installer/bundle.json"),
-      nativeVersion = "0.1.9",
+      nativeVersion = "0.2.0",
       pinnedPublicKey = release.publicKey,
       connectionFactory = network,
     )
@@ -251,7 +264,11 @@ class BundleInstallerFlowTest {
     val bundle: ByteArray,
   ) {
     companion object {
-      fun create(version: String, keyPair: KeyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()): ReleaseFixture {
+      fun create(
+        version: String,
+        keyPair: KeyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair(),
+        minNativeVersion: String = "0.1.3",
+      ): ReleaseFixture {
         val bundle = "bundle-$version".toByteArray(StandardCharsets.UTF_8)
         val sha256 = MessageDigest.getInstance("SHA-256").digest(bundle).joinToString("") { "%02x".format(it.toInt() and 0xff) }
         val bundleUrl = "https://updates.test/bundles/android/$version/main.jsbundle"
@@ -262,7 +279,7 @@ class BundleInstallerFlowTest {
           "android",
           "0.86.0",
           version,
-          "0.1.3",
+          minNativeVersion,
           bundleUrl,
           sha256,
           bundle.size,
@@ -273,7 +290,7 @@ class BundleInstallerFlowTest {
         signer.update(payload.toByteArray(StandardCharsets.UTF_8))
         val signature = Base64.getEncoder().encodeToString(signer.sign())
         val metadata = """
-          {"schema":1,"appId":"yuzuha-mobile","platform":"android","runtime":"0.86.0","version":"$version","minNativeVersion":"0.1.3","bundleUrl":"$bundleUrl","sha256":"$sha256","sizeBytes":${bundle.size},"publishedAt":"$publishedAt","signature":"$signature"}
+          {"schema":1,"appId":"yuzuha-mobile","platform":"android","runtime":"0.86.0","version":"$version","minNativeVersion":"$minNativeVersion","bundleUrl":"$bundleUrl","sha256":"$sha256","sizeBytes":${bundle.size},"publishedAt":"$publishedAt","signature":"$signature"}
         """.trimIndent().toByteArray(StandardCharsets.UTF_8)
         return ReleaseFixture(keyPair, Base64.getEncoder().encodeToString(keyPair.public.encoded), metadata, bundle)
       }

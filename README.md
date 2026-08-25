@@ -52,7 +52,7 @@ Periodic money operations start from the normal Add money entry form. Turning on
 
 Home can open a read-only period Review. It combines main-currency money, included app time, due and overdue tasks, completed tasks, and active notes updated in the selected local range. Review changes no records and does not refresh Android usage.
 
-Android startup checks one signed update manifest before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. The check has one bounded request and no polling worker.
+Android startup checks signed bundle metadata before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. Native `0.2.0` and later also check a separate signed APK manifest after launch health is reported. Same-line releases prefer OTA. Cross-line releases download and verify the latest patch APK directly, then use bounded root installation or Android's standard installer. The checks have bounded requests and no polling worker.
 
 Home now opens a dedicated `Settings` view. On Android, its expanded `Code
 updates` section can check for and prepare a newer signed JavaScript bundle
@@ -64,8 +64,11 @@ The OTA trust anchor is a new project Ed25519 key; its private key stays
 outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key
 fingerprint and local secret-loading command.
-The current signed Settings bundle is GitHub OTA `v0.1.10` and requires native
-`0.1.9`.
+Published `v0.1.10` remains the current public OTA and requires native `0.1.9`.
+Recovery `0.1.11` and native `0.2.0` artifacts are prepared locally but are
+not published. API 35 emulator tests cover signed-package replacement with
+workspace preservation, Android's installer UI, and controlled root install;
+physical Pixel and live-feed checks remain open. See [Android update channels](docs/android-updates.md).
 
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
@@ -89,9 +92,9 @@ The current Money report pass adds local Day/Week/Month/Year/Custom, type, and c
 
 Use locked dependency versions in implementation branches. The current baseline is the newer React Native 0.86 line requested for this project.
 
-## Latest Android release
+## Android release status
 
-The current Android APK baseline is `v0.1.9`. It provides the money interval/order controls, Android OS date/time pickers, populated App Time analysis, and the existing dashboard, notes, and task flows. It works without an account or network after the initial app install. [Download the signed APK from GitHub Releases](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.9). The latest JavaScript OTA is [`v0.1.10`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.10), which requires native `0.1.9`. Cloud sync is out of scope for this release.
+The current published APK is [`v0.1.9`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.9), and the current published JavaScript OTA is [`v0.1.10`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.10). That OTA requires native `0.1.9` and is rejected by older native `0.1.3` installs. `YZ-012` prepares a compatible `0.1.11` recovery release and native `0.2.0`; neither is public yet. Every new version must publish both a complete signed APK and its same-line bundle. Cloud sync remains out of scope.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 
@@ -113,11 +116,14 @@ npm run lint
 npm run typecheck
 npm run test
 npm run check-bundle
-npm run ota-check -- dist/ota/<version>/bundle.json
+npm run ota-check -- dist/ota/<version>/bundle-<major>.<minor>.json
+npm run native-check -- dist/native/<version>/android-update.json
 ```
 
-Build an OTA bundle with `npm run ota-release -- --version <version>` after
-providing the ignored `YUZUHA_OTA_PRIVATE_KEY_BASE64` secret. See
+Build both release forms with `npm run native-release -- --version <version> --release-kind <native-baseline|compatible-patch> ...`
+and `npm run ota-release -- --version <version> ...` after providing the ignored
+`YUZUHA_OTA_PRIVATE_KEY_BASE64` secret. Upload is intentionally combined so a
+release cannot omit its same-version APK. See
 [the OTA specification](docs/ota-update-spec.md) and
 [the installer contract](docs/installer.md) for the signing and rollback rules.
 
@@ -125,4 +131,4 @@ The Android build needs Android Studio, an Android SDK, Java 17, and a configure
 
 ## Installer rule
 
-Every startup follows the installer contract in [docs/installer.md](docs/installer.md): check signed metadata, download and verify a newer bundle if available, store it as pending, and only select it before rendering after the native launch gate completes. The root health signal promotes pending code to current; if the network is unavailable, use the newest compatible verified local bundle or the embedded baseline. Never activate an unverified or partially downloaded bundle.
+Every startup follows [the installer contract](docs/installer.md) and [the Android channel policy](docs/android-updates.md). Same-line code uses a verified pending OTA with rollback. A newer native line uses the latest release's verified APK directly, not patch zero plus intermediate OTAs. Rooted devices use a fixed bounded `pm install -r` path; other devices enter Android's package installer. Never activate or install unverified or partial bytes.

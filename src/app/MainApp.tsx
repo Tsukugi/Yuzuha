@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -113,6 +114,8 @@ function formatCodeUpdateError(reasonCode: string): string {
       return 'This release was rejected after a failed startup. Wait for a newer release.';
     case 'INVALID_REMOTE':
       return 'The update was rejected because its metadata or signature was invalid.';
+    case 'NATIVE_UPDATE_REQUIRED':
+      return 'This update needs a newer Android app. Yuzuha will use the verified APK update flow.';
     case 'BRIDGE_CHECK_FAILED':
       return 'The update check could not be completed.';
     case 'BRIDGE_DOWNLOAD_FAILED':
@@ -132,7 +135,7 @@ function useThemeStyles() {
   return {colors, styles, mode, palette, resolvedMode, setMode, setPalette};
 }
 
-export function MainApp({bundleVersion = '0.1.9'}: {bundleVersion?: string}) {
+export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
   const {styles} = useThemeStyles();
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
@@ -859,6 +862,7 @@ function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersi
   const [codeUpdateState, setCodeUpdateState] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'prepared' | 'current' | 'error'>('idle');
   const [codeUpdateResult, setCodeUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [codeUpdateError, setCodeUpdateError] = useState<string | null>(null);
+  const legacyNativeTransition = bundleVersion === '0.1.11';
 
   async function checkForCodeUpdate() {
     const preparedUpdate = codeUpdateResult?.kind === 'prepared' ? codeUpdateResult : null;
@@ -915,6 +919,15 @@ function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersi
       open={open}
       onPress={() => setOpen(current => !current)}>
       <Text style={styles.cardDetail}>Yuzuha checks GitHub Releases for a newer verified JavaScript bundle. Native app changes still need a new APK. A downloaded update applies after you close and reopen Yuzuha.</Text>
+      {legacyNativeTransition && (
+        <>
+          <Text style={styles.cardDetail}>This is the final update for the old Android shell. Install the latest Yuzuha APK once to enable automatic future APK updates.</Text>
+          <PrimaryButton
+            label="Open latest Yuzuha APK"
+            onPress={() => void Linking.openURL('https://github.com/Tsukugi/Yuzuha/releases/latest')}
+          />
+        </>
+      )}
       {codeUpdateResult?.kind === 'available' && <Text style={styles.cardDetail}>Version {codeUpdateResult.availableVersion} is available.</Text>}
       {codeUpdateState === 'current' && <Text style={styles.successText}>The installed code is up to date.</Text>}
       {codeUpdateState === 'prepared' && codeUpdateResult?.kind === 'prepared' && <Text style={styles.successText}>Version {codeUpdateResult.availableVersion} is ready. Close and reopen Yuzuha to apply it.</Text>}
@@ -2014,7 +2027,8 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           {entryFilterPeriod === 'custom' && (
             <View style={styles.inlinePanel}>
               <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
-              <TextButton label={`Start date: ${entryFilterCustomStart}`} onPress={() => void (async () => {
+              {dateTimePicker.isSupported() ? <>
+                <TextButton label={`Start date: ${entryFilterCustomStart}`} onPress={() => void (async () => {
                 try {
                   const selected = await dateTimePicker.pickDate(entryFilterCustomStart);
                   if (selected) setEntryFilterCustomStart(selected);
@@ -2030,6 +2044,10 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
                   setError(pickerError instanceof Error ? pickerError.message : 'The end date picker failed.');
                 }
               })()} />
+              </> : <>
+                <TextInput accessibilityLabel="Filter start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomStart} onChangeText={setEntryFilterCustomStart} />
+                <TextInput accessibilityLabel="Filter end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomEnd} onChangeText={setEntryFilterCustomEnd} />
+              </>}
             </View>
           )}
           <Text style={styles.formLabel}>Type</Text>
@@ -2103,8 +2121,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           />
           <Text style={styles.formLabel}>Occurred date and time</Text>
           <View style={styles.inlinePanel}>
-            <Text style={styles.cardDetail}>{occurredAtLocalDateTime || 'Choose a local date and time'}</Text>
-            <TextButton label="Choose date" onPress={() => void (async () => {
+            {dateTimePicker.isSupported() ? <>
+              <Text style={styles.cardDetail}>{occurredAtLocalDateTime || 'Choose a local date and time'}</Text>
+              <TextButton label="Choose date" onPress={() => void (async () => {
               try {
                 const currentDate = occurredAtLocalDateTime.slice(0, 10) || localDateKey(new Date());
                 const selectedDate = await dateTimePicker.pickDate(currentDate);
@@ -2126,6 +2145,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
                 setError(pickerError instanceof Error ? pickerError.message : 'The money time picker failed.');
               }
             })()} />
+            </> : (
+              <TextInput accessibilityLabel="Occurred local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={occurredAtLocalDateTime} onChangeText={setOccurredAtLocalDateTime} />
+            )}
           </View>
           <Text style={styles.formLabel}>Category</Text>
           <View style={styles.chipWrap}>
@@ -2975,7 +2997,7 @@ function TransferRow({
 }
 
 function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
-  const {styles} = useThemeStyles();
+  const {colors, styles} = useThemeStyles();
   const [period, setPeriod] = useState<MoneyRangePeriod>('month');
   const [customStart, setCustomStart] = useState(localDateKey(new Date()));
   const [customEnd, setCustomEnd] = useState(localDateKey(new Date()));
@@ -3044,8 +3066,13 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
       {period === 'custom' && (
         <View style={styles.inlinePanel}>
           <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
-          <TextButton label={`Start date: ${customStart}`} onPress={() => void pickCustomDate('start')} />
-          <TextButton label={`End date: ${customEnd}`} onPress={() => void pickCustomDate('end')} />
+          {dateTimePicker.isSupported() ? <>
+            <TextButton label={`Start date: ${customStart}`} onPress={() => void pickCustomDate('start')} />
+            <TextButton label={`End date: ${customEnd}`} onPress={() => void pickCustomDate('end')} />
+          </> : <>
+            <TextInput accessibilityLabel="Report start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customStart} onChangeText={setCustomStart} />
+            <TextInput accessibilityLabel="Report end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customEnd} onChangeText={setCustomEnd} />
+          </>}
         </View>
       )}
       {pickerError && <Text style={styles.errorText}>{pickerError}</Text>}
@@ -5211,12 +5238,16 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <Text style={styles.formLabel}>Details (optional)</Text>
             <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
             <Text style={styles.formLabel}>Due date (optional)</Text>
-            <Text style={styles.cardDetail}>{dueLocalDate || 'No due date'}</Text>
-            <TextButton label={dueLocalDate ? 'Change due date' : 'Choose due date'} onPress={() => void pickTaskDueDate()} />
+            {dateTimePicker.isSupported() ? <>
+              <Text style={styles.cardDetail}>{dueLocalDate || 'No due date'}</Text>
+              <TextButton label={dueLocalDate ? 'Change due date' : 'Choose due date'} onPress={() => void pickTaskDueDate()} />
+            </> : <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} />}
             {dueLocalDate && <TextButton label="Clear due date" onPress={() => setDueLocalDate('')} />}
             <Text style={styles.formLabel}>Reminder (optional)</Text>
-            <Text style={styles.cardDetail}>{reminderAtLocalDateTime || 'No reminder'}</Text>
-            <TextButton label={reminderAtLocalDateTime ? 'Change reminder' : 'Choose reminder'} onPress={() => void pickTaskReminder()} />
+            {dateTimePicker.isSupported() ? <>
+              <Text style={styles.cardDetail}>{reminderAtLocalDateTime || 'No reminder'}</Text>
+              <TextButton label={reminderAtLocalDateTime ? 'Change reminder' : 'Choose reminder'} onPress={() => void pickTaskReminder()} />
+            </> : <TextInput accessibilityLabel="Task reminder local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} />}
             {reminderAtLocalDateTime && <TextButton label="Clear reminder" onPress={() => setReminderAtLocalDateTime('')} />}
             <Text style={styles.formLabel}>Priority</Text>
             <View style={styles.segmentRow}>
@@ -5378,8 +5409,13 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <Text style={styles.cardDetail}>Off pauses reminders on tasks created from recurring rules. One-off task reminders stay active.</Text>
           <Text style={styles.searchAccessNote}>Reminders that fall inside quiet hours are delivered at the quiet-hours end.</Text>
           <View style={styles.segmentRow}>
-            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursStartLocalTime || 'Quiet hours start off'}</Text><TextButton label="Choose start" onPress={() => void pickQuietHour(setQuietHoursStartLocalTime, quietHoursStartLocalTime)} /></View>
-            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursEndLocalTime || 'Quiet hours end off'}</Text><TextButton label="Choose end" onPress={() => void pickQuietHour(setQuietHoursEndLocalTime, quietHoursEndLocalTime)} /></View>
+            {dateTimePicker.isSupported() ? <>
+              <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursStartLocalTime || 'Quiet hours start off'}</Text><TextButton label="Choose start" onPress={() => void pickQuietHour(setQuietHoursStartLocalTime, quietHoursStartLocalTime)} /></View>
+              <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursEndLocalTime || 'Quiet hours end off'}</Text><TextButton label="Choose end" onPress={() => void pickQuietHour(setQuietHoursEndLocalTime, quietHoursEndLocalTime)} /></View>
+            </> : <>
+              <TextInput accessibilityLabel="Quiet hours start" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} />
+              <TextInput accessibilityLabel="Quiet hours end" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} />
+            </>}
           </View>
           <Text style={styles.formLabel}>Snooze duration</Text>
           <View style={styles.segmentRow}>
@@ -5561,11 +5597,9 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <Text style={styles.formLabel}>Details (optional)</Text>
           <TextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
           <Text style={styles.formLabel}>First due date</Text>
-          <Text style={styles.cardDetail}>{ruleNextDate}</Text>
-          <TextButton label="Choose first due date" onPress={() => void pickRecurringRuleDate()} />
+          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{ruleNextDate}</Text><TextButton label="Choose first due date" onPress={() => void pickRecurringRuleDate()} /></> : <TextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} />}
           <Text style={styles.formLabel}>Reminder time (optional)</Text>
-          <Text style={styles.cardDetail}>{ruleReminderLocalTime || 'No reminder time'}</Text>
-          <TextButton label="Choose reminder time" onPress={() => void pickRecurringRuleTime()} />
+          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{ruleReminderLocalTime || 'No reminder time'}</Text><TextButton label="Choose reminder time" onPress={() => void pickRecurringRuleTime()} /></> : <TextInput accessibilityLabel="Recurring task reminder time" placeholder="HH:mm" placeholderTextColor={colors.muted} style={styles.input} value={ruleReminderLocalTime} onChangeText={setRuleReminderLocalTime} />}
           {ruleReminderLocalTime && <TextButton label="Clear reminder time" onPress={() => setRuleReminderLocalTime('')} />}
           <Text style={styles.formLabel}>Repeat every</Text>
           <View style={styles.segmentRow}>

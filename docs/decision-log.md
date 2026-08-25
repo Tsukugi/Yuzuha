@@ -753,3 +753,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: A control with one possible outcome adds noise and makes a required implementation detail look like a user decision. The rule keeps account choice visible only when it changes the operation or scope.
 - Consequence: This changes only derived React view state and form rendering. It adds no AppData field, schema boundary, migration, export/import change, network request, worker, timer, or polling loop.
 - Validation: Focused `AccountSelector` tests cover one and two active accounts; typecheck, lint, full Jest, and diff checks remain release gates.
+
+## DEC-102: Publish every Android version in both APK and bundle form
+
+- Status: Accepted.
+- Context: Global `bundle.json` advanced to `0.1.10`, which requires native `0.1.9`, while devices that had accepted bundle `0.1.8` could still run native `0.1.3`. Those devices rejected the latest record and the UI flattened the compatibility failure into an invalid metadata/signature message. An earlier recovery draft also assumed cross-line devices would install patch-zero APK and then replay OTAs, but that adds needless steps and leaves patch releases without full installers.
+- Decision: Treat major/minor as the native compatibility line. Any native-incompatible change starts a new minor at patch zero. Every version, including patches, publishes a complete signed APK and a same-version bundle. Same-line installed devices prefer OTA. An older-line device installs the latest release's patch APK directly, such as `0.2.8` to APK `0.3.4`. Keep bundle feeds per compatibility line and keep a separate signed native-release feed pointing to the newest APK.
+- Reason: Every version remains clean-installable, old shells never parse incompatible bundle metadata as their latest update, and cross-line upgrades need only one package replacement.
+- Consequence: Android version codes must increase for every version. Publication tooling requires matching APK, APK metadata, bundle, and bundle metadata. Supported older bundle pointers must be carried on later latest releases. Native `0.1.3` still needs one manual bootstrap because OTA cannot add its missing secure APK bridge.
+- Validation: TypeScript and Kotlin version-matrix tests, signed metadata and archive tests, combined-publisher rejection tests, one non-root API 35 emulator installer-UI smoke, one controlled rooted-emulator smoke, and direct latest-patch cross-line upgrade smoke. No physical Pixel was connected.

@@ -2,6 +2,10 @@
 
 Status: Planned work order for the first working Android release. The current Tasks and periodic-money UX passes are implemented and recorded below; older phase notes remain historical.
 
+## Current update-channel recovery
+
+`YZ-012` implements the local code and release-tool portion of the Android update recovery. The fixed rule is: every version has an APK; native changes start a new minor line; same-line installed devices prefer OTA; older-line devices install the latest patch APK directly. Recovery `0.1.11` restores native `0.1.3` bundle compatibility, and native `0.2.0` adds verified automatic APK download plus root/default Android installation. Publication and device gates remain open; see `docs/android-updates.md`.
+
 ## Current implementation review: Tasks UX
 
 The 2026-07-28 pass applies the supplied card/filter visual language to Tasks while keeping the local record workflow first. Home, Money, Notes, Tasks, Search, App Time, Settings, Data tools, Review, and Money report keep the product-plan rule that current records come before creation forms and secondary tools stay bounded.

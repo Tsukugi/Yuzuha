@@ -4,6 +4,14 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-08-25 update-channel recovery preparation (`YZ-012`):
+
+- The release contract now requires a complete APK and same-version bundle for every release. Native-incompatible work starts a new minor line; compatible patch releases use OTA on that line.
+- The native-release feed always identifies the newest complete APK. An older line upgrades directly to the latest patch, such as `0.2.8` to APK `0.3.4`; it does not install `0.3.0` and replay OTAs.
+- Recovery bundle `0.1.11` is signed for native `0.1.3`. Native `0.1.3` cannot add secure APK installation through JavaScript, so it still needs one manual bootstrap to `0.2.0`.
+- Working native `0.2.0` adds signed APK metadata, automatic verified download, bounded root install, and Android installer fallback. Its Android version code is `7`, reserving code `6` for the required `0.1.11` APK.
+- Artifacts are local only. API 35 emulators prove signed-package replacement with workspace preservation, the real non-root Android installer UI, and a controlled root install from `0.1.11` to `0.2.0`. Publication, the unpublished live-feed transition, and a physical Pixel remain release gates.
+
 2026-08-22 Android v0.1.9 and OTA v0.1.10 release:
 
 - Android `versionName` is `0.1.9`, version code `5`, and the signed APK is [`Yuzuha-0.1.9.apk`](https://github.com/Tsukugi/Yuzuha/releases/download/v0.1.9/Yuzuha-0.1.9.apk), at `67,478,775` bytes with SHA-256 `cb1ad0bbce8ce44c45b34b1ba717abb07431db74628214f44ed139e0a26cf779`;
@@ -102,42 +110,48 @@ $env:YUZUHA_OTA_PRIVATE_KEY_BASE64 = (Get-Content "$env:USERPROFILE\Yuzuha-secre
 npm run ota-release -- --version <version>
 ```
 
-## Android OTA release procedure
+## Combined Android release procedure
 
-The OTA release is a JavaScript bundle release, not an APK release. It must
-use a version higher than the embedded/native baseline and must not change
-native modules, permissions, app schema, repository schema, backup schema, or
-CSV schema.
+Every version publishes a complete signed APK and a same-version bundle. A
+native change starts the next minor at patch zero. A compatible patch keeps the
+same native major/minor and is normally delivered by OTA to installed devices,
+but its APK remains the clean-install and direct cross-line artifact.
 
 1. Set `YUZUHA_OTA_PRIVATE_KEY_BASE64` only in ignored local or CI secret
    storage. It must be a PKCS#8 Ed25519 private key matching the public key
    pinned in `BundleInstaller.kt`. The new key fingerprint is recorded above.
-2. Build the bundle and signed metadata:
+2. Build the signed APK metadata from the exact release APK:
 
    ```text
-   npm run ota-release -- --version <version>
+   npm run native-release -- --version <version> --release-kind <native-baseline|compatible-patch> --version-code <code> --apk <apk> --signer-sha256 <digest> --output dist/native
    ```
 
-3. Check the generated metadata:
+3. Build the same-version bundle metadata for its native line, then check both records:
 
    ```text
-   npm run ota-check -- dist/ota/<version>/bundle.json
+   npm run ota-release -- --version <version> --min-native-version <line-baseline>
+   npm run ota-check -- dist/ota/<version>/bundle-<major>.<minor>.json
+   npm run native-check -- dist/native/<version>/android-update.json
    ```
 
-4. Upload `bundle.json` and the immutable bundle to the matching GitHub
-   Release. An existing release can receive both generated files with
-   `--upload`; a new release can use `gh release create` with both assets.
-5. Confirm `https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json`
-   serves the exact signed metadata and that its immutable bundle URL is
-   reachable before announcing the release.
-6. Run the manual update, next-launch activation, tamper rejection, and
-   rollback smoke checks from `docs/ota-update-spec.md`.
+4. Run the combined OTA upload with the same-version APK and native metadata.
+   The tool rejects a missing/mismatched APK and, while native `0.1.3` is
+   supported, requires the preserved legacy `bundle.json` pointer.
+5. Confirm `android-update.json` resolves to the newest release's APK and each
+   supported `bundle-<line>.json` still resolves to compatible signed metadata.
+   `bundle.json` must remain the `0.1.11` legacy pointer; a later latest release
+   must include that asset rather than replacing it with incompatible code.
+6. Run same-line OTA, direct cross-line latest-patch APK, tamper rejection,
+   next-launch rollback, non-root installer, rooted installer, and workspace
+   preservation smoke from `docs/testing.md`.
 
 The command rejects generated Metro assets because the current Yuzuha OTA
 contract carries one Android `.jsbundle` only. A future asset archive needs a
 new signed metadata schema and a separate review.
 
-The OTA private key is not the Android APK keystore. Both are private release
+`native-release --upload` is intentionally rejected. Publication goes through
+the combined path so a version cannot ship without either delivery form. The
+OTA metadata private key is not the Android APK keystore. Both are private release
 credentials and both must stay outside the committed tree.
 
 2026-07-29 Android v0.1.2 release:

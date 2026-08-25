@@ -26,6 +26,8 @@ Current App Time addition: the Android report can select Today, This week, or Th
 
 Current startup installer addition: `MainApplication` starts `YuzuhaBundleInstaller` before the React host is created. The installer performs one bounded HTTPS metadata request, validates the current Android/runtime/native-version fields, verifies the signed canonical metadata with the pinned Ed25519 public key, downloads a newer bundle into an app-private temporary file, checks its exact size and SHA-256, and atomically stores the immutable bundle plus a pending activation state. A valid remote or pending bundle is passed to `DefaultReactHost` through `jsBundleFilePath`; after the root reports health, native code promotes pending to current. Otherwise the newest compatible verified private bundle or embedded asset is used. JavaScript reads only the native launch status through `YuzuhaInstaller`. The Android minimum API is now 33 so the supported shell has the required Ed25519 runtime.
 
+Current native-update addition: after React reports launch health, the typed installer bridge asks `AndroidNativeUpdater` to read the signed `android-update.json` feed. Same-major/minor releases return `same-line` so the bundle channel owns delivery. A newer line downloads that release's latest patch APK, verifies bytes plus archive package/version/code/signer, and delegates only the verified private path to `ApkInstallCoordinator`. The coordinator uses bounded root commands or one FileProvider URI for Android's installer. JavaScript cannot provide an APK URL, path, hash, signer, or command. The updater starts no worker or retry loop.
+
 Current device-test addition: the `localTest` Android build type uses a separate `dev.yuzuha.localtest` package and sets `YUZUHA_LOCAL_BUNDLE_ONLY`. `YuzuhaBundleInstaller` then selects the embedded bundle and returns `LOCAL_BUNDLE_ONLY` without checking metadata or downloading a remote bundle. This is a test-only path for validating the current JavaScript bundle on a device that already has an older production OTA cache; production release builds keep the normal verified OTA gate.
 
 Current Home period addition: `HomeScreen` derives one local Day/Week/Month range with the shared period helpers. Main-currency money totals, included app-time totals, open-task due counts, and recent note updates use that same range. The selector is local component state; it does not write AppData, change usage permission state, refresh native data, or start a timer.
@@ -199,16 +201,21 @@ Every layer returns typed errors with a stable code and user-safe message. UI co
 
 Any change that touches startup order, bundle cache paths, metadata fields, version comparison, verification, or activation must update `installer.md`, add or adjust installer tests in `testing.md`, and add a release checklist item in `release.md`. A feature is not complete until the bundle gate still runs before `MainApp`.
 
-The current OTA extension keeps executable-code ownership in the Android shell.
+The current update extension keeps executable-code ownership in the Android shell.
 `YuzuhaBundleInstaller` owns signed metadata checks, bundle download and hash
 verification, schema-2 current/pending state, blocked-version rollback, and the
 launch health signal. `YuzuhaInstallerModule` exposes typed check, download,
 status, and health methods. The React Settings and Data tools controls only
 render those results; they never fetch or activate a JavaScript file. A manual
 update is prepared while the current bridge is running and is selected only on
-the next launch. The current native compatibility baseline is `0.1.9`; the
-current OTA bundle is `0.1.10`. iOS OTA and multi-file asset archives remain
-planned.
+the next launch. `AndroidNativeUpdater` separately owns cross-line APK checks,
+archive verification, and root/default installer selection. Bundle feeds are
+split by major/minor compatibility line; the native feed always names the
+latest patch APK. The current public pairing is native `0.1.9` and OTA
+`0.1.10`; working `0.1.11`/`0.2.0` artifacts are not yet public or
+Emulator package, non-root installer-UI, and controlled-root smoke are proven;
+the live-feed transition and physical Pixel remain open. iOS OTA and
+multi-file asset archives remain planned.
 
 ## Full-product components
 

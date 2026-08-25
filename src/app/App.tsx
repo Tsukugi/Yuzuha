@@ -20,7 +20,7 @@ export function App() {
       return;
     }
     launchHealthReported.current = true;
-    void nativeBundleInstaller.markLaunchSuccessful().catch(() => undefined);
+    void nativeBundleInstaller.markHealthyAndApplyNativeUpdate().catch(() => undefined);
   }, [decision]);
 
   return (

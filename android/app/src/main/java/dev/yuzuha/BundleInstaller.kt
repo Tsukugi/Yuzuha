@@ -178,6 +178,8 @@ class YuzuhaBundleInstaller internal constructor(
         return BundleUpdateResult("available", currentVersion, metadata.version)
       } catch (_: InvalidStateException) {
         return BundleUpdateResult("error", EMBEDDED_VERSION, reasonCode = "INVALID_STATE")
+      } catch (_: IncompatibleNativeException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "NATIVE_UPDATE_REQUIRED")
       } catch (_: InvalidRemoteException) {
         return BundleUpdateResult("error", currentVersion, reasonCode = "INVALID_REMOTE")
       } catch (_: IOException) {
@@ -217,6 +219,8 @@ class YuzuhaBundleInstaller internal constructor(
         return BundleUpdateResult("prepared", currentVersion, prepared.version)
       } catch (_: InvalidStateException) {
         return BundleUpdateResult("error", EMBEDDED_VERSION, reasonCode = "INVALID_STATE")
+      } catch (_: IncompatibleNativeException) {
+        return BundleUpdateResult("error", currentVersion, reasonCode = "NATIVE_UPDATE_REQUIRED")
       } catch (_: InvalidRemoteException) {
         return BundleUpdateResult("error", currentVersion, reasonCode = "INVALID_REMOTE")
       } catch (_: IOException) {
@@ -273,6 +277,8 @@ class YuzuhaBundleInstaller internal constructor(
         publish(BundleLaunchResult("remote-activated", selected.version, selectedPath(selected)))
       } catch (_: InvalidStateException) {
         publish(embedded.copy(reasonCode = "INVALID_STATE"))
+      } catch (_: IncompatibleNativeException) {
+        publish(baseline.copy(kind = "local-current", reasonCode = "NATIVE_UPDATE_REQUIRED"))
       } catch (_: InvalidRemoteException) {
         publish(baseline.copy(kind = "invalid-remote", reasonCode = "INVALID_REMOTE"))
       } catch (_: IOException) {
@@ -297,6 +303,9 @@ class YuzuhaBundleInstaller internal constructor(
     val metadata = fetchMetadata()
     validateMetadata(metadata)
     verifySignature(metadata)
+    if (compareVersions(metadata.minNativeVersion, nativeVersion) > 0) {
+      throw IncompatibleNativeException()
+    }
     return metadata
   }
 
@@ -358,7 +367,6 @@ class YuzuhaBundleInstaller internal constructor(
       metadata.runtime != RUNTIME ||
       !BundleInstallerRules.isVersion(metadata.version) ||
       !BundleInstallerRules.isVersion(metadata.minNativeVersion) ||
-      compareVersions(metadata.minNativeVersion, nativeVersion) > 0 ||
       bundleUrl.protocol != "https" ||
       bundleUrl.userInfo != null ||
       bundleUrl.query != null ||
@@ -667,12 +675,14 @@ class YuzuhaBundleInstaller internal constructor(
 
   private class InvalidRemoteException(cause: Throwable? = null) : Exception(cause)
 
+  private class IncompatibleNativeException : Exception()
+
   private class InvalidStateException(cause: Throwable? = null) : Exception(cause)
 
   companion object {
-    const val DEFAULT_METADATA_URL = "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle.json"
-    const val EMBEDDED_VERSION = "0.1.9"
-    const val NATIVE_VERSION = "0.1.9"
+    const val DEFAULT_METADATA_URL = "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.2.json"
+    const val EMBEDDED_VERSION = "0.2.0"
+    const val NATIVE_VERSION = "0.2.0"
     const val APP_ID = "yuzuha-mobile"
     const val RUNTIME = "0.86.0"
     const val MAX_BUNDLE_BYTES = 64L * 1024L * 1024L

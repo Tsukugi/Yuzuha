@@ -13,7 +13,7 @@ must not require a committed private-key fixture.
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 60 Jest suites and 283 tests. Money range/sort/filter/report validation, native-picker bridge rules, usage-metric derivation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current suite is 63 Jest suites and 300 tests. Money range/sort/filter/report validation, native-picker bridge rules, usage-metric derivation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, APK/bundle update rules and release metadata, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
@@ -28,10 +28,23 @@ must not require a committed private-key fixture.
 - The OTA metadata for `0.1.10` passed signature validation and requires native
   `0.1.9`; its bundle is `1,349,142` bytes with SHA-256
   `f869a4242f2f10417c376a555f94d5a5ce81537b71dc7ba27fd5a304628ebe7e`.
-- No ADB device was connected during the release session, so the exact signed
-  APK install smoke remains unclaimed for this release artifact. The feature
-  pass's populated App Time and Money/date-time local-test evidence is recorded
-  above and under `artifacts/live-test-2026-08-22-final/`.
+
+## YZ-012 update-channel evidence
+
+- TypeScript version-policy tests prove every stable patch may have an APK, same-line releases are OTA-compatible, and a newer major/minor requires an APK.
+- Kotlin flow tests prove `0.2.8` treats `0.2.9` as same-line OTA and downloads/installs APK `0.3.4` directly when it is latest. Hash, size, package, version, version code, or signer mismatch performs no install action.
+- Installer-coordinator tests prove a successful uid-0 probe uses the fixed root command without opening Android UI, non-root opens one granted FileProvider URI, and root-install failure does not fall through to a second installer.
+- Release-tool tests reject mismatched or missing same-version APK artifacts and incompatible bundle/native lines. `native-release --upload` is rejected so final publication must include both delivery forms.
+- Release classification tests require `native-baseline` to use patch zero and `compatible-patch` to use a patch greater than zero; `0.3.4` cannot be declared as a native baseline.
+- Signed recovery APK/bundle `0.1.11` for the native `0.1.3` capability boundary and working native APK/bundle `0.2.0` artifacts were generated and verified locally. Both APKs use the production signer; their exact identities are recorded in `docs/releases/v0.1.11.md` and `docs/releases/v0.2.0.md`.
+- Final rebuilt `0.2.0` APK is `67,515,507` bytes with SHA-256 `b02fcee08277ddea1cf180afaf287eb6c00da63deb41d43a9c949b6412112eee`; `apksigner`, package/version inspection, and signed native metadata checks passed.
+- API 35 production-package smoke installed signed `0.1.11` over `0.1.2`, created note `UpdaterPersistence0825`, then installed signed `0.2.0`; Home launched and the note appeared exactly once. This proves same-signer package replacement and workspace preservation on the emulator.
+- `SystemApkInstallerDeviceTest` copies the signed update APK into the production app-private installer path, calls the real FileProvider/system-installer implementation, and passed only after Android-owned install/security UI appeared on the non-root API 35 Play image.
+- Unit tests prove both Magisk `su -c` and AOSP `su 0 sh -c` root dialect selection. `RootApkInstallerDeviceTest` passed on a disposable API 35 userdebug AVD with a controlled test-only root service: it replaced production `0.1.11` with `0.2.0`, version code `7`, through the production root installer without opening system UI. This proves the app-side root path, not compatibility with every third-party root manager.
+- No physical Pixel was connected. Pixel workspace preservation and the unpublished live-feed `0.1.8` to `0.1.11` transition remain open device gates.
+- Full verification on 2026-08-25 passed 63 Jest suites/300 tests, TypeScript, lint, bundle validation, `:app:testLocalTestUnitTest`, signed `:app:assembleRelease`, both native metadata checks, both OTA metadata checks, and the connected localTest installer suite (rooted AVD test plus non-root UI test; the root test is skipped on the non-root image).
+- The final post-root-change artifact must be rebuilt and the full gate rerun;
+  exact final hash and size are recorded only after that succeeds.
 
 ## Money range, ordering, and picker evidence
 
