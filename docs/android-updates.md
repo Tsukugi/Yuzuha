@@ -1,10 +1,10 @@
 # Android update channels
 
-Status: In progress under `YZ-012`. Code, tests, and local `0.1.11`/`0.2.0`
-artifacts implement this contract. API 35 emulator tests cover package
-replacement, workspace preservation, the real non-root system installer, and
-a controlled root install. Publication, live-feed, and physical Pixel gates
-remain open.
+Status: Published under `YZ-012`. GitHub `v0.1.11` is the native-`0.1.3`
+recovery release and `v0.2.0` is the native updater baseline. API 35 emulator
+tests cover package replacement, workspace preservation, the real non-root
+system installer, and a controlled root install. Physical Pixel validation
+remains open.
 
 ## Problem
 

@@ -211,11 +211,12 @@ update is prepared while the current bridge is running and is selected only on
 the next launch. `AndroidNativeUpdater` separately owns cross-line APK checks,
 archive verification, and root/default installer selection. Bundle feeds are
 split by major/minor compatibility line; the native feed always names the
-latest patch APK. The current public pairing is native `0.1.9` and OTA
-`0.1.10`; working `0.1.11`/`0.2.0` artifacts are not yet public or
-Emulator package, non-root installer-UI, and controlled-root smoke are proven;
-the live-feed transition and physical Pixel remain open. iOS OTA and
-multi-file asset archives remain planned.
+latest patch APK. The current public pairing is recovery `0.1.11` for native
+`0.1.3` and native updater `0.2.0`; the latest legacy `bundle.json` remains
+the `0.1.11` feed and the native feed points to APK `0.2.0`. Emulator package,
+non-root installer-UI, and controlled-root smoke are proven; the live-feed
+transition on a physical Pixel remains open. iOS OTA and multi-file asset
+archives remain planned.
 
 ## Full-product components
 

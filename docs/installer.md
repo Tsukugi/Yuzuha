@@ -1,6 +1,6 @@
 # Android bundle and APK installer contract
 
-Status: `YZ-012` implementation is present and locally tested. Published `0.1.10` is still the latest public OTA. Recovery `0.1.11` and native `0.2.0` are prepared but not published. API 35 emulator tests prove signed-package replacement with preserved workspace, the real non-root Android installer UI, and controlled root installation. A physical Pixel and the unpublished live-feed transition remain open.
+Status: `YZ-012` is published. Recovery `0.1.11` and native `0.2.0` are public. API 35 emulator tests prove signed-package replacement with preserved workspace, the real non-root Android installer UI, and controlled root installation. A physical Pixel remains unverified.
 
 The current project OTA trust anchor is a fresh Ed25519 key. Its public-key
 SHA-256 fingerprint is
@@ -176,7 +176,13 @@ The current JavaScript path still checks the embedded bundle gate before mountin
 
 The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, writes a pending record, and only then selects the private bundle path. The root app reports launch health through `YuzuhaInstaller.markLaunchSuccessful`, which promotes the pending record to current. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the newest verified candidate; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. A failed pending launch is rolled back and its exact version is blocked. The Data tools screen can run the same native check and prepare a pending update while the current process continues. No retry loop or background update worker is started.
 
-The current public pairing remains native `0.1.9` plus OTA `0.1.10`. The working native baseline is `0.2.0`, using version code `7`, embedded bundle `0.2.0`, `bundle-0.2.json`, and `android-update.json`. It is not public yet. Emulator installer evidence is recorded in `testing.md`; physical Pixel and live-feed checks remain open. The release uses app schema 33 and repository schema 3, with no legacy product-data migration path.
+The current public pairing is recovery `0.1.11` for native `0.1.3` and native
+updater `0.2.0` with version code `7`, embedded bundle `0.2.0`,
+`bundle-0.2.json`, and `android-update.json`. The latest `bundle.json` is
+deliberately preserved at recovery `0.1.11` for the legacy shell. Emulator
+installer evidence is recorded in `testing.md`; physical Pixel validation
+remains open. The release uses app schema 33 and repository schema 3, with no
+legacy product-data migration path.
 
 ## Developer note
 

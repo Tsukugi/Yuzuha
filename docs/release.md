@@ -10,7 +10,7 @@ Status: Current Android native release process. The release APK is signed with a
 - The native-release feed always identifies the newest complete APK. An older line upgrades directly to the latest patch, such as `0.2.8` to APK `0.3.4`; it does not install `0.3.0` and replay OTAs.
 - Recovery bundle `0.1.11` is signed for native `0.1.3`. Native `0.1.3` cannot add secure APK installation through JavaScript, so it still needs one manual bootstrap to `0.2.0`.
 - Working native `0.2.0` adds signed APK metadata, automatic verified download, bounded root install, and Android installer fallback. Its Android version code is `7`, reserving code `6` for the required `0.1.11` APK.
-- Artifacts are local only. API 35 emulators prove signed-package replacement with workspace preservation, the real non-root Android installer UI, and a controlled root install from `0.1.11` to `0.2.0`. Publication, the unpublished live-feed transition, and a physical Pixel remain release gates.
+- `v0.1.11` and `v0.2.0` are published with both APK and bundle delivery forms. The latest legacy `bundle.json` resolves to compatible `0.1.11`, and the latest native `android-update.json` resolves to APK `0.2.0`. API 35 emulators prove signed-package replacement with workspace preservation, the real non-root Android installer UI, and a controlled root install. Physical Pixel validation remains open.
 
 2026-08-22 Android v0.1.9 and OTA v0.1.10 release:
 

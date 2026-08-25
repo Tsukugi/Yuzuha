@@ -65,10 +65,10 @@ outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key
 fingerprint and local secret-loading command.
 Published `v0.1.10` remains the current public OTA and requires native `0.1.9`.
-Recovery `0.1.11` and native `0.2.0` artifacts are prepared locally but are
-not published. API 35 emulator tests cover signed-package replacement with
-workspace preservation, Android's installer UI, and controlled root install;
-physical Pixel and live-feed checks remain open. See [Android update channels](docs/android-updates.md).
+Recovery `0.1.11` and native `0.2.0` are published. API 35 emulator tests
+cover signed-package replacement with workspace preservation, Android's
+installer UI, and controlled root install; physical Pixel validation remains
+open. See [Android update channels](docs/android-updates.md).
 
 A dated task can open the Android system calendar editor with its title, details, and all-day local due date. Yuzuha does not request calendar permissions, read calendar data, store an event ID, or run a worker. The user confirms the draft in the system editor.
 
@@ -94,7 +94,7 @@ Use locked dependency versions in implementation branches. The current baseline 
 
 ## Android release status
 
-The current published APK is [`v0.1.9`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.9), and the current published JavaScript OTA is [`v0.1.10`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.10). That OTA requires native `0.1.9` and is rejected by older native `0.1.3` installs. `YZ-012` prepares a compatible `0.1.11` recovery release and native `0.2.0`; neither is public yet. Every new version must publish both a complete signed APK and its same-line bundle. Cloud sync remains out of scope.
+The published recovery release is [`v0.1.11`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.1.11), and the published native updater baseline is [`v0.2.0`](https://github.com/Tsukugi/Yuzuha/releases/tag/v0.2.0). The latest `bundle.json` remains compatible with native `0.1.3`, while the latest `android-update.json` points to APK `0.2.0`. Every new version must publish both a complete signed APK and its same-line bundle. Cloud sync remains out of scope.
 
 See [docs/README.md](docs/README.md) for the complete documentation set and reading order.
 
