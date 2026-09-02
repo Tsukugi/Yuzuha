@@ -762,3 +762,12 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: Every version remains clean-installable, old shells never parse incompatible bundle metadata as their latest update, and cross-line upgrades need only one package replacement.
 - Consequence: Android version codes must increase for every version. Publication tooling requires matching APK, APK metadata, bundle, and bundle metadata. Supported older bundle pointers must be carried on later latest releases. Native `0.1.3` still needs one manual bootstrap because OTA cannot add its missing secure APK bridge.
 - Validation: TypeScript and Kotlin version-matrix tests, signed metadata and archive tests, combined-publisher rejection tests, one non-root API 35 emulator installer-UI smoke, one controlled rooted-emulator smoke, and direct latest-patch cross-line upgrade smoke. No physical Pixel was connected.
+
+## DEC-103: Put recent Money activity first
+
+- Status: Accepted.
+- Context: The Money summary is above the journal, but the journal sorted oldest first. Long histories required scrolling through old entries to reach recent activity.
+- Decision: Sort only the derived visible Money list by `occurredAt` descending. Keep the stable ascending ID tie-breaker for equal timestamps and do not mutate stored insertion order.
+- Reason: The first journal rows now match the recent activity a user is most likely to inspect after reading the totals.
+- Consequence: Filters and currency-separated totals use the same records as before. No data, schema, migration, export, network, worker, timer, or polling contract changes.
+- Validation: Focused sorting and filtering tests prove descending instants, deterministic ties, unchanged source order, and unchanged summaries.

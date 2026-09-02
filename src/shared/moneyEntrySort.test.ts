@@ -1,4 +1,4 @@
-import {sortMoneyEntriesChronologically} from './moneyEntrySort';
+import {sortMoneyEntriesNewestFirst} from './moneyEntrySort';
 import type {MoneyEntry} from '../types/domain';
 
 function entry(id: string, occurredAt: string): MoneyEntry {
@@ -18,7 +18,7 @@ function entry(id: string, occurredAt: string): MoneyEntry {
   };
 }
 
-describe('chronological money entry sorting', () => {
+describe('newest-first money entry sorting', () => {
   it('sorts by the actual occurredAt instant across dates and offsets', () => {
     const entries = [
       entry('late', '2026-07-02T00:00:00.000Z'),
@@ -26,7 +26,7 @@ describe('chronological money entry sorting', () => {
       entry('middle', '2026-07-01T23:30:00.000Z'),
     ];
 
-    expect(sortMoneyEntriesChronologically(entries).map(item => item.id)).toEqual(['middle', 'late', 'early']);
+    expect(sortMoneyEntriesNewestFirst(entries).map(item => item.id)).toEqual(['early', 'late', 'middle']);
   });
 
   it('uses the ID as a stable tie-breaker for equal timestamps', () => {
@@ -36,7 +36,7 @@ describe('chronological money entry sorting', () => {
       entry('m-entry', '2026-07-01T12:00:00.000Z'),
     ];
 
-    expect(sortMoneyEntriesChronologically(entries).map(item => item.id)).toEqual(['a-entry', 'm-entry', 'z-entry']);
+    expect(sortMoneyEntriesNewestFirst(entries).map(item => item.id)).toEqual(['a-entry', 'm-entry', 'z-entry']);
   });
 
   it('does not mutate the input array', () => {
@@ -45,14 +45,14 @@ describe('chronological money entry sorting', () => {
       entry('first', '2026-07-01T12:00:00.000Z'),
     ];
 
-    const sorted = sortMoneyEntriesChronologically(entries);
+    const sorted = sortMoneyEntriesNewestFirst(entries);
 
     expect(sorted).not.toBe(entries);
     expect(entries.map(item => item.id)).toEqual(['second', 'first']);
-    expect(sorted.map(item => item.id)).toEqual(['first', 'second']);
+    expect(sorted.map(item => item.id)).toEqual(['second', 'first']);
   });
 
   it('rejects invalid occurredAt timestamps deterministically', () => {
-    expect(() => sortMoneyEntriesChronologically([entry('invalid', 'not-a-date')])).toThrow(/occurredAt/i);
+    expect(() => sortMoneyEntriesNewestFirst([entry('invalid', 'not-a-date')])).toThrow(/occurredAt/i);
   });
 });

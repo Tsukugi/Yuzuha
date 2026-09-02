@@ -31,7 +31,7 @@ Status: Current implementation trace plus planned requirements. Requirement IDs 
 | MONEY-03 | The user can edit and delete entries. | Totals update immediately and remain correct after restart. |
 | MONEY-04 | The user can filter by date, type, category, and account label. | Money history offers All/Day/Week/Month/Year/Custom and reports offer Day/Week/Month/Year/Custom local ranges; a custom interval includes its start date and excludes its end date, and filtered results, totals, charts, and split lines use the same range. |
 | MONEY-05 | The user can export entries. | CSV and JSON exports contain a schema version and currency fields. |
-| MONEY-14 | The visible money history is chronological. | Entries are sorted by `occurredAt` ascending, then by stable ID for equal timestamps, without changing stored insertion order. |
+| MONEY-14 | The visible money history puts recent activity first. | Entries are sorted by `occurredAt` descending, then by stable ID for equal timestamps, without changing stored insertion order. |
 | MONEY-15 | The user can choose a local money occurrence date and time. | Android uses the system date/time dialogs, preserves cancel behavior, rejects invalid local values, and stores the selected instant as UTC ISO. |
 
 ## App time

@@ -51,7 +51,7 @@ must not require a committed private-key fixture.
 ## Money range, ordering, and picker evidence
 
 - `moneyRange.test.ts` covers Year boundaries, Custom inclusive-start/exclusive-end behavior, invalid dates, reversed intervals, and local period selection. `moneyReport.test.ts` covers the same Year/Custom boundaries through report totals.
-- `moneyFilter.test.ts` covers the shared custom range and chronological filtered result without mutating source order. `moneyEntrySort.test.ts` covers date ordering, same-timestamp ID ties, offsets, and invalid timestamps.
+- `moneyFilter.test.ts` covers the shared custom range and newest-first filtered result without mutating source order. `moneyEntrySort.test.ts` covers descending date ordering, same-timestamp ID ties, offsets, and invalid timestamps.
 - `DateTimePickerRulesTest.kt` covers strict local date/time parsing and formatting, impossible calendar days, and out-of-range values. The Android module implementation returns `null` on cancel and rejects an active second dialog; those dialog-state paths are not unit-tested in that parser test.
 - Code and focused tests prove the custom start/end behavior. The archived `emulator-5554` hierarchy smoke proves the Money Year/Custom selectors; the current live hierarchy also showed the custom start/end controls, Money occurrence `Choose date`/`Choose time` controls, Android date picker, Android time picker, and Task due-date picker. The archived artifacts are under `artifacts/live-smoke/`.
 - Money occurrence values are saved through the existing timestamp field; no schema, migration, network request, worker, timer, or polling loop was added. iOS picker parity remains planned.

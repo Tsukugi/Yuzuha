@@ -1,6 +1,6 @@
 import {isInMoneyRange, getMoneyRange, type MoneyCustomInterval, type MoneyRangePeriod} from './moneyRange';
 import {type WeekStartDay} from './period';
-import {sortMoneyEntriesChronologically} from './moneyEntrySort';
+import {sortMoneyEntriesNewestFirst} from './moneyEntrySort';
 import type {MoneyEntry} from '../types/domain';
 
 export type MoneyFilterPeriod = MoneyRangePeriod;
@@ -37,7 +37,7 @@ export function filterMoneyEntries(entries: MoneyEntry[], filter: MoneyEntryFilt
   } else {
     range = getMoneyRange(now, {period: filter.period}, weekStartsOn);
   }
-  return sortMoneyEntriesChronologically(entries.filter(entry => (
+  return sortMoneyEntriesNewestFirst(entries.filter(entry => (
     isInMoneyRange(entry.occurredAt, range) &&
     (filter.kind === 'all' || entry.kind === filter.kind) &&
     (filter.categoryId === 'all' || entry.categoryId === filter.categoryId) &&

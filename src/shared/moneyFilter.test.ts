@@ -61,7 +61,7 @@ describe('money entry filters', () => {
     ];
     const filter: MoneyEntryFilter = {period: 'week', kind: 'all', categoryId: 'all', accountId: 'all'};
 
-    expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['sunday', 'monday']);
+    expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['monday', 'sunday']);
     expect(filterMoneyEntries(weekEntries, filter, new Date(2026, 6, 28), 1).map(item => item.id)).toEqual(['monday']);
   });
 
@@ -78,7 +78,7 @@ describe('money entry filters', () => {
       kind: 'all',
       categoryId: 'all',
       accountId: 'all',
-    }, new Date(2026, 6, 26)).map(item => item.id)).toEqual(['year-start', 'custom-start', 'custom-end']);
+    }, new Date(2026, 6, 26)).map(item => item.id)).toEqual(['custom-end', 'custom-start', 'year-start']);
     expect(filterMoneyEntries(intervalEntries, {
       period: 'custom',
       customInterval: {startLocalDate: '2026-07-01', endLocalDate: '2026-08-01'},
@@ -88,14 +88,14 @@ describe('money entry filters', () => {
     }).map(item => item.id)).toEqual(['custom-start']);
   });
 
-  it('sorts filtered entries chronologically without changing source order', () => {
+  it('sorts filtered entries newest first without changing source order', () => {
     const entries = [
       entry({id: 'later', occurredAt: '2026-07-28T12:00:00.000Z'}),
       entry({id: 'earlier', occurredAt: '2026-07-26T12:00:00.000Z'}),
     ];
     const filter: MoneyEntryFilter = {period: 'week', kind: 'all', categoryId: 'all', accountId: 'all'};
 
-    expect(filterMoneyEntries(entries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['earlier', 'later']);
+    expect(filterMoneyEntries(entries, filter, new Date(2026, 6, 28), 0).map(item => item.id)).toEqual(['later', 'earlier']);
     expect(entries.map(item => item.id)).toEqual(['later', 'earlier']);
   });
 });

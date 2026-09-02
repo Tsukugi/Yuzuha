@@ -4,6 +4,11 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-09-02 newest-first Money history (`YZ-013`):
+
+- The visible filtered Money journal now sorts by `occurredAt` descending, with a stable ID tie-breaker, so recent activity appears directly below the totals.
+- Stored entry order, filtering, and currency-separated totals are unchanged. The pass adds no schema, migration, network request, worker, timer, or polling loop.
+
 2026-08-25 update-channel recovery preparation (`YZ-012`):
 
 - The release contract now requires a complete APK and same-version bundle for every release. Native-incompatible work starts a new minor line; compatible patch releases use OTA on that line.

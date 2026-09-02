@@ -24,7 +24,8 @@ tie-breaker. Stored insertion order is unchanged. Evidence:
 `src/shared/moneyEntrySort.ts`, `src/shared/moneyEntrySort.test.ts`, and the
 filtered-list assertion in `src/shared/moneyFilter.test.ts`. The archived
 emulator Money list smoke showed an empty list, so it does not independently
-prove rendered ordering.
+prove rendered ordering. `YZ-013` later superseded the display direction while
+keeping the deterministic projection and unchanged stored order.
 
 ### YZ-010 — Android OS date and time pickers
 
@@ -48,3 +49,12 @@ daily average, three active apps, an 84% top-app share, and a three-minute
 busiest day; the separate earlier run also proves the explicit empty state.
 Hourly and category metrics remain unclaimed because the native query does not
 provide those boundaries.
+
+### YZ-013 — Recent Money entries first
+
+The visible filtered Money journal now sorts by `occurredAt` descending with a
+stable ID tie-breaker. The change leaves stored insertion order and
+currency-separated filtered totals unchanged. Evidence:
+`src/shared/moneyEntrySort.ts`, `src/shared/moneyEntrySort.test.ts`,
+`src/shared/moneyFilter.ts`, `src/shared/moneyFilter.test.ts`, and the full
+63-suite/300-test Jest run.

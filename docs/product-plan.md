@@ -62,7 +62,7 @@ Home offers one compact Money widget. It shows the main-currency balance and sel
 - Add income or expense manually.
 - Set amount, currency, local occurrence date/time, category, and optional note; choose an account only when multiple active accounts exist. Android uses OS date/time dialogs for the local value.
 - Edit or delete an entry.
-- Filter by All/Day/Week/Month/Year or a custom local interval, type, and category; filter by account when multiple active accounts exist. Show entries chronologically.
+- Filter by All/Day/Week/Month/Year or a custom local interval, type, and category; filter by account when multiple active accounts exist. Show the newest entries first.
 - Show totals and a simple category breakdown.
 - Export entries as CSV or JSON.
 
