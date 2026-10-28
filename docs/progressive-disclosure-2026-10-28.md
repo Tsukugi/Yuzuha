@@ -78,3 +78,8 @@ This is targeted Android smoke, not exhaustive flow, screen-reader, physical
 keyboard, physical-device or iOS coverage. Review shares the tested period
 component; its updated control was checked in tests rather than a new live
 Review journey.
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

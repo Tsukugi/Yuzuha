@@ -278,3 +278,8 @@ uses the existing verified cross-line APK updater. The latest release retains
 the signed 0.2.1 bundle-0.2.json and 0.1.11 legacy bundle.json unchanged.
 This changes no updater verification or installation rule. See
 [0.3.0 release record](releases/v0.3.0.md) and DEC-107.
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

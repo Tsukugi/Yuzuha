@@ -11,21 +11,21 @@ The app has an Android-first product plan and a native shell that can also suppo
 
 ## Repository status
 
-Release [0.3.0](docs/releases/v0.3.0.md) is being prepared as a native baseline:
+Release [0.3.0](docs/releases/v0.3.0.md) is published as a native baseline:
 the APK supplies icon fonts; subsequent compatible 0.3.x releases can use OTA.
 Older 0.2.x uses the signed APK updater. Earlier compatibility feeds are preserved.
 
 The [progressive-disclosure pass](docs/progressive-disclosure-2026-10-28.md)
 (YZ-025) keeps current values and primary actions visible while opening choices,
 secondary forms and focus history on demand. Validation: 64 suites / 324 tests,
-typecheck, lint, Android build and targeted API 35 smoke at 320×640 dp. Unpublished.
+typecheck, lint, Android build and targeted API 35 smoke at 320×640 dp. Included in published 0.3.0.
 
 The [28.10.2026 usability fixes](docs/usability-fixes-2026-10-28.md) address
 YZ-018–YZ-024 from the initial smoke: visible period choices, Android Back
 navigation and draft confirmation, visible restore feedback, periodic capture,
 permission refresh on resume, action icons and selected marks, and money actions
 that stay above the keyboard. Validation covers 64 Jest suites / 320 tests and
-an API 35 emulator at 320×640 dp. These local changes are not published.
+an API 35 emulator at 320×640 dp. These changes are included in published 0.3.0.
 
 Task lists now support local create, rename, archive/restore, and delete controls. Recurring task rules can create date-based tasks on startup, with explicit All, One, or Skip handling for missed dates. Tasks can also have one optional Android local reminder. Inbox is protected, and a list with tasks or recurring rules must be emptied before deletion.
 

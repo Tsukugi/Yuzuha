@@ -817,3 +817,8 @@ native-baseline classification, version 0.3.0 and version code 9. Older native
 Keep earlier compatibility pointers on the latest release. Metro static icon
 resolution removes the unsupported OTA font asset without changing the signed
 single-file bundle format. React Native, React and data schemas are unchanged.
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

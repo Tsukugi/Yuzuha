@@ -614,3 +614,8 @@ Two resolver tests then failed before the static mapping and passed after it.
 The real signed bundle build verifies that no Metro assets remain. See
 [0.3.0](releases/v0.3.0.md) for final tests, APK verification and publication
 status. Evidence is under artifacts/release-2026-10-28/.
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

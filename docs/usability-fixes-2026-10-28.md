@@ -73,3 +73,8 @@ No se probó teléfono físico, iOS, TalkBack, fuentes grandes, rotación, todas
 las paletas, restauraciones destructivas, entrega de recordatorios ni OTA.
 El paquete de producción y el teléfono conectado no se modificaron.
 No hay cambio de esquema, dependencias, versión, instalador ni proceso de fondo.
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

@@ -6,9 +6,18 @@ ID and record the release or implementation note that contains the evidence.
 
 ## Resolved items
 
+### YZ-026 — Ship icon resources through the native baseline
+
+The preflight reproduced unsupported Metro font assets. Static icon resolution
+has failing-before/passing-after tests; the signed 0.3.0 APK contains the exact
+font and four native architectures, while its signed bundle has no Metro assets.
+The 65-suite / 326-test run, 34 native tests, signature checks, emulator install
+with preserved note, verified GitHub digests and downloaded bytes prove the
+published scope. Older feeds remain unchanged. See [0.3.0](releases/v0.3.0.md).
+
 ### YZ-025 — Secondary flows on request
 
-Implemented in the unpublished workspace. Current-value menus replace repeated
+Implemented and included in published 0.3.0. Current-value menus replace repeated
 choice controls; secondary forms, saved-search naming, recurrence setup,
 delivery settings and focus history open on request. Drafts survive collapse,
 edit targets reveal their form and validation remains visible. The final
@@ -27,7 +36,7 @@ edit targets reveal their form and validation remains visible. The final
 - YZ-023: shared action icons retain labels, selected controls show checks, and singular labels are corrected.
 - YZ-024: money actions stay above the keyboard, optional date/time no longer precede category, and add controls reserve their own space.
 
-Implemented in the unpublished workspace. Nine focused regression tests, the
+Implemented and included in published 0.3.0. Nine focused regression tests, the
 64-suite / 320-test run, typecheck, lint, localTest build and live API 35
 320×640 dp verification support these claims. See
 [the report](usability-fixes-2026-10-28.md) for per-item evidence and limits;

@@ -197,3 +197,8 @@ Native 0.2.x receives the complete 0.3.0 APK through android-update.json;
 its bundle-0.2.json feed and legacy bundle.json remain preserved. Trust key,
 metadata schemas, private cache and startup verification rules are unchanged.
 See [release record](releases/v0.3.0.md).
+
+Publication update (28.10.2026): these UI changes are included in the verified
+[0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
+notes above retain their original test context. Latest delivery includes the
+complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.

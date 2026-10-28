@@ -14,7 +14,7 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 7. Android release versions are update contracts. A native-incompatible release increments the minor version and resets patch to zero, such as `0.2.0`. Compatible JavaScript OTAs stay on that major/minor line and increment patch. Every version must also publish a complete signed APK. A device on the same major/minor line prefers OTA; a device on an older line downloads the latest version's APK directly. `native-release` requires an explicit `native-baseline` or `compatible-patch` classification and rejects a version whose patch component contradicts it. Do not publish one incompatible bundle as the global latest for older native shells.
 8. Native `0.2.0` and later must check the signed native-release manifest, automatically download a newer verified APK, use the silent `su`/`pm install -r` path only after a successful bounded root probe, and otherwise open Android's standard package installer without a second in-app confirmation. APK size, hash, package ID, increasing version code, and release signer must be verified before either path. See `docs/android-updates.md`.
 
-Current release status: GitHub releases `Tsukugi/Yuzuha` `v0.1.11` and `v0.2.0` are published. `v0.1.11` is the signed recovery bundle/APK for native `0.1.3`; `v0.2.0` is the signed native updater baseline. The latest `bundle.json` remains the compatible `0.1.11` feed, while `android-update.json` points to APK `0.2.0`. Emulator tests prove signed-package replacement with workspace preservation, Android's non-root installer UI, and controlled rooted installation; a physical Pixel remains unverified. Local release keys remain outside the committed tree.
+Current release status: GitHub releases `Tsukugi/Yuzuha` `v0.1.11` and `v0.2.0` are published. `v0.1.11` is the signed recovery bundle/APK for native `0.1.3`; `v0.2.0` is the signed native updater baseline. Latest v0.3.0 preserves `bundle.json` at `0.1.11` and `bundle-0.2.json` at `0.2.1`, adds `bundle-0.3.json` at `0.3.0`, and points `android-update.json` to the verified complete `0.3.0` APK. Emulator tests prove signed-package replacement with workspace preservation, Android's non-root installer UI, and controlled rooted installation; a physical Pixel remains unverified. Local release keys remain outside the committed tree.
 
 Current update recovery status: `YZ-012` is published. OTA `0.1.10` was incompatible with the older native `0.1.3` line that accepted OTA `0.1.8`. Published recovery `0.1.11` restores that feed, and published native `0.2.0` provides verified automatic APK download with root/default Android installation. Native `0.1.3` lacks the APK installer bridge and requires one explicit bootstrap install of `0.2.0`; do not claim that `0.1.11` can add that native ability. The authoritative contract is `docs/android-updates.md`.
 
@@ -36,11 +36,11 @@ Current update recovery status: `YZ-012` is published. OTA `0.1.10` was incompat
 
 ## Current repository status
 
-Current release preparation: native 0.3.0 / version code 9 is required for the
+Current published release: native 0.3.0 / version code 9 is required for the
 icon font/library. Metro uses the static icon entry to keep OTA asset-free.
 Embedded, native and TypeScript versions are 0.3.0; the new endpoint is
 bundle-0.3.json. Preserve older feed pointers; native 0.2.x upgrades by APK.
-See `docs/releases/v0.3.0.md` and DEC-107 for verification/publication status.
+See `docs/releases/v0.3.0.md` and DEC-107 for verified publication evidence.
 
 Current progressive-disclosure status: YZ-025 replaces repeated period, Money
 choice and Notes-view alternatives with current-value menus. Secondary creation,
@@ -48,7 +48,7 @@ repeat, saved-search, delivery and focus-history controls open on request; draft
 survive folding, edit targets reveal their form and validation stays visible.
 The final 64-suite / 324-test run, typecheck, lint, localTest build and targeted
 API 35 smoke at 320×640 dp support the scope in
-`docs/progressive-disclosure-2026-10-28.md`. These changes are unpublished and
+`docs/progressive-disclosure-2026-10-28.md`. These changes are published in 0.3.0 and
 add no schema, dependency, installer or background-work change.
 
 Current usability fix status: YZ-018–YZ-024 are implemented and checked with
@@ -60,7 +60,7 @@ App Time rechecks permission on resume. Shared action icons retain labels and
 selected controls show checks. Money Save/Cancel sit outside the scroll and rise
 above the keyboard; occurrence date/time live in optional details. Add buttons
 reserve their own space. See `docs/usability-fixes-2026-10-28.md` for evidence and
-limits. These local changes are not a publication or a full accessibility audit.
+limits. These UI changes are included in 0.3.0; this evidence is not a full accessibility audit.
 
 The recurring-task pass is implemented: date-based rules can be created, paused/resumed, and deleted. Startup expands due rules once using explicit all/one/skip missed-occurrence policies. Custom lists can be created, renamed, archived/restored, and deleted only when unused by tasks or recurring rules. Inbox cannot be archived or deleted.
 
