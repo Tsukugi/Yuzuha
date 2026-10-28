@@ -894,6 +894,7 @@ describe('AppStore task reminders', () => {
       groupId = await value!.addAppGroup({name: 'Deep work', packageNames: ['com.editor']});
       taskId = await value!.addTask({title: 'Write', details: '', dueLocalDate: null, priority: 'normal', listId: 'task_list_inbox'});
     });
+    jest.useFakeTimers({now: 1793188800000});
     let sessionId = '';
     await act(async () => {
       sessionId = await value!.startFocusSession({taskId, projectId: null, noteId: null, appGroupId: groupId});
@@ -901,11 +902,13 @@ describe('AppStore task reminders', () => {
     });
     expect(saved.focusSessions.find(session => session.id === sessionId)).toMatchObject({status: 'active', taskId, appGroupId: groupId});
     await act(async () => {
+      jest.setSystemTime(1793188860000);
       await value!.finishFocusSession(sessionId, 'completed');
       await expect(value!.deleteAppGroup(groupId)).rejects.toThrow(/focus sessions/i);
       await value!.deleteFocusSession(sessionId);
       await value!.deleteAppGroup(groupId);
     });
+    jest.useRealTimers();
     expect(saved.focusSessions).toEqual([]);
     expect(saved.appGroups).toEqual([]);
     await act(async () => {

@@ -22,6 +22,7 @@ Delivered:
 - list-first Money, Notes, and Tasks entry with separate Add actions;
 - minimal add forms with Money type/amount/category/account, Notes title/body, and Tasks title/save visible first;
 - collapsed optional actions and settings for filters, reports, management, formatting, saved searches, task tools, focus sessions, time goals, and data operations;
+- one contextual header across Overview, Money, Notes, Tasks, and App Time, with a vertical-three-dot menu that routes through a cog-labeled row to the central owner of week-start, App Time exclusion, and task-reminder configuration;
 - deterministic opening of the section needed by exact search focus for task, project, template, list, app-group, and budget editors;
 - no schema, migration, import/export format, network request, worker, or background process.
 

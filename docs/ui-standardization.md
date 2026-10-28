@@ -50,6 +50,12 @@ separate future refactor.
 7. Use the same words, order, sizes, and states for the same control everywhere.
 8. Preserve the user's context after save, cancel, back, deep link, or validation.
 
+The primary-screen header is the bounded exception to the visible-label rule:
+Overview, Money, Notes, Tasks, and App Time use the familiar vertical-three-dot
+overflow icon with an accessibility label. Opening it reveals a fully labeled
+cog + Settings row. The title subtitle must report useful live scope/count data,
+not a generic product tagline.
+
 ## 3. Shared tokens
 
 Use named tokens instead of new raw values in screen code. The exact color
@@ -174,7 +180,7 @@ the result, for example `Saving...`, `Delete note`, or `Open attachment`.
 
 ### Segments and chips
 
-- Use segments for one active choice from a short, stable set: period, type,
+- Use segments for a short, stable set only when alternatives need to remain visible:
   view, or sort order.
 - Use chips for filters or a small set of independent categories.
 - A selected state must use at least two signals: surface/border plus text,
@@ -213,8 +219,22 @@ options. Its header always contains a title, a short summary when useful, a
 visible plus/minus or equivalent state, and `accessibilityState.expanded`.
 Do not put the screen's primary action only inside a collapsed disclosure.
 
+Do not use stacked disclosures for the top level of a mobile Settings screen.
+Settings uses seven compact categories: Appearance, General, Money, Task
+organization, App time, Task reminders, and Code updates. Selecting a row
+opens one dedicated detail screen, and Back returns to the list. Conditional
+controls may appear inside that detail screen only when they belong to the
+selected setting. Bottom navigation stays hidden on secondary screens.
+
 Nested disclosures use the compact panel style and must not create more than
 two visible nesting levels.
+
+A fixed selector must not leave one option alone on a wrapped second row.
+Home, Review and App Time use one full-width current-value period menu.
+Money capture uses current-value menus for type, category and multiple accounts.
+Use menus for longer mutually exclusive choices; reserve wrapping chips for
+filters that benefit from visible alternatives. Equal-width segmented rows
+are reserved for two or three short, fixed labels when needed.
 
 ### Lists and cards
 
@@ -278,7 +298,8 @@ Every screen that reads or writes local data defines:
 - Text can scale without clipping, overlap, or hidden actions.
 - Status is not conveyed by color alone. Use text, icons, check marks, or
   structure as a second signal.
-- Money shows currency and sign; durations show units; dates are readable;
+- Money shows currency and sign; durations show units; visible current-year
+  dates use `DD.MM`, other years use `DD.MM.YYYY`, and one-day ranges show one date;
   charts have a text equivalent.
 - Focus remains on a useful control after validation, navigation, and list
   updates.
@@ -333,3 +354,24 @@ A screen is standardized when:
   `accent` for success copy in some current screens.
 - Which screens require a real native `Switch` instead of the current typed
   pressable toggle row.
+
+## 2026-10-28 action and feedback rules
+
+Known actions use the shared vocabulary in `src/app/actionIcon.ts`, keeping
+visible labels and accessible names. Selected segments/chips include a check;
+Paper accordions expose their expanded state. Add controls reserve a separate
+layout row. Money capture keeps Save/Cancel outside the scroll and above the
+Android keyboard. Data tools uses a fixed feedback region outside disclosures.
+Android Back priorities are menu, primary capture/configuration, then secondary
+navigation. Primary capture discard requires confirmation. See
+[verification](usability-fixes-2026-10-28.md) for the tested scope.
+
+## Secondary controls — 28.10.2026
+
+`ChoiceMenu` shows one labeled current value, opens alternatives on demand and
+marks the selected choice. `DeferredSection` starts closed unless an edit target
+requires it; folding preserves parent-owned drafts and Back collapses first.
+Use these for optional follow-ups. Keep primary capture, saved content and
+validation outside the collapsed body. Use touch-accessible labeled controls;
+tooltips are brief help rather than required navigation.
+See [YZ-025 validation](progressive-disclosure-2026-10-28.md).

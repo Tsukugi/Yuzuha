@@ -1,21 +1,22 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import type {ReactNode} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
 import {
+  AppState,
   KeyboardAvoidingView,
   Linking,
   Platform,
-  Pressable,
   ScrollView,
   Alert,
   Share,
   StyleSheet,
+  StatusBar,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {Appbar, BottomNavigation, Button, Checkbox, Chip, FAB, Icon, IconButton, List, Menu, Searchbar, Surface, TextInput as PaperTextInput, TouchableRipple} from 'react-native-paper';
 import {useAppStore} from '../data/AppStore';
-import {formatDate, formatDateTime, formatMoney, sumMoney} from '../shared/format';
+import {formatDate, formatDateTime, formatLocalDate, formatLocalDateTime, formatMoney, sumMoney} from '../shared/format';
 import {formatDuration} from '../shared/duration';
 import {formatPeriodRange, getLocalDateKeys, getPeriodRange, isInPeriod, localDateKey, periodLabel} from '../shared/period';
 import type {Period} from '../shared/period';
@@ -91,8 +92,29 @@ import {getMoneyRange, type MoneyCustomInterval, type MoneyRangePeriod} from '..
 import {nativeBundleInstaller, type UpdateCheckResult} from '../installer/BundleInstaller';
 import {THEME_PALETTE_OPTIONS, THEME_PALETTES, useAppTheme, type ThemeColors} from './theme';
 import {UI_TOKENS} from './uiTokens';
+import {useAndroidBack, confirmDiscard} from './useAndroidBack';
+import {actionIcon} from './actionIcon';
+import {ChoiceMenu, DeferredSection, PERIOD_CHOICES} from './ProgressiveControls';
 
 type Tab = 'home' | 'money' | 'notes' | 'tasks' | 'appTime';
+type PrimaryTab = Exclude<Tab, 'appTime'>;
+const PRIMARY_TAB_ROUTES: Array<{key: PrimaryTab; title: string; focusedIcon: string; unfocusedIcon: string; accessibilityLabel: string}> = [
+  {key: 'home', title: 'Home', focusedIcon: 'home', unfocusedIcon: 'home-outline', accessibilityLabel: 'Home'},
+  {key: 'money', title: 'Money', focusedIcon: 'wallet', unfocusedIcon: 'wallet-outline', accessibilityLabel: 'Money'},
+  {key: 'notes', title: 'Notes', focusedIcon: 'note-text', unfocusedIcon: 'note-text-outline', accessibilityLabel: 'Notes'},
+  {key: 'tasks', title: 'Tasks', focusedIcon: 'check-circle', unfocusedIcon: 'check-circle-outline', accessibilityLabel: 'Tasks'},
+];
+export const BOTTOM_NAV_SAFE_AREA_INSETS = {bottom: 0} as const;
+export function shouldShowBottomNavigation(tab: Tab, secondaryScreenOpen: boolean): boolean {
+  return !secondaryScreenOpen && tab !== 'appTime';
+}
+type MoneyView = 'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence' | 'balances';
+export function isMoneySecondaryView(view: MoneyView): boolean {
+  return view !== 'entry';
+}
+export function moneyRangePeriodLabel(period: MoneyRangePeriod): string {
+  return period === 'day' ? 'Day' : period === 'week' ? 'Week' : period === 'month' ? 'Month' : period === 'year' ? 'Year' : 'Custom';
+}
 type QuickCaptureTab = 'money' | 'notes' | 'tasks';
 
 const ALL_RECURRENCE_WEEKDAYS: RecurrenceWeekday[] = [0, 1, 2, 3, 4, 5, 6];
@@ -129,14 +151,18 @@ function formatRecurrenceWeekdays(weekdays: RecurrenceWeekday[]): string {
   return RECURRENCE_WEEKDAY_OPTIONS.filter(day => weekdays.includes(day.value)).map(day => day.label).join(' ');
 }
 
+export function formatActiveAccountCount(count: number): string {
+  return `${count} active ${count === 1 ? 'account' : 'accounts'}`;
+}
+
 function useThemeStyles() {
   const {colors, mode, palette, resolvedMode, setMode, setPalette} = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return {colors, styles, mode, palette, resolvedMode, setMode, setPalette};
 }
 
-export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
-  const {styles} = useThemeStyles();
+export function MainApp({bundleVersion = '0.2.1'}: {bundleVersion?: string}) {
+  const {colors, styles, resolvedMode} = useThemeStyles();
   const {data, isLoading, error, addNote, addNoteWithAttachment, addTask, completeTaskFromReminder, snoozeTaskFromReminder} = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
   const [pendingAddTab, setPendingAddTab] = useState<QuickCaptureTab | null>(null);
@@ -156,6 +182,16 @@ export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
   const lastSharedCaptureKey = useRef<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsAppearanceOpen, setSettingsAppearanceOpen] = useState(false);
+  const [settingsAppTimeOpen, setSettingsAppTimeOpen] = useState(false);
+  const [settingsTasksOpen, setSettingsTasksOpen] = useState(false);
+  const [tabSecondaryScreenOpen, setTabSecondaryScreenOpen] = useState(false);
+  useAndroidBack(Boolean(sharedCapture || dataToolsOpen || globalSearchOpen || reviewOpen || tab === 'appTime'), 5, () => {
+    if (sharedCapture) confirmDiscard(() => closeSharedCapture());
+    else if (dataToolsOpen) setDataToolsOpen(false);
+    else if (globalSearchOpen) setGlobalSearchOpen(false);
+    else if (reviewOpen) setReviewOpen(false);
+    else setTab('home');
+  });
 
   const openQuickCapture = useCallback((target: QuickCaptureTab) => {
     setPendingAddTab(target);
@@ -172,6 +208,16 @@ export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
     setPendingAppGroupId(navigation.focusAppGroupId);
     setPendingBudgetId(navigation.focusBudgetId);
     setGlobalSearchOpen(false);
+    if (navigation.focusAppGroupId) {
+      setSettingsAppTimeOpen(true);
+      setSettingsOpen(true);
+      return;
+    }
+    if (navigation.focusProjectId || navigation.focusTemplateId || navigation.focusListId) {
+      setSettingsTasksOpen(true);
+      setSettingsOpen(true);
+      return;
+    }
     setTab(navigation.destination);
   }, []);
 
@@ -204,6 +250,8 @@ export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
     setReviewOpen(false);
     setSettingsOpen(false);
     setSettingsAppearanceOpen(false);
+    setSettingsAppTimeOpen(false);
+    setSettingsTasksOpen(false);
     if (action === 'settingsAppearance') {
       setSettingsOpen(true);
       setSettingsAppearanceOpen(true);
@@ -352,6 +400,7 @@ export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
 
   return (
     <SafeAreaView style={styles.app}>
+      <StatusBar backgroundColor={colors.background} barStyle={resolvedMode === 'dark' ? 'light-content' : 'dark-content'} />
       <View style={styles.content}>
         {sharedCapture ? (
           <SharedCaptureScreen
@@ -363,30 +412,37 @@ export function MainApp({bundleVersion = '0.2.0'}: {bundleVersion?: string}) {
             onSaved={closeSharedCapture}
           />
         ) : dataToolsOpen ? (
-          <DataToolsScreen data={data} bundleVersion={bundleVersion} onBack={() => setDataToolsOpen(false)} />
+          <DataToolsScreen data={data} onBack={() => setDataToolsOpen(false)} />
         ) : settingsOpen ? (
-          <SettingsScreen bundleVersion={bundleVersion} initiallyOpenAppearance={settingsAppearanceOpen} onBack={() => {setSettingsAppearanceOpen(false); setSettingsOpen(false);}} />
+          <SettingsScreen bundleVersion={bundleVersion} initiallyOpenAppearance={settingsAppearanceOpen} initiallyOpenAppTime={settingsAppTimeOpen} initiallyOpenTasks={settingsTasksOpen} focusAppGroupId={pendingAppGroupId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} onAppGroupFocusHandled={() => setPendingAppGroupId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} onBack={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(false);}} />
         ) : globalSearchOpen ? (
           <GlobalSearchScreen data={data} onBack={() => setGlobalSearchOpen(false)} onNavigate={openGlobalSearchResult} />
         ) : reviewOpen ? (
           <ReviewScreen data={data} onBack={() => setReviewOpen(false)} onNavigate={setTab} />
         ) : (
           <>
-            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsOpen(true);}} />}
-            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} />}
-            {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} />}
-            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} />}
-            {tab === 'appTime' && <AppTimeScreen focusAppGroupId={pendingAppGroupId} onFocusHandled={() => setPendingAppGroupId(null)} onBack={() => setTab('home')} />}
+            {tab === 'home' && <HomeScreen data={data} onNavigate={nextTab => {setPendingAddTab(null); setTab(nextTab);}} onQuickCapture={openQuickCapture} onOpenDataTools={() => setDataToolsOpen(true)} onOpenSearch={() => setGlobalSearchOpen(true)} onOpenReview={() => setReviewOpen(true)} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(true);}} />}
+            {tab === 'money' && <MoneyScreen focusMoneyId={pendingMoneyId} focusBudgetId={pendingBudgetId} openAdd={pendingAddTab === 'money'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingMoneyId(null)} onBudgetFocusHandled={() => setPendingBudgetId(null)} onSecondaryScreenChange={setTabSecondaryScreenOpen} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(true);}} />}
+            {tab === 'notes' && <NotesScreen focusNoteId={pendingNoteId} openAdd={pendingAddTab === 'notes'} onAddHandled={() => setPendingAddTab(null)} onFocusHandled={() => setPendingNoteId(null)} onSecondaryScreenChange={setTabSecondaryScreenOpen} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(true);}} />}
+            {tab === 'tasks' && <TasksScreen focusTaskId={pendingTaskId} focusProjectId={pendingProjectId} focusTemplateId={pendingTemplateId} focusListId={pendingListId} openAdd={pendingAddTab === 'tasks'} onAddHandled={() => setPendingAddTab(null)} onTaskFocusHandled={() => setPendingTaskId(null)} onProjectFocusHandled={() => setPendingProjectId(null)} onTemplateFocusHandled={() => setPendingTemplateId(null)} onListFocusHandled={() => setPendingListId(null)} onSecondaryScreenChange={setTabSecondaryScreenOpen} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(true);}} />}
+            {tab === 'appTime' && <AppTimeScreen onBack={() => setTab('home')} onOpenSettings={() => {setSettingsAppearanceOpen(false); setSettingsAppTimeOpen(false); setSettingsTasksOpen(false); setSettingsOpen(true);}} />}
           </>
         )}
       </View>
 
-      <View style={styles.tabBar} accessibilityRole="tablist">
-        <TabButton label="Home" icon="⌂" selected={tab === 'home'} onPress={() => setTab('home')} />
-        <TabButton label="Money" icon="€" selected={tab === 'money'} onPress={() => setTab('money')} />
-        <TabButton label="Notes" icon="✎" selected={tab === 'notes'} onPress={() => setTab('notes')} />
-        <TabButton label="Tasks" icon="✓" selected={tab === 'tasks'} onPress={() => setTab('tasks')} />
-      </View>
+      {shouldShowBottomNavigation(tab, Boolean(sharedCapture || dataToolsOpen || settingsOpen || globalSearchOpen || reviewOpen || tabSecondaryScreenOpen)) && <BottomNavigation.Bar
+        navigationState={{
+          index: Math.max(0, PRIMARY_TAB_ROUTES.findIndex(route => route.key === tab)),
+          routes: PRIMARY_TAB_ROUTES,
+        }}
+        shifting={false}
+        labeled
+        activeColor={colors.accent}
+        inactiveColor={colors.muted}
+        safeAreaInsets={BOTTOM_NAV_SAFE_AREA_INSETS}
+        style={styles.tabBar}
+        onTabPress={({route}) => {setTabSecondaryScreenOpen(false); setTab(route.key);}}
+      />}
     </SafeAreaView>
   );
 }
@@ -447,7 +503,7 @@ function SharedCaptureScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.pageTitle}>Shared capture</Text>
+      <SecondaryHeader title="Shared capture" backLabel="Yuzuha" onBack={onDismiss} />
       <Text style={styles.pageIntro}>Review this shared content before saving it to your local workspace.</Text>
       <View style={styles.formCard}>
         {capture.subject && <Text style={styles.cardTitle}>{capture.subject}</Text>}
@@ -477,7 +533,7 @@ function LoadingScreen({message, tone = 'normal'}: {message: string; tone?: 'nor
   );
 }
 
-function HomeScreen({
+export function HomeScreen({
   data,
   onNavigate,
   onQuickCapture,
@@ -495,12 +551,9 @@ function HomeScreen({
   onOpenSettings: () => void;
 }) {
   const {styles} = useThemeStyles();
-  const {setWeekStartsOn} = useAppStore();
-  const [homeToolsOpen, setHomeToolsOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
-  const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
+  useAndroidBack(quickCaptureOpen, 100, () => setQuickCaptureOpen(false));
   const [homePeriod, setHomePeriod] = useState<Period>('day');
-  const [weekStartError, setWeekStartError] = useState<string | null>(null);
   const range = getPeriodRange(new Date(), homePeriod, data.weekStartsOn);
   const selectedPeriodLabel = periodLabel(homePeriod);
   const periodDates = getLocalDateKeys(range);
@@ -518,60 +571,48 @@ function HomeScreen({
     (total, account) => total + calculateAccountBalance(account, data.money, data.transfers),
     0,
   );
-  async function saveWeekStart(weekStartsOn: WeekStartDay) {
-    setWeekStartError(null);
-    try {
-      await setWeekStartsOn(weekStartsOn);
-    } catch (error) {
-      setWeekStartError(error instanceof Error ? error.message : 'The week start could not be saved.');
-    }
-  }
-
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]}>
-      <View style={styles.pageHeader}>
-        <View style={styles.pageHeaderCopy}>
-          <Text style={styles.pageTitle}>Overview</Text>
-          <Text style={styles.pageIntro}>{selectedPeriodLabel} · {formatPeriodRange(range)}</Text>
-        </View>
-        <Pressable
-          accessibilityLabel="Open Settings"
-          accessibilityRole="button"
-          style={({pressed}) => [styles.headerAction, pressed && styles.pressed]}
-          onPress={onOpenSettings}>
-          <Text style={styles.headerActionText}>Settings</Text>
-        </Pressable>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <TabHeader
+        title="Overview"
+        subtitle={formatPeriodRange(range)}
+        actions={[
+          {label: 'Search', icon: 'magnify', onPress: onOpenSearch},
+          {label: 'Review', icon: 'clipboard-text-clock-outline', onPress: onOpenReview},
+          {label: 'Data tools', icon: 'database-outline', onPress: onOpenDataTools},
+        ]}
+        onOpenSettings={onOpenSettings}
+      />
+      <ChoiceMenu label="Period" value={homePeriod} options={PERIOD_CHOICES} onSelect={setHomePeriod} />
 
-      <Pressable
+      <TouchableRipple
         accessibilityLabel="Open money"
         accessibilityRole="button"
-        style={({pressed}) => [styles.homeMoneyWidget, styles.cardShadow, pressed && styles.pressed]}
+        style={[styles.homeMoneyWidget, styles.cardShadow]}
         onPress={() => onNavigate('money')}>
-        <View style={styles.homeSectionHeader}>
+        <View>
           <Text style={styles.homeBalanceLabel}>Money</Text>
-          <Text style={styles.homeBalanceCurrency}>{data.mainCurrency}</Text>
+          <Text style={styles.homeBalanceValue}>{formatMoney(totalBalanceMinor, data.mainCurrency)}</Text>
+          {periodMoney.length > 0 && <Text style={styles.homeBalanceDetail}>
+            {formatMoney(expenses, data.mainCurrency)} spent · {formatMoney(income, data.mainCurrency)} income
+          </Text>}
+          <Text style={styles.homeWidgetAction}>Open money</Text>
         </View>
-        <Text style={styles.homeBalanceValue}>{formatMoney(totalBalanceMinor, data.mainCurrency)}</Text>
-        <Text style={styles.homeBalanceDetail}>
-          {formatMoney(expenses, data.mainCurrency)} spent · {formatMoney(income, data.mainCurrency)} income {selectedPeriodLabel.toLowerCase()}
-        </Text>
-        <Text style={styles.homeWidgetAction}>Open money</Text>
-      </Pressable>
+      </TouchableRipple>
 
       <View style={styles.cardGrid}>
         <SummaryCard
           title="App time"
           value={hasUsagePermission ? formatDuration(appTimeSeconds) : 'Not connected'}
-          detail={hasUsagePermission ? `${selectedPeriodLabel} from Android Usage Access.` : `Connect Android Usage Access to read ${selectedPeriodLabel.toLowerCase()}.`}
+          detail={hasUsagePermission ? `${selectedPeriodLabel} from Android Usage Access.` : undefined}
           action={hasUsagePermission ? 'Open app time' : 'Set up access'}
           onPress={() => onNavigate('appTime')}
         />
         <SummaryCard
           title="Tasks"
           value={`${openTasks} open`}
-          detail={openTasks === 0 ? 'All clear for now.' : `${dueTasks} due ${selectedPeriodLabel.toLowerCase()}.`}
+          detail={openTasks === 0 ? undefined : `${dueTasks} due ${selectedPeriodLabel.toLowerCase()}.`}
           action="Open tasks"
           onPress={() => onNavigate('tasks')}
         />
@@ -584,39 +625,10 @@ function HomeScreen({
         />
       </View>
 
-      <TextButton label="Search workspace" onPress={onOpenSearch} />
-      <Disclosure
-        title="Dashboard period"
-        subtitle={formatPeriodRange(range)}
-        open={dashboardSettingsOpen}
-        onPress={() => setDashboardSettingsOpen(current => !current)}>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="Day" selected={homePeriod === 'day'} onPress={() => setHomePeriod('day')} />
-          <SegmentButton label="Week" selected={homePeriod === 'week'} onPress={() => setHomePeriod('week')} />
-          <SegmentButton label="Month" selected={homePeriod === 'month'} onPress={() => setHomePeriod('month')} />
-        </View>
-        <Text style={styles.formLabel}>Week starts on</Text>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
-          <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
-        </View>
-        {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
-      </Disclosure>
-      <Disclosure
-        title="More home tools"
-        subtitle="Review and data tools"
-        open={homeToolsOpen}
-        onPress={() => setHomeToolsOpen(current => !current)}>
-        <TextButton label="Open settings" onPress={onOpenSettings} />
-        <TextButton label="Review this period" onPress={onOpenReview} />
-        <TextButton label="Export, restore, or delete data" onPress={onOpenDataTools} />
-      </Disclosure>
-
-      <SectionTitle title={`Recent notes ${selectedPeriodLabel.toLowerCase()}`} />
-      {recentNotes.length === 0 ? (
-        <EmptyState text={`No notes updated ${selectedPeriodLabel.toLowerCase()}. Use Notes to keep a small record of what matters.`} />
-      ) : (
-        recentNotes.map(note => (
+      {recentNotes.length > 0 && (
+        <>
+        <SectionTitle title="Recent notes" />
+        {recentNotes.map(note => (
           <View key={note.id} style={styles.listRow}>
             <View style={styles.listBody}>
               <Text style={styles.listTitle}>{note.title}</Text>
@@ -624,7 +636,8 @@ function HomeScreen({
             </View>
             <Text style={styles.chevron}>›</Text>
           </View>
-        ))
+        ))}
+        </>
       )}
       </ScrollView>
       <View pointerEvents="box-none" style={styles.fabLayer}>
@@ -632,17 +645,17 @@ function HomeScreen({
           <View style={styles.quickCaptureMenu} accessibilityViewIsModal>
             <Text style={styles.quickCaptureMenuTitle}>Add</Text>
             {QUICK_CAPTURE_OPTIONS.map(option => (
-              <Pressable
+              <TouchableRipple
                 key={option.target}
                 accessibilityRole="button"
                 accessibilityLabel={option.label}
-                style={({pressed}) => [styles.quickCaptureOption, pressed && styles.pressed]}
+                style={styles.quickCaptureOption}
                 onPress={() => {
                   setQuickCaptureOpen(false);
                   onQuickCapture(option.target);
                 }}>
-                <Text style={styles.quickCaptureOptionText}>{option.label}</Text>
-              </Pressable>
+                <View style={styles.quickCaptureOptionContent}><Icon source={actionIcon(option.label) ?? 'plus'} size={20} /><Text style={styles.quickCaptureOptionText}>{option.label}</Text></View>
+              </TouchableRipple>
             ))}
           </View>
         )}
@@ -661,21 +674,12 @@ function ReviewScreen({data, onBack, onNavigate}: {data: AppData; onBack: () => 
   const [reviewPeriod, setReviewPeriod] = useState<Period>('day');
   const range = getPeriodRange(new Date(), reviewPeriod, data.weekStartsOn);
   const summary = buildReviewSummary(data, range);
-  const selectedPeriodLabel = periodLabel(reviewPeriod);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <TextButton label="Back to home" onPress={onBack} />
-      <Text style={styles.pageTitle}>{selectedPeriodLabel} review</Text>
-      <Text style={styles.pageIntro}>Source-backed local totals for {formatPeriodRange(range)}. This review does not write data or refresh Android usage.</Text>
-      <View style={styles.formCard}>
-        <Text style={styles.cardTitle}>Review period</Text>
-        <View style={styles.segmentRow}>
-          <SegmentButton label="Day" selected={reviewPeriod === 'day'} onPress={() => setReviewPeriod('day')} />
-          <SegmentButton label="Week" selected={reviewPeriod === 'week'} onPress={() => setReviewPeriod('week')} />
-          <SegmentButton label="Month" selected={reviewPeriod === 'month'} onPress={() => setReviewPeriod('month')} />
-        </View>
-      </View>
+      <SecondaryHeader title="Review" backLabel="Home" onBack={onBack} />
+      <Text style={styles.pageIntro}>{formatPeriodRange(range)}</Text>
+      <ChoiceMenu label="Period" value={reviewPeriod} options={PERIOD_CHOICES} onSelect={setReviewPeriod} />
 
       <SummaryCard
         title="Money"
@@ -713,55 +717,44 @@ function GlobalSearchScreen({data, onBack, onNavigate}: {data: AppData; onBack: 
   const {colors, styles} = useThemeStyles();
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [searchOptionsOpen, setSearchOptionsOpen] = useState(false);
   const results = searchGlobal(data, query, {includeArchived});
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <TextButton label="Back to home" onPress={onBack} />
-        <Text style={styles.pageTitle}>Search</Text>
-        <Text style={styles.pageIntro}>Search your local workspace. Nothing leaves this device.</Text>
-        <TextInput
+        <SecondaryHeader title="Search" backLabel="Home" onBack={onBack} />
+        <AppTextInput
           accessibilityLabel="Global search"
-          placeholder="Search your workspace"
+          placeholder="Search"
           placeholderTextColor={colors.muted}
           style={styles.input}
           value={query}
           onChangeText={setQuery}
         />
-        <Disclosure
-          title="Search options"
-          subtitle={includeArchived ? 'Archived records included' : 'Active records only'}
-          open={searchOptionsOpen}
-          onPress={() => setSearchOptionsOpen(current => !current)}>
-          <TextButton
-            label={includeArchived ? 'Hide archived results' : 'Include archived results'}
-            onPress={() => setIncludeArchived(current => !current)}
-          />
-          <Text style={styles.searchAccessNote}>App-time results appear only when Usage Access is granted and the snapshot is included.</Text>
-        </Disclosure>
+        <ToggleButton label="Include archived records" value={includeArchived} onPress={() => setIncludeArchived(current => !current)} />
         {!query.trim() ? (
-          <EmptyState text="Type a word to search your local workspace." />
+          <EmptyState text="Enter a search term." />
         ) : results.length === 0 ? (
           <EmptyState text="No matches in the selected records." />
         ) : (
           <View>
             <SectionTitle title={`${results.length} result${results.length === 1 ? '' : 's'}`} />
             {results.map(result => (
-              <Pressable
+              <TouchableRipple
                 key={`${result.kind}:${result.id}`}
                 accessibilityLabel={`Open ${globalSearchKindLabel(result.kind)} ${result.title}`}
                 accessibilityRole="button"
-                style={({pressed}) => [styles.searchResultRow, pressed && styles.pressed]}
+                style={styles.searchResultRow}
                 onPress={() => {
                   onNavigate(globalSearchNavigation(result));
                   onBack();
                 }}>
-                <Text style={styles.searchResultKind}>{globalSearchKindLabel(result.kind)}</Text>
-                <Text style={styles.listTitle}>{result.title}</Text>
-                <Text style={styles.listMeta}>{result.detail}{result.isArchived ? ' · archived' : ''}</Text>
-              </Pressable>
+                <View>
+                  <Text style={styles.searchResultKind}>{globalSearchKindLabel(result.kind)}</Text>
+                  <Text style={styles.listTitle}>{result.title}</Text>
+                  <Text style={styles.listMeta}>{result.detail}{result.isArchived ? ' · archived' : ''}</Text>
+                </View>
+              </TouchableRipple>
             ))}
           </View>
         )}
@@ -809,56 +802,496 @@ function globalSearchKindLabel(kind: GlobalSearchKind): string {
   }
 }
 
-export function SettingsScreen({bundleVersion, onBack, initiallyOpenAppearance = false}: {bundleVersion: string; onBack: () => void; initiallyOpenAppearance?: boolean}) {
-  const {styles, mode, palette, resolvedMode, setMode, setPalette} = useThemeStyles();
-  const [appearanceOpen, setAppearanceOpen] = useState(initiallyOpenAppearance);
+type SettingsSection = 'appearance' | 'general' | 'money' | 'tasks' | 'appTime' | 'taskReminders' | 'codeUpdates';
+
+const SETTINGS_SECTION_TITLES: Record<SettingsSection, string> = {
+  appearance: 'Appearance',
+  general: 'General',
+  money: 'Money',
+  tasks: 'Task organization',
+  appTime: 'App time',
+  taskReminders: 'Task reminders',
+  codeUpdates: 'Code updates',
+};
+
+export function SettingsScreen({bundleVersion, onBack, initiallyOpenAppearance = false, initiallyOpenAppTime = false, initiallyOpenTasks = false, focusAppGroupId = null, focusProjectId = null, focusTemplateId = null, focusListId = null, onAppGroupFocusHandled = () => {}, onProjectFocusHandled = () => {}, onTemplateFocusHandled = () => {}, onListFocusHandled = () => {}}: {bundleVersion: string; onBack: () => void; initiallyOpenAppearance?: boolean; initiallyOpenAppTime?: boolean; initiallyOpenTasks?: boolean; focusAppGroupId?: string | null; focusProjectId?: string | null; focusTemplateId?: string | null; focusListId?: string | null; onAppGroupFocusHandled?: () => void; onProjectFocusHandled?: () => void; onTemplateFocusHandled?: () => void; onListFocusHandled?: () => void}) {
+  const {styles} = useThemeStyles();
+  const [activeSection, setActiveSection] = useState<SettingsSection | null>(initiallyOpenAppearance ? 'appearance' : initiallyOpenAppTime ? 'appTime' : initiallyOpenTasks ? 'tasks' : null);
+
+  useAndroidBack(true, 20, () => activeSection ? setActiveSection(null) : onBack());
+
+  if (activeSection === 'tasks') {
+    return (
+      <TasksScreen
+        configurationOnly
+        focusTaskId={null}
+        focusProjectId={focusProjectId}
+        focusTemplateId={focusTemplateId}
+        focusListId={focusListId}
+        openAdd={false}
+        onAddHandled={() => {}}
+        onTaskFocusHandled={() => {}}
+        onProjectFocusHandled={onProjectFocusHandled}
+        onTemplateFocusHandled={onTemplateFocusHandled}
+        onListFocusHandled={onListFocusHandled}
+        onOpenSettings={() => {}}
+        onConfigurationBack={() => setActiveSection(null)}
+      />
+    );
+  }
+
+  if (activeSection) {
+    return (
+      <View style={styles.flex}>
+        <Appbar.Header mode="small" statusBarHeight={0} style={styles.settingsAppbar}>
+          <Appbar.BackAction accessibilityLabel="Back to Settings" onPress={() => setActiveSection(null)} />
+          <Appbar.Content title={SETTINGS_SECTION_TITLES[activeSection]} titleStyle={styles.settingsAppbarTitle} />
+        </Appbar.Header>
+        <ScrollView contentContainerStyle={styles.settingsDetailContent}>
+          {activeSection === 'appearance' && <AppearanceSettings />}
+          {activeSection === 'money' && <MoneySettings />}
+          {(activeSection === 'general' || activeSection === 'appTime' || activeSection === 'taskReminders') && <WorkspacePreferences section={activeSection} focusAppGroupId={focusAppGroupId} onAppGroupFocusHandled={onAppGroupFocusHandled} />}
+          {activeSection === 'codeUpdates' && <CodeUpdatesContent bundleVersion={bundleVersion} />}
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>‹ Home</Text>
-      </Pressable>
-      <Text style={styles.pageTitle}>Settings</Text>
-      <Text style={styles.pageIntro}>Manage the app appearance and get verified Yuzuha code updates.</Text>
-      <Disclosure
-        title="Appearance"
-        subtitle={`${THEME_PALETTES[palette].label} · ${mode === 'system' ? `System (${resolvedMode})` : mode}`}
-        open={appearanceOpen}
-        onPress={() => setAppearanceOpen(current => !current)}>
-        <Text style={styles.cardDetail}>Choose the contrast mode and color palette for this device. System follows Android again when selected. These choices reset when Yuzuha relaunches.</Text>
+    <View style={styles.flex}>
+      <Appbar.Header mode="small" statusBarHeight={0} style={styles.settingsAppbar}>
+        <Appbar.BackAction accessibilityLabel="Back to previous tab" onPress={onBack} />
+        <Appbar.Content title="Settings" titleStyle={styles.settingsAppbarTitle} />
+      </Appbar.Header>
+      <ScrollView contentContainerStyle={styles.settingsDetailContent}>
+        <SettingsNavigation bundleVersion={bundleVersion} onOpen={setActiveSection} />
+      </ScrollView>
+    </View>
+  );
+}
+
+function SettingsNavigation({bundleVersion, onOpen}: {bundleVersion: string; onOpen: (section: SettingsSection) => void}) {
+  const {colors, styles, mode, palette, resolvedMode} = useThemeStyles();
+  const data = useAppStore()?.data;
+  const rows: Array<{section: SettingsSection; subtitle: string; icon: string}> = [
+    {section: 'appearance', subtitle: `${THEME_PALETTES[palette].label} · ${mode === 'system' ? `System (${resolvedMode})` : mode}`, icon: 'palette-outline'},
+    {section: 'general', subtitle: data ? `Week starts on ${data.weekStartsOn === 0 ? 'Sunday' : 'Monday'}` : 'Date and calendar preferences', icon: 'tune-variant'},
+    {section: 'money', subtitle: data ? `${data.accounts.filter(item => !item.isArchived).length} ${data.accounts.filter(item => !item.isArchived).length === 1 ? 'account' : 'accounts'} · ${data.categories.filter(item => !item.isArchived).length} categories` : 'Accounts, categories, and payees', icon: 'wallet-outline'},
+    {section: 'tasks', subtitle: data ? `${data.projects.length} ${data.projects.length === 1 ? 'project' : 'projects'} · ${data.taskLists.length} ${data.taskLists.length === 1 ? 'list' : 'lists'}` : 'Projects, templates, lists, and rules', icon: 'format-list-checks'},
+    {section: 'appTime', subtitle: data ? `${data.usageExcludedPackages.length} excluded apps` : 'App inclusion and Usage Access', icon: 'chart-timeline-variant'},
+    {section: 'taskReminders', subtitle: data?.notificationSettings.taskRemindersEnabled ? 'Task reminders on' : 'Task reminders off', icon: 'bell-outline'},
+    {section: 'codeUpdates', subtitle: `Running bundle ${bundleVersion}`, icon: 'update'},
+  ];
+
+  return (
+    <Surface style={styles.settingsList} elevation={0}>
+      <View style={styles.settingsListContent}>
+        {rows.map((row, index) => (
+          <List.Item
+          key={row.section}
+          accessibilityLabel={`Open ${SETTINGS_SECTION_TITLES[row.section]} settings`}
+          accessibilityRole="button"
+          title={SETTINGS_SECTION_TITLES[row.section]}
+          description={row.subtitle}
+          titleStyle={styles.settingsNavigationTitle}
+          descriptionStyle={styles.settingsNavigationDescription}
+          style={[styles.settingsNavigationRow, index === rows.length - 1 && styles.settingsNavigationRowLast]}
+          left={props => <List.Icon {...props} icon={row.icon} color={colors.muted} />}
+          right={props => <List.Icon {...props} icon="chevron-right" color={colors.muted} />}
+          onPress={() => onOpen(row.section)}
+          />
+        ))}
+      </View>
+    </Surface>
+  );
+}
+
+function MoneySettings() {
+  const {colors, styles} = useThemeStyles();
+  const {data, addMoneyAccount, addMoneyCategory, addMoneyPayee, archiveMoneyAccount, archiveMoneyCategory, archiveMoneyPayee} = useAppStore();
+  const [kind, setKind] = useState<MoneyKind>('expense');
+  const [newAccount, setNewAccount] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newPayee, setNewPayee] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  if (!data) return null;
+  const currentData = data;
+
+  async function addAccount() {
+    if (!newAccount.trim()) return;
+    try {
+      await addMoneyAccount(newAccount.trim(), currentData.mainCurrency);
+      setNewAccount('');
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The account could not be added.');
+    }
+  }
+
+  async function addCategory() {
+    if (!newCategory.trim()) return;
+    try {
+      await addMoneyCategory(newCategory.trim(), kind);
+      setNewCategory('');
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The category could not be added.');
+    }
+  }
+
+  async function addPayee() {
+    if (!newPayee.trim()) return;
+    try {
+      await addMoneyPayee(newPayee.trim());
+      setNewPayee('');
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The payee could not be added.');
+    }
+  }
+
+  return (
+    <View style={styles.settingsStack}>
+      <Surface style={styles.formCard} elevation={0}>
+        <Text style={styles.cardTitle}>Accounts</Text>
+        <DeferredSection title="Add account">
+        <AppTextInput accessibilityLabel="New account name" placeholder="Account name" placeholderTextColor={colors.muted} style={styles.input} value={newAccount} onChangeText={setNewAccount} />
+        <PrimaryButton label="Add account" onPress={() => void addAccount()} />
+        </DeferredSection>
+        {currentData.accounts.filter(account => !account.isArchived).map(account => (
+          <View key={account.id} style={styles.manageRow}>
+            <View style={styles.listBody}><Text style={styles.listTitle}>{account.name}</Text><Text style={styles.listMeta}>{account.currency}</Text></View>
+            <TextButton label="Archive" disabled={currentData.accounts.filter(item => !item.isArchived).length <= 1} onPress={() => void archiveMoneyAccount(account.id)} />
+          </View>
+        ))}
+      </Surface>
+      <Surface style={styles.formCard} elevation={0}>
+        <Text style={styles.cardTitle}>Categories</Text>
+        <DeferredSection title="Add category">
         <View style={styles.segmentRow}>
-          <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
-          <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
-          <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+          <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
+          <SegmentButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
         </View>
-        <Text style={styles.formLabel}>Color palette</Text>
-        <Text style={styles.cardDetail}>Pick an accent color. Each palette has matching light and dark values.</Text>
-        <View style={styles.paletteGrid}>
-          {THEME_PALETTE_OPTIONS.map(option => (
-            <Pressable
-              key={option.value}
-              accessibilityLabel={`Use ${option.label} color palette`}
-              accessibilityRole="button"
-              accessibilityState={{selected: palette === option.value}}
-              style={[styles.paletteOption, palette === option.value && styles.paletteOptionSelected]}
-              onPress={() => setPalette(option.value)}>
+        <AppTextInput accessibilityLabel="New category name" placeholder="Category name" placeholderTextColor={colors.muted} style={styles.input} value={newCategory} onChangeText={setNewCategory} />
+        <PrimaryButton label="Add category" onPress={() => void addCategory()} />
+        </DeferredSection>
+        {currentData.categories.filter(category => !category.isArchived).map(category => (
+          <View key={category.id} style={styles.manageRow}>
+            <View style={styles.listBody}><Text style={styles.listTitle}>{category.name}</Text><Text style={styles.listMeta}>{category.kind}</Text></View>
+            <TextButton label="Archive" onPress={() => void archiveMoneyCategory(category.id)} />
+          </View>
+        ))}
+      </Surface>
+      <Surface style={styles.formCard} elevation={0}>
+        <Text style={styles.cardTitle}>Payees</Text>
+        <DeferredSection title="Add payee">
+        <AppTextInput accessibilityLabel="New payee name" placeholder="Payee name" placeholderTextColor={colors.muted} style={styles.input} value={newPayee} onChangeText={setNewPayee} />
+        <PrimaryButton label="Add payee" onPress={() => void addPayee()} />
+        </DeferredSection>
+        {currentData.payees.filter(payee => !payee.isArchived).map(payee => (
+          <View key={payee.id} style={styles.manageRow}>
+            <Text style={styles.listTitle}>{payee.name}</Text>
+            <TextButton label="Archive" onPress={() => void archiveMoneyPayee(payee.id)} />
+          </View>
+        ))}
+      </Surface>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+}
+
+function AppGroupSettings({focusAppGroupId, onFocusHandled}: {focusAppGroupId: string | null; onFocusHandled: () => void}) {
+  const {colors, styles} = useThemeStyles();
+  const {data, addAppGroup, updateAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
+  const [name, setName] = useState('');
+  const [packages, setPackages] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusAppGroupId || !data) return;
+    const group = data.appGroups.find(item => item.id === focusAppGroupId);
+    if (group) {
+      setEditingId(group.id);
+      setName(group.name);
+      setPackages(group.packageNames.join(', '));
+    }
+    onFocusHandled();
+  }, [data, focusAppGroupId, onFocusHandled]);
+
+  if (!data) return null;
+
+  function reset() {
+    setEditingId(null);
+    setName('');
+    setPackages('');
+    setError(null);
+  }
+
+  async function save() {
+    const draft = {name, packageNames: packages.split(',')};
+    const validationError = validateAppGroupDraft(draft);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    try {
+      if (editingId) await updateAppGroup(editingId, draft);
+      else await addAppGroup(draft);
+      reset();
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The app group could not be saved.');
+    }
+  }
+
+  function edit(group: AppData['appGroups'][number]) {
+    setEditingId(group.id);
+    setName(group.name);
+    setPackages(group.packageNames.join(', '));
+    setError(null);
+  }
+
+  function confirmDelete(group: AppData['appGroups'][number]) {
+    Alert.alert('Delete app group?', `Delete "${group.name}"?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Delete', style: 'destructive', onPress: () => void deleteAppGroup(group.id)},
+    ]);
+  }
+
+  return (
+    <Surface style={styles.formCard} elevation={0}>
+      <Text style={styles.cardTitle}>App groups</Text>
+      <DeferredSection title={editingId ? 'Edit app group' : 'Add app group'} revealKey={editingId}>
+      <AppTextInput accessibilityLabel="App group name" placeholder="Group name" placeholderTextColor={colors.muted} style={styles.input} value={name} onChangeText={setName} />
+      <AppTextInput accessibilityLabel="App group packages" placeholder="com.editor, com.browser" placeholderTextColor={colors.muted} style={styles.input} value={packages} onChangeText={setPackages} />
+      <PrimaryButton label={editingId ? 'Update group' : 'Add group'} onPress={() => void save()} />
+      {editingId && <TextButton label="Cancel edit" onPress={reset} />}
+      </DeferredSection>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {data.appGroups.map(group => (
+        <View key={group.id} style={styles.manageRow}>
+          <View style={styles.listBody}><Text style={styles.listTitle}>{group.name}</Text><Text style={styles.listMeta}>{group.packageNames.join(', ') || 'No packages'}{group.isArchived ? ' · Archived' : ''}</Text></View>
+          <MenuActions actions={[
+            {label: 'Edit', onPress: () => edit(group)},
+            {label: group.isArchived ? 'Restore' : 'Archive', onPress: () => void setAppGroupArchived(group.id, !group.isArchived)},
+            {label: 'Delete', danger: true, onPress: () => confirmDelete(group)},
+          ]} accessibilityLabel={`Manage ${group.name}`} />
+        </View>
+      ))}
+    </Surface>
+  );
+}
+
+function AppearanceSettings() {
+  const {styles, mode, palette, setMode, setPalette} = useThemeStyles();
+  return (
+    <Surface style={styles.formCard} elevation={0}>
+      <Text style={styles.cardDetail}>System follows Android. Device-only appearance choices reset on relaunch.</Text>
+      <View style={styles.segmentRow}>
+        <SegmentButton label="System" selected={mode === 'system'} onPress={() => setMode('system')} />
+        <SegmentButton label="Light" selected={mode === 'light'} onPress={() => setMode('light')} />
+        <SegmentButton label="Dark" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+      </View>
+      <Text style={styles.formLabel}>Color palette</Text>
+      <Text style={styles.cardDetail}>Pick an accent color. Each palette has matching light and dark values.</Text>
+      <View style={styles.paletteGrid}>
+        {THEME_PALETTE_OPTIONS.map(option => (
+          <TouchableRipple
+            key={option.value}
+            accessibilityLabel={`Use ${option.label} color palette`}
+            accessibilityRole="button"
+            accessibilityState={{selected: palette === option.value}}
+            style={[styles.paletteOption, palette === option.value && styles.paletteOptionSelected]}
+            onPress={() => setPalette(option.value)}>
+            <View style={styles.paletteOptionContent}>
               <View style={[styles.paletteSwatch, {backgroundColor: option.swatch}]} />
               <View style={styles.paletteOptionCopy}>
                 <Text style={styles.paletteLabel}>{option.label}</Text>
                 <Text style={styles.paletteDescription}>{option.description}</Text>
               </View>
-            </Pressable>
-          ))}
-        </View>
-      </Disclosure>
-      <CodeUpdatesSection bundleVersion={bundleVersion} initiallyOpen />
-    </ScrollView>
+            </View>
+          </TouchableRipple>
+        ))}
+      </View>
+    </Surface>
   );
 }
 
-function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersion: string; initiallyOpen?: boolean}) {
+function WorkspacePreferences({section, focusAppGroupId = null, onAppGroupFocusHandled = () => {}}: {section: 'general' | 'appTime' | 'taskReminders'; focusAppGroupId?: string | null; onAppGroupFocusHandled?: () => void}) {
+  const {colors, styles} = useThemeStyles();
+  const store = useAppStore();
+  const data = store?.data;
+  const [weekStartError, setWeekStartError] = useState<string | null>(null);
+  const [quietHoursStartLocalTime, setQuietHoursStartLocalTime] = useState('');
+  const [quietHoursEndLocalTime, setQuietHoursEndLocalTime] = useState('');
+  const [snoozeDurationMinutes, setSnoozeDurationMinutes] = useState<TaskReminderSnoozeDurationMinutes>(DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES);
+  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(false);
+  useAndroidBack(snoozeMenuOpen, 100, () => setSnoozeMenuOpen(false));
+  const [taskRemindersEnabled, setTaskRemindersEnabled] = useState(true);
+  const [recurringTaskRemindersEnabled, setRecurringTaskRemindersEnabled] = useState(true);
+  const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
+  const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
+  const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setQuietHoursStartLocalTime(data.notificationSettings.quietHoursStartLocalTime ?? '');
+    setQuietHoursEndLocalTime(data.notificationSettings.quietHoursEndLocalTime ?? '');
+    setSnoozeDurationMinutes(data.notificationSettings.snoozeDurationMinutes);
+    setTaskRemindersEnabled(data.notificationSettings.taskRemindersEnabled);
+    setRecurringTaskRemindersEnabled(data.notificationSettings.recurringTaskRemindersEnabled);
+  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime, data?.notificationSettings.snoozeDurationMinutes, data?.notificationSettings.taskRemindersEnabled, data?.notificationSettings.recurringTaskRemindersEnabled]);
+
+  if (!store || !data) return null;
+
+  const knownApps = Array.from(new Map(data.usageSnapshots.map(snapshot => [snapshot.packageName, snapshot.displayName])).entries())
+    .sort((left, right) => left[1].localeCompare(right[1]) || left[0].localeCompare(right[0]));
+
+  async function saveWeekStart(weekStartsOn: WeekStartDay) {
+    setWeekStartError(null);
+    try {
+      await store.setWeekStartsOn(weekStartsOn);
+    } catch (error) {
+      setWeekStartError(error instanceof Error ? error.message : 'The week start could not be saved.');
+    }
+  }
+
+  async function pickQuietHour(setter: (value: string) => void, current: string) {
+    try {
+      const selected = await dateTimePicker.pickTime(current || '22:00');
+      if (selected) setter(selected);
+    } catch (pickerError) {
+      setNotificationSettingsError(pickerError instanceof Error ? pickerError.message : 'The quiet-hours picker failed.');
+    }
+  }
+
+  async function saveNotificationSettings() {
+    setSavingNotificationSettings(true);
+    setNotificationSettingsError(null);
+    setNotificationSettingsMessage(null);
+    try {
+      await store.setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime, snoozeDurationMinutes, taskRemindersEnabled, recurringTaskRemindersEnabled);
+      setNotificationSettingsMessage(taskRemindersEnabled ? (quietHoursStartLocalTime.trim() ? 'Notification settings saved.' : 'Notification settings saved; quiet hours disabled.') : 'Task reminders paused. Reminder times remain saved.');
+    } catch (settingsError) {
+      setNotificationSettingsError(settingsError instanceof Error ? settingsError.message : 'Notification settings could not be saved.');
+    } finally {
+      setSavingNotificationSettings(false);
+    }
+  }
+
+  if (section === 'general') {
+    return (
+      <Surface style={styles.formCard} elevation={0}>
+        <Text style={styles.formLabel}>Week starts on</Text>
+        <View style={styles.segmentRow}>
+          <SegmentButton label="Sunday" selected={data.weekStartsOn === 0} onPress={() => void saveWeekStart(0)} />
+          <SegmentButton label="Monday" selected={data.weekStartsOn === 1} onPress={() => void saveWeekStart(1)} />
+        </View>
+        <Text style={styles.cardDetail}>This applies to Home, Review, Money, App Time, tasks, and budget projections.</Text>
+        {weekStartError && <Text style={styles.errorText}>{weekStartError}</Text>}
+      </Surface>
+    );
+  }
+
+  if (section === 'appTime') {
+    return (
+      <View style={styles.settingsStack}>
+        <Surface style={styles.formCard} elevation={0}>
+          <Text style={styles.cardTitle}>Included apps</Text>
+          {knownApps.length === 0 ? <EmptyState text="Refresh App Time once to see known apps." /> : knownApps.map(([packageName, displayName]) => {
+            const excluded = data.usageExcludedPackages.includes(packageName);
+            return (
+              <View key={packageName} style={styles.manageRow}>
+                <View style={styles.listBody}><Text style={styles.listTitle}>{displayName}</Text><Text style={styles.listMeta}>{packageName}</Text></View>
+                <TextButton label={excluded ? 'Include' : 'Exclude'} onPress={() => void store.toggleUsageExclusion(packageName)} />
+              </View>
+            );
+          })}
+          {usageAccess.isSupported() && <TextButton label="Open Android Usage Access" onPress={() => void usageAccess.openSettings()} />}
+        </Surface>
+        <TimeGoalSettings />
+        <AppGroupSettings focusAppGroupId={focusAppGroupId} onFocusHandled={onAppGroupFocusHandled} />
+      </View>
+    );
+  }
+
+  return (
+      <Surface style={styles.formCard} elevation={0}>
+        <ToggleButton label="Task reminders" value={taskRemindersEnabled} onPress={() => setTaskRemindersEnabled(current => !current)} />
+        {!taskRemindersEnabled && <Text style={styles.cardDetail}>Reminder times stay saved; native alarms are paused.</Text>}
+        <ToggleButton label="Recurring task reminders" value={recurringTaskRemindersEnabled} onPress={() => setRecurringTaskRemindersEnabled(current => !current)} />
+        <DeferredSection title="Delivery options" subtitle={`${quietHoursStartLocalTime && quietHoursEndLocalTime ? `${quietHoursStartLocalTime}–${quietHoursEndLocalTime}` : 'No quiet hours'} · Snooze ${snoozeDurationMinutes} min`}>
+        <Text style={styles.searchAccessNote}>Reminders inside quiet hours are delivered at the quiet-hours end.</Text>
+        <View style={styles.settingsFieldStack}>
+          {dateTimePicker.isSupported() ? <>
+            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursStartLocalTime || 'Quiet hours start off'}</Text><TextButton label="Choose start" onPress={() => void pickQuietHour(setQuietHoursStartLocalTime, quietHoursStartLocalTime)} /></View>
+            <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursEndLocalTime || 'Quiet hours end off'}</Text><TextButton label="Choose end" onPress={() => void pickQuietHour(setQuietHoursEndLocalTime, quietHoursEndLocalTime)} /></View>
+          </> : <>
+            <AppTextInput accessibilityLabel="Quiet hours start" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} />
+            <AppTextInput accessibilityLabel="Quiet hours end" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} />
+          </>}
+        </View>
+        <Text style={styles.formLabel}>Snooze duration</Text>
+        <Menu
+          visible={snoozeMenuOpen}
+          onDismiss={() => setSnoozeMenuOpen(false)}
+          anchor={<Button mode="outlined" icon="clock-outline" accessibilityLabel="Choose snooze duration" style={styles.fullWidthControl} contentStyle={styles.fullWidthControlContent} onPress={() => setSnoozeMenuOpen(true)}>{snoozeDurationMinutes < 60 ? `${snoozeDurationMinutes}m` : `${snoozeDurationMinutes / 60}h`}</Button>}>
+          {TASK_REMINDER_SNOOZE_DURATION_OPTIONS.map(duration => (
+            <Menu.Item key={duration} title={duration < 60 ? `${duration} minutes` : `${duration / 60} ${duration === 60 ? 'hour' : 'hours'}`} leadingIcon={snoozeDurationMinutes === duration ? 'check' : undefined} onPress={() => {setSnoozeDurationMinutes(duration); setSnoozeMenuOpen(false);}} />
+          ))}
+        </Menu>
+        </DeferredSection>
+        {notificationSettingsError && <Text style={styles.errorText}>{notificationSettingsError}</Text>}
+        {notificationSettingsMessage && <Text style={styles.successText}>{notificationSettingsMessage}</Text>}
+        <PrimaryButton label={savingNotificationSettings ? 'Saving...' : 'Save notification settings'} onPress={() => void saveNotificationSettings()} disabled={savingNotificationSettings} />
+      </Surface>
+  );
+}
+
+function TimeGoalSettings() {
+  const {colors, styles} = useThemeStyles();
+  const {data, addTimeGoal} = useAppStore();
+  const [name, setName] = useState('Attention');
+  const [period, setPeriod] = useState<'day' | 'week'>('week');
+  const [minutes, setMinutes] = useState('300');
+  const [error, setError] = useState<string | null>(null);
+
+  if (!data) return null;
+
+  async function save() {
+    const parsedMinutes = Number.parseInt(minutes, 10);
+    if (!name.trim() || !Number.isInteger(parsedMinutes) || parsedMinutes <= 0) {
+      setError('Enter a name and positive minutes.');
+      return;
+    }
+    try {
+      await addTimeGoal({name: name.trim(), period, targetSeconds: parsedMinutes * 60});
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'The time goal could not be saved.');
+    }
+  }
+
+  return (
+    <Surface style={styles.formCard} elevation={0}>
+      <Text style={styles.cardTitle}>Time goal</Text>
+      <DeferredSection title="Set time goal">
+      <AppTextInput accessibilityLabel="Goal name" placeholder="Goal name" placeholderTextColor={colors.muted} style={styles.input} value={name} onChangeText={setName} />
+      <View style={styles.segmentRow}>
+        <SegmentButton label="Daily" selected={period === 'day'} onPress={() => setPeriod('day')} />
+        <SegmentButton label="Weekly" selected={period === 'week'} onPress={() => setPeriod('week')} />
+      </View>
+      <AppTextInput accessibilityLabel="Goal minutes" keyboardType="number-pad" placeholder="Minutes" placeholderTextColor={colors.muted} style={styles.input} value={minutes} onChangeText={setMinutes} />
+      <PrimaryButton label="Save goal" onPress={() => void save()} />
+      </DeferredSection>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </Surface>
+  );
+}
+
+function CodeUpdatesContent({bundleVersion, contained = true}: {bundleVersion: string; contained?: boolean}) {
   const {styles} = useThemeStyles();
-  const [open, setOpen] = useState(initiallyOpen);
   const [codeUpdateState, setCodeUpdateState] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'prepared' | 'current' | 'error'>('idle');
   const [codeUpdateResult, setCodeUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [codeUpdateError, setCodeUpdateError] = useState<string | null>(null);
@@ -913,11 +1346,7 @@ function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersi
   }
 
   return (
-    <Disclosure
-      title="Code updates"
-      subtitle={`Running bundle ${bundleVersion}`}
-      open={open}
-      onPress={() => setOpen(current => !current)}>
+    <Surface style={contained ? styles.formCard : undefined} elevation={0}>
       <Text style={styles.cardDetail}>Yuzuha checks GitHub Releases for a newer verified JavaScript bundle. Native app changes still need a new APK. A downloaded update applies after you close and reopen Yuzuha.</Text>
       {legacyNativeTransition && (
         <>
@@ -937,11 +1366,11 @@ function CodeUpdatesSection({bundleVersion, initiallyOpen = false}: {bundleVersi
         onPress={codeUpdateState === 'available' ? () => void downloadCodeUpdate() : () => void checkForCodeUpdate()}
         disabled={codeUpdateState === 'checking' || codeUpdateState === 'downloading' || codeUpdateState === 'prepared'}
       />
-    </Disclosure>
+    </Surface>
   );
 }
 
-function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVersion: string; onBack: () => void}) {
+function DataToolsScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const {colors, styles} = useThemeStyles();
   const {resetWorkspace, restoreWorkspace, importMoneyEntries, undoMoneyCsvImport} = useAppStore();
   const [status, setStatus] = useState<string | null>(null);
@@ -1298,13 +1727,13 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
   }
 
   return (
+    <View style={styles.flex}>
+      <View accessibilityLiveRegion="polite" style={styles.formActions}>
+        {status && <Text style={styles.successText}>{status}</Text>}
+        {error && <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>}
+      </View>
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>‹ Home</Text>
-      </Pressable>
-      <Text style={styles.pageTitle}>Data tools</Text>
-      <Text style={styles.pageIntro}>Exports include supported local records. Restore validates a JSON export and shows a preview before replacing this workspace.</Text>
-      <CodeUpdatesSection bundleVersion={bundleVersion} />
+      <SecondaryHeader title="Data tools" backLabel="Home" onBack={onBack} />
       <Disclosure
         title="Export and backup"
         subtitle="Share or save a copy of this workspace"
@@ -1319,7 +1748,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
           open={encryptedBackupOpen}
           compact
           onPress={() => setEncryptedBackupOpen(current => !current)}>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Encrypted backup password"
             autoCapitalize="none"
             autoCorrect={false}
@@ -1344,7 +1773,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
           {!!recoveryKey && (
             <>
               <Text accessibilityLabel="Generated recovery key" style={styles.recoveryKey}>{recoveryKey}</Text>
-              <TextInput
+              <AppTextInput
                 accessibilityLabel="Recovery key confirmation"
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -1362,8 +1791,6 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
             </>
           )}
         </Disclosure>
-        {status && <Text style={styles.successText}>{status}</Text>}
-        {error && <Text style={styles.errorText}>{error}</Text>}
       </Disclosure>
       <Disclosure
         title="Import money CSV"
@@ -1398,7 +1825,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
         onPress={() => setJsonRestoreOpen(current => !current)}>
         <Text style={styles.cardDetail}>Choose or paste a current Yuzuha JSON export. Nothing changes until you review the count and confirm the replacement.</Text>
         <PrimaryButton label={jsonFileBusy ? 'Opening JSON export...' : 'Choose JSON export file'} onPress={openJsonImportFileFromDevice} disabled={jsonFileBusy || backupBusy} />
-        <TextInput
+        <AppTextInput
           accessibilityLabel="JSON restore text"
           autoCapitalize="none"
           autoCorrect={false}
@@ -1430,7 +1857,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
         onPress={() => setEncryptedRestoreOpen(current => !current)}>
         <Text style={styles.cardDetail}>Paste the encrypted backup and enter its password or recovery key. The backup is decrypted and validated before any local data changes.</Text>
         <PrimaryButton label="Open encrypted backup file" onPress={openEncryptedBackupFileFromDevice} disabled={backupBusy} />
-        <TextInput
+        <AppTextInput
           accessibilityLabel="Encrypted backup text"
           autoCapitalize="none"
           autoCorrect={false}
@@ -1445,7 +1872,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
           style={[styles.input, styles.multilineInput]}
           value={backupText}
         />
-        <TextInput
+        <AppTextInput
           accessibilityLabel="Encrypted restore password or recovery key"
           autoCapitalize="none"
           autoCorrect={false}
@@ -1478,6 +1905,7 @@ function DataToolsScreen({data, bundleVersion, onBack}: {data: AppData; bundleVe
         <TextButton label="Delete all local data" danger onPress={confirmDelete} />
       </Disclosure>
     </ScrollView>
+    </View>
   );
 }
 
@@ -1549,7 +1977,7 @@ function moneyFilterPeriodLabel(period: MoneyRangePeriod, customInterval?: Money
     return 'This year';
   }
   if (period === 'custom') {
-    return customInterval ? `${customInterval.startLocalDate} to ${customInterval.endLocalDate}` : 'Custom interval';
+    return customInterval ? `${formatLocalDate(customInterval.startLocalDate)} to ${formatLocalDate(customInterval.endLocalDate)}` : 'Custom interval';
   }
   return periodLabel(period);
 }
@@ -1591,7 +2019,7 @@ function getConfirmedRecoveryKey(generatedKey: string, confirmation: string): st
   }
 }
 
-function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocusHandled, onBudgetFocusHandled}: {focusMoneyId: string | null; focusBudgetId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void; onBudgetFocusHandled: () => void}) {
+export function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocusHandled, onBudgetFocusHandled, onSecondaryScreenChange, onOpenSettings}: {focusMoneyId: string | null; focusBudgetId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void; onBudgetFocusHandled: () => void; onSecondaryScreenChange: (open: boolean) => void; onOpenSettings: () => void}) {
   const {colors, styles} = useThemeStyles();
   const {
     data,
@@ -1599,12 +2027,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     addMoneyRecurrence,
     updateMoney,
     deleteMoney,
-    addMoneyAccount,
-    addMoneyCategory,
-    addMoneyPayee,
-    archiveMoneyAccount,
-    archiveMoneyCategory,
-    archiveMoneyPayee,
   } = useAppStore();
   const [kind, setKind] = useState<MoneyKind>('expense');
   const [amount, setAmount] = useState('');
@@ -1613,10 +2035,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [payeeId, setPayeeId] = useState('');
   const [note, setNote] = useState('');
   const [occurredAtLocalDateTime, setOccurredAtLocalDateTime] = useState(currentLocalDateTime());
-  const [newCategory, setNewCategory] = useState('');
-  const [newAccount, setNewAccount] = useState('');
-  const [newPayee, setNewPayee] = useState('');
-  const [payeeError, setPayeeError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [entryFormOpen, setEntryFormOpen] = useState(false);
   const [recurrenceEnabled, setRecurrenceEnabled] = useState(false);
@@ -1625,12 +2043,16 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<RecurrenceWeekday[]>(ALL_RECURRENCE_WEEKDAYS);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [view, setView] = useState<'entry' | 'budget' | 'split' | 'transfer' | 'report' | 'recurrence'>('entry');
-  const [moneyActionsOpen, setMoneyActionsOpen] = useState(false);
+  const [view, setView] = useState<MoneyView>('entry');
+  useAndroidBack(entryFormOpen || view !== 'entry', 30, () => {
+    if (saving) return;
+    if (entryFormOpen) confirmDiscard(resetForm);
+    else setView('entry');
+  });
   const [entryFiltersOpen, setEntryFiltersOpen] = useState(false);
+  const [entryPeriodMenuOpen, setEntryPeriodMenuOpen] = useState(false);
+  useAndroidBack(entryPeriodMenuOpen, 100, () => setEntryPeriodMenuOpen(false));
   const [entryDetailsOpen, setEntryDetailsOpen] = useState(false);
-  const [balancesOpen, setBalancesOpen] = useState(false);
-  const [accountManagementOpen, setAccountManagementOpen] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const [entryFilterPeriod, setEntryFilterPeriod] = useState<MoneyFilterPeriod>(emptyMoneyEntryFilter.period);
   const [entryFilterCustomStart, setEntryFilterCustomStart] = useState(localDateKey(new Date()));
@@ -1638,6 +2060,11 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const [entryFilterKind, setEntryFilterKind] = useState<MoneyKind | 'all'>(emptyMoneyEntryFilter.kind);
   const [entryFilterCategoryId, setEntryFilterCategoryId] = useState<string | 'all'>(emptyMoneyEntryFilter.categoryId);
   const [entryFilterAccountId, setEntryFilterAccountId] = useState<string | 'all'>(emptyMoneyEntryFilter.accountId);
+
+  useEffect(() => {
+    onSecondaryScreenChange(isMoneySecondaryView(view) || entryFormOpen);
+    return () => onSecondaryScreenChange(false);
+  }, [entryFormOpen, onSecondaryScreenChange, view]);
 
   useEffect(() => {
     if (!openAdd) {
@@ -1708,7 +2135,10 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     return <MoneyBudgetScreen data={currentData} focusBudgetId={focusBudgetId} onFocusHandled={onBudgetFocusHandled} onBack={() => setView('entry')} />;
   }
   if (view === 'recurrence') {
-    return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} onAdd={() => { setView('entry'); startNewEntry(); }} />;
+    return <MoneyRecurrenceScreen data={currentData} onBack={() => setView('entry')} onAdd={() => { setView('entry'); startNewEntry(true); }} />;
+  }
+  if (view === 'balances') {
+    return <MoneyBalancesScreen data={currentData} onBack={() => setView('entry')} />;
   }
 
   async function save() {
@@ -1784,7 +2214,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setError(null);
   }
 
-  function startNewEntry() {
+  function startNewEntry(repeat = false) {
     setKind('expense');
     setAmount('');
     setCategoryId('');
@@ -1793,7 +2223,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     setNote('');
     setOccurredAtLocalDateTime(currentLocalDateTime());
     setEditingId(null);
-    setRecurrenceEnabled(false);
+    setRecurrenceEnabled(repeat);
     setRecurrenceCadence('month');
     setRecurrenceInterval('1');
     setRecurrenceWeekdays([...ALL_RECURRENCE_WEEKDAYS]);
@@ -1831,39 +2261,6 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     resetForm();
   }
 
-  async function saveCategory() {
-    const name = newCategory.trim();
-    if (!name) {
-      return;
-    }
-    await addMoneyCategory(name, kind);
-    setNewCategory('');
-  }
-
-  async function saveAccount() {
-    const name = newAccount.trim();
-    if (!name) {
-      return;
-    }
-    await addMoneyAccount(name, currentData.mainCurrency);
-    setNewAccount('');
-  }
-
-  async function savePayee() {
-    const name = newPayee.trim();
-    if (!name) {
-      setPayeeError('Enter a payee name.');
-      return;
-    }
-    try {
-      await addMoneyPayee(name);
-      setNewPayee('');
-      setPayeeError(null);
-    } catch (nextError) {
-      setPayeeError(nextError instanceof Error ? nextError.message : 'The payee could not be saved.');
-    }
-  }
-
   const visibleCategories = data.categories.filter(
     item => !item.isArchived && (item.kind === kind || item.kind === 'both'),
   );
@@ -1897,6 +2294,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
     0,
   );
   const mainFilteredTotal = filteredTotals.find(total => total.currency === currentData.mainCurrency);
+  const otherCurrencyTotals = filteredTotals.filter(total => total.currency !== currentData.mainCurrency);
   let chartRange: ReturnType<typeof getMoneyRange> = null;
   try {
     chartRange = getMoneyRange(new Date(), entryFilterPeriod === 'custom'
@@ -1916,80 +2314,160 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
   const filterAccounts = data.accounts.filter(account => !account.isArchived || account.id === entryFilterAccountId);
   const activeEntryFilterLabels = [
     entryFilterPeriod !== 'all' ? moneyFilterPeriodLabel(entryFilterPeriod, entryFilter.customInterval) : null,
-    entryFilterKind !== 'all' ? entryFilterKind : null,
-    entryFilterCategoryId !== 'all' ? 'category' : null,
-    entryFilter.accountId !== 'all' ? 'account' : null,
+    entryFilterKind !== 'all' ? entryFilterKind[0].toUpperCase() + entryFilterKind.slice(1) : null,
+    entryFilterCategoryId !== 'all' ? data.categories.find(category => category.id === entryFilterCategoryId)?.name ?? 'Selected category' : null,
+    entryFilter.accountId !== 'all' ? data.accounts.find(account => account.id === entryFilter.accountId)?.name ?? 'Selected account' : null,
   ].filter(Boolean);
-  const entryFilterSummary = activeEntryFilterLabels.length > 0 ? activeEntryFilterLabels.join(' · ') : 'All entries';
+  const entryFilterSummary = activeEntryFilterLabels.length > 0 ? activeEntryFilterLabels.join(' · ') : 'All time';
+  const entryHeaderSubtitle = `${listEntries.length} ${listEntries.length === 1 ? 'entry' : 'entries'} · ${entryFilterSummary}`;
 
   function renderEntryList() {
     return (
       <>
-        <SectionTitle title={`Entries (${listEntries.length})`} />
         {entryFilterError ? (
           <EmptyState text={entryFilterError} />
         ) : listEntries.length === 0 ? (
-          <EmptyState text="No money entries match these filters." />
+          <EmptyState text={listSourceEntries.length === 0 ? 'No money entries yet.' : 'No money entries match these filters.'} />
         ) : (
           listEntries.map(entry => (
-            <Pressable
+            <TouchableRipple
               key={entry.id}
               accessibilityLabel={`Edit ${entry.category} ${formatMoney(entry.amountMinor, entry.currency)}`}
               accessibilityRole="button"
-              style={({pressed}) => [styles.listRow, pressed && styles.pressed]}
+              style={styles.listRow}
               onPress={() => startEdit(entry)}>
-              <View style={styles.listBody}>
-                <Text style={styles.listTitle}>{entry.category}</Text>
-                <Text style={styles.listMeta}>
-                  {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || null, formatDateTime(entry.occurredAt)].filter(Boolean).join(' · ')}
+              <View style={styles.touchableRowContent}>
+                <View style={styles.listBody}>
+                  <Text style={styles.listTitle}>{entry.category}</Text>
+                  <Text style={styles.listMeta}>
+                    {[entry.payeeId ? payeeNames.get(entry.payeeId) : null, entry.note || null, formatDateTime(entry.occurredAt)].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
+                  {entry.kind === 'income' ? '+' : '-'}
+                  {formatMoney(entry.amountMinor, entry.currency)}
                 </Text>
               </View>
-              <Text style={[styles.amount, entry.kind === 'income' ? styles.incomeText : styles.expenseText]}>
-                {entry.kind === 'income' ? '+' : '-'}
-                {formatMoney(entry.amountMinor, entry.currency)}
-              </Text>
-            </Pressable>
+            </TouchableRipple>
             ))
         )}
-        <PrimaryButton label="Add money entry" onPress={startNewEntry} />
       </>
     );
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
-        <Text style={styles.pageTitle}>Money</Text>
-        <Text style={styles.pageIntro}>Manual entries stay on this device.</Text>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <TabHeader
+          title="Money"
+          subtitle={entryFormOpen ? editingId ? 'Edit entry' : recurrenceEnabled ? 'New periodic operation' : 'New entry' : entryHeaderSubtitle}
+          actions={entryFormOpen ? [] : [
+            {label: 'Budgets', icon: 'wallet-outline', onPress: () => setView('budget')},
+            {label: 'Report', icon: 'chart-bar', onPress: () => setView('report')},
+            {label: 'Transfer', icon: 'swap-horizontal', onPress: () => setView('transfer')},
+            {label: 'Split entry', icon: 'format-list-bulleted', onPress: () => setView('split')},
+            {label: 'Periodic money', icon: 'repeat', onPress: () => setView('recurrence')},
+            {label: 'Account balances', icon: 'bank-outline', onPress: () => setView('balances')},
+          ]}
+          onOpenSettings={onOpenSettings}
+        />
         {!entryFormOpen && (
-          <View style={[styles.moneyOverviewCard, styles.cardShadow]}>
-            <View style={styles.moneyBalanceCard}>
-              <View style={styles.homeSectionHeader}>
+          <Disclosure
+            title="Filters"
+            subtitle={activeEntryFilterLabels.length > 0 ? entryFilterSummary : undefined}
+            open={entryFiltersOpen}
+            compact
+            onPress={() => setEntryFiltersOpen(current => !current)}>
+            <Text style={styles.formLabel}>Period</Text>
+            <Menu
+              visible={entryPeriodMenuOpen}
+              onDismiss={() => setEntryPeriodMenuOpen(false)}
+              anchor={
+                <Button mode="outlined" icon="calendar-range" accessibilityLabel="Choose money period" style={styles.fullWidthControl} contentStyle={styles.fullWidthControlContent} onPress={() => setEntryPeriodMenuOpen(true)}>
+                  {entryFilterPeriod === 'all' ? 'All time' : moneyRangePeriodLabel(entryFilterPeriod)}
+                </Button>
+              }>
+              {(['all', 'day', 'week', 'month', 'year', 'custom'] as MoneyFilterPeriod[]).map(option => (
+                <Menu.Item key={option} title={option === 'all' ? 'All time' : moneyRangePeriodLabel(option)} leadingIcon={entryFilterPeriod === option ? 'check' : undefined} onPress={() => {setEntryFilterPeriod(option); setEntryPeriodMenuOpen(false);}} />
+              ))}
+            </Menu>
+            {entryFilterPeriod === 'custom' && (
+              <View style={styles.inlinePanel}>
+                <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
+                {dateTimePicker.isSupported() ? <>
+                  <TextButton label={`Start: ${formatLocalDate(entryFilterCustomStart)}`} onPress={() => void (async () => {
+                  try {
+                    const selected = await dateTimePicker.pickDate(entryFilterCustomStart);
+                    if (selected) setEntryFilterCustomStart(selected);
+                  } catch (pickerError) {
+                    setError(pickerError instanceof Error ? pickerError.message : 'The start date picker failed.');
+                  }
+                })()} />
+                <TextButton label={`End: ${formatLocalDate(entryFilterCustomEnd)}`} onPress={() => void (async () => {
+                  try {
+                    const selected = await dateTimePicker.pickDate(entryFilterCustomEnd);
+                    if (selected) setEntryFilterCustomEnd(selected);
+                  } catch (pickerError) {
+                    setError(pickerError instanceof Error ? pickerError.message : 'The end date picker failed.');
+                  }
+                })()} />
+                </> : <>
+                  <AppTextInput accessibilityLabel="Filter start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomStart} onChangeText={setEntryFilterCustomStart} />
+                  <AppTextInput accessibilityLabel="Filter end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomEnd} onChangeText={setEntryFilterCustomEnd} />
+                </>}
+              </View>
+            )}
+            <Text style={styles.formLabel}>Type</Text>
+            <View style={styles.chipWrap}>
+              <ChipButton label="All" selected={entryFilterKind === 'all'} onPress={() => setEntryFilterKind('all')} />
+              <ChipButton label="Expense" selected={entryFilterKind === 'expense'} onPress={() => setEntryFilterKind('expense')} />
+              <ChipButton label="Income" selected={entryFilterKind === 'income'} onPress={() => setEntryFilterKind('income')} />
+            </View>
+            <Text style={styles.formLabel}>Category</Text>
+            <View style={styles.chipWrap}>
+              <ChipButton label="All" selected={entryFilterCategoryId === 'all'} onPress={() => setEntryFilterCategoryId('all')} />
+              {filterCategories.map(category => (
+                <ChipButton key={category.id} label={category.name} selected={entryFilterCategoryId === category.id} onPress={() => setEntryFilterCategoryId(category.id)} />
+              ))}
+            </View>
+            {hasAccountChoice && (
+              <>
+                <Text style={styles.formLabel}>Account</Text>
+                <View style={styles.chipWrap}>
+                  <ChipButton label="All" selected={entryFilterAccountId === 'all'} onPress={() => setEntryFilterAccountId('all')} />
+                  {filterAccounts.map(account => (
+                    <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
+                  ))}
+                </View>
+              </>
+            )}
+          </Disclosure>
+        )}
+        {!entryFormOpen && (
+          <TouchableRipple accessibilityLabel="Open account balances" onPress={() => setView('balances')} style={[styles.moneyOverviewCard, styles.cardShadow]}>
+            <View>
+              <View style={styles.moneyBalanceCard}>
                 <Text style={styles.moneyBalanceLabel}>Total balance</Text>
-                <Text style={styles.moneyBalanceCurrency}>{currentData.mainCurrency}</Text>
+                <Text style={styles.moneyBalanceValue}>{formatMoney(totalBalanceMinor, currentData.mainCurrency)}</Text>
               </View>
-              <Text style={styles.moneyBalanceValue}>{formatMoney(totalBalanceMinor, currentData.mainCurrency)}</Text>
-              <Text style={styles.moneyBalanceDetail}>
-                {mainCurrencyAccounts.length} active {mainCurrencyAccounts.length === 1 ? 'account' : 'accounts'}
-              </Text>
+              {mainFilteredTotal && mainFilteredTotal.count > 0 && <View style={styles.moneyActivityRow}>
+                <View>
+                  <Text style={styles.moneyOverviewMeta}>Spent</Text>
+                  <Text style={styles.moneyActivityValue}>{formatMoney(mainFilteredTotal.expenseMinor, currentData.mainCurrency)}</Text>
+                </View>
+                <View style={styles.moneyActivityRight}>
+                  <Text style={styles.moneyOverviewMeta}>Net</Text>
+                  <Text style={styles.moneyActivityValue}>{formatMoney(mainFilteredTotal.incomeMinor - mainFilteredTotal.expenseMinor, currentData.mainCurrency)}</Text>
+                </View>
+              </View>}
             </View>
-            <View style={styles.moneyActivityRow}>
-              <View>
-                <Text style={styles.moneyOverviewMeta}>{entryFilterSummary}</Text>
-                <Text style={styles.moneyActivityValue}>{mainFilteredTotal ? formatMoney(mainFilteredTotal.expenseMinor, currentData.mainCurrency) : formatMoney(0, currentData.mainCurrency)} spent</Text>
-              </View>
-              <View style={styles.moneyActivityRight}>
-                <Text style={styles.moneyOverviewMeta}>Net</Text>
-                <Text style={styles.moneyActivityValue}>{mainFilteredTotal ? formatMoney(mainFilteredTotal.incomeMinor - mainFilteredTotal.expenseMinor, currentData.mainCurrency) : formatMoney(0, currentData.mainCurrency)}</Text>
-              </View>
-            </View>
-          </View>
+          </TouchableRipple>
         )}
         {!entryFormOpen && renderEntryList()}
         {!entryFormOpen && (
           <Disclosure
             title="Spending overview"
-            subtitle={entryFilterSummary}
+            subtitle={activeEntryFilterLabels.length > 0 ? entryFilterSummary : undefined}
             open={chartOpen}
             onPress={() => setChartOpen(current => !current)}>
             <MoneyChartCard data={chartData} currency={currentData.mainCurrency} scope={entryFilterSummary} hasDailyRange={chartRange !== null} />
@@ -1997,89 +2475,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
         )}
         {!entryFormOpen && (
           <>
-        <Disclosure
-          title="More money actions"
-          subtitle="Budgets, reports, transfers, splits, and periodic money"
-          open={moneyActionsOpen}
-          onPress={() => setMoneyActionsOpen(current => !current)}>
-          <TextButton label="Open budgets" onPress={() => setView('budget')} />
-          <TextButton label="Open money report" onPress={() => setView('report')} />
-          <TextButton label="Add transfer" onPress={() => setView('transfer')} />
-          <TextButton label="Add split entry" onPress={() => setView('split')} />
-          <TextButton label="Open periodic money" onPress={() => setView('recurrence')} />
-        </Disclosure>
-        <Disclosure
-          title="Filter entries"
-          subtitle={entryFilterSummary}
-          open={entryFiltersOpen}
-          onPress={() => setEntryFiltersOpen(current => !current)}>
-          <Text style={styles.formLabel}>Period</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="All" selected={entryFilterPeriod === 'all'} onPress={() => setEntryFilterPeriod('all')} />
-            <SegmentButton label="Day" selected={entryFilterPeriod === 'day'} onPress={() => setEntryFilterPeriod('day')} />
-            <SegmentButton label="Week" selected={entryFilterPeriod === 'week'} onPress={() => setEntryFilterPeriod('week')} />
-            <SegmentButton label="Month" selected={entryFilterPeriod === 'month'} onPress={() => setEntryFilterPeriod('month')} />
-            <SegmentButton label="Year" selected={entryFilterPeriod === 'year'} onPress={() => setEntryFilterPeriod('year')} />
-          </View>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Custom" selected={entryFilterPeriod === 'custom'} onPress={() => setEntryFilterPeriod('custom')} />
-          </View>
-          {entryFilterPeriod === 'custom' && (
-            <View style={styles.inlinePanel}>
-              <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
-              {dateTimePicker.isSupported() ? <>
-                <TextButton label={`Start date: ${entryFilterCustomStart}`} onPress={() => void (async () => {
-                try {
-                  const selected = await dateTimePicker.pickDate(entryFilterCustomStart);
-                  if (selected) setEntryFilterCustomStart(selected);
-                } catch (pickerError) {
-                  setError(pickerError instanceof Error ? pickerError.message : 'The start date picker failed.');
-                }
-              })()} />
-              <TextButton label={`End date: ${entryFilterCustomEnd}`} onPress={() => void (async () => {
-                try {
-                  const selected = await dateTimePicker.pickDate(entryFilterCustomEnd);
-                  if (selected) setEntryFilterCustomEnd(selected);
-                } catch (pickerError) {
-                  setError(pickerError instanceof Error ? pickerError.message : 'The end date picker failed.');
-                }
-              })()} />
-              </> : <>
-                <TextInput accessibilityLabel="Filter start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomStart} onChangeText={setEntryFilterCustomStart} />
-                <TextInput accessibilityLabel="Filter end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={entryFilterCustomEnd} onChangeText={setEntryFilterCustomEnd} />
-              </>}
-            </View>
-          )}
-          <Text style={styles.formLabel}>Type</Text>
-          <View style={styles.chipWrap}>
-            <ChipButton label="All" selected={entryFilterKind === 'all'} onPress={() => setEntryFilterKind('all')} />
-            <ChipButton label="Expense" selected={entryFilterKind === 'expense'} onPress={() => setEntryFilterKind('expense')} />
-            <ChipButton label="Income" selected={entryFilterKind === 'income'} onPress={() => setEntryFilterKind('income')} />
-          </View>
-          <Text style={styles.formLabel}>Category</Text>
-          <View style={styles.chipWrap}>
-            <ChipButton label="All" selected={entryFilterCategoryId === 'all'} onPress={() => setEntryFilterCategoryId('all')} />
-            {filterCategories.map(category => (
-              <ChipButton key={category.id} label={category.name} selected={entryFilterCategoryId === category.id} onPress={() => setEntryFilterCategoryId(category.id)} />
-            ))}
-          </View>
-          {hasAccountChoice && (
-            <>
-              <Text style={styles.formLabel}>Account</Text>
-              <View style={styles.chipWrap}>
-                <ChipButton label="All" selected={entryFilterAccountId === 'all'} onPress={() => setEntryFilterAccountId('all')} />
-                {filterAccounts.map(account => (
-                  <ChipButton key={account.id} label={account.name} selected={entryFilterAccountId === account.id} onPress={() => setEntryFilterAccountId(account.id)} />
-                ))}
-              </View>
-            </>
-          )}
-        </Disclosure>
-        <SectionTitle title="Filtered totals" />
-        {filteredTotals.length === 0 ? (
-          <EmptyState text="No totals for these filters." />
-        ) : (
-          filteredTotals.map(total => (
+        {otherCurrencyTotals.length > 0 && <>
+          <SectionTitle title="Other currencies" />
+          {otherCurrencyTotals.map(total => (
             <View key={total.currency} style={styles.formCard}>
               <Text style={styles.cardTitle}>{total.currency}</Text>
               <Text style={styles.cardDetail}>{total.count} matching {total.count === 1 ? 'entry' : 'entries'}</Text>
@@ -2090,13 +2488,12 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
                 {formatMoney(total.incomeMinor - total.expenseMinor, total.currency)} net
               </Text>
             </View>
-          ))
-        )}
+          ))}
+        </>}
           </>
         )}
         {entryFormOpen && (
           <>
-        <SectionTitle title={editingId ? 'Edit money entry' : 'New money entry'} />
         {editingId && (
           <View style={styles.editBanner}>
             <Text style={styles.editBannerText}>Editing an entry</Text>
@@ -2104,13 +2501,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
           </View>
         )}
         <View style={styles.formCard}>
-          <Text style={styles.formLabel}>Type</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Expense" selected={kind === 'expense'} onPress={() => setKind('expense')} />
-            <SegmentButton label="Income" selected={kind === 'income'} onPress={() => setKind('income')} />
-          </View>
+          <ChoiceMenu label="Type" value={kind} options={[{value: 'expense', label: 'Expense'}, {value: 'income', label: 'Income'}]} onSelect={setKind} />
           <Text style={styles.formLabel}>Amount</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Amount"
             keyboardType="decimal-pad"
             placeholder="0.00"
@@ -2119,10 +2512,58 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             value={amount}
             onChangeText={setAmount}
           />
+          <ChoiceMenu label="Category" value={activeCategoryId ?? ''} options={visibleCategories.map(category => ({value: category.id, label: category.name}))} onSelect={setCategoryId} />
+          <AccountSelector accounts={activeAccounts} selectedAccountId={activeAccountId ?? ''} onSelect={setAccountId} />
+          {!editingId && (
+            <DeferredSection title="Repeat operation" subtitle={recurrenceEnabled ? `Every ${recurrenceInterval} ${recurrenceCadence}${recurrenceInterval === '1' ? '' : 's'}` : 'Optional'} revealKey={recurrenceEnabled ? 'enabled' : null}>
+              <ToggleButton label="Repeat" value={recurrenceEnabled} onPress={() => setRecurrenceEnabled(current => !current)} />
+              {recurrenceEnabled && (
+                <View style={styles.recurrenceOptions}>
+                  <Text style={styles.cardDetail}>Yuzuha adds this operation on its local calendar dates when you open the app.</Text>
+                  <Text style={styles.formLabel}>Repeat every</Text>
+                  <AppTextInput
+                    accessibilityLabel="Periodic interval"
+                    keyboardType="number-pad"
+                    placeholder="1"
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                    value={recurrenceInterval}
+                    onChangeText={setRecurrenceInterval}
+                  />
+                  <View style={styles.segmentRow}>
+                    <SegmentButton label="Day" selected={recurrenceCadence === 'day'} onPress={() => setRecurrenceCadence('day')} />
+                    <SegmentButton label="Week" selected={recurrenceCadence === 'week'} onPress={() => setRecurrenceCadence('week')} />
+                    <SegmentButton label="Month" selected={recurrenceCadence === 'month'} onPress={() => setRecurrenceCadence('month')} />
+                  </View>
+                  {recurrenceCadence === 'day' && Number.parseInt(recurrenceInterval.trim(), 10) === 1 && (
+                    <>
+                      <Text style={styles.formLabel}>Repeat on</Text>
+                      <View style={styles.chipWrap}>
+                        {RECURRENCE_WEEKDAY_OPTIONS.map(day => (
+                          <ChipButton
+                            key={day.value}
+                            label={day.label}
+                            selected={recurrenceWeekdays.includes(day.value)}
+                            onPress={() => toggleRecurrenceWeekday(day.value)}
+                          />
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
+            </DeferredSection>
+          )}
+          <Disclosure
+            title="More entry details"
+            subtitle={`${formatLocalDateTime(occurredAtLocalDateTime)} · Date, payee and note`}
+            open={entryDetailsOpen}
+            compact
+            onPress={() => setEntryDetailsOpen(current => !current)}>
           <Text style={styles.formLabel}>Occurred date and time</Text>
           <View style={styles.inlinePanel}>
             {dateTimePicker.isSupported() ? <>
-              <Text style={styles.cardDetail}>{occurredAtLocalDateTime || 'Choose a local date and time'}</Text>
+              <Text style={styles.cardDetail}>{occurredAtLocalDateTime ? formatLocalDateTime(occurredAtLocalDateTime) : 'Choose a local date and time'}</Text>
               <TextButton label="Choose date" onPress={() => void (async () => {
               try {
                 const currentDate = occurredAtLocalDateTime.slice(0, 10) || localDateKey(new Date());
@@ -2146,74 +2587,9 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               }
             })()} />
             </> : (
-              <TextInput accessibilityLabel="Occurred local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={occurredAtLocalDateTime} onChangeText={setOccurredAtLocalDateTime} />
+              <AppTextInput accessibilityLabel="Occurred local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={occurredAtLocalDateTime} onChangeText={setOccurredAtLocalDateTime} />
             )}
           </View>
-          <Text style={styles.formLabel}>Category</Text>
-          <View style={styles.chipWrap}>
-            {visibleCategories.map(categoryOption => (
-              <ChipButton
-                key={categoryOption.id}
-                label={categoryOption.name}
-                selected={categoryOption.id === activeCategoryId}
-                onPress={() => setCategoryId(categoryOption.id)}
-              />
-            ))}
-          </View>
-          <AccountSelector accounts={activeAccounts} selectedAccountId={activeAccountId ?? ''} onSelect={setAccountId} />
-          {!editingId && (
-            <>
-              <ToggleButton label="Repeat" value={recurrenceEnabled} onPress={() => setRecurrenceEnabled(current => !current)} />
-              {recurrenceEnabled && (
-                <View style={styles.recurrenceOptions}>
-                  <Text style={styles.cardDetail}>Yuzuha adds this operation on its local calendar dates when you open the app.</Text>
-                  <Text style={styles.formLabel}>Repeat every</Text>
-                  <View style={styles.segmentRow}>
-                    <TextInput
-                      accessibilityLabel="Periodic interval"
-                      keyboardType="number-pad"
-                      placeholder="1"
-                      placeholderTextColor={colors.muted}
-                      style={[styles.input, styles.smallInput]}
-                      value={recurrenceInterval}
-                      onChangeText={setRecurrenceInterval}
-                    />
-                    <SegmentButton label="Day" selected={recurrenceCadence === 'day'} onPress={() => setRecurrenceCadence('day')} />
-                    <SegmentButton label="Week" selected={recurrenceCadence === 'week'} onPress={() => setRecurrenceCadence('week')} />
-                    <SegmentButton label="Month" selected={recurrenceCadence === 'month'} onPress={() => setRecurrenceCadence('month')} />
-                  </View>
-                  {recurrenceCadence === 'day' && Number.parseInt(recurrenceInterval.trim(), 10) === 1 && (
-                    <>
-                      <Text style={styles.formLabel}>Repeat on</Text>
-                      <View style={styles.weekdayRow}>
-                        {RECURRENCE_WEEKDAY_OPTIONS.map(day => (
-                          <Pressable
-                            key={day.value}
-                            accessibilityLabel={day.label}
-                            accessibilityRole="button"
-                            accessibilityState={{selected: recurrenceWeekdays.includes(day.value)}}
-                            style={({pressed}) => [
-                              styles.weekdayToggle,
-                              recurrenceWeekdays.includes(day.value) && styles.weekdayToggleSelected,
-                              pressed && styles.pressed,
-                            ]}
-                            onPress={() => toggleRecurrenceWeekday(day.value)}>
-                            <Text style={[styles.weekdayToggleText, recurrenceWeekdays.includes(day.value) && styles.weekdayToggleTextSelected]}>{day.label}</Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    </>
-                  )}
-                </View>
-              )}
-            </>
-          )}
-          <Disclosure
-            title="More entry details"
-            subtitle={payeeId ? 'Payee selected' : note ? 'Note added' : 'Payee and note are optional'}
-            open={entryDetailsOpen}
-            compact
-            onPress={() => setEntryDetailsOpen(current => !current)}>
             <Text style={styles.formLabel}>Payee (optional)</Text>
             <View style={styles.chipWrap}>
               <ChipButton label="No payee" selected={payeeId === ''} onPress={() => setPayeeId('')} />
@@ -2222,7 +2598,7 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
               ))}
             </View>
             <Text style={styles.formLabel}>Note (optional)</Text>
-            <TextInput
+            <AppTextInput
               accessibilityLabel="Money note"
               placeholder="What was this for?"
               placeholderTextColor={colors.muted}
@@ -2233,97 +2609,36 @@ function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled, onFocu
             />
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          <PrimaryButton label={saving ? 'Saving...' : editingId ? 'Update entry' : recurrenceEnabled ? 'Save periodic operation' : 'Save entry'} onPress={save} disabled={saving} />
-          {!editingId && <TextButton label="Cancel" onPress={resetForm} disabled={saving} />}
-          {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} disabled={saving} />}
+
         </View>
           </>
         )}
 
-        {!entryFormOpen && <Disclosure
-          title="Account balances"
-          subtitle={`${data.accounts.filter(account => !account.isArchived).length} active`}
-          open={balancesOpen}
-          onPress={() => setBalancesOpen(current => !current)}>
-          {data.accounts.filter(account => !account.isArchived).map(account => (
-            <View key={account.id} style={styles.manageRow}>
-              <View style={styles.listBody}>
-                <Text style={styles.listTitle}>{account.name}</Text>
-                <Text style={styles.listMeta}>{account.currency}</Text>
-              </View>
-              <Text style={styles.amount}>
-                {formatMoney(calculateAccountBalance(account, data.money, data.transfers), account.currency)}
-              </Text>
-            </View>
-          ))}
-        </Disclosure>}
-
-        {!entryFormOpen && <Disclosure
-          title="Manage accounts, payees, and categories"
-          subtitle="Add or archive supporting records"
-          open={accountManagementOpen}
-          onPress={() => setAccountManagementOpen(current => !current)}>
-          <Text style={styles.formLabel}>New account</Text>
-          <TextInput
-            accessibilityLabel="New account name"
-            placeholder="Savings, cash..."
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={newAccount}
-            onChangeText={setNewAccount}
-          />
-          <PrimaryButton label="Add account" onPress={saveAccount} />
-          <Text style={styles.formLabel}>New payee</Text>
-          <TextInput
-            accessibilityLabel="New payee name"
-            placeholder="A shop or person"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={newPayee}
-            onChangeText={setNewPayee}
-          />
-          {payeeError && <Text style={styles.errorText}>{payeeError}</Text>}
-          <PrimaryButton label="Add payee" onPress={savePayee} />
-          <Text style={styles.formLabel}>New {kind} category</Text>
-          <TextInput
-            accessibilityLabel="New category name"
-            placeholder="A category name"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={newCategory}
-            onChangeText={setNewCategory}
-          />
-          <PrimaryButton label="Add category" onPress={saveCategory} />
-          <Text style={styles.formLabel}>Active accounts</Text>
-          {data.accounts.filter(account => !account.isArchived).map(account => (
-            <View key={account.id} style={styles.manageRow}>
-              <Text style={styles.listTitle}>{account.name}</Text>
-              <TextButton
-                label="Archive"
-                disabled={data.accounts.filter(item => !item.isArchived).length <= 1}
-                onPress={() => archiveMoneyAccount(account.id)}
-              />
-            </View>
-          ))}
-          <Text style={styles.formLabel}>Active categories</Text>
-          {data.categories.filter(category => !category.isArchived).map(category => (
-            <View key={category.id} style={styles.manageRow}>
-              <Text style={styles.listTitle}>{category.name}</Text>
-              <TextButton label="Archive" onPress={() => archiveMoneyCategory(category.id)} />
-            </View>
-          ))}
-          <Text style={styles.formLabel}>Active payees</Text>
-          {data.payees.filter(payee => !payee.isArchived).map(payee => (
-            <View key={payee.id} style={styles.manageRow}>
-              <Text style={styles.listTitle}>{payee.name}</Text>
-              <TextButton label="Archive" onPress={() => archiveMoneyPayee(payee.id)} />
-            </View>
-          ))}
-        </Disclosure>}
-
       </ScrollView>
-      {!entryFormOpen && <FloatingActionButton label="Add money entry" onPress={startNewEntry} />}
+      {entryFormOpen && <View accessibilityLabel="Money form actions" style={styles.formActions}>
+          <PrimaryButton label={saving ? 'Saving...' : editingId ? 'Update entry' : recurrenceEnabled ? 'Save periodic operation' : 'Save entry'} onPress={save} disabled={saving} />
+          <TextButton label="Cancel" onPress={resetForm} disabled={saving} />
+          {editingId && <TextButton label="Delete entry" danger onPress={removeEditing} disabled={saving} />}
+      </View>}
+      {!entryFormOpen && <FloatingActionButton label="Add money entry" onPress={() => startNewEntry()} />}
     </KeyboardAvoidingView>
+  );
+}
+
+function MoneyBalancesScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+  const {styles} = useThemeStyles();
+  const activeAccounts = data.accounts.filter(account => !account.isArchived);
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContent}>
+      <SecondaryHeader title="Account balances" backLabel="Money" onBack={onBack} />
+      {activeAccounts.map(account => (
+        <View key={account.id} style={styles.formCard}>
+          <Text style={styles.cardTitle}>{account.name}</Text>
+          <Text style={styles.amount}>{formatMoney(calculateAccountBalance(account, data.money, data.transfers), account.currency)}</Text>
+        </View>
+      ))}
+      {activeAccounts.length === 0 && <View style={styles.formCard}><Text style={styles.cardDetail}>No active accounts.</Text></View>}
+    </ScrollView>
   );
 }
 
@@ -2376,7 +2691,7 @@ function MoneyChartCard({data, currency, scope, hasDailyRange}: {data: MoneyChar
                   <View style={[styles.chartColumnBar, styles.chartColumnExpense, {height: point.expenseMinor === 0 ? 0 : Math.max(3, Math.round((point.expenseMinor / maxDailyValue) * 66))}]} />
                   <View style={[styles.chartColumnBar, styles.chartColumnIncome, {height: point.incomeMinor === 0 ? 0 : Math.max(3, Math.round((point.incomeMinor / maxDailyValue) * 66))}]} />
                 </View>
-                {showLabel && <Text style={styles.chartDayLabel}>{point.localDate.slice(5)}</Text>}
+                {showLabel && <Text style={styles.chartDayLabel}>{formatLocalDate(point.localDate).slice(0, 5)}</Text>}
               </View>
             );
           })}
@@ -2439,17 +2754,11 @@ function MoneyRecurrenceScreen({data, onBack, onAdd}: {data: AppData; onBack: ()
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Periodic money</Text>
-        <Text style={styles.pageIntro}>These operations add future entries using local calendar dates when you open the app.</Text>
+        <SecondaryHeader title="Periodic money" backLabel="Money" onBack={onBack} />
         {error && <Text style={styles.errorText}>{error}</Text>}
-        <SectionTitle title={`Current operations (${rules.length})`} />
         {rules.length === 0 ? (
           <>
             <EmptyState text="No periodic operations yet." />
-            <Text style={styles.cardDetail}>Start from Add money entry, then turn on Repeat.</Text>
             <PrimaryButton label="Add periodic operation" onPress={onAdd} />
           </>
         ) : (
@@ -2458,9 +2767,11 @@ function MoneyRecurrenceScreen({data, onBack, onAdd}: {data: AppData; onBack: ()
               <Text style={styles.cardTitle}>{rule.kind === 'income' ? 'Income' : 'Expense'}</Text>
               <Text style={styles.listTitle}>{rule.category}</Text>
               <Text style={styles.cardDetail}>{accountNames.get(rule.accountId ?? '') ?? 'Archived account'} · Every {rule.interval} {rule.cadence}{rule.interval === 1 ? '' : 's'}{rule.cadence === 'day' && rule.interval === 1 ? ` · ${formatRecurrenceWeekdays(rule.weekdays)}` : ''}</Text>
-              <Text style={styles.cardDetail}>{rule.isPaused ? `Paused · next date stays ${rule.nextOccurrenceLocalDate}` : `Next date: ${rule.nextOccurrenceLocalDate}`}</Text>
-              <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} disabled={busyRuleId !== null} onPress={() => void toggleRule(rule)} />
-              <TextButton label="Delete" danger disabled={busyRuleId !== null} onPress={() => confirmDelete(rule)} />
+              <Text style={styles.cardDetail}>{rule.isPaused ? `Paused · next date stays ${formatLocalDate(rule.nextOccurrenceLocalDate)}` : `Next date: ${formatLocalDate(rule.nextOccurrenceLocalDate)}`}</Text>
+              <MenuActions accessibilityLabel={`Manage periodic ${rule.category}`} disabled={busyRuleId !== null} actions={[
+                {label: rule.isPaused ? 'Resume' : 'Pause', onPress: () => void toggleRule(rule)},
+                {label: 'Delete', danger: true, onPress: () => confirmDelete(rule)},
+              ]} />
             </View>
           ))
         )}
@@ -2550,10 +2861,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
   if (categories.length === 0) {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Budgets</Text>
+        <SecondaryHeader title="Budgets" backLabel="Money" onBack={onBack} />
         <EmptyState text="Add an active expense category before creating a budget." />
       </ScrollView>
     );
@@ -2562,11 +2870,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Budgets</Text>
-        <Text style={styles.pageIntro}>Budgets count expense entries and split lines in the selected currency and local period.</Text>
+        <SecondaryHeader title="Budgets" backLabel="Money" onBack={onBack} />
         <Disclosure
           title={editingBudgetId ? 'Edit budget' : 'New budget'}
           subtitle={editingBudgetId ? 'Update this category limit' : 'Set a category limit'}
@@ -2601,7 +2905,7 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
             <SegmentButton label="Carry forward" selected={rollover === 'carry-forward'} onPress={() => setRollover('carry-forward')} />
           </View>
           <Text style={styles.formLabel}>Limit ({currency})</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Budget limit"
             keyboardType="decimal-pad"
             placeholder="0.00"
@@ -2614,7 +2918,6 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
           <PrimaryButton label={editingBudgetId ? 'Update budget' : 'Save budget'} onPress={save} />
           {editingBudgetId && <TextButton label="Cancel budget edit" onPress={resetForm} />}
         </Disclosure>
-        <SectionTitle title="Current budgets" />
         {data.budgets.length === 0 ? (
           <EmptyState text="No budgets yet." />
         ) : (
@@ -2634,8 +2937,8 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
                 <Text style={projection.status === 'over' ? styles.errorText : projection.status === 'near-limit' ? styles.warningText : styles.successText}>
                   {budgetStatusLabel(projection.status)}
                 </Text>
-                <View style={styles.rowActions}>
-                  <TextButton label="Edit" onPress={() => {
+                <MenuActions accessibilityLabel={`Manage ${budget.category} budget`} actions={[
+                  {label: 'Edit', onPress: () => {
                     setEditingBudgetId(budget.id);
                     setCategoryId(budget.categoryId);
                     setCurrency(budget.currency);
@@ -2643,9 +2946,10 @@ function MoneyBudgetScreen({data, focusBudgetId, onFocusHandled, onBack}: {data:
                     setRollover(budget.rollover);
                     setAmount((budget.amountMinor / 100).toFixed(2));
                     setError(null);
-                  }} />
-                  <TextButton label="Delete budget" danger onPress={() => void removeBudget(budget.id)} />
-                </View>
+                    setBudgetFormOpen(true);
+                  }},
+                  {label: 'Delete', danger: true, onPress: () => void removeBudget(budget.id)},
+                ]} />
               </View>
             );
           })
@@ -2743,10 +3047,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   if (activeAccounts.length === 0 || visibleCategories.length < 2) {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Split entry</Text>
+        <SecondaryHeader title="Split entry" backLabel="Money" onBack={onBack} />
         <EmptyState text="Add an active account and at least two matching categories before creating a split entry." />
       </ScrollView>
     );
@@ -2755,11 +3056,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Split entry</Text>
-        <Text style={styles.pageIntro}>Line amounts must add up exactly to the parent amount. Each line appears under its own report category.</Text>
+        <SecondaryHeader title="Split entry" backLabel="Money" onBack={onBack} />
         <View style={styles.formCard}>
           <Text style={styles.formLabel}>Type</Text>
           <View style={styles.segmentRow}>
@@ -2768,7 +3065,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           </View>
           <AccountSelector accounts={activeAccounts} selectedAccountId={accountId} onSelect={setAccountId} includeCurrency />
           <Text style={styles.formLabel}>Parent amount ({currency})</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Split parent amount"
             keyboardType="decimal-pad"
             placeholder="0.00"
@@ -2777,8 +3074,9 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
             value={amount}
             onChangeText={setAmount}
           />
+          <Text style={styles.cardDetail}>Line amounts must equal this total.</Text>
           <Text style={styles.formLabel}>Parent note (optional)</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Split parent note"
             placeholder="What was this for?"
             placeholderTextColor={colors.muted}
@@ -2799,7 +3097,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
                   />
                 ))}
               </View>
-              <TextInput
+              <AppTextInput
                 accessibilityLabel={`Split line ${index + 1} amount`}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
@@ -2808,7 +3106,7 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
                 value={line.amount}
                 onChangeText={value => updateLine(index, {amount: value})}
               />
-              <TextInput
+              <AppTextInput
                 accessibilityLabel={`Split line ${index + 1} note`}
                 placeholder="Line note (optional)"
                 placeholderTextColor={colors.muted}
@@ -2826,25 +3124,22 @@ function MoneySplitScreen({data, onBack}: {data: AppData; onBack: () => void}) {
           {error && <Text style={styles.errorText}>{error}</Text>}
           <PrimaryButton label="Save split entry" onPress={save} />
         </View>
-        <SectionTitle title="Recent split entries" />
-        {data.splits.length === 0 ? (
-          <EmptyState text="No split entries yet." />
-        ) : (
-          data.splits.slice(0, 20).map(split => {
-            const parentEntry = data.money.find(entry => entry.id === split.parentEntryId);
-            return parentEntry ? (
-              <View key={split.id} style={styles.listRow}>
-                <View style={styles.listBody}>
-                  <Text style={styles.listTitle}>{split.lines.map(line => line.category).join(' + ')}</Text>
-                  <Text style={styles.listMeta}>{parentEntry.note || formatDate(parentEntry.occurredAt)}</Text>
+        {data.splits.length > 0 && (
+          <>
+            <SectionTitle title="Recent split entries" />
+            {data.splits.slice(0, 20).map(split => {
+              const parentEntry = data.money.find(entry => entry.id === split.parentEntryId);
+              return parentEntry ? (
+                <View key={split.id} style={styles.listRow}>
+                  <View style={styles.listBody}>
+                    <Text style={styles.listTitle}>{split.lines.map(line => line.category).join(' + ')}</Text>
+                    <Text style={styles.listMeta}>{[parentEntry.note || formatDate(parentEntry.occurredAt), formatMoney(parentEntry.amountMinor, parentEntry.currency)].join(' · ')}</Text>
+                  </View>
+                  <MenuActions accessibilityLabel={`Manage split entry ${split.id}`} actions={[{label: 'Delete', danger: true, onPress: () => deleteMoney(parentEntry.id)}]} />
                 </View>
-                <View style={styles.rowActions}>
-                  <Text style={styles.amount}>{formatMoney(parentEntry.amountMinor, parentEntry.currency)}</Text>
-                  <TextButton label="Delete" danger onPress={() => deleteMoney(parentEntry.id)} />
-                </View>
-              </View>
-            ) : null;
-          })
+              ) : null;
+            })}
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -2889,11 +3184,7 @@ function MoneyTransferScreen({data, onBack}: {data: AppData; onBack: () => void}
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>‹ Money</Text>
-        </Pressable>
-        <Text style={styles.pageTitle}>Transfer money</Text>
-        <Text style={styles.pageIntro}>Move money between same-currency accounts. Transfers do not change income or spending reports.</Text>
+        <SecondaryHeader title="Transfer money" backLabel="Money" onBack={onBack} />
         {activeAccounts.length < 2 ? (
           <EmptyState text="Add a second active account before creating a transfer." />
         ) : (
@@ -2921,7 +3212,7 @@ function MoneyTransferScreen({data, onBack}: {data: AppData; onBack: () => void}
               ))}
             </View>
             <Text style={styles.formLabel}>Amount ({currency})</Text>
-            <TextInput
+            <AppTextInput
               accessibilityLabel="Transfer amount"
               keyboardType="decimal-pad"
               placeholder="0.00"
@@ -2931,7 +3222,7 @@ function MoneyTransferScreen({data, onBack}: {data: AppData; onBack: () => void}
               onChangeText={setAmount}
             />
             <Text style={styles.formLabel}>Note (optional)</Text>
-            <TextInput
+            <AppTextInput
               accessibilityLabel="Transfer note"
               placeholder="Why move it?"
               placeholderTextColor={colors.muted}
@@ -2986,17 +3277,14 @@ function TransferRow({
     <View style={styles.listRow}>
       <View style={styles.listBody}>
         <Text style={styles.listTitle}>{fromName} to {toName}</Text>
-        <Text style={styles.listMeta}>{transfer.note || formatDate(transfer.occurredAt)}</Text>
+        <Text style={styles.listMeta}>{[transfer.note || formatDate(transfer.occurredAt), formatMoney(transfer.amountMinor, transfer.currency)].join(' · ')}</Text>
       </View>
-      <View style={styles.rowActions}>
-        <Text style={styles.amount}>{formatMoney(transfer.amountMinor, transfer.currency)}</Text>
-        <TextButton label="Delete" danger onPress={onDelete} />
-      </View>
+      <MenuActions accessibilityLabel={`Manage transfer from ${fromName} to ${toName}`} actions={[{label: 'Delete', danger: true, onPress: onDelete}]} />
     </View>
   );
 }
 
-function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
+export function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) {
   const {colors, styles} = useThemeStyles();
   const [period, setPeriod] = useState<MoneyRangePeriod>('month');
   const [customStart, setCustomStart] = useState(localDateKey(new Date()));
@@ -3006,6 +3294,8 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const [categoryId, setCategoryId] = useState<string | 'all'>(emptyMoneyReportFilter.categoryId);
   const [accountId, setAccountId] = useState<string | 'all'>(emptyMoneyReportFilter.accountId);
   const [reportFiltersOpen, setReportFiltersOpen] = useState(false);
+  const [periodMenuOpen, setPeriodMenuOpen] = useState(false);
+  useAndroidBack(periodMenuOpen, 100, () => setPeriodMenuOpen(false));
   let range: ReturnType<typeof getMoneyRange> = null;
   let rangeError: string | null = null;
   try {
@@ -3025,8 +3315,15 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   const kindLabel = kind === 'all' ? 'All types' : kind === 'expense' ? 'Expenses' : 'Income';
   const categoryLabel = categoryId === 'all' ? 'All categories' : data.categories.find(category => category.id === categoryId)?.name ?? 'Selected category';
   const accountLabel = effectiveAccountId === 'all' ? 'All accounts' : data.accounts.find(account => account.id === effectiveAccountId)?.name ?? 'Selected account';
+  const activeReportFilterLabels = [
+    kind !== 'all' ? kindLabel : null,
+    categoryId !== 'all' ? categoryLabel : null,
+    effectiveAccountId !== 'all' ? accountLabel : null,
+  ].filter(Boolean);
   const reportRangeLabel = period === 'custom'
-    ? `${customStart} to ${customEnd}${customStart === customEnd ? ' (empty; end excluded)' : ' (end excluded)'}`
+    ? range
+      ? `${formatPeriodRange(range)} (end excluded)`
+      : 'Invalid custom interval'
     : range
       ? formatPeriodRange(range)
       : 'Invalid custom interval';
@@ -3049,42 +3346,36 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Pressable accessibilityLabel="Back to Money" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>Back to Money</Text>
-      </Pressable>
-      <Text style={styles.pageTitle}>Money report</Text>
-      <Text style={styles.pageIntro}>Totals stay separate by currency and use the selected local period.</Text>
-      <View style={styles.segmentRow}>
-        <SegmentButton label="Day" selected={period === 'day'} onPress={() => setPeriod('day')} />
-        <SegmentButton label="Week" selected={period === 'week'} onPress={() => setPeriod('week')} />
-        <SegmentButton label="Month" selected={period === 'month'} onPress={() => setPeriod('month')} />
-        <SegmentButton label="Year" selected={period === 'year'} onPress={() => setPeriod('year')} />
-      </View>
-      <View style={styles.segmentRow}>
-        <SegmentButton label="Custom" selected={period === 'custom'} onPress={() => setPeriod('custom')} />
-      </View>
+      <SecondaryHeader title="Money report" backLabel="Money" onBack={onBack} />
+      <Menu
+        visible={periodMenuOpen}
+        onDismiss={() => setPeriodMenuOpen(false)}
+        anchor={
+          <Button mode="outlined" icon="calendar-range" accessibilityLabel="Choose report period" style={styles.fullWidthControl} contentStyle={styles.fullWidthControlContent} onPress={() => setPeriodMenuOpen(true)}>
+            {moneyRangePeriodLabel(period)}
+          </Button>
+        }>
+        {(['day', 'week', 'month', 'year', 'custom'] as MoneyRangePeriod[]).map(option => (
+          <Menu.Item key={option} title={moneyRangePeriodLabel(option)} leadingIcon={period === option ? 'check' : undefined} onPress={() => {setPeriod(option); setPeriodMenuOpen(false);}} />
+        ))}
+      </Menu>
+      <Text style={styles.pageIntro}>{reportRangeLabel}</Text>
       {period === 'custom' && (
         <View style={styles.inlinePanel}>
           <Text style={styles.cardDetail}>Start is included; end is excluded.</Text>
           {dateTimePicker.isSupported() ? <>
-            <TextButton label={`Start date: ${customStart}`} onPress={() => void pickCustomDate('start')} />
-            <TextButton label={`End date: ${customEnd}`} onPress={() => void pickCustomDate('end')} />
+            <TextButton label={`Start: ${formatLocalDate(customStart)}`} onPress={() => void pickCustomDate('start')} />
+            <TextButton label={`End: ${formatLocalDate(customEnd)}`} onPress={() => void pickCustomDate('end')} />
           </> : <>
-            <TextInput accessibilityLabel="Report start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customStart} onChangeText={setCustomStart} />
-            <TextInput accessibilityLabel="Report end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customEnd} onChangeText={setCustomEnd} />
+            <AppTextInput accessibilityLabel="Report start date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customStart} onChangeText={setCustomStart} />
+            <AppTextInput accessibilityLabel="Report end date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={customEnd} onChangeText={setCustomEnd} />
           </>}
         </View>
       )}
       {pickerError && <Text style={styles.errorText}>{pickerError}</Text>}
-      <View style={styles.formCard}>
-        <Text style={styles.formLabel}>Report scope</Text>
-        <Text style={styles.cardDetail}>Range: {reportRangeLabel}</Text>
-        <Text style={styles.cardDetail}>Filters: {kindLabel}, {categoryLabel}, {accountLabel}</Text>
-        <Text style={styles.cardDetail}>Excluded: transfers and entries outside the range; currencies stay in separate cards.</Text>
-      </View>
       <Disclosure
         title="Report filters"
-        subtitle={`${kindLabel}, ${categoryLabel}, ${accountLabel}`}
+        subtitle={activeReportFilterLabels.length > 0 ? activeReportFilterLabels.join(' · ') : undefined}
         open={reportFiltersOpen}
         onPress={() => setReportFiltersOpen(current => !current)}>
         <Text style={styles.formLabel}>Type</Text>
@@ -3127,7 +3418,7 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
             </Text>
             <SectionTitle title="By category" />
             {currencyReport.categories.map(category => (
-              <View key={category.name} style={styles.manageRow}>
+              <View key={category.name} style={styles.metricRow}>
                 <Text style={styles.listTitle}>{category.name}</Text>
                 <Text style={styles.listMeta}>
                   {formatMoney(category.expenseMinor, currencyReport.currency)} spent ·{' '}
@@ -3142,55 +3433,46 @@ function MoneyReportScreen({data, onBack}: {data: AppData; onBack: () => void}) 
   );
 }
 
-function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroupId: string | null; onFocusHandled: () => void; onBack: () => void}) {
-  const {colors, styles} = useThemeStyles();
-  const {data, setUsagePermission, replaceUsageSnapshots, toggleUsageExclusion, addTimeGoal} = useAppStore();
+function AppTimeScreen({onBack, onOpenSettings}: {onBack: () => void; onOpenSettings: () => void}) {
+  const {styles} = useThemeStyles();
+  const {data, setUsagePermission, replaceUsageSnapshots} = useAppStore();
   const [permission, setPermission] = useState(data?.usageRead.permission ?? 'unknown');
   const [isChecking, setIsChecking] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [usagePeriod, setUsagePeriod] = useState<Period>('day');
-  const [goalName, setGoalName] = useState('Weekly attention');
-  const [goalPeriod, setGoalPeriod] = useState<'day' | 'week'>('week');
-  const [goalMinutes, setGoalMinutes] = useState('300');
   const [focusToolsOpen, setFocusToolsOpen] = useState(false);
-  const [timeGoalOpen, setTimeGoalOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
 
-  useEffect(() => {
-    void checkPermission();
-  }, []);
-
-  useEffect(() => {
-    if (focusAppGroupId) {
-      setFocusToolsOpen(true);
-    }
-  }, [focusAppGroupId]);
-
-  if (!data) {
-    return null;
-  }
-  const currentData = data;
-
-  async function checkPermission() {
-    if (!usageAccess.isSupported()) {
-      setPermission('unsupported');
-      await setUsagePermission('unsupported');
-      setIsChecking(false);
-      return;
-    }
+  const permissionRequest = useRef(0);
+  const permissionMounted = useRef(true);
+  const checkPermission = useCallback(async () => {
+    const request = ++permissionRequest.current;
+    const isCurrent = () => permissionMounted.current && request === permissionRequest.current;
     try {
-      const granted = await usageAccess.hasPermission();
-      const nextPermission = granted ? 'granted' : 'denied';
+      const nextPermission = !usageAccess.isSupported() ? 'unsupported' : await usageAccess.hasPermission() ? 'granted' : 'denied';
+      if (!isCurrent()) return;
       setPermission(nextPermission);
       await setUsagePermission(nextPermission);
     } catch {
+      if (!isCurrent()) return;
       setPermission('denied');
       await setUsagePermission('denied', 'USAGE_ACCESS_CHECK_FAILED');
     } finally {
-      setIsChecking(false);
+      if (isCurrent()) setIsChecking(false);
     }
-  }
+  }, [setUsagePermission]);
+  useEffect(() => {
+    permissionMounted.current = true;
+    void checkPermission();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void checkPermission();
+    });
+    return () => {permissionMounted.current = false; subscription.remove();};
+  }, [checkPermission]);
+
+  if (!data) return null;
+  const currentData = data;
 
   async function refreshUsage() {
     setIsRefreshing(true);
@@ -3241,39 +3523,14 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
     },
   });
   const totalSeconds = sumUsage(data.usageSnapshots, periodDates);
-  const todaySeconds = sumUsage(data.usageSnapshots, new Set([localDateKey(new Date())]));
-  const weekRange = getPeriodRange(new Date(), 'week', data.weekStartsOn);
-  const weekDates = getLocalDateKeys(weekRange);
-  const weeklySeconds = sumUsage(data.usageSnapshots, weekDates);
-  const activeGoal = data.timeGoals.find(goal => !goal.isArchived && goal.period === goalPeriod);
-  const goalSeconds = goalPeriod === 'day' ? todaySeconds : weeklySeconds;
-
-  async function saveGoal() {
-    const minutes = Number.parseInt(goalMinutes, 10);
-    const name = goalName.trim();
-    if (!name || !Number.isInteger(minutes) || minutes <= 0) {
-      setMessage('Enter a goal name and a positive number of minutes.');
-      return;
-    }
-    await addTimeGoal({name, period: goalPeriod, targetSeconds: minutes * 60});
-    setMessage(`${name} goal saved.`);
-  }
-
   return (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Pressable accessibilityLabel="Back to Home" accessibilityRole="button" style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>‹ Home</Text>
-      </Pressable>
-      <Text style={styles.pageTitle}>App time</Text>
-      <Text style={styles.pageIntro}>Read-only totals from Android Usage Access. Nothing leaves this device.</Text>
-          <Disclosure
-            title="Focus sessions"
-            subtitle="Optional manual focus block"
-            open={focusToolsOpen}
-            onPress={() => setFocusToolsOpen(current => !current)}>
-        <FocusSessionPanel data={data} focusAppGroupId={focusAppGroupId} onFocusHandled={onFocusHandled} />
-      </Disclosure>
-
+      <TabHeader
+        title="App time"
+        subtitle={`${periodLabel(usagePeriod)} · ${data.usageRead.lastReadAt ? `read ${formatDate(data.usageRead.lastReadAt)}` : 'not read yet'}`}
+        onBack={onBack}
+        onOpenSettings={onOpenSettings}
+      />
       {!usageAccess.isSupported() ? (
         <EmptyState text="App-time data is not available on this platform." />
       ) : isChecking ? (
@@ -3289,19 +3546,13 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
         </View>
       ) : (
         <>
-          <SectionTitle title="Report period" />
           <View style={styles.formCard}>
-            <Text style={styles.cardDetail}>Selected range: {formatPeriodRange(range)}. Refresh reads each local day once and commits the result together.</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="Day" selected={usagePeriod === 'day'} onPress={() => setUsagePeriod('day')} />
-              <SegmentButton label="Week" selected={usagePeriod === 'week'} onPress={() => setUsagePeriod('week')} />
-              <SegmentButton label="Month" selected={usagePeriod === 'month'} onPress={() => setUsagePeriod('month')} />
-            </View>
+            <ChoiceMenu label="Period" value={usagePeriod} options={PERIOD_CHOICES} onSelect={setUsagePeriod} />
           </View>
           <SummaryCard
-            title={selectedPeriodLabel}
+            title="Usage"
             value={formatDuration(totalSeconds)}
-            detail={`${formatPeriodRange(range)}. ${data.usageRead.lastReadAt ? `Last read ${formatDate(data.usageRead.lastReadAt)}` : 'No read yet'}`}
+            detail={formatPeriodRange(range)}
             action={isRefreshing ? 'Reading...' : 'Refresh selected period'}
             disabled={isRefreshing}
             onPress={refreshUsage}
@@ -3317,13 +3568,7 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
                   <Text style={[styles.listTitle, !snapshot.included && styles.completedText]}>{snapshot.displayName}</Text>
                   <Text style={styles.listMeta}>{snapshot.packageName}</Text>
                 </View>
-                <View style={styles.rowActions}>
-                  <Text style={styles.amount}>{snapshot.included ? formatDuration(snapshot.durationSeconds) : 'Excluded'}</Text>
-                  <TextButton
-                    label={snapshot.included ? 'Exclude' : 'Include'}
-                    onPress={() => toggleUsageExclusion(snapshot.packageName)}
-                  />
-                </View>
+                <Text style={styles.amount}>{snapshot.included ? formatDuration(snapshot.durationSeconds) : 'Excluded'}</Text>
               </View>
             ))
           )}
@@ -3333,66 +3578,36 @@ function AppTimeScreen({focusAppGroupId, onFocusHandled, onBack}: {focusAppGroup
             open={analysisOpen}
             onPress={() => setAnalysisOpen(current => !current)}>
           <View style={styles.formCard}>
-            <Text style={styles.cardTitle}>Selected-period metrics</Text>
-            <Text style={styles.cardDetail}>Excluded apps are not counted.</Text>
-            <View style={styles.manageRow}><Text style={styles.listTitle}>Daily average</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.averageSecondsPerLocalDay, formatDuration)}</Text></View>
-            <View style={styles.manageRow}><Text style={styles.listTitle}>Active apps</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.activeAppCount, value => String(value))}</Text></View>
-            <View style={styles.manageRow}><Text style={styles.listTitle}>Top-app share</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.topAppShare, value => `${value.displayName} · ${Math.round(value.share * 100)}%`)}</Text></View>
-            <View style={styles.manageRow}><Text style={styles.listTitle}>Busiest day</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.busiestLocalDay, value => `${value.localDate} · ${formatDuration(value.durationSeconds)}`)}</Text></View>
-            <View style={styles.manageRow}><Text style={styles.listTitle}>Previous period</Text><Text style={styles.amount}>{formatUsageMetric(usageMetrics.previousEquivalentPeriodChange, value => `${value.deltaSeconds >= 0 ? '+' : ''}${formatDuration(value.deltaSeconds)} · ${value.fraction >= 0 ? '+' : ''}${Math.round(value.fraction * 100)}%`)}</Text></View>
+            <View style={styles.metricRow}><Text style={styles.listTitle}>Daily average</Text><Text style={styles.metricValue}>{formatUsageMetric(usageMetrics.averageSecondsPerLocalDay, formatDuration)}</Text></View>
+            <View style={styles.metricRow}><Text style={styles.listTitle}>Active apps</Text><Text style={styles.metricValue}>{formatUsageMetric(usageMetrics.activeAppCount, value => String(value))}</Text></View>
+            <View style={styles.metricRow}><Text style={styles.listTitle}>Top-app share</Text><Text style={styles.metricValue}>{formatUsageMetric(usageMetrics.topAppShare, value => `${value.displayName} · ${Math.round(value.share * 100)}%`)}</Text></View>
+            <View style={styles.metricRow}><Text style={styles.listTitle}>Busiest day</Text><Text style={styles.metricValue}>{formatUsageMetric(usageMetrics.busiestLocalDay, value => `${formatLocalDate(value.localDate)} · ${formatDuration(value.durationSeconds)}`)}</Text></View>
+            <View style={styles.metricRow}><Text style={styles.listTitle}>Previous period</Text><Text style={styles.metricValue}>{formatUsageMetric(usageMetrics.previousEquivalentPeriodChange, value => `${value.deltaSeconds >= 0 ? '+' : ''}${formatDuration(value.deltaSeconds)} · ${value.fraction >= 0 ? '+' : ''}${Math.round(value.fraction * 100)}%`)}</Text></View>
           </View>
-          </Disclosure>
-          <Disclosure
-            title="Time goal"
-            subtitle={activeGoal ? `${formatDuration(goalSeconds)} of ${formatDuration(activeGoal.targetSeconds)}` : 'Optional daily or weekly target'}
-            open={timeGoalOpen}
-            onPress={() => setTimeGoalOpen(current => !current)}>
-            <Text style={styles.cardDetail}>
-              {activeGoal ? `${formatDuration(goalSeconds)} of ${formatDuration(activeGoal.targetSeconds)}` : `No ${goalPeriod} goal yet.`}
-            </Text>
-            <TextInput
-              accessibilityLabel="Goal name"
-              placeholder="Weekly attention"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={goalName}
-              onChangeText={setGoalName}
-            />
-            <View style={styles.segmentRow}>
-              <SegmentButton label="Daily" selected={goalPeriod === 'day'} onPress={() => setGoalPeriod('day')} />
-              <SegmentButton label="Weekly" selected={goalPeriod === 'week'} onPress={() => setGoalPeriod('week')} />
-            </View>
-            <TextInput
-              accessibilityLabel="Goal minutes"
-              keyboardType="number-pad"
-              placeholder="Minutes"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={goalMinutes}
-              onChangeText={setGoalMinutes}
-            />
-            <PrimaryButton label="Save time goal" onPress={saveGoal} />
           </Disclosure>
         </>
       )}
+      <Disclosure
+        title="Focus sessions"
+        subtitle="Optional manual focus block"
+        open={focusToolsOpen}
+        onPress={() => setFocusToolsOpen(current => !current)}>
+        <FocusSessionPanel data={data} />
+      </Disclosure>
     </ScrollView>
   );
 }
 
-function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppData; focusAppGroupId: string | null; onFocusHandled: () => void}) {
-  const {colors, styles} = useThemeStyles();
-  const {startFocusSession, finishFocusSession, deleteFocusSession, addAppGroup, updateAppGroup, setAppGroupArchived, deleteAppGroup} = useAppStore();
+function FocusSessionPanel({data}: {data: AppData}) {
+  const {styles} = useThemeStyles();
+  const {startFocusSession, finishFocusSession, deleteFocusSession} = useAppStore();
   const [taskId, setTaskId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [noteId, setNoteId] = useState<string | null>(null);
   const [appGroupId, setAppGroupId] = useState<string | null>(null);
-  const [appGroupName, setAppGroupName] = useState('');
-  const [appGroupPackages, setAppGroupPackages] = useState('');
-  const [editingAppGroupId, setEditingAppGroupId] = useState<string | null>(null);
   const [clockMillis, setClockMillis] = useState(() => Date.now());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [appGroupsOpen, setAppGroupsOpen] = useState(false);
   const [focusLinksOpen, setFocusLinksOpen] = useState(false);
   const activeSession = data.focusSessions.find(session => session.status === 'active') ?? null;
 
@@ -3405,25 +3620,6 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
     const interval = globalThis.setInterval(updateClock, 1000);
     return () => globalThis.clearInterval(interval);
   }, [activeSession?.id]);
-
-  useEffect(() => {
-    if (!focusAppGroupId) {
-      return;
-    }
-    const group = data.appGroups.find(item => item.id === focusAppGroupId);
-    if (!group) {
-      onFocusHandled();
-      return;
-    }
-    setEditingAppGroupId(group.id);
-    setAppGroupName(group.name);
-    setAppGroupPackages(group.packageNames.join(', '));
-    setAppGroupsOpen(true);
-    setFocusLinksOpen(true);
-    setError(null);
-    setMessage(null);
-    onFocusHandled();
-  }, [data, focusAppGroupId, onFocusHandled]);
 
   async function start() {
     setMessage(null);
@@ -3450,66 +3646,6 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
     }
   }
 
-  function resetGroupForm() {
-    setEditingAppGroupId(null);
-    setAppGroupName('');
-    setAppGroupPackages('');
-  }
-
-  function startEditingGroup(group: AppData['appGroups'][number]) {
-    setEditingAppGroupId(group.id);
-    setAppGroupName(group.name);
-    setAppGroupPackages(group.packageNames.join(', '));
-    setAppGroupsOpen(true);
-    setError(null);
-    setMessage(null);
-  }
-
-  async function addGroup() {
-    const draft = {name: appGroupName, packageNames: appGroupPackages.split(',')};
-    const validationError = validateAppGroupDraft(draft);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setMessage(null);
-    setError(null);
-    try {
-      const isEditing = editingAppGroupId !== null;
-      if (editingAppGroupId) {
-        await updateAppGroup(editingAppGroupId, draft);
-      } else {
-        const createdId = await addAppGroup(draft);
-        setAppGroupId(createdId);
-      }
-      resetGroupForm();
-      setMessage(isEditing ? 'App group updated.' : 'App group saved.');
-    } catch (groupError) {
-      setError(groupError instanceof Error ? groupError.message : 'The app group could not be saved.');
-    }
-  }
-
-  function confirmDeleteGroup(groupId: string, name: string) {
-    Alert.alert('Delete app group?', `Delete "${name}"?`, [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Delete', style: 'destructive', onPress: () => void removeGroup(groupId)},
-    ]);
-  }
-
-  async function removeGroup(groupId: string) {
-    try {
-      await deleteAppGroup(groupId);
-      if (editingAppGroupId === groupId) {
-        resetGroupForm();
-      }
-      if (appGroupId === groupId) {
-        setAppGroupId(null);
-      }
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'The app group could not be deleted.');
-    }
-  }
-
   function sessionDetail(session: AppData['focusSessions'][number]): string {
     const task = session.taskId ? data.tasks.find(item => item.id === session.taskId)?.title ?? 'Deleted task' : null;
     const project = session.projectId ? data.projects.find(item => item.id === session.projectId)?.name ?? 'Deleted project' : null;
@@ -3526,10 +3662,8 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
         <>
           <Text style={styles.cardValue}>{formatDuration(focusSessionDurationSeconds(activeSession, new Date(clockMillis).toISOString()))}</Text>
           <Text style={styles.cardDetail}>{sessionDetail(activeSession)}</Text>
-          <View style={styles.rowActions}>
-            <PrimaryButton label="Complete focus" onPress={() => void finish('completed')} />
-            <TextButton label="Stop focus" onPress={() => void finish('manual')} />
-          </View>
+          <PrimaryButton label="Complete focus" onPress={() => void finish('completed')} />
+          <MenuActions actions={[{label: 'Stop focus', danger: true, onPress: () => void finish('manual')}]} accessibilityLabel="More focus actions" />
         </>
       ) : (
         <>
@@ -3540,24 +3674,24 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
             compact
             onPress={() => setFocusLinksOpen(current => !current)}>
             <Text style={styles.formLabel}>Task (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No task" selected={taskId === null} onPress={() => setTaskId(null)} />
-              {data.tasks.slice(0, 12).map(task => <SegmentButton key={task.id} label={task.title} selected={taskId === task.id} onPress={() => setTaskId(task.id)} />)}
+            <View style={styles.chipWrap}>
+              <ChipButton label="No task" selected={taskId === null} onPress={() => setTaskId(null)} />
+              {data.tasks.slice(0, 12).map(task => <ChipButton key={task.id} label={task.title} selected={taskId === task.id} onPress={() => setTaskId(task.id)} />)}
             </View>
             <Text style={styles.formLabel}>Project (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
-              {data.projects.filter(project => !project.isArchived).map(project => <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />)}
+            <View style={styles.chipWrap}>
+              <ChipButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+              {data.projects.filter(project => !project.isArchived).map(project => <ChipButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />)}
             </View>
             <Text style={styles.formLabel}>Note (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No note" selected={noteId === null} onPress={() => setNoteId(null)} />
-              {data.notes.filter(note => !note.isArchived).slice(0, 12).map(note => <SegmentButton key={note.id} label={note.title} selected={noteId === note.id} onPress={() => setNoteId(note.id)} />)}
+            <View style={styles.chipWrap}>
+              <ChipButton label="No note" selected={noteId === null} onPress={() => setNoteId(null)} />
+              {data.notes.filter(note => !note.isArchived).slice(0, 12).map(note => <ChipButton key={note.id} label={note.title} selected={noteId === note.id} onPress={() => setNoteId(note.id)} />)}
             </View>
             <Text style={styles.formLabel}>App group (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No app group" selected={appGroupId === null} onPress={() => setAppGroupId(null)} />
-              {data.appGroups.filter(group => !group.isArchived).map(group => <SegmentButton key={group.id} label={group.name} selected={appGroupId === group.id} onPress={() => setAppGroupId(group.id)} />)}
+            <View style={styles.chipWrap}>
+              <ChipButton label="No app group" selected={appGroupId === null} onPress={() => setAppGroupId(null)} />
+              {data.appGroups.filter(group => !group.isArchived).map(group => <ChipButton key={group.id} label={group.name} selected={appGroupId === group.id} onPress={() => setAppGroupId(group.id)} />)}
             </View>
           </Disclosure>
           {error && <Text style={styles.errorText}>{error}</Text>}
@@ -3567,8 +3701,7 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
       )}
       {!activeSession && data.focusSessions.length === 0 && <Text style={styles.emptyState}>No focus sessions yet.</Text>}
       {data.focusSessions.length > 0 && (
-        <>
-          <SectionTitle title="Recent sessions" />
+        <DeferredSection title="Recent sessions" subtitle="View saved focus blocks">
           {data.focusSessions.slice(0, 10).map(session => (
             <View key={session.id} style={styles.listRow}>
               <View style={styles.listBody}>
@@ -3579,40 +3712,15 @@ function FocusSessionPanel({data, focusAppGroupId, onFocusHandled}: {data: AppDa
               <TextButton label="Delete" danger onPress={() => void deleteFocusSession(session.id)} />
             </View>
           ))}
-        </>
+        </DeferredSection>
       )}
-      <Disclosure
-        title="App groups"
-        subtitle={`${data.appGroups.length} saved`}
-        open={appGroupsOpen}
-        compact
-        onPress={() => setAppGroupsOpen(current => !current)}>
-      {editingAppGroupId && <Text style={styles.formLabel}>Edit app group</Text>}
-      <TextInput accessibilityLabel="App group name" placeholder="App group name" placeholderTextColor={colors.muted} style={styles.input} value={appGroupName} onChangeText={setAppGroupName} />
-      <TextInput accessibilityLabel="App group packages" placeholder="com.editor, com.browser" placeholderTextColor={colors.muted} style={styles.input} value={appGroupPackages} onChangeText={setAppGroupPackages} />
-      <PrimaryButton label={editingAppGroupId ? 'Update app group' : 'Add app group'} onPress={() => void addGroup()} />
-      {editingAppGroupId && <TextButton label="Cancel app group edit" onPress={resetGroupForm} />}
-      {data.appGroups.length === 0 ? <Text style={styles.emptyState}>No app groups yet.</Text> : data.appGroups.map(group => (
-        <View key={group.id} style={styles.listRow}>
-          <View style={styles.listBody}>
-            <Text style={styles.listTitle}>{group.name}</Text>
-            <Text style={styles.listMeta}>{group.packageNames.join(', ')} · {group.isArchived ? 'Archived' : 'Active'}</Text>
-          </View>
-          <View style={styles.rowActions}>
-            <TextButton label="Edit" onPress={() => startEditingGroup(group)} />
-            <TextButton label={group.isArchived ? 'Restore' : 'Archive'} onPress={() => void setAppGroupArchived(group.id, !group.isArchived)} />
-            <TextButton label="Delete" danger onPress={() => confirmDeleteGroup(group.id, group.name)} />
-          </View>
-        </View>
-      ))}
-      </Disclosure>
     </View>
   );
 }
 
 type NotesFilter = 'all' | 'pinned' | 'archived';
 
-function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focusNoteId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void}) {
+function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled, onSecondaryScreenChange, onOpenSettings}: {focusNoteId: string | null; openAdd: boolean; onAddHandled: () => void; onFocusHandled: () => void; onSecondaryScreenChange: (open: boolean) => void; onOpenSettings: () => void}) {
   const {colors, styles} = useThemeStyles();
   const {data, addNote, updateNote, addNoteLink, deleteNoteLink, toggleNotePinned, setNoteArchived, deleteNote, addSavedSearch, deleteSavedSearch, createTaskFromNote, addAttachment, deleteAttachment} = useAppStore();
   const [title, setTitle] = useState('');
@@ -3623,7 +3731,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   const [savedSearchName, setSavedSearchName] = useState('');
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
-  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [managingNoteId, setManagingNoteId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteFormOpen, setNoteFormOpen] = useState(false);
   const [noteFilter, setNoteFilter] = useState<NotesFilter>('all');
@@ -3636,6 +3744,16 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
   const [linkTargetType, setLinkTargetType] = useState<NoteLinkTargetType>('task');
   const [linkTargetId, setLinkTargetId] = useState<string | null>(null);
   const [linkTargetSearch, setLinkTargetSearch] = useState('');
+  useAndroidBack(noteFormOpen || managingNoteId !== null, 30, () => {
+    if (saving) return;
+    if (noteFormOpen) confirmDiscard(cancelEditing);
+    else setManagingNoteId(null);
+  });
+
+  useEffect(() => {
+    onSecondaryScreenChange(noteFormOpen || managingNoteId !== null);
+    return () => onSecondaryScreenChange(false);
+  }, [managingNoteId, noteFormOpen, onSecondaryScreenChange]);
 
   useEffect(() => {
     if (!openAdd) {
@@ -3763,7 +3881,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
     setLinkTargetSearch('');
     const linkedTargetIds = new Set(data.noteLinks.filter(link => link.noteId === note.id && link.targetType === nextType).map(link => link.targetId));
     setLinkTargetId(noteLinkOptions(nextType, data, '').find(option => !linkedTargetIds.has(option.id))?.id ?? null);
-    setExpandedNoteId(note.id);
+    setManagingNoteId(note.id);
     setError(null);
   }
 
@@ -3961,7 +4079,6 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
     const noteAttachments = currentData.attachments.filter(attachment => attachment.noteId === note.id);
     const noteLinks = currentData.noteLinks.filter(link => link.noteId === note.id);
     const isBusy = busyNoteId === note.id;
-    const currentLinkOptions = linkingNoteId === note.id ? noteLinkOptions(linkTargetType, currentData, linkTargetSearch) : [];
     const detailParts = [
       noteAttachments.length > 0 ? `${noteAttachments.length} attachment${noteAttachments.length === 1 ? '' : 's'}` : null,
       noteLinks.length > 0 ? `${noteLinks.length} link${noteLinks.length === 1 ? '' : 's'}` : null,
@@ -3969,124 +4086,143 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
 
     return (
       <View key={note.id} style={[styles.noteCard, styles.cardShadow, note.isPinned && styles.noteCardPinned, note.isArchived && styles.noteCardArchived]}>
-        <Pressable
+        <View style={styles.noteCardMenu}>
+          <MenuActions
+            accessibilityLabel={`Manage note ${note.title}`}
+            disabled={isBusy}
+            actions={[
+              {label: 'Make task', onPress: () => void makeTask(note)},
+              {label: note.isPinned ? 'Unpin' : 'Pin', onPress: () => void togglePinned(note)},
+              {label: note.isArchived ? 'Restore' : 'Archive', onPress: () => void changeArchived(note)},
+              {
+                label: linkingNoteId === note.id ? 'Cancel link' : 'Link record',
+                onPress: () => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note),
+              },
+              {
+                label: 'Links & attachments',
+                onPress: () => setManagingNoteId(note.id),
+              },
+              {label: 'Delete', danger: true, onPress: () => confirmDeleteNote(note)},
+            ]}
+          />
+        </View>
+        <TouchableRipple
           accessibilityRole="button"
           accessibilityLabel={`Open note ${note.title}`}
           style={styles.noteCardPressable}
           onPress={() => startEditing(note)}>
-          <View style={styles.noteCardTopline}>
-            <Text style={styles.noteCategory}>{note.isArchived ? 'Archived' : note.isPinned ? 'Pinned' : note.tags[0] ? `#${note.tags[0]}` : 'Note'}</Text>
-            <Text style={note.isPinned ? styles.notePinIcon : styles.noteMoreIcon}>{note.isPinned ? '★' : '•••'}</Text>
-          </View>
-          <Text style={styles.noteCardTitle} numberOfLines={2}>{note.title}</Text>
-          {!!note.body && <NoteBodyPreview body={note.body} />}
-          {note.tags.length > 0 && (
-            <View style={styles.noteTagRow}>
-              {note.tags.slice(0, 4).map(tag => <Text key={tag} style={styles.noteTag}>#{tag}</Text>)}
+          <View>
+            <View style={styles.noteCardTopline}>
+              <Text style={styles.noteCategory}>{note.isArchived ? 'Archived' : note.isPinned ? 'Pinned' : note.tags[0] ? `#${note.tags[0]}` : 'Note'}</Text>
             </View>
-          )}
-          <View style={styles.noteCardMetaRow}>
-            <Text style={styles.noteCardMeta}>{formatDate(note.updatedAt)}</Text>
-            {detailParts.length > 0 && <Text style={styles.noteCardMeta}>{detailParts.join(' - ')}</Text>}
-          </View>
-        </Pressable>
-          <View style={styles.noteCardActions}>
-          <TextButton
-            label={expandedNoteId === note.id ? 'Less' : 'More'}
-            disabled={isBusy}
-            onPress={() => setExpandedNoteId(current => current === note.id ? null : note.id)} />
-        </View>
-        {expandedNoteId === note.id && (
-          <View style={styles.noteCardActions}>
-            <TextButton label="Make task" disabled={isBusy} onPress={() => void makeTask(note)} />
-            <TextButton label={note.isPinned ? 'Unpin' : 'Pin'} disabled={isBusy} onPress={() => void togglePinned(note)} />
-            <TextButton label={note.isArchived ? 'Restore' : 'Archive'} disabled={isBusy} onPress={() => void changeArchived(note)} />
-            <TextButton label={linkingNoteId === note.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === note.id ? setLinkingNoteId(null) : startLinking(note)} />
-            <TextButton label="Delete" danger disabled={isBusy} onPress={() => confirmDeleteNote(note)} />
-          </View>
-        )}
-        {linkingNoteId === note.id && (
-          <View style={styles.linkEditor}>
-            <Text style={styles.formLabel}>Link type</Text>
-            <View style={styles.chipWrap}>
-              {NOTE_LINK_TARGET_TYPES.map(type => (
-                <ChipButton key={type} label={noteLinkTypeLabel(type)} selected={linkTargetType === type} onPress={() => changeLinkTargetType(type)} />
-              ))}
+            <Text style={styles.noteCardTitle} numberOfLines={2}>{note.title}</Text>
+            {!!note.body && <NoteBodyPreview body={note.body} />}
+            {note.tags.length > 0 && (
+              <View style={styles.noteTagRow}>
+                {note.tags.slice(0, 4).map(tag => <Text key={tag} style={styles.noteTag}>#{tag}</Text>)}
+              </View>
+            )}
+            <View style={styles.noteCardMetaRow}>
+              <Text style={styles.noteCardMeta}>{formatDate(note.updatedAt)}</Text>
+              {detailParts.length > 0 && <Text style={styles.noteCardMeta}>{detailParts.join(' - ')}</Text>}
             </View>
-            <TextInput
-              accessibilityLabel="Search link targets"
-              placeholder="Search records"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-              value={linkTargetSearch}
-              onChangeText={value => {
-                setLinkTargetSearch(value);
-                const first = noteLinkOptions(linkTargetType, currentData, value)[0];
-                if (first) {
-                  setLinkTargetId(first.id);
-                }
-              }}
-            />
-            <View style={styles.chipWrap}>
-              {currentLinkOptions.slice(0, 20).map(option => (
-                <ChipButton key={option.id} label={option.label} selected={linkTargetId === option.id} onPress={() => setLinkTargetId(option.id)} />
-              ))}
-            </View>
-            {currentLinkOptions.length === 0 && <Text style={styles.emptyState}>No matching records.</Text>}
-            <PrimaryButton label="Save link" onPress={() => void saveNoteLink(note)} disabled={isBusy || linkTargetId === null} />
           </View>
-        )}
-        {expandedNoteId === note.id && noteLinks.length > 0 && (
-          <View style={styles.linkSection}>
-            <Text style={styles.formLabel}>Linked records</Text>
-            {noteLinks.map(link => (
+        </TouchableRipple>
+      </View>
+    );
+  }
+
+  const managingNote = managingNoteId ? currentData.notes.find(note => note.id === managingNoteId) ?? null : null;
+  if (managingNote) {
+    const noteLinks = currentData.noteLinks.filter(link => link.noteId === managingNote.id);
+    const noteAttachments = currentData.attachments.filter(attachment => attachment.noteId === managingNote.id);
+    const currentLinkOptions = linkingNoteId === managingNote.id ? noteLinkOptions(linkTargetType, currentData, linkTargetSearch) : [];
+    const isBusy = busyNoteId === managingNote.id;
+    return (
+      <View style={styles.flex}>
+        <Appbar.Header mode="small" statusBarHeight={0} style={styles.settingsAppbar}>
+          <Appbar.BackAction accessibilityLabel="Back to Notes" onPress={() => {setManagingNoteId(null); setLinkingNoteId(null);}} />
+          <Appbar.Content title="Links & attachments" titleStyle={styles.settingsAppbarTitle} />
+        </Appbar.Header>
+        <ScrollView contentContainerStyle={styles.settingsDetailContent} keyboardShouldPersistTaps="handled">
+          <Text style={styles.pageTitle} numberOfLines={2}>{managingNote.title}</Text>
+          <Surface style={styles.formCard} elevation={0}>
+            <Text style={styles.cardTitle}>Linked records</Text>
+            {noteLinks.length === 0 ? (
+              <Text style={styles.cardDetail}>No linked records.</Text>
+            ) : noteLinks.map(link => (
               <View key={link.id} style={styles.linkRow}>
                 <Text style={styles.listMeta}>{formatNoteLinkTarget(link, currentData)}</Text>
-                <TextButton label="Remove link" danger disabled={isBusy} onPress={() => void removeNoteLink(link)} />
+                <MenuActions accessibilityLabel={`Manage link ${link.id}`} disabled={isBusy} actions={[
+                  {label: 'Remove', danger: true, onPress: () => void removeNoteLink(link)},
+                ]} />
               </View>
             ))}
-          </View>
-        )}
-        {expandedNoteId === note.id && noteAttachments.length > 0 && (
-          <View style={styles.attachmentSection}>
-            <Text style={styles.formLabel}>Attachments</Text>
-            {noteAttachments.map(attachment => (
+            <TextButton label={linkingNoteId === managingNote.id ? 'Cancel link' : 'Link record'} disabled={isBusy} onPress={() => linkingNoteId === managingNote.id ? setLinkingNoteId(null) : startLinking(managingNote)} />
+            {linkingNoteId === managingNote.id && (
+              <View style={styles.linkEditor}>
+                <Text style={styles.formLabel}>Link type</Text>
+                <View style={styles.chipWrap}>
+                  {NOTE_LINK_TARGET_TYPES.map(type => (
+                    <ChipButton key={type} label={noteLinkTypeLabel(type)} selected={linkTargetType === type} onPress={() => changeLinkTargetType(type)} />
+                  ))}
+                </View>
+                <AppTextInput
+                  accessibilityLabel="Search link targets"
+                  placeholder="Search records"
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                  value={linkTargetSearch}
+                  onChangeText={value => {
+                    setLinkTargetSearch(value);
+                    setLinkTargetId(noteLinkOptions(linkTargetType, currentData, value)[0]?.id ?? null);
+                  }}
+                />
+                <View style={styles.chipWrap}>
+                  {currentLinkOptions.slice(0, 20).map(option => (
+                    <ChipButton key={option.id} label={option.label} selected={linkTargetId === option.id} onPress={() => setLinkTargetId(option.id)} />
+                  ))}
+                </View>
+                {currentLinkOptions.length === 0 && <Text style={styles.cardDetail}>No matching records.</Text>}
+                <PrimaryButton label="Save link" onPress={() => void saveNoteLink(managingNote)} disabled={isBusy || linkTargetId === null} />
+              </View>
+            )}
+          </Surface>
+          <Surface style={styles.formCard} elevation={0}>
+            <Text style={styles.cardTitle}>Attachments</Text>
+            {noteAttachments.length === 0 ? (
+              <Text style={styles.cardDetail}>No attachments.</Text>
+            ) : noteAttachments.map(attachment => (
               <View key={attachment.id} style={styles.attachmentRow}>
                 <View style={styles.listBody}>
                   <Text style={styles.attachmentName} numberOfLines={1}>{attachment.name}</Text>
                   <Text style={styles.listMeta}>{formatBytes(attachment.byteSize)}</Text>
                 </View>
-                <TextButton label="Open attachment" disabled={isBusy} onPress={() => void openNoteAttachment(attachment)} />
-                <TextButton label="Remove attachment" danger disabled={isBusy} onPress={() => void removeNoteAttachment(attachment)} />
+                <MenuActions accessibilityLabel={`Manage attachment ${attachment.name}`} disabled={isBusy} actions={[
+                  {label: 'Open', onPress: () => void openNoteAttachment(attachment)},
+                  {label: 'Remove', danger: true, onPress: () => void removeNoteAttachment(attachment)},
+                ]} />
               </View>
             ))}
-          </View>
-        )}
-        {expandedNoteId === note.id && (
-          <TextButton label={isBusy ? 'Working...' : 'Add attachment'} disabled={busyNoteId !== null} onPress={() => void addNoteAttachment(note.id)} />
-        )}
+            <TextButton label={isBusy ? 'Working...' : 'Add attachment'} disabled={busyNoteId !== null} onPress={() => void addNoteAttachment(managingNote.id)} />
+          </Surface>
+        </ScrollView>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
-        <View style={styles.notesHero}>
-          <View style={styles.notesHeroCopy}>
-            <Text style={styles.pageTitle}>Notes</Text>
-            <Text style={styles.pageIntro}>Small thoughts, easy to find.</Text>
-          </View>
-          <View style={styles.notesCountBadge}>
-            <Text style={styles.notesCountValue}>{data.notes.filter(note => !note.isArchived).length}</Text>
-            <Text style={styles.notesCountLabel}>active</Text>
-          </View>
-        </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <TabHeader
+          title="Notes"
+          subtitle={noteFormOpen ? editingNoteId ? 'Edit note' : 'New note' : `${data.notes.filter(note => !note.isArchived).length} active · ${data.notes.filter(note => note.isArchived).length} archived`}
+          onOpenSettings={onOpenSettings}
+        />
         {noteFormOpen && (
           <>
         <View style={styles.formCard}>
-          <Text style={styles.formLabel}>{editingNoteId ? 'Edit note' : 'New note'}</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Note title"
             placeholder="A thought worth keeping"
             placeholderTextColor={colors.muted}
@@ -4095,7 +4231,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             onChangeText={setTitle}
           />
           <Text style={styles.formLabel}>Body (optional)</Text>
-          <TextInput
+          <AppTextInput
             accessibilityLabel="Note body"
             placeholder="Write a few lines..."
             placeholderTextColor={colors.muted}
@@ -4122,7 +4258,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             </View>
             <Text style={styles.searchAccessNote}>Formatting is stored as readable text. Plain text still works in search and exports.</Text>
             <Text style={styles.formLabel}>Tags (comma separated, optional)</Text>
-            <TextInput
+            <AppTextInput
               accessibilityLabel="Note tags"
               placeholder="work, idea, project"
               placeholderTextColor={colors.muted}
@@ -4139,34 +4275,22 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
         )}
         {!noteFormOpen && (
           <>
-        <View style={styles.notesSearchCard}>
-          <View style={styles.notesSearchRow}>
-            <Text style={styles.notesSearchIcon}>⌕</Text>
-            <TextInput
-              accessibilityLabel="Search notes"
-              placeholder="Search notes..."
-              placeholderTextColor={colors.muted}
-              style={styles.notesSearchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.trim() ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Clear note search" onPress={() => setSearchQuery('')} style={styles.notesSearchAction}>
-                <Text style={styles.notesSearchActionText}>×</Text>
-              </Pressable>
-            ) : (
-              <Text style={styles.notesSearchActionText}>☷</Text>
-            )}
-          </View>
-        </View>
+        <Searchbar
+          accessibilityLabel="Search notes"
+          placeholder="Search notes..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onClearIconPress={() => setSearchQuery('')}
+          style={styles.notesSearchCard}
+          inputStyle={styles.notesSearchInput}
+        />
         <View style={styles.notesFilterRow}>
-          <ChipButton label="All" selected={noteFilter === 'all'} onPress={() => changeNoteFilter('all')} />
-          <ChipButton label="Pinned" selected={noteFilter === 'pinned'} onPress={() => changeNoteFilter('pinned')} />
-          <ChipButton label="Archived" selected={noteFilter === 'archived'} onPress={() => changeNoteFilter('archived')} />
+          <ChoiceMenu label="Notes view" value={noteFilter} options={[{value: 'all', label: 'All'}, {value: 'pinned', label: 'Pinned'}, {value: 'archived', label: 'Archived'}]} onSelect={changeNoteFilter} />
         </View>
         {searchQuery.trim() && (
+          <DeferredSection title="Save this search">
           <View style={styles.notesSaveSearch}>
-            <TextInput
+            <AppTextInput
               accessibilityLabel="Saved search name"
               placeholder="Save this search as..."
               placeholderTextColor={colors.muted}
@@ -4176,6 +4300,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             />
             <TextButton label="Save" onPress={() => void saveSearch()} />
           </View>
+          </DeferredSection>
         )}
         {data.savedSearches.length > 0 && (
           <Disclosure
@@ -4189,10 +4314,10 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
                   <Text style={styles.listTitle}>{savedSearch.name}</Text>
                   <Text style={styles.listMeta}>{savedSearch.query}{savedSearch.showArchived ? ' · includes archived' : ''}</Text>
                 </View>
-                <View style={styles.noteActions}>
-                  <TextButton label="Apply" disabled={busySavedSearchId !== null} onPress={() => applySavedSearch(savedSearch)} />
-                  <TextButton label="Delete" danger disabled={busySavedSearchId !== null} onPress={() => confirmDeleteSavedSearch(savedSearch)} />
-                </View>
+                <MenuActions accessibilityLabel={`Manage saved search ${savedSearch.name}`} disabled={busySavedSearchId !== null} actions={[
+                  {label: 'Apply', onPress: () => applySavedSearch(savedSearch)},
+                  {label: 'Delete', danger: true, onPress: () => confirmDeleteSavedSearch(savedSearch)},
+                ]} />
               </View>
             ))}
           </Disclosure>
@@ -4213,7 +4338,6 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
               <View style={styles.notesSection}>
                 <View style={styles.notesSectionHeader}>
                   <Text style={styles.notesSectionTitle}>Pinned notes</Text>
-                  <Text style={styles.notesSectionCount}>{pinnedNotes.length}</Text>
                 </View>
                 {pinnedNotes.map(renderNoteCard)}
               </View>
@@ -4221,7 +4345,6 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled}: {focu
             <View style={styles.notesSection}>
               <View style={styles.notesSectionHeader}>
                 <Text style={styles.notesSectionTitle}>Recent notes</Text>
-                <Text style={styles.notesSectionCount}>{recentNotes.length}</Text>
               </View>
               {recentNotes.map(renderNoteCard)}
             </View>
@@ -4259,13 +4382,13 @@ function NoteBodyPreview({body}: {body: string}) {
 function FloatingActionButton({label, onPress, isOpen = false}: {label: string; onPress: () => void; isOpen?: boolean}) {
   const {styles} = useThemeStyles();
   return (
-    <Pressable
-      accessibilityRole="button"
+    <FAB
       accessibilityLabel={label}
-      style={({pressed}) => [styles.fab, styles.cardShadow, pressed && styles.pressed]}
-      onPress={onPress}>
-      <Text style={styles.fabIcon}>{isOpen ? '×' : '+'}</Text>
-    </Pressable>
+      icon={isOpen ? 'close' : 'plus'}
+      size="medium"
+      style={[styles.fab, styles.cardShadow]}
+      onPress={onPress}
+    />
   );
 }
 
@@ -4322,12 +4445,20 @@ function formatTaskAgendaDay(localDate: string, todayLocalDate: string): string 
     return 'Today';
   }
   const [year, month, day] = localDate.split('-').map(Number);
-  return new Intl.DateTimeFormat(undefined, {weekday: 'long', month: 'short', day: 'numeric'}).format(new Date(year, month - 1, day));
+  const weekday = new Intl.DateTimeFormat(undefined, {weekday: 'long'}).format(new Date(year, month - 1, day));
+  return `${weekday}, ${formatLocalDate(localDate)}`;
 }
 
-function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId, openAdd, onAddHandled, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled, onListFocusHandled}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; focusListId: string | null; openAdd: boolean; onAddHandled: () => void; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void; onListFocusHandled: () => void}) {
+type TaskConfigurationSection = 'dependencies' | 'projects' | 'templates' | 'lists' | 'recurring';
+
+function SettingsGroup({children}: {children: ReactNode}) {
+  const {styles} = useThemeStyles();
+  return <Surface style={styles.formCard} elevation={0}>{children}</Surface>;
+}
+
+function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId, openAdd, onAddHandled, onTaskFocusHandled, onProjectFocusHandled, onTemplateFocusHandled, onListFocusHandled, onSecondaryScreenChange = () => {}, onOpenSettings, configurationOnly = false, onConfigurationBack = () => {}}: {focusTaskId: string | null; focusProjectId: string | null; focusTemplateId: string | null; focusListId: string | null; openAdd: boolean; onAddHandled: () => void; onTaskFocusHandled: () => void; onProjectFocusHandled: () => void; onTemplateFocusHandled: () => void; onListFocusHandled: () => void; onSecondaryScreenChange?: (open: boolean) => void; onOpenSettings: () => void; configurationOnly?: boolean; onConfigurationBack?: () => void}) {
   const {colors, styles} = useThemeStyles();
-  const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, setNotificationQuietHours, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
+  const {data, addProject, updateProject, setProjectArchived, deleteProject, addTaskTemplate, updateTaskTemplate, setTaskTemplateArchived, deleteTaskTemplate, createTaskFromTemplate, addTask, updateTask, moveTask, deleteTask, setTaskReminder, deleteTaskReminder, toggleTask, addTaskList, updateTaskList, setTaskListArchived, deleteTaskList, addTaskRecurrence, setTaskRecurrencePaused, deleteTaskRecurrence, addTaskDependency, deleteTaskDependency} = useAppStore();
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [dueLocalDate, setDueLocalDate] = useState('');
@@ -4339,19 +4470,18 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
-  const [taskToolsOpen, setTaskToolsOpen] = useState(false);
   const [taskFiltersOpen, setTaskFiltersOpen] = useState(false);
-  const [taskOverviewOpen, setTaskOverviewOpen] = useState(false);
-  const [notificationToolsOpen, setNotificationToolsOpen] = useState(false);
-  const [dependencyToolsOpen, setDependencyToolsOpen] = useState(false);
-  const [projectToolsOpen, setProjectToolsOpen] = useState(false);
-  const [templateToolsOpen, setTemplateToolsOpen] = useState(false);
-  const [listToolsOpen, setListToolsOpen] = useState(false);
-  const [recurringToolsOpen, setRecurringToolsOpen] = useState(false);
+  const [taskScopeMenuOpen, setTaskScopeMenuOpen] = useState(false);
+  useAndroidBack(taskScopeMenuOpen, 100, () => setTaskScopeMenuOpen(false));
+  const [configurationSection, setConfigurationSection] = useState<TaskConfigurationSection | null>(null);
+  useAndroidBack(taskFormOpen || configurationSection !== null, 30, () => {
+    if (saving) return;
+    if (taskFormOpen) confirmDiscard(resetForm);
+    else setConfigurationSection(null);
+  });
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [taskSort, setTaskSort] = useState<TaskSort>('manual');
   const [showAgenda, setShowAgenda] = useState(false);
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -4386,18 +4516,15 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const [rulePolicy, setRulePolicy] = useState<MissedOccurrencePolicy>('all');
   const [taskRecurrenceError, setTaskRecurrenceError] = useState<string | null>(null);
   const [busyRuleId, setBusyRuleId] = useState<string | null>(null);
-  const [quietHoursStartLocalTime, setQuietHoursStartLocalTime] = useState('');
-  const [quietHoursEndLocalTime, setQuietHoursEndLocalTime] = useState('');
-  const [snoozeDurationMinutes, setSnoozeDurationMinutes] = useState<TaskReminderSnoozeDurationMinutes>(DEFAULT_TASK_REMINDER_SNOOZE_DURATION_MINUTES);
-  const [taskRemindersEnabled, setTaskRemindersEnabled] = useState(true);
-  const [recurringTaskRemindersEnabled, setRecurringTaskRemindersEnabled] = useState(true);
-  const [notificationSettingsError, setNotificationSettingsError] = useState<string | null>(null);
-  const [notificationSettingsMessage, setNotificationSettingsMessage] = useState<string | null>(null);
-  const [savingNotificationSettings, setSavingNotificationSettings] = useState(false);
   const [dependencySourceTaskId, setDependencySourceTaskId] = useState<string | null>(null);
   const [dependencyDependentTaskId, setDependencyDependentTaskId] = useState<string | null>(null);
   const [dependencyError, setDependencyError] = useState<string | null>(null);
   const [busyDependencyId, setBusyDependencyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSecondaryScreenChange(!configurationOnly && taskFormOpen);
+    return () => onSecondaryScreenChange(false);
+  }, [configurationOnly, onSecondaryScreenChange, taskFormOpen]);
 
   useEffect(() => {
     if (!openAdd) {
@@ -4455,8 +4582,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setEditingProjectId(project.id);
     setProjectName(project.name);
     setProjectStatus(project.status);
-    setTaskToolsOpen(true);
-    setProjectToolsOpen(true);
+    setConfigurationSection('projects');
     setProjectError(null);
     onProjectFocusHandled();
   }, [data, focusProjectId, onProjectFocusHandled]);
@@ -4477,8 +4603,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     setTemplatePriority(template.priority);
     setTemplateListId(template.listId);
     setTemplateProjectId(template.projectId);
-    setTaskToolsOpen(true);
-    setTemplateToolsOpen(true);
+    setConfigurationSection('templates');
     setTemplateError(null);
     setTemplateMessage(null);
     onTemplateFocusHandled();
@@ -4495,28 +4620,27 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     }
     setEditingListId(taskList.id);
     setEditingListName(taskList.name);
-    setTaskToolsOpen(true);
-    setListToolsOpen(true);
+    setConfigurationSection('lists');
     setTaskListError(null);
     onListFocusHandled();
   }, [data, focusListId, onListFocusHandled]);
-
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-    setQuietHoursStartLocalTime(data.notificationSettings.quietHoursStartLocalTime ?? '');
-    setQuietHoursEndLocalTime(data.notificationSettings.quietHoursEndLocalTime ?? '');
-    setSnoozeDurationMinutes(data.notificationSettings.snoozeDurationMinutes);
-    setTaskRemindersEnabled(data.notificationSettings.taskRemindersEnabled);
-    setRecurringTaskRemindersEnabled(data.notificationSettings.recurringTaskRemindersEnabled);
-  }, [data?.notificationSettings.quietHoursStartLocalTime, data?.notificationSettings.quietHoursEndLocalTime, data?.notificationSettings.snoozeDurationMinutes, data?.notificationSettings.taskRemindersEnabled, data?.notificationSettings.recurringTaskRemindersEnabled]);
 
   if (!data) {
     return null;
   }
 
   const currentData = data;
+  const configurationTitle = configurationSection === null
+    ? 'Task organization'
+    : configurationSection === 'dependencies'
+      ? 'Dependencies'
+      : configurationSection === 'projects'
+        ? 'Projects'
+        : configurationSection === 'templates'
+          ? 'Templates'
+          : configurationSection === 'lists'
+            ? 'Lists'
+            : 'Recurring tasks';
   const subtaskCountByParent = useMemo(() => {
     const counts = new Map<string, number>();
     currentData.tasks.forEach(task => {
@@ -4535,13 +4659,6 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
   const upcomingTasks = sortTasks(currentData.tasks.filter(task => task.status === 'open' && task.dueLocalDate !== null && task.dueLocalDate > todayLocalDate), 'due');
   const noDateTasks = sortTasks(currentData.tasks.filter(task => task.status === 'open' && task.dueLocalDate === null), taskSort);
   const completedThisWeek = currentData.tasks.filter(task => task.status === 'completed' && isInPeriod(task.updatedAt, getPeriodRange(new Date(), 'week', currentData.weekStartsOn))).length;
-  const listOverview = currentData.taskLists
-    .map(taskList => ({name: taskList.name, count: currentData.tasks.filter(task => task.status === 'open' && task.listId === taskList.id).length}))
-    .filter(item => item.count > 0)
-    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
-    .slice(0, 4);
-  const maxListCount = Math.max(...listOverview.map(item => item.count), 1);
-
   async function pickTaskDueDate() {
     try {
       const selected = await dateTimePicker.pickDate(dueLocalDate || todayLocalDate);
@@ -4565,15 +4682,6 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
       }
     } catch (pickerError) {
       setError(pickerError instanceof Error ? pickerError.message : 'The task reminder picker failed.');
-    }
-  }
-
-  async function pickQuietHour(setter: (value: string) => void, current: string) {
-    try {
-      const selected = await dateTimePicker.pickTime(current || '22:00');
-      if (selected) setter(selected);
-    } catch (pickerError) {
-      setNotificationSettingsError(pickerError instanceof Error ? pickerError.message : 'The quiet-hours picker failed.');
     }
   }
 
@@ -4951,20 +5059,6 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     }
   }
 
-  async function saveNotificationSettings() {
-    setSavingNotificationSettings(true);
-    setNotificationSettingsError(null);
-    setNotificationSettingsMessage(null);
-    try {
-      await setNotificationQuietHours(quietHoursStartLocalTime, quietHoursEndLocalTime, snoozeDurationMinutes, taskRemindersEnabled, recurringTaskRemindersEnabled);
-      setNotificationSettingsMessage(taskRemindersEnabled ? (quietHoursStartLocalTime.trim() ? 'Notification settings saved.' : 'Notification settings saved; quiet hours disabled.') : 'Task reminders paused. Reminder times remain saved.');
-    } catch (settingsError) {
-      setNotificationSettingsError(settingsError instanceof Error ? settingsError.message : 'Notification settings could not be saved.');
-    } finally {
-      setSavingNotificationSettings(false);
-    }
-  }
-
   async function saveDependency() {
     if (!dependencySourceTaskId || !dependencyDependentTaskId) {
       setDependencyError('Choose the task that must finish and the task that waits.');
@@ -5137,28 +5231,32 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     const subtaskCount = subtaskCountByParent.get(task.id) ?? 0;
     return (
       <View key={task.id} style={styles.taskRow}>
-        <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
+        <TouchableRipple accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskToggle} onPress={() => void toggleTaskFromList(task.id)}>
+          <View style={styles.touchableRowContent}>
           <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
             {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <View style={styles.listBody}>
             <Text style={[styles.listTitle, task.status === 'completed' && styles.completedText]}>{task.title}</Text>
             {!!task.details && <Text style={styles.listMeta} numberOfLines={1}>{task.details}</Text>}
-            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', project?.name ?? (task.projectId === null ? null : 'Deleted project'), task.parentTaskId === null ? null : `Subtask of ${currentData.tasks.find(parent => parent.id === task.parentTaskId)?.title ?? 'Deleted task'}`, subtaskCount > 0 ? `${subtaskCount} subtasks` : null, task.dueLocalDate ? `Due ${task.dueLocalDate}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatTaskReminderLocalDateTime(task.reminderAtMillis)}` : null].filter(Boolean).join(' · ')}</Text>
+            <Text style={styles.listMeta}>{[task.priority, taskList?.name ?? 'Deleted list', project?.name ?? (task.projectId === null ? null : 'Deleted project'), task.parentTaskId === null ? null : `Subtask of ${currentData.tasks.find(parent => parent.id === task.parentTaskId)?.title ?? 'Deleted task'}`, subtaskCount > 0 ? `${subtaskCount} subtasks` : null, task.dueLocalDate ? `Due ${formatLocalDate(task.dueLocalDate)}` : 'No due date', task.reminderAtMillis !== null ? `Reminder ${formatLocalDateTime(formatTaskReminderLocalDateTime(task.reminderAtMillis))}` : null].filter(Boolean).join(' · ')}</Text>
             {sourceLabel && <Text style={styles.listMeta}>{sourceLabel}</Text>}
             {getBlockingTaskIds(task.id, currentData.tasks, currentData.taskDependencies).map(blockingTaskId => {
               const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
               return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
             })}
           </View>
-        </Pressable>
-        <View style={styles.taskActions}>
-          {allowManualMove && <TextButton label="Up" onPress={() => void moveTaskFromList(task.id, 'up')} />}
-          {allowManualMove && <TextButton label="Down" onPress={() => void moveTaskFromList(task.id, 'down')} />}
-          <TextButton label="Calendar" onPress={() => void addTaskToCalendar(task)} disabled={busyTaskId !== null} />
-          <TextButton label="Edit" onPress={() => startEditing(task)} disabled={busyTaskId !== null} />
-          <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
-        </View>
+          </View>
+        </TouchableRipple>
+        <MenuActions accessibilityLabel={`Manage ${task.title}`} disabled={busyTaskId !== null} actions={[
+          ...(allowManualMove ? [
+            {label: 'Move up', onPress: () => void moveTaskFromList(task.id, 'up')},
+            {label: 'Move down', onPress: () => void moveTaskFromList(task.id, 'down')},
+          ] : []),
+          ...(task.dueLocalDate ? [{label: 'Calendar', onPress: () => void addTaskToCalendar(task)}] : []),
+          {label: 'Edit', onPress: () => startEditing(task)},
+          {label: 'Delete', danger: true, onPress: () => confirmDelete(task)},
+        ]} />
       </View>
     );
   }
@@ -5168,17 +5266,17 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
     const project = task.projectId === null ? null : currentData.projects.find(projectItem => projectItem.id === task.projectId);
     const subtaskCount = subtaskCountByParent.get(task.id) ?? 0;
     const sourceLabel = getTaskSourceLabel(task, currentData.notes);
-    const isExpanded = expandedTaskId === task.id;
-    const dueLabel = task.dueLocalDate === todayLocalDate ? 'Today' : task.dueLocalDate;
+    const dueLabel = task.dueLocalDate === todayLocalDate ? 'Today' : task.dueLocalDate ? formatLocalDate(task.dueLocalDate) : null;
     return (
       <View key={task.id} style={[styles.taskCard, styles.cardShadow, task.status === 'completed' && styles.taskCardCompleted]}>
         <View style={styles.taskCardMain}>
-          <Pressable accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskCheckButton} onPress={() => void toggleTaskFromList(task.id)}>
+          <TouchableRipple accessibilityLabel={task.status === 'open' ? `Complete ${task.title}` : `Reopen ${task.title}`} accessibilityRole="button" style={styles.taskCheckButton} onPress={() => void toggleTaskFromList(task.id)}>
             <View style={[styles.checkbox, task.status === 'completed' && styles.checkboxDone]}>
               {task.status === 'completed' && <Text style={styles.checkmark}>✓</Text>}
             </View>
-          </Pressable>
-          <Pressable accessibilityLabel={`Open ${task.title}`} accessibilityRole="button" style={styles.taskContentButton} onPress={() => startEditing(task)}>
+          </TouchableRipple>
+          <TouchableRipple accessibilityLabel={`Open ${task.title}`} accessibilityRole="button" style={styles.taskContentButton} onPress={() => startEditing(task)}>
+            <View>
             <Text style={[styles.taskCardTitle, task.status === 'completed' && styles.completedText]} numberOfLines={2}>{task.title}</Text>
             <View style={styles.taskMetaRow}>
               {dueLabel && <Text style={styles.taskDueMeta}>{dueLabel}</Text>}
@@ -5191,63 +5289,64 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               const blockingTask = currentData.tasks.find(item => item.id === blockingTaskId);
               return blockingTask ? <Text key={blockingTaskId} style={styles.warningText}>Blocked by {blockingTask.title}</Text> : null;
             })}
-          </Pressable>
+            </View>
+          </TouchableRipple>
           <View style={styles.taskCardRight}>
             <Text style={task.priority === 'high' ? styles.taskPriorityHigh : styles.taskPriorityNormal}>{task.priority === 'high' ? '★' : '☆'}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={isExpanded ? `Hide actions for ${task.title}` : `Show actions for ${task.title}`} style={styles.taskMoreButton} onPress={() => setExpandedTaskId(current => current === task.id ? null : task.id)} disabled={busyTaskId !== null}>
-              <Text style={styles.taskMoreIcon}>•••</Text>
-            </Pressable>
+            <MenuActions accessibilityLabel={`Manage ${task.title}`} disabled={busyTaskId !== null} actions={[
+              ...(allowManualMove ? [
+                {label: 'Move up', onPress: () => void moveTaskFromList(task.id, 'up')},
+                {label: 'Move down', onPress: () => void moveTaskFromList(task.id, 'down')},
+              ] : []),
+              ...(task.dueLocalDate ? [{label: 'Calendar', onPress: () => void addTaskToCalendar(task)}] : []),
+              {label: 'Delete', danger: true, onPress: () => confirmDelete(task)},
+            ]} />
           </View>
         </View>
-        {isExpanded && (
-          <View style={styles.taskCardActions}>
-            {allowManualMove && <TextButton label="Up" onPress={() => void moveTaskFromList(task.id, 'up')} disabled={busyTaskId !== null} />}
-            {allowManualMove && <TextButton label="Down" onPress={() => void moveTaskFromList(task.id, 'down')} disabled={busyTaskId !== null} />}
-            {task.dueLocalDate && <TextButton label="Calendar" onPress={() => void addTaskToCalendar(task)} disabled={busyTaskId !== null} />}
-            <TextButton label="Delete" danger onPress={() => confirmDelete(task)} disabled={busyTaskId !== null} />
-          </View>
-        )}
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
-        <View style={styles.tasksHero}>
-          <View style={styles.tasksHeroCopy}>
-            <Text style={styles.pageTitle}>Tasks</Text>
-            <Text style={styles.pageIntro}>Keep the next action visible.</Text>
-          </View>
-          <View style={styles.tasksCountBadge}>
-            <Text style={styles.tasksCountValue}>{currentData.tasks.filter(task => task.status === 'open').length}</Text>
-            <Text style={styles.tasksCountLabel}>open</Text>
-          </View>
-        </View>
-        {taskFormOpen && (
+      {configurationOnly && (
+        <Appbar.Header mode="small" statusBarHeight={0} style={styles.settingsAppbar}>
+          <Appbar.BackAction
+            accessibilityLabel={configurationSection === null ? 'Back to Settings' : 'Back to categories'}
+            onPress={configurationSection === null ? onConfigurationBack : () => setConfigurationSection(null)}
+          />
+          <Appbar.Content title={configurationTitle} titleStyle={styles.settingsAppbarTitle} />
+        </Appbar.Header>
+      )}
+      <ScrollView contentContainerStyle={configurationOnly ? styles.settingsDetailContent : styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {!configurationOnly && <TabHeader
+          title="Tasks"
+          subtitle={taskFormOpen ? editingTaskId ? 'Edit task' : 'New task' : `${currentData.tasks.filter(task => task.status === 'open').length} open · ${completedThisWeek} completed this week`}
+          onOpenSettings={onOpenSettings}
+        />}
+        {!configurationOnly && taskFormOpen && (
           <>
         <View style={styles.formCard}>
-          <Text style={styles.formLabel}>{editingTaskId ? 'Edit task' : 'New task'}</Text>
-          <TextInput accessibilityLabel="Task title" placeholder="What needs doing?" placeholderTextColor={colors.muted} style={styles.input} value={title} onChangeText={setTitle} />
+          <AppTextInput accessibilityLabel="Task title" placeholder="What needs doing?" placeholderTextColor={colors.muted} style={styles.input} value={title} onChangeText={setTitle} />
           <Disclosure
             title="Task details"
-            subtitle={dueLocalDate ? `Due ${dueLocalDate}` : 'Optional details, date, priority, and links'}
+            subtitle={dueLocalDate ? `Due ${formatLocalDate(dueLocalDate)}` : 'Optional details, date, priority, and links'}
             open={taskDetailsOpen}
             compact
             onPress={() => setTaskDetailsOpen(current => !current)}>
             <Text style={styles.formLabel}>Details (optional)</Text>
-            <TextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
+            <AppTextInput accessibilityLabel="Task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={details} onChangeText={setDetails} multiline />
             <Text style={styles.formLabel}>Due date (optional)</Text>
             {dateTimePicker.isSupported() ? <>
-              <Text style={styles.cardDetail}>{dueLocalDate || 'No due date'}</Text>
+              <Text style={styles.cardDetail}>{dueLocalDate ? formatLocalDate(dueLocalDate) : 'No due date'}</Text>
               <TextButton label={dueLocalDate ? 'Change due date' : 'Choose due date'} onPress={() => void pickTaskDueDate()} />
-            </> : <TextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} />}
+            </> : <AppTextInput accessibilityLabel="Task due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={dueLocalDate} onChangeText={setDueLocalDate} />}
             {dueLocalDate && <TextButton label="Clear due date" onPress={() => setDueLocalDate('')} />}
             <Text style={styles.formLabel}>Reminder (optional)</Text>
             {dateTimePicker.isSupported() ? <>
-              <Text style={styles.cardDetail}>{reminderAtLocalDateTime || 'No reminder'}</Text>
+              <Text style={styles.cardDetail}>{reminderAtLocalDateTime ? formatLocalDateTime(reminderAtLocalDateTime) : 'No reminder'}</Text>
               <TextButton label={reminderAtLocalDateTime ? 'Change reminder' : 'Choose reminder'} onPress={() => void pickTaskReminder()} />
-            </> : <TextInput accessibilityLabel="Task reminder local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} />}
+            </> : <AppTextInput accessibilityLabel="Task reminder local date and time" placeholder="YYYY-MM-DDTHH:mm" placeholderTextColor={colors.muted} style={styles.input} value={reminderAtLocalDateTime} onChangeText={setReminderAtLocalDateTime} />}
             {reminderAtLocalDateTime && <TextButton label="Clear reminder" onPress={() => setReminderAtLocalDateTime('')} />}
             <Text style={styles.formLabel}>Priority</Text>
             <View style={styles.segmentRow}>
@@ -5256,23 +5355,23 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               <SegmentButton label="High" selected={priority === 'high'} onPress={() => setPriority('high')} />
             </View>
             <Text style={styles.formLabel}>List</Text>
-            <View style={styles.segmentRow}>
+            <View style={styles.chipWrap}>
               {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
-                <SegmentButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
+                <ChipButton key={taskList.id} label={taskList.name} selected={listId === taskList.id} onPress={() => setListId(taskList.id)} />
               ))}
             </View>
             <Text style={styles.formLabel}>Project (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
+            <View style={styles.chipWrap}>
+              <ChipButton label="No project" selected={projectId === null} onPress={() => setProjectId(null)} />
               {data.projects.filter(project => !project.isArchived || project.id === projectId).map(project => (
-                <SegmentButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
+                <ChipButton key={project.id} label={project.name} selected={projectId === project.id} onPress={() => setProjectId(project.id)} />
               ))}
             </View>
             <Text style={styles.formLabel}>Parent task (optional)</Text>
-            <View style={styles.segmentRow}>
-              <SegmentButton label="No parent" selected={parentTaskId === null} onPress={() => setParentTaskId(null)} />
+            <View style={styles.chipWrap}>
+              <ChipButton label="No parent" selected={parentTaskId === null} onPress={() => setParentTaskId(null)} />
               {currentData.tasks.filter(task => task.id !== editingTaskId && task.listId === listId).map(task => (
-                <SegmentButton key={task.id} label={task.title} selected={parentTaskId === task.id} onPress={() => setParentTaskId(task.id)} />
+                <ChipButton key={task.id} label={task.title} selected={parentTaskId === task.id} onPress={() => setParentTaskId(task.id)} />
               ))}
             </View>
           </Disclosure>
@@ -5282,14 +5381,37 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
         </View>
           </>
         )}
-        {!taskFormOpen && (
+        {!configurationOnly && !taskFormOpen && (
           <>
-        <View style={styles.taskFilterTabs}>
-          <SegmentButton label="All" selected={filter === 'all'} onPress={() => {setFilter('all'); setShowAgenda(false);}} />
-          <SegmentButton label="Today" selected={filter === 'today'} onPress={() => {setFilter('today'); setShowAgenda(false);}} />
-          <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => {setFilter('upcoming'); setShowAgenda(false);}} />
-          <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => {setFilter('completed'); setShowAgenda(false);}} />
-        </View>
+        <Menu
+          visible={taskScopeMenuOpen}
+          onDismiss={() => setTaskScopeMenuOpen(false)}
+          anchor={
+            <Button mode="outlined" icon="filter-variant" accessibilityLabel="Choose task scope" style={styles.fullWidthControl} contentStyle={styles.fullWidthControlContent} onPress={() => setTaskScopeMenuOpen(true)}>
+              {filter === 'all' ? 'All tasks' : filter === 'today' ? 'Today' : filter === 'upcoming' ? 'Upcoming' : filter === 'completed' ? 'Completed' : 'Overdue'}
+            </Button>
+          }>
+          {(['all', 'today', 'upcoming', 'completed'] as TaskFilter[]).map(option => (
+            <Menu.Item key={option} title={option === 'all' ? 'All tasks' : option[0].toUpperCase() + option.slice(1)} leadingIcon={filter === option ? 'check' : undefined} onPress={() => {setFilter(option); setShowAgenda(false); setTaskScopeMenuOpen(false);}} />
+          ))}
+        </Menu>
+        <Disclosure
+          title="View and sort"
+          subtitle={showAgenda || taskSort !== 'manual' ? `${showAgenda ? 'Agenda' : 'List'} · ${taskSort === 'manual' ? 'Manual order' : taskSort === 'due' ? 'Due date' : 'Priority'}` : undefined}
+          open={taskFiltersOpen}
+          onPress={() => setTaskFiltersOpen(current => !current)}>
+          <Text style={styles.formLabel}>View</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
+            <SegmentButton label="Agenda" selected={showAgenda} onPress={() => setShowAgenda(true)} />
+          </View>
+          <Text style={styles.formLabel}>Sort</Text>
+          <View style={styles.segmentRow}>
+            <SegmentButton label="Manual" selected={taskSort === 'manual'} onPress={() => setTaskSort('manual')} />
+            <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
+            <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
+          </View>
+        </Disclosure>
         {error && <Text style={styles.errorText}>{error}</Text>}
         {showAgenda ? (
           <View style={styles.taskSection}>
@@ -5307,6 +5429,8 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             ))}
           </View>
+        ) : filter === 'all' && currentData.tasks.filter(task => task.status === 'open').length === 0 ? (
+          <EmptyState text="No open tasks." />
         ) : filter === 'all' ? (
           <>
             <View style={styles.taskSection}>
@@ -5315,7 +5439,6 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
                   <Text style={styles.taskSectionTitle}>Today</Text>
                   <Text style={styles.taskCountBadge}>{todayTasks.length}</Text>
                 </View>
-                <TextButton label="+ Add task" onPress={startNewTask} />
               </View>
               {todayTasks.length === 0 ? <EmptyState text="Nothing due today." /> : todayTasks.slice(0, 6).map(task => renderCompactTaskRow(task, false))}
               {todayTasks.length > 6 && <TextButton label="View all today" onPress={() => setFilter('today')} />}
@@ -5355,84 +5478,26 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             {visibleTasks.length === 0 ? <EmptyState text={filter === 'completed' ? 'No completed tasks yet.' : 'No tasks match this view.'} /> : visibleTasks.map(task => renderCompactTaskRow(task, false))}
           </View>
         )}
-        {!showAgenda && (
-          <Disclosure
-            title="Tasks overview"
-            subtitle={`${currentData.tasks.filter(task => task.status === 'open').length} open · ${completedThisWeek} completed this week`}
-            open={taskOverviewOpen}
-            onPress={() => setTaskOverviewOpen(current => !current)}>
-            <View style={styles.taskOverviewHeader}>
-              <View>
-                <Text style={styles.taskOverviewValue}>{currentData.tasks.filter(task => task.status === 'open').length}</Text>
-                <Text style={styles.taskOverviewMeta}>open tasks</Text>
-              </View>
-              <View style={styles.taskCompletedSummary}>
-                <Text style={styles.taskCompletedValue}>{completedThisWeek}</Text>
-                <Text style={styles.taskOverviewMeta}>completed this week</Text>
-              </View>
-            </View>
-            {listOverview.length > 0 && (
-              <View style={styles.taskOverviewList}>
-                {listOverview.map(item => (
-                  <View key={item.name} style={styles.taskOverviewRow}>
-                    <Text style={styles.taskOverviewLabel} numberOfLines={1}>{item.name}</Text>
-                    <View style={styles.taskOverviewTrack}><View style={[styles.taskOverviewFill, {width: `${Math.max(8, Math.round((item.count / maxListCount) * 100))}%`}]} /></View>
-                    <Text style={styles.taskOverviewCount}>{item.count}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Disclosure>
+          </>
         )}
-        <Disclosure
-          title="Task tools"
-          subtitle="Reminders, dependencies, projects, templates, lists, and recurring tasks"
-          open={taskToolsOpen}
-          onPress={() => setTaskToolsOpen(current => !current)}>
-        <Disclosure
-          title="Notification settings"
-          subtitle={taskRemindersEnabled ? 'Task reminders on' : 'Task reminders off'}
-          compact
-          open={notificationToolsOpen}
-          onPress={() => setNotificationToolsOpen(current => !current)}>
-          <Text style={styles.formLabel}>Task reminders</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="On" selected={taskRemindersEnabled} onPress={() => setTaskRemindersEnabled(true)} />
-            <SegmentButton label="Off" selected={!taskRemindersEnabled} onPress={() => setTaskRemindersEnabled(false)} />
-          </View>
-          <Text style={styles.cardDetail}>Off removes native reminder alarms but keeps reminder times on your tasks.</Text>
-          <Text style={styles.formLabel}>Recurring task reminders</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="On" selected={recurringTaskRemindersEnabled} onPress={() => setRecurringTaskRemindersEnabled(true)} />
-            <SegmentButton label="Off" selected={!recurringTaskRemindersEnabled} onPress={() => setRecurringTaskRemindersEnabled(false)} />
-          </View>
-          <Text style={styles.cardDetail}>Off pauses reminders on tasks created from recurring rules. One-off task reminders stay active.</Text>
-          <Text style={styles.searchAccessNote}>Reminders that fall inside quiet hours are delivered at the quiet-hours end.</Text>
-          <View style={styles.segmentRow}>
-            {dateTimePicker.isSupported() ? <>
-              <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursStartLocalTime || 'Quiet hours start off'}</Text><TextButton label="Choose start" onPress={() => void pickQuietHour(setQuietHoursStartLocalTime, quietHoursStartLocalTime)} /></View>
-              <View style={styles.quietHoursInput}><Text style={styles.cardDetail}>{quietHoursEndLocalTime || 'Quiet hours end off'}</Text><TextButton label="Choose end" onPress={() => void pickQuietHour(setQuietHoursEndLocalTime, quietHoursEndLocalTime)} /></View>
-            </> : <>
-              <TextInput accessibilityLabel="Quiet hours start" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursStartLocalTime} onChangeText={setQuietHoursStartLocalTime} />
-              <TextInput accessibilityLabel="Quiet hours end" placeholder="HH:mm" placeholderTextColor={colors.muted} style={[styles.input, styles.quietHoursInput]} value={quietHoursEndLocalTime} onChangeText={setQuietHoursEndLocalTime} />
-            </>}
-          </View>
-          <Text style={styles.formLabel}>Snooze duration</Text>
-          <View style={styles.segmentRow}>
-            {TASK_REMINDER_SNOOZE_DURATION_OPTIONS.map(duration => (
-              <SegmentButton key={duration} label={duration < 60 ? `${duration}m` : `${duration / 60}h`} selected={snoozeDurationMinutes === duration} onPress={() => setSnoozeDurationMinutes(duration)} />
-            ))}
-          </View>
-          {notificationSettingsError && <Text style={styles.errorText}>{notificationSettingsError}</Text>}
-          {notificationSettingsMessage && <Text style={styles.successText}>{notificationSettingsMessage}</Text>}
-          <PrimaryButton label={savingNotificationSettings ? 'Saving...' : 'Save notification settings'} onPress={() => void saveNotificationSettings()} disabled={savingNotificationSettings} />
-        </Disclosure>
-        <Disclosure
-          title="Task dependencies"
-          subtitle={`${currentData.taskDependencies.length} saved`}
-          compact
-          open={dependencyToolsOpen}
-          onPress={() => setDependencyToolsOpen(current => !current)}>
+        {configurationOnly && <View style={styles.settingsStack}>
+        {configurationSection === null ? (
+          <Surface style={styles.settingsList} elevation={0}>
+            <View style={styles.settingsListContent}>
+              {([
+                ['dependencies', 'Dependencies', `${currentData.taskDependencies.length} saved`, 'source-branch'],
+                ['projects', 'Projects', `${currentData.projects.length} saved`, 'folder-outline'],
+                ['templates', 'Templates', `${currentData.templates.length} saved`, 'file-document-outline'],
+                ['lists', 'Lists', `${currentData.taskLists.length} saved`, 'format-list-bulleted'],
+                ['recurring', 'Recurring tasks', `${currentData.taskRecurrences.length} saved`, 'repeat'],
+              ] as Array<[TaskConfigurationSection, string, string, string]>).map(([section, title, description, icon], index, rows) => (
+                <List.Item key={section} accessibilityLabel={`Open ${title}`} title={title} description={description} titleStyle={styles.settingsNavigationTitle} descriptionStyle={styles.settingsNavigationDescription} style={[styles.settingsNavigationRow, index === rows.length - 1 && styles.settingsNavigationRowLast]} left={props => <List.Icon {...props} icon={icon} color={colors.muted} />} right={props => <List.Icon {...props} icon="chevron-right" color={colors.muted} />} onPress={() => setConfigurationSection(section)} />
+              ))}
+            </View>
+          </Surface>
+        ) : <>
+        {configurationSection === 'dependencies' && <SettingsGroup>
+          <DeferredSection title="Add dependency">
           <Text style={styles.cardDetail}>Make one task wait until another task is completed. Cycles are rejected.</Text>
           <Text style={styles.formLabel}>Must finish first</Text>
           <View style={styles.chipWrap}>
@@ -5446,8 +5511,9 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               <ChipButton key={`dependent-${task.id}`} label={task.title} selected={dependencyDependentTaskId === task.id} onPress={() => {setDependencyDependentTaskId(task.id); setDependencyError(null);}} />
             ))}
           </View>
-          {dependencyError && <Text style={styles.errorText}>{dependencyError}</Text>}
           <PrimaryButton label={busyDependencyId === 'new' ? 'Saving...' : 'Add dependency'} onPress={() => void saveDependency()} disabled={busyDependencyId !== null || dependencySourceTaskId === null || dependencyDependentTaskId === null} />
+          </DeferredSection>
+          {dependencyError && <Text style={styles.errorText}>{dependencyError}</Text>}
           {currentData.taskDependencies.length === 0 ? (
             <Text style={styles.cardDetail}>No task dependencies yet.</Text>
           ) : currentData.taskDependencies.map(dependency => {
@@ -5463,15 +5529,11 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
               </View>
             );
           })}
-        </Disclosure>
-        <Disclosure
-          title="Projects"
-          subtitle={`${currentData.projects.length} saved`}
-          compact
-          open={projectToolsOpen}
-          onPress={() => setProjectToolsOpen(current => !current)}>
-          <Text style={styles.formLabel}>{editingProjectId ? 'Edit project' : 'Projects'}</Text>
-          <TextInput
+        </SettingsGroup>}
+        {configurationSection === 'projects' && <SettingsGroup>
+          <DeferredSection title={editingProjectId ? 'Edit project' : 'Add project'} revealKey={editingProjectId}>
+          {editingProjectId && <Text style={styles.formLabel}>Edit project</Text>}
+          <AppTextInput
             accessibilityLabel="Project name"
             placeholder="Project name"
             placeholderTextColor={colors.muted}
@@ -5484,9 +5546,10 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <SegmentButton label="Active" selected={projectStatus === 'active'} onPress={() => setProjectStatus('active')} />
             <SegmentButton label="Completed" selected={projectStatus === 'completed'} onPress={() => setProjectStatus('completed')} />
           </View>
-          {projectError && <Text style={styles.errorText}>{projectError}</Text>}
           <PrimaryButton label={editingProjectId ? 'Update project' : 'Add project'} onPress={() => void saveProject()} />
           {editingProjectId && <TextButton label="Cancel project edit" onPress={resetProjectForm} />}
+          </DeferredSection>
+          {projectError && <Text style={styles.errorText}>{projectError}</Text>}
           {currentData.projects.length === 0 ? (
             <Text style={styles.cardDetail}>No projects yet.</Text>
           ) : currentData.projects.map(project => (
@@ -5495,25 +5558,21 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
                 <Text style={styles.listTitle}>{project.name}</Text>
                 <Text style={styles.listMeta}>{project.status === 'completed' ? 'Completed' : 'Active'}{project.isArchived ? ' · Archived' : ''}</Text>
               </View>
-              <View style={styles.taskListActions}>
-                <TextButton label={project.status === 'completed' ? 'Reopen' : 'Complete'} onPress={() => void toggleProjectStatus(project)} disabled={busyProjectId !== null} />
-                <TextButton label="Edit" onPress={() => startEditingProject(project)} disabled={busyProjectId !== null} />
-                <TextButton label={project.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleProjectArchived(project)} disabled={busyProjectId !== null} />
-                <TextButton label="Delete" danger onPress={() => confirmDeleteProject(project)} disabled={busyProjectId !== null} />
-              </View>
+              <MenuActions accessibilityLabel={`Manage ${project.name}`} disabled={busyProjectId !== null} actions={[
+                {label: project.status === 'completed' ? 'Reopen' : 'Complete', onPress: () => void toggleProjectStatus(project)},
+                {label: 'Edit', onPress: () => startEditingProject(project)},
+                {label: project.isArchived ? 'Restore' : 'Archive', onPress: () => void toggleProjectArchived(project)},
+                {label: 'Delete', danger: true, onPress: () => confirmDeleteProject(project)},
+              ]} />
             </View>
           ))}
-        </Disclosure>
-        <Disclosure
-          title="Task templates"
-          subtitle={`${currentData.templates.length} saved`}
-          compact
-          open={templateToolsOpen}
-          onPress={() => setTemplateToolsOpen(current => !current)}>
-          <Text style={styles.formLabel}>{editingTemplateId ? 'Edit task template' : 'Task templates'}</Text>
-          <TextInput accessibilityLabel="Task template name" placeholder="Template name" placeholderTextColor={colors.muted} style={styles.input} value={templateName} onChangeText={setTemplateName} />
-          <TextInput accessibilityLabel="Task template title" placeholder="Task title" placeholderTextColor={colors.muted} style={styles.input} value={templateTitle} onChangeText={setTemplateTitle} />
-          <TextInput accessibilityLabel="Task template details" placeholder="Details (optional)" placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={templateDetails} onChangeText={setTemplateDetails} multiline />
+        </SettingsGroup>}
+        {configurationSection === 'templates' && <SettingsGroup>
+          <DeferredSection title={editingTemplateId ? 'Edit template' : 'Add template'} revealKey={editingTemplateId}>
+          {editingTemplateId && <Text style={styles.formLabel}>Edit template</Text>}
+          <AppTextInput accessibilityLabel="Task template name" placeholder="Template name" placeholderTextColor={colors.muted} style={styles.input} value={templateName} onChangeText={setTemplateName} />
+          <AppTextInput accessibilityLabel="Task template title" placeholder="Task title" placeholderTextColor={colors.muted} style={styles.input} value={templateTitle} onChangeText={setTemplateTitle} />
+          <AppTextInput accessibilityLabel="Task template details" placeholder="Details (optional)" placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={templateDetails} onChangeText={setTemplateDetails} multiline />
           <Text style={styles.formLabel}>Priority</Text>
           <View style={styles.segmentRow}>
             <SegmentButton label="Low" selected={templatePriority === 'low'} onPress={() => setTemplatePriority('low')} />
@@ -5521,22 +5580,23 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <SegmentButton label="High" selected={templatePriority === 'high'} onPress={() => setTemplatePriority('high')} />
           </View>
           <Text style={styles.formLabel}>List</Text>
-          <View style={styles.segmentRow}>
+          <View style={styles.chipWrap}>
             {currentData.taskLists.filter(taskList => !taskList.isArchived || taskList.id === templateListId).map(taskList => (
-              <SegmentButton key={taskList.id} label={taskList.name} selected={templateListId === taskList.id} onPress={() => setTemplateListId(taskList.id)} />
+              <ChipButton key={taskList.id} label={taskList.name} selected={templateListId === taskList.id} onPress={() => setTemplateListId(taskList.id)} />
             ))}
           </View>
           <Text style={styles.formLabel}>Project (optional)</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="No project" selected={templateProjectId === null} onPress={() => setTemplateProjectId(null)} />
+          <View style={styles.chipWrap}>
+            <ChipButton label="No project" selected={templateProjectId === null} onPress={() => setTemplateProjectId(null)} />
             {currentData.projects.filter(project => !project.isArchived || project.id === templateProjectId).map(project => (
-              <SegmentButton key={project.id} label={project.name} selected={templateProjectId === project.id} onPress={() => setTemplateProjectId(project.id)} />
+              <ChipButton key={project.id} label={project.name} selected={templateProjectId === project.id} onPress={() => setTemplateProjectId(project.id)} />
             ))}
           </View>
-          {templateError && <Text style={styles.errorText}>{templateError}</Text>}
-          {templateMessage && <Text style={styles.successText}>{templateMessage}</Text>}
           <PrimaryButton label={editingTemplateId ? 'Update template' : 'Add template'} onPress={() => void saveTemplate()} />
           {editingTemplateId && <TextButton label="Cancel template edit" onPress={resetTemplateForm} />}
+          </DeferredSection>
+          {templateError && <Text style={styles.errorText}>{templateError}</Text>}
+          {templateMessage && <Text style={styles.successText}>{templateMessage}</Text>}
           {currentData.templates.length === 0 ? (
             <Text style={styles.cardDetail}>No task templates yet.</Text>
           ) : currentData.templates.map(template => (
@@ -5545,23 +5605,19 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
                 <Text style={styles.listTitle}>{template.name}</Text>
                 <Text style={styles.listMeta}>{template.title} · {template.priority}{template.isArchived ? ' · Archived' : ''}</Text>
               </View>
-              <View style={styles.taskListActions}>
-                {!template.isArchived && <TextButton label="Use" onPress={() => void useTemplate(template)} disabled={busyTemplateId !== null} />}
-                <TextButton label="Edit" onPress={() => startEditingTemplate(template)} disabled={busyTemplateId !== null} />
-                <TextButton label={template.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleTemplateArchived(template)} disabled={busyTemplateId !== null} />
-                <TextButton label="Delete" danger onPress={() => confirmDeleteTemplate(template)} disabled={busyTemplateId !== null} />
-              </View>
+              <MenuActions accessibilityLabel={`Manage ${template.name}`} disabled={busyTemplateId !== null} actions={[
+                ...(!template.isArchived ? [{label: 'Use', onPress: () => void useTemplate(template)}] : []),
+                {label: 'Edit', onPress: () => startEditingTemplate(template)},
+                {label: template.isArchived ? 'Restore' : 'Archive', onPress: () => void toggleTemplateArchived(template)},
+                {label: 'Delete', danger: true, onPress: () => confirmDeleteTemplate(template)},
+              ]} />
             </View>
           ))}
-        </Disclosure>
-        <Disclosure
-          title="Task lists"
-          subtitle={`${currentData.taskLists.length} saved`}
-          compact
-          open={listToolsOpen}
-          onPress={() => setListToolsOpen(current => !current)}>
-          <Text style={styles.formLabel}>{editingListId ? 'Rename task list' : 'Task lists'}</Text>
-          <TextInput
+        </SettingsGroup>}
+        {configurationSection === 'lists' && <SettingsGroup>
+          <DeferredSection title={editingListId ? 'Rename list' : 'Add list'} revealKey={editingListId}>
+          {editingListId && <Text style={styles.formLabel}>Rename list</Text>}
+          <AppTextInput
             accessibilityLabel="Task list name"
             placeholder="New list name"
             placeholderTextColor={colors.muted}
@@ -5569,41 +5625,37 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             value={editingListId ? editingListName : newListName}
             onChangeText={editingListId ? setEditingListName : setNewListName}
           />
-          {taskListError && <Text style={styles.errorText}>{taskListError}</Text>}
           <PrimaryButton label={editingListId ? 'Rename list' : 'Add list'} onPress={() => void saveList()} />
           {editingListId && <TextButton label="Cancel rename" onPress={resetListForm} />}
+          </DeferredSection>
+          {taskListError && <Text style={styles.errorText}>{taskListError}</Text>}
           {currentData.taskLists.map(taskList => (
             <View key={taskList.id} style={styles.taskListRow}>
               <View style={styles.listBody}>
                 <Text style={styles.listTitle}>{taskList.name}</Text>
                 <Text style={styles.listMeta}>{taskList.isArchived ? 'Archived' : 'Active'}{taskList.id === TASK_INBOX_LIST_ID ? ' · Default' : ''}</Text>
               </View>
-              <View style={styles.taskListActions}>
-                <TextButton label="Rename" onPress={() => startEditingList(taskList)} disabled={busyListId !== null} />
-                <TextButton label={taskList.isArchived ? 'Restore' : 'Archive'} onPress={() => void toggleListArchived(taskList)} disabled={busyListId !== null} />
-                {taskList.id !== TASK_INBOX_LIST_ID && <TextButton label="Delete" danger onPress={() => confirmDeleteList(taskList)} disabled={busyListId !== null} />}
-              </View>
+              <MenuActions accessibilityLabel={`Manage ${taskList.name}`} disabled={busyListId !== null} actions={[
+                {label: 'Rename', onPress: () => startEditingList(taskList)},
+                {label: taskList.isArchived ? 'Restore' : 'Archive', onPress: () => void toggleListArchived(taskList)},
+                ...(taskList.id !== TASK_INBOX_LIST_ID ? [{label: 'Delete', danger: true, onPress: () => confirmDeleteList(taskList)}] : []),
+              ]} />
             </View>
           ))}
-        </Disclosure>
-        <Disclosure
-          title="Recurring tasks"
-          subtitle={`${currentData.taskRecurrences.length} saved`}
-          compact
-          open={recurringToolsOpen}
-          onPress={() => setRecurringToolsOpen(current => !current)}>
-          <Text style={styles.formLabel}>Recurring tasks</Text>
-          <TextInput accessibilityLabel="Recurring task title" placeholder="What repeats?" placeholderTextColor={colors.muted} style={styles.input} value={ruleTitle} onChangeText={setRuleTitle} />
+        </SettingsGroup>}
+        {configurationSection === 'recurring' && <SettingsGroup>
+          <DeferredSection title="Add recurring task">
+          <AppTextInput accessibilityLabel="Recurring task title" placeholder="What repeats?" placeholderTextColor={colors.muted} style={styles.input} value={ruleTitle} onChangeText={setRuleTitle} />
           <Text style={styles.formLabel}>Details (optional)</Text>
-          <TextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
+          <AppTextInput accessibilityLabel="Recurring task details" placeholder="Add context..." placeholderTextColor={colors.muted} style={[styles.input, styles.multilineInput]} value={ruleDetails} onChangeText={setRuleDetails} multiline />
           <Text style={styles.formLabel}>First due date</Text>
-          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{ruleNextDate}</Text><TextButton label="Choose first due date" onPress={() => void pickRecurringRuleDate()} /></> : <TextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} />}
+          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{formatLocalDate(ruleNextDate)}</Text><TextButton label="Choose first due date" onPress={() => void pickRecurringRuleDate()} /></> : <AppTextInput accessibilityLabel="Recurring task first due date" placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={ruleNextDate} onChangeText={setRuleNextDate} />}
           <Text style={styles.formLabel}>Reminder time (optional)</Text>
-          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{ruleReminderLocalTime || 'No reminder time'}</Text><TextButton label="Choose reminder time" onPress={() => void pickRecurringRuleTime()} /></> : <TextInput accessibilityLabel="Recurring task reminder time" placeholder="HH:mm" placeholderTextColor={colors.muted} style={styles.input} value={ruleReminderLocalTime} onChangeText={setRuleReminderLocalTime} />}
+          {dateTimePicker.isSupported() ? <><Text style={styles.cardDetail}>{ruleReminderLocalTime || 'No reminder time'}</Text><TextButton label="Choose reminder time" onPress={() => void pickRecurringRuleTime()} /></> : <AppTextInput accessibilityLabel="Recurring task reminder time" placeholder="HH:mm" placeholderTextColor={colors.muted} style={styles.input} value={ruleReminderLocalTime} onChangeText={setRuleReminderLocalTime} />}
           {ruleReminderLocalTime && <TextButton label="Clear reminder time" onPress={() => setRuleReminderLocalTime('')} />}
           <Text style={styles.formLabel}>Repeat every</Text>
+          <AppTextInput accessibilityLabel="Recurring task interval" placeholder="1" placeholderTextColor={colors.muted} style={styles.input} value={ruleInterval} onChangeText={setRuleInterval} keyboardType="number-pad" />
           <View style={styles.segmentRow}>
-            <TextInput accessibilityLabel="Recurring task interval" placeholder="1" placeholderTextColor={colors.muted} style={[styles.input, styles.smallInput]} value={ruleInterval} onChangeText={setRuleInterval} keyboardType="number-pad" />
             <SegmentButton label="Day" selected={ruleCadence === 'day'} onPress={() => setRuleCadence('day')} />
             <SegmentButton label="Week" selected={ruleCadence === 'week'} onPress={() => setRuleCadence('week')} />
             <SegmentButton label="Month" selected={ruleCadence === 'month'} onPress={() => setRuleCadence('month')} />
@@ -5615,9 +5667,9 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <SegmentButton label="High" selected={rulePriority === 'high'} onPress={() => setRulePriority('high')} />
           </View>
           <Text style={styles.formLabel}>List</Text>
-          <View style={styles.segmentRow}>
+          <View style={styles.chipWrap}>
             {data.taskLists.filter(taskList => !taskList.isArchived).map(taskList => (
-              <SegmentButton key={taskList.id} label={taskList.name} selected={ruleListId === taskList.id} onPress={() => setRuleListId(taskList.id)} />
+              <ChipButton key={taskList.id} label={taskList.name} selected={ruleListId === taskList.id} onPress={() => setRuleListId(taskList.id)} />
             ))}
           </View>
           <Text style={styles.formLabel}>Missed occurrences</Text>
@@ -5626,51 +5678,26 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
             <SegmentButton label="One" selected={rulePolicy === 'one'} onPress={() => setRulePolicy('one')} />
             <SegmentButton label="Skip" selected={rulePolicy === 'skip'} onPress={() => setRulePolicy('skip')} />
           </View>
-          {taskRecurrenceError && <Text style={styles.errorText}>{taskRecurrenceError}</Text>}
           <PrimaryButton label="Add recurring task" onPress={() => void saveRule()} />
+          </DeferredSection>
+          {taskRecurrenceError && <Text style={styles.errorText}>{taskRecurrenceError}</Text>}
           {currentData.taskRecurrences.map(rule => (
             <View key={rule.id} style={styles.taskListRow}>
               <View style={styles.listBody}>
                 <Text style={styles.listTitle}>{rule.title}</Text>
-                <Text style={styles.listMeta}>{rule.cadence} every {rule.interval} · next {rule.nextOccurrenceLocalDate} · missed {rule.missedOccurrencePolicy}{rule.reminderLocalTime ? ` · reminder ${rule.reminderLocalTime}` : ''}{rule.isPaused ? ' · Paused' : ''}</Text>
+                <Text style={styles.listMeta}>{rule.cadence} every {rule.interval} · next {formatLocalDate(rule.nextOccurrenceLocalDate)} · missed {rule.missedOccurrencePolicy}{rule.reminderLocalTime ? ` · reminder ${rule.reminderLocalTime}` : ''}{rule.isPaused ? ' · Paused' : ''}</Text>
               </View>
-              <View style={styles.taskListActions}>
-                <TextButton label={rule.isPaused ? 'Resume' : 'Pause'} onPress={() => void toggleRule(rule)} disabled={busyRuleId !== null} />
-                <TextButton label="Delete" danger onPress={() => confirmDeleteRule(rule)} disabled={busyRuleId !== null} />
-              </View>
+              <MenuActions accessibilityLabel={`Manage ${rule.title}`} disabled={busyRuleId !== null} actions={[
+                {label: rule.isPaused ? 'Resume' : 'Pause', onPress: () => void toggleRule(rule)},
+                {label: 'Delete', danger: true, onPress: () => confirmDeleteRule(rule)},
+              ]} />
             </View>
           ))}
-        </Disclosure>
-        <Disclosure
-          title="Task views and filters"
-          subtitle={`${filter === 'all' ? 'All tasks' : filter} - ${showAgenda ? 'Agenda' : taskSort === 'manual' ? 'Manual order' : taskSort === 'due' ? 'Due date' : 'Priority'}`}
-          open={taskFiltersOpen}
-          onPress={() => setTaskFiltersOpen(current => !current)}>
-          <Text style={styles.formLabel}>View</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="List" selected={!showAgenda} onPress={() => setShowAgenda(false)} />
-            <SegmentButton label="Agenda" selected={showAgenda} onPress={() => setShowAgenda(true)} />
-          </View>
-          <Text style={styles.formLabel}>Filter</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
-            <SegmentButton label="Overdue" selected={filter === 'overdue'} onPress={() => setFilter('overdue')} />
-            <SegmentButton label="Today" selected={filter === 'today'} onPress={() => setFilter('today')} />
-            <SegmentButton label="Upcoming" selected={filter === 'upcoming'} onPress={() => setFilter('upcoming')} />
-            <SegmentButton label="Completed" selected={filter === 'completed'} onPress={() => setFilter('completed')} />
-          </View>
-          <Text style={styles.formLabel}>Sort list</Text>
-          <View style={styles.segmentRow}>
-            <SegmentButton label="Manual" selected={taskSort === 'manual'} onPress={() => setTaskSort('manual')} />
-            <SegmentButton label="Due date" selected={taskSort === 'due'} onPress={() => setTaskSort('due')} />
-            <SegmentButton label="Priority" selected={taskSort === 'priority'} onPress={() => setTaskSort('priority')} />
-          </View>
-        </Disclosure>
-        </Disclosure>
-          </>
-        )}
+        </SettingsGroup>}
+        </>}
+        </View>}
       </ScrollView>
-      {!taskFormOpen && <FloatingActionButton label="Add task" onPress={startNewTask} />}
+      {!configurationOnly && !taskFormOpen && <FloatingActionButton label="Add task" onPress={startNewTask} />}
     </KeyboardAvoidingView>
   );
 }
@@ -5686,26 +5713,28 @@ function SummaryCard({
 }: {
   title: string;
   value: string;
-  detail: string;
+  detail?: string;
   action: string;
   disabled?: boolean;
   onPress: () => void;
 }) {
   const {styles} = useThemeStyles();
   return (
-    <View style={[styles.summaryCard, disabled && styles.disabledCard]}>
+    <Surface elevation={0} style={[styles.summaryCard, disabled && styles.disabledCard]}>
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardValue}>{value}</Text>
-      <Text style={styles.cardDetail}>{detail}</Text>
-      <Pressable
+      {detail && <Text style={styles.cardDetail}>{detail}</Text>}
+      <Button
         accessibilityLabel={`${action} ${title}`}
-        accessibilityRole="button"
+        mode="text"
+        compact
         disabled={disabled}
-        style={({pressed}) => [styles.cardAction, pressed && styles.pressed, disabled && styles.disabledAction]}
+        style={styles.cardAction}
+        labelStyle={styles.cardActionText}
         onPress={onPress}>
-        <Text style={styles.cardActionText}>{action}</Text>
-      </Pressable>
-    </View>
+        {action}
+      </Button>
+    </Surface>
   );
 }
 
@@ -5717,40 +5746,60 @@ function SectionTitle({title}: {title: string}) {
 function Disclosure({title, subtitle, open, onPress, children, compact = false}: {title: string; subtitle?: string; open: boolean; onPress: () => void; children: ReactNode; compact?: boolean}) {
   const {styles} = useThemeStyles();
   return (
-    <View style={compact ? styles.compactDisclosure : styles.disclosure}>
-      <Pressable
-        accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title}`}
-        accessibilityRole="button"
-        accessibilityState={{expanded: open}}
-        style={({pressed}) => [styles.disclosureButton, compact && styles.compactDisclosureButton, pressed && styles.pressed]}
-        onPress={onPress}>
-        <View style={styles.listBody}>
-          <Text style={styles.disclosureTitle}>{title}</Text>
-          {!!subtitle && <Text style={styles.disclosureSubtitle}>{subtitle}</Text>}
-        </View>
-        <Text style={styles.disclosureIcon}>{open ? '−' : '+'}</Text>
-      </Pressable>
-      {open && <View style={[styles.disclosureBody, compact && styles.compactDisclosureBody]}>{children}</View>}
-    </View>
+    <Surface elevation={0} style={compact ? styles.compactDisclosure : styles.disclosure}>
+      <View style={styles.disclosureClip}>
+        <List.Accordion
+          accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title}`}
+          title={title}
+          description={subtitle}
+          expanded={open}
+          titleStyle={styles.disclosureTitle}
+          descriptionStyle={styles.disclosureSubtitle}
+          style={[styles.disclosureButton, compact && styles.compactDisclosureButton]}
+          onPress={onPress}>
+          <View style={[styles.disclosureBody, compact && styles.compactDisclosureBody]}>{children}</View>
+        </List.Accordion>
+      </View>
+    </Surface>
   );
 }
 
 function EmptyState({text}: {text: string}) {
   const {styles} = useThemeStyles();
-  return <Text style={styles.emptyState}>{text}</Text>;
+  return <Surface accessibilityRole="summary" elevation={0} style={styles.emptyState}><Text style={styles.emptyStateText}>{text}</Text></Surface>;
+}
+
+function AppTextInput({style, placeholder, ...props}: ComponentProps<typeof PaperTextInput>) {
+  const {colors} = useThemeStyles();
+  return (
+    <PaperTextInput
+      {...props}
+      label={placeholder}
+      mode="outlined"
+      dense
+      outlineColor={colors.border}
+      activeOutlineColor={colors.accent}
+      textColor={colors.text}
+      placeholderTextColor={colors.muted}
+      style={style}
+    />
+  );
 }
 
 function PrimaryButton({label, onPress, disabled = false}: {label: string; onPress: () => void; disabled?: boolean}) {
   const {styles} = useThemeStyles();
   return (
-    <Pressable
+    <Button
       accessibilityLabel={label}
-      accessibilityRole="button"
+      icon={actionIcon(label)}
+      mode="contained"
       disabled={disabled}
-      style={({pressed}) => [styles.primaryButton, pressed && styles.pressed, disabled && styles.disabledAction]}
+      style={styles.primaryButton}
+      contentStyle={styles.primaryButtonContent}
+      labelStyle={styles.primaryButtonText}
       onPress={onPress}>
-      <Text style={styles.primaryButtonText}>{label}</Text>
-    </Pressable>
+      {label}
+    </Button>
   );
 }
 
@@ -5765,44 +5814,80 @@ function TextButton({
   danger?: boolean;
   disabled?: boolean;
 }) {
-  const {styles} = useThemeStyles();
+  const {colors, styles} = useThemeStyles();
   return (
-    <Pressable
+    <Button
       accessibilityLabel={label}
-      accessibilityRole="button"
+      icon={actionIcon(label)}
+      mode="text"
+      compact
+      textColor={danger ? colors.danger : colors.accent}
       disabled={disabled}
-      style={({pressed}) => [styles.textButton, pressed && styles.pressed, disabled && styles.disabledAction]}
+      style={styles.textButton}
+      labelStyle={styles.textButtonText}
       onPress={onPress}>
-      <Text style={[styles.textButtonText, danger && styles.dangerText]}>{label}</Text>
-    </Pressable>
+      {label}
+    </Button>
+  );
+}
+
+function MenuActions({actions, accessibilityLabel, disabled = false}: {actions: Array<{label: string; danger?: boolean; onPress: () => void}>; accessibilityLabel: string; disabled?: boolean}) {
+  const {colors} = useThemeStyles();
+  const [open, setOpen] = useState(false);
+  useAndroidBack(open, 100, () => setOpen(false));
+  return (
+    <Menu
+      visible={open}
+      onDismiss={() => setOpen(false)}
+      anchor={<IconButton icon="dots-vertical" accessibilityLabel={accessibilityLabel} disabled={disabled} onPress={() => setOpen(true)} />}>
+      {actions.map(action => (
+        <Menu.Item
+          key={action.label}
+          title={action.label}
+          leadingIcon={actionIcon(action.label)}
+          titleStyle={action.danger ? {color: colors.danger} : undefined}
+          onPress={() => {
+            setOpen(false);
+            action.onPress();
+          }}
+        />
+      ))}
+    </Menu>
   );
 }
 
 function ToggleButton({label, value, onPress}: {label: string; value: boolean; onPress: () => void}) {
-  const {styles} = useThemeStyles();
+  const {colors, styles} = useThemeStyles();
   return (
-    <Pressable
+    <TouchableRipple
       accessibilityLabel={label}
       accessibilityRole="switch"
       accessibilityState={{checked: value}}
-      style={({pressed}) => [styles.toggleRow, value && styles.toggleRowSelected, pressed && styles.pressed]}
+      style={[styles.toggleRow, value && styles.toggleRowSelected]}
       onPress={onPress}>
-      <Text style={[styles.toggleMark, value && styles.toggleTextSelected]}>{value ? '✓' : '○'}</Text>
-      <Text style={[styles.toggleLabel, value && styles.toggleTextSelected]}>{label}</Text>
-    </Pressable>
+      <View style={styles.toggleRowContent}>
+        <Checkbox.Android color={value ? colors.accentText : colors.accent} uncheckedColor={colors.muted} status={value ? 'checked' : 'unchecked'} />
+        <Text style={[styles.toggleLabel, value && styles.toggleTextSelected]}>{label}</Text>
+      </View>
+    </TouchableRipple>
   );
 }
 
 function SegmentButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
   const {styles} = useThemeStyles();
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Button
+      accessibilityLabel={label}
       accessibilityState={{selected}}
+      icon={selected ? 'check' : undefined}
+      mode={selected ? 'contained' : 'outlined'}
+      compact
       style={[styles.segmentButton, selected && styles.segmentButtonSelected]}
+      contentStyle={styles.segmentButtonContent}
+      labelStyle={[styles.segmentText, selected && styles.segmentTextSelected]}
       onPress={onPress}>
-      <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{label}</Text>
-    </Pressable>
+      {label}
+    </Button>
   );
 }
 
@@ -5819,52 +5904,89 @@ export function AccountSelector({
   label?: string;
   includeCurrency?: boolean;
 }) {
-  const {styles} = useThemeStyles();
   if (accounts.length <= 1) {
     return null;
   }
-  return (
-    <>
-      <Text style={styles.formLabel}>{label}</Text>
-      <View style={styles.chipWrap}>
-        {accounts.map(account => (
-          <ChipButton
-            key={account.id}
-            label={includeCurrency ? `${account.name} (${account.currency})` : account.name}
-            selected={account.id === selectedAccountId}
-            onPress={() => onSelect(account.id)}
-          />
-        ))}
-      </View>
-    </>
-  );
+  return <ChoiceMenu label={label} value={selectedAccountId}
+    options={accounts.map(account => ({value: account.id, label: includeCurrency ? `${account.name} (${account.currency})` : account.name}))}
+    onSelect={onSelect} />;
 }
 
 function ChipButton({label, selected, onPress}: {label: string; selected: boolean; onPress: () => void}) {
-  const {styles} = useThemeStyles();
+  const {colors, styles} = useThemeStyles();
   return (
-    <Pressable
+    <Chip
       accessibilityRole="button"
       accessibilityState={{selected}}
+      selected={selected}
+      selectedColor={selected ? colors.accentText : colors.muted}
+      showSelectedCheck
+      compact
+      mode="outlined"
       style={[styles.chip, selected && styles.chipSelected]}
+      textStyle={[styles.chipText, selected && styles.chipTextSelected]}
       onPress={onPress}>
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
-    </Pressable>
+      {label}
+    </Chip>
   );
 }
 
-function TabButton({label, icon, selected, onPress}: {label: string; icon: string; selected: boolean; onPress: () => void}) {
+type TabHeaderAction = {label: string; icon: string; onPress: () => void};
+
+export function TabHeader({title, subtitle, actions = [], onBack, onOpenSettings}: {title: string; subtitle: string; actions?: TabHeaderAction[]; onBack?: () => void; onOpenSettings: () => void}) {
   const {styles} = useThemeStyles();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useAndroidBack(menuOpen, 100, () => setMenuOpen(false));
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="tab"
-      accessibilityState={{selected}}
-      style={styles.tab}
-      onPress={onPress}>
-      <Text style={[styles.tabIcon, selected && styles.tabSelected]}>{icon}</Text>
-      <Text style={[styles.tabLabel, selected && styles.tabSelected]}>{label}</Text>
-    </Pressable>
+    <Appbar.Header mode="small" statusBarHeight={0} style={styles.tabHeader}>
+      {onBack && <Appbar.BackAction accessibilityLabel={`Back from ${title}`} onPress={onBack} />}
+      <Appbar.Content title={<View><Text style={styles.pageTitle}>{title}</Text><Text style={styles.tabHeaderSubtitle}>{subtitle}</Text></View>} />
+      <Menu
+        visible={menuOpen}
+        onDismiss={() => setMenuOpen(false)}
+        contentStyle={styles.overflowMenu}
+        anchor={
+          <Appbar.Action
+            icon="dots-vertical"
+            accessibilityLabel={`More ${title} options`}
+            accessibilityState={{expanded: menuOpen}}
+            onPress={() => setMenuOpen(current => !current)}
+          />
+        }>
+          {actions.map(action => (
+            <Menu.Item
+              key={action.label}
+              accessibilityLabel={`Open ${action.label}`}
+              leadingIcon={action.icon}
+              title={action.label}
+              onPress={() => {
+                setMenuOpen(false);
+                action.onPress();
+              }}
+            />
+          ))}
+          <Menu.Item
+            accessibilityLabel={`Open ${title} settings`}
+            leadingIcon="cog-outline"
+            title="Settings"
+            onPress={() => {
+              setMenuOpen(false);
+              onOpenSettings();
+            }}
+          />
+      </Menu>
+    </Appbar.Header>
+  );
+}
+
+function SecondaryHeader({title, backLabel, onBack}: {title: string; backLabel: string; onBack: () => void}) {
+  const {styles} = useThemeStyles();
+  useAndroidBack(true, 10, onBack);
+  return (
+    <Appbar.Header mode="small" statusBarHeight={0} style={styles.secondaryHeader}>
+      <Appbar.BackAction accessibilityLabel={`Back to ${backLabel}`} onPress={onBack} />
+      <Appbar.Content title={title} titleStyle={styles.settingsAppbarTitle} />
+    </Appbar.Header>
   );
 }
 
@@ -5873,13 +5995,23 @@ export function createStyles(colors: ThemeColors) {
   app: {flex: 1, backgroundColor: colors.background},
   flex: {flex: 1},
   content: {flex: 1},
+  formActions: {backgroundColor: colors.background, paddingHorizontal: UI_TOKENS.spacing.lg, paddingBottom: UI_TOKENS.spacing.sm},
   scrollContent: {padding: UI_TOKENS.spacing.lg, paddingBottom: UI_TOKENS.spacing.xxl, paddingTop: UI_TOKENS.spacing.lg},
+  tabHeader: {backgroundColor: colors.background, marginBottom: -UI_TOKENS.spacing.lg, marginHorizontal: -UI_TOKENS.spacing.lg, minHeight: 80, position: 'relative', transform: [{translateY: -UI_TOKENS.spacing.lg}], zIndex: 2},
+  secondaryHeader: {backgroundColor: colors.background, marginHorizontal: -UI_TOKENS.spacing.lg, marginTop: -UI_TOKENS.spacing.lg},
+  tabHeaderSubtitle: {color: colors.muted, fontSize: 13},
   pageHeader: {alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between'},
   pageHeaderCopy: {flex: 1, paddingRight: UI_TOKENS.spacing.md},
   pageTitle: {color: colors.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4},
   pageIntro: {color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: UI_TOKENS.spacing.xs, marginBottom: UI_TOKENS.spacing.md},
   headerAction: {alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.control, borderWidth: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.md},
   headerActionText: {color: colors.accent, fontSize: 13, fontWeight: '800'},
+  overflowButton: {alignItems: 'center', borderRadius: UI_TOKENS.radius.control, justifyContent: 'center', minHeight: UI_TOKENS.target.touch, minWidth: UI_TOKENS.target.touch},
+  overflowIcon: {color: colors.text, fontSize: 30, lineHeight: 32},
+  overflowMenu: {alignSelf: 'flex-end', backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.control, borderWidth: 1, elevation: 4, marginBottom: UI_TOKENS.spacing.sm, marginTop: -UI_TOKENS.spacing.sm, minWidth: 176, shadowColor: colors.shadow, shadowOffset: {height: 3, width: 0}, shadowOpacity: 0.12, shadowRadius: 8},
+  overflowMenuItem: {alignItems: 'center', flexDirection: 'row', minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.md},
+  overflowMenuIcon: {color: colors.accent, fontSize: 19, marginRight: UI_TOKENS.spacing.sm},
+  overflowMenuText: {color: colors.text, fontSize: 15, fontWeight: '700'},
   editBanner: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.md, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
   editBannerText: {color: colors.warning, fontSize: 14, fontWeight: '800'},
   cardGrid: {gap: UI_TOKENS.spacing.sm},
@@ -5893,20 +6025,32 @@ export function createStyles(colors: ThemeColors) {
   cardAction: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginTop: UI_TOKENS.spacing.sm, minHeight: UI_TOKENS.target.touch, paddingVertical: UI_TOKENS.spacing.sm},
   disabledAction: {opacity: 0.6},
   cardActionText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
-  backButton: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginBottom: UI_TOKENS.spacing.sm, minHeight: UI_TOKENS.target.touch, paddingVertical: UI_TOKENS.spacing.sm},
-  backButtonText: {color: colors.accent, fontSize: 15, fontWeight: '800'},
   sectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800', marginTop: UI_TOKENS.spacing.xl, marginBottom: UI_TOKENS.spacing.sm},
-  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.panel, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, overflow: 'hidden'},
-  compactDisclosure: {backgroundColor: colors.cardRaised, borderRadius: 11, marginTop: UI_TOKENS.spacing.sm, overflow: 'hidden'},
-  disclosureButton: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
-  compactDisclosureButton: {minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs},
+  settingsAppbar: {backgroundColor: colors.background},
+  settingsAppbarTitle: {color: colors.text, fontSize: 22, fontWeight: '800'},
+  settingsDetailContent: {paddingBottom: UI_TOKENS.spacing.xxl, paddingHorizontal: UI_TOKENS.spacing.lg, paddingTop: UI_TOKENS.spacing.sm},
+  settingsStack: {gap: UI_TOKENS.spacing.md},
+  settingsFieldStack: {gap: UI_TOKENS.spacing.sm},
+  settingsList: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.panel, borderWidth: 1, marginTop: UI_TOKENS.spacing.sm},
+  settingsListContent: {borderRadius: UI_TOKENS.radius.panel, overflow: 'hidden'},
+  settingsNavigationRow: {backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, minHeight: 68, paddingHorizontal: UI_TOKENS.spacing.xs},
+  settingsNavigationRowLast: {borderBottomWidth: 0},
+  settingsNavigationTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
+  settingsNavigationDescription: {color: colors.muted, fontSize: 13},
+  disclosure: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: UI_TOKENS.radius.panel, borderWidth: 1, marginTop: UI_TOKENS.spacing.md},
+  compactDisclosure: {backgroundColor: colors.cardRaised, borderRadius: 11, marginTop: UI_TOKENS.spacing.sm},
+  disclosureClip: {borderRadius: UI_TOKENS.radius.panel, overflow: 'hidden'},
+  disclosureButton: {backgroundColor: colors.card, minHeight: 54},
+  compactDisclosureButton: {backgroundColor: colors.cardRaised, minHeight: UI_TOKENS.target.touch},
   disclosureBody: {borderTopColor: colors.border, borderTopWidth: 1, padding: UI_TOKENS.spacing.md},
   compactDisclosureBody: {padding: UI_TOKENS.spacing.md},
   disclosureTitle: {color: colors.text, fontSize: 15, fontWeight: '800'},
   disclosureSubtitle: {color: colors.muted, fontSize: 13, marginTop: UI_TOKENS.spacing.xs},
   disclosureIcon: {color: colors.accent, fontSize: 25, fontWeight: '700', marginLeft: UI_TOKENS.spacing.md},
-  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.muted, fontSize: 14, lineHeight: 20, padding: UI_TOKENS.spacing.lg},
+  emptyState: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, padding: UI_TOKENS.spacing.lg},
+  emptyStateText: {color: colors.muted, fontSize: 14, lineHeight: 20},
   listRow: {alignItems: 'center', backgroundColor: colors.card, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: UI_TOKENS.spacing.md},
+  touchableRowContent: {alignItems: 'center', flex: 1, flexDirection: 'row'},
   listBody: {flex: 1},
   listTitle: {color: colors.text, fontSize: 15, fontWeight: '700'},
   listMeta: {color: colors.muted, fontSize: 12, marginTop: UI_TOKENS.spacing.xs},
@@ -5923,41 +6067,39 @@ export function createStyles(colors: ThemeColors) {
   splitLineCard: {backgroundColor: colors.cardRaised, borderRadius: 12, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
   recurrenceOptions: {backgroundColor: colors.cardRaised, borderRadius: 14, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.lg},
   formLabel: {color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: UI_TOKENS.spacing.md, marginBottom: UI_TOKENS.spacing.sm},
-  toggleRow: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', marginTop: UI_TOKENS.spacing.sm, minHeight: 48, paddingHorizontal: UI_TOKENS.spacing.md},
+  toggleRow: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginTop: UI_TOKENS.spacing.sm, minHeight: 48, overflow: 'hidden'},
+  toggleRowContent: {alignItems: 'center', flexDirection: 'row', minHeight: 48, paddingHorizontal: UI_TOKENS.spacing.xs},
   toggleRowSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   toggleMark: {color: colors.muted, fontSize: 22, fontWeight: '800', marginRight: UI_TOKENS.spacing.md},
   toggleLabel: {color: colors.text, fontSize: 15, fontWeight: '800'},
   toggleTextSelected: {color: colors.accentText},
   noteMarkupToolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.xs},
-  segmentRow: {flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
-  segmentButton: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
+  segmentRow: {alignItems: 'stretch', flexDirection: 'column', gap: UI_TOKENS.spacing.sm},
+  segmentButton: {alignSelf: 'stretch', borderColor: colors.border, borderRadius: 9, width: '100%'},
   segmentButtonSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
-  segmentText: {color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center'},
+  segmentButtonContent: {minHeight: UI_TOKENS.target.control},
+  segmentText: {color: colors.muted, fontSize: 12, fontWeight: '700', marginHorizontal: UI_TOKENS.spacing.micro, textAlign: 'center'},
   segmentTextSelected: {color: colors.accentText},
-  paletteGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
-  paletteOption: {alignItems: 'center', backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 62, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm, width: '48%'},
+  paletteGrid: {gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
+  paletteOption: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: 12, borderWidth: 1, minHeight: 62, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm, width: '100%'},
+  paletteOptionContent: {alignItems: 'center', flexDirection: 'row'},
   paletteOptionSelected: {backgroundColor: colors.cardRaised, borderColor: colors.accent, borderWidth: 2},
   paletteSwatch: {borderRadius: 16, height: 28, width: 28},
   paletteOptionCopy: {flex: 1, marginLeft: UI_TOKENS.spacing.sm, minWidth: 0},
   paletteLabel: {color: colors.text, fontSize: 14, fontWeight: '800'},
   paletteDescription: {color: colors.muted, fontSize: 11, lineHeight: 14, marginTop: UI_TOKENS.spacing.micro},
   chipWrap: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm},
-  weekdayRow: {flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
-  weekdayToggle: {alignItems: 'center', borderColor: colors.border, borderRadius: 9, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, minWidth: 0, paddingVertical: UI_TOKENS.spacing.sm},
-  weekdayToggleSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
-  weekdayToggleText: {color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center'},
-  weekdayToggleTextSelected: {color: colors.accentText},
-  chip: {alignItems: 'center', borderColor: colors.border, borderRadius: 18, borderWidth: 1, justifyContent: 'center', minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
+  chip: {borderColor: colors.border, borderRadius: 18, minHeight: UI_TOKENS.target.control},
   chipSelected: {backgroundColor: colors.accent, borderColor: colors.accent},
   chipText: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   chipTextSelected: {color: colors.accentText},
-  input: {backgroundColor: colors.input, borderColor: colors.border, borderRadius: UI_TOKENS.radius.control, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: UI_TOKENS.target.control, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.sm},
+  input: {backgroundColor: colors.input, fontSize: 16, minHeight: UI_TOKENS.target.control},
   quietHoursInput: {flex: 1, minWidth: 0},
-  smallInput: {flex: 0, width: 62},
   multilineInput: {minHeight: 82, textAlignVertical: 'top'},
-  primaryButton: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.control, justifyContent: 'center', marginTop: UI_TOKENS.spacing.md, minHeight: UI_TOKENS.target.primary, paddingHorizontal: UI_TOKENS.spacing.lg, paddingVertical: UI_TOKENS.spacing.md},
+  primaryButton: {borderRadius: UI_TOKENS.radius.control, marginTop: UI_TOKENS.spacing.md},
+  primaryButtonContent: {minHeight: UI_TOKENS.target.primary},
   primaryButtonText: {color: colors.accentText, fontSize: 15, fontWeight: '800'},
-  textButton: {alignItems: 'center', alignSelf: 'flex-start', justifyContent: 'center', marginTop: UI_TOKENS.spacing.xs, minHeight: UI_TOKENS.target.touch, paddingHorizontal: UI_TOKENS.spacing.xs, paddingVertical: UI_TOKENS.spacing.sm},
+  textButton: {alignSelf: 'flex-start', marginTop: UI_TOKENS.spacing.xs, minHeight: UI_TOKENS.target.touch},
   textButtonText: {color: colors.accent, fontSize: 14, fontWeight: '800'},
   pressed: {opacity: 0.72},
   errorText: {color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: UI_TOKENS.spacing.md},
@@ -5985,23 +6127,21 @@ export function createStyles(colors: ThemeColors) {
   notesSectionTitle: {color: colors.text, fontSize: 17, fontWeight: '800'},
   notesSectionCount: {color: colors.muted, fontSize: 13, fontWeight: '700'},
   noteCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: UI_TOKENS.spacing.md, overflow: 'hidden'},
-  noteCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.lg, paddingHorizontal: UI_TOKENS.spacing.lg, paddingBottom: UI_TOKENS.spacing.md},
+  noteCardMenu: {position: 'absolute', right: UI_TOKENS.spacing.xs, top: UI_TOKENS.spacing.xs, zIndex: 2},
   noteCardPinned: {borderColor: colors.warning},
   noteCardArchived: {opacity: 0.86},
-  noteCardPressable: {padding: UI_TOKENS.spacing.lg},
+  noteCardPressable: {padding: UI_TOKENS.spacing.lg, paddingRight: UI_TOKENS.target.touch + UI_TOKENS.spacing.sm},
   noteCardTopline: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},
   noteCategory: {color: colors.accent, fontSize: 13, fontWeight: '800'},
-  notePinIcon: {color: colors.warning, fontSize: 20},
-  noteMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
   noteCardTitle: {color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 22, marginTop: UI_TOKENS.spacing.sm},
   noteTagRow: {flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
   noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs},
   noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
   noteCardMeta: {color: colors.muted, fontSize: 12},
-  fabScrollContent: {paddingBottom: UI_TOKENS.spacing.fabClearance},
-  fabLayer: {bottom: 0, left: 0, position: 'absolute', right: 0, top: 0},
-  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.fab, bottom: UI_TOKENS.spacing.lg, height: UI_TOKENS.target.fab, justifyContent: 'center', position: 'absolute', right: UI_TOKENS.spacing.lg, width: UI_TOKENS.target.fab},
+  fabLayer: {position: 'relative'},
+  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.fab, alignSelf: 'flex-end', margin: UI_TOKENS.spacing.lg, height: UI_TOKENS.target.fab, justifyContent: 'center', width: UI_TOKENS.target.fab},
   fabIcon: {color: colors.accentText, fontSize: 32, fontWeight: '300', lineHeight: 36},
+  quickCaptureOptionContent: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
   quickCaptureMenu: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, bottom: UI_TOKENS.spacing.menuBottom, elevation: 3, padding: UI_TOKENS.spacing.xs, position: 'absolute', right: UI_TOKENS.spacing.lg, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.08, shadowRadius: 6, width: 160},
   quickCaptureMenuTitle: {color: colors.muted, fontSize: 12, fontWeight: '800', paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
   quickCaptureOption: {borderRadius: 9, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
@@ -6012,7 +6152,8 @@ export function createStyles(colors: ThemeColors) {
   attachmentRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', paddingVertical: UI_TOKENS.spacing.xs},
   attachmentName: {color: colors.text, fontSize: 14, fontWeight: '700'},
   manageRow: {alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: UI_TOKENS.spacing.sm},
-  rowActions: {alignItems: 'flex-end', marginLeft: UI_TOKENS.spacing.sm},
+  metricRow: {borderBottomColor: colors.border, borderBottomWidth: 1, gap: UI_TOKENS.spacing.xs, paddingVertical: UI_TOKENS.spacing.sm},
+  metricValue: {color: colors.text, fontSize: 15, fontWeight: '800'},
   noteBody: {color: colors.muted, fontSize: 14, lineHeight: 21, marginTop: UI_TOKENS.spacing.sm},
   noteHeading: {color: colors.text, fontSize: 15, fontWeight: '800'},
   noteBulletMarker: {color: colors.accent, fontWeight: '800'},
@@ -6024,7 +6165,8 @@ export function createStyles(colors: ThemeColors) {
   tasksCountBadge: {alignItems: 'center', backgroundColor: colors.cardRaised, borderRadius: 14, minWidth: 56, paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.sm},
   tasksCountValue: {color: colors.text, fontSize: 18, fontWeight: '800'},
   tasksCountLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: UI_TOKENS.spacing.micro},
-  taskFilterTabs: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: UI_TOKENS.spacing.micro, marginTop: UI_TOKENS.spacing.xs, padding: UI_TOKENS.spacing.micro},
+  fullWidthControl: {marginBottom: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.xs, width: '100%'},
+  fullWidthControlContent: {minHeight: UI_TOKENS.target.touch},
   taskSection: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
   taskSectionHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: UI_TOKENS.spacing.sm},
   taskSectionTitleRow: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
@@ -6050,11 +6192,11 @@ export function createStyles(colors: ThemeColors) {
   taskMoreIcon: {color: colors.muted, fontSize: 16, fontWeight: '800', letterSpacing: 2},
   taskCardActions: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.lg, marginTop: UI_TOKENS.spacing.md, paddingTop: UI_TOKENS.spacing.xs},
   taskOverviewCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
-  taskOverviewHeader: {flexDirection: 'row', justifyContent: 'space-between'},
+  taskOverviewHeader: {gap: UI_TOKENS.spacing.md},
   taskOverviewTitle: {color: colors.text, fontSize: 18, fontWeight: '800'},
   taskOverviewValue: {color: colors.text, fontSize: 28, fontWeight: '800', marginTop: UI_TOKENS.spacing.xs},
   taskOverviewMeta: {color: colors.muted, fontSize: 13, marginTop: UI_TOKENS.spacing.micro},
-  taskCompletedSummary: {alignItems: 'flex-end', backgroundColor: colors.cardRaised, borderRadius: 16, minWidth: 136, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.md},
+  taskCompletedSummary: {alignItems: 'flex-start', backgroundColor: colors.cardRaised, borderRadius: 16, paddingHorizontal: UI_TOKENS.spacing.md, paddingVertical: UI_TOKENS.spacing.md},
   taskCompletedValue: {color: colors.accent, fontSize: 28, fontWeight: '800'},
   taskOverviewList: {borderTopColor: colors.border, borderTopWidth: 1, marginTop: UI_TOKENS.spacing.lg, paddingTop: UI_TOKENS.spacing.md},
   taskOverviewRow: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.sm},
@@ -6071,7 +6213,7 @@ export function createStyles(colors: ThemeColors) {
   checkboxDone: {backgroundColor: colors.accent, borderColor: colors.accent},
   checkmark: {color: colors.accentText, fontSize: 16, fontWeight: '800'},
   completedText: {color: colors.muted, textDecorationLine: 'line-through'},
-  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, flexDirection: 'row', paddingBottom: UI_TOKENS.spacing.sm, paddingTop: UI_TOKENS.spacing.sm, shadowColor: colors.shadow, shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
+  tabBar: {backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1, elevation: 4, shadowColor: colors.shadow, shadowOffset: {height: -3, width: 0}, shadowOpacity: 0.06, shadowRadius: 8},
   tab: {alignItems: 'center', flex: 1, minHeight: UI_TOKENS.target.tab, paddingVertical: UI_TOKENS.spacing.micro},
   tabIcon: {color: colors.muted, fontSize: 20, height: 25},
   tabLabel: {color: colors.muted, fontSize: 11, fontWeight: '700', marginTop: UI_TOKENS.spacing.micro},
@@ -6094,8 +6236,8 @@ export function createStyles(colors: ThemeColors) {
   moneyBalanceValue: {color: colors.accentText, fontSize: 32, fontWeight: '800', letterSpacing: -0.7, marginTop: UI_TOKENS.spacing.md},
   moneyBalanceDetail: {color: colors.accentText, fontSize: 13, marginTop: UI_TOKENS.spacing.sm, opacity: 0.85},
   moneyOverviewMeta: {color: colors.muted, fontSize: 13, fontWeight: '700'},
-  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: UI_TOKENS.spacing.sm, padding: UI_TOKENS.spacing.md},
-  moneyActivityRight: {alignItems: 'flex-end'},
+  moneyActivityRow: {borderTopColor: colors.border, borderTopWidth: 1, gap: UI_TOKENS.spacing.md, marginTop: UI_TOKENS.spacing.sm, padding: UI_TOKENS.spacing.md},
+  moneyActivityRight: {alignItems: 'flex-start'},
   moneyActivityValue: {color: colors.text, fontSize: 15, fontWeight: '800', marginTop: UI_TOKENS.spacing.xs},
   moneyChartCard: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: UI_TOKENS.spacing.md, padding: UI_TOKENS.spacing.md},
   moneyChartHeader: {alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between'},

@@ -1,3 +1,5 @@
+import {formatLocalDate} from './format';
+
 export type Period = 'day' | 'week' | 'month';
 export type WeekStartDay = 0 | 1;
 
@@ -16,9 +18,11 @@ export function periodLabel(period: Period): string {
   return 'Today';
 }
 
-export function formatPeriodRange(range: PeriodRange): string {
+export function formatPeriodRange(range: PeriodRange, referenceDate = new Date()): string {
   const endDate = new Date(range.end.getTime() - 1);
-  return `${localDateKey(range.start)} to ${localDateKey(endDate)}`;
+  const start = formatLocalDate(localDateKey(range.start), referenceDate);
+  const end = formatLocalDate(localDateKey(endDate), referenceDate);
+  return start === end ? start : `${start} to ${end}`;
 }
 
 function startOfDay(date: Date): Date {

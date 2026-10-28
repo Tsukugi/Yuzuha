@@ -4,7 +4,7 @@ describe('NativeBundleInstaller', () => {
   it('uses the embedded baseline when the native bridge is unavailable', async () => {
     await expect(new NativeBundleInstaller(null).launch()).resolves.toEqual({
       kind: 'embedded',
-      version: '0.2.0',
+      version: '0.3.0',
     });
   });
 
@@ -29,12 +29,12 @@ describe('NativeBundleInstaller', () => {
   it('returns an available update from the native bridge', async () => {
     const bridge = {
       getLaunchStatus: jest.fn().mockResolvedValue({kind: 'local-current', version: '0.2.0'}),
-      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.2.0', availableVersion: '0.2.1'}),
+      checkForUpdate: jest.fn().mockResolvedValue({kind: 'available', currentVersion: '0.2.0', availableVersion: '0.3.0'}),
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'available',
       currentVersion: '0.2.0',
-      availableVersion: '0.2.1',
+      availableVersion: '0.3.0',
     });
   });
 
@@ -45,7 +45,7 @@ describe('NativeBundleInstaller', () => {
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.2.0',
+      currentVersion: '0.3.0',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });
@@ -57,7 +57,7 @@ describe('NativeBundleInstaller', () => {
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.2.0',
+      currentVersion: '0.3.0',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });
@@ -96,7 +96,7 @@ describe('NativeBundleInstaller', () => {
 
     await expect(new NativeBundleInstaller(bridge).applyNativeUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.2.0',
+      currentVersion: '0.3.0',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });

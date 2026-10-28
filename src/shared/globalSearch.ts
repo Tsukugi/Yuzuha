@@ -1,4 +1,5 @@
 import type {AppData, NoteLink, NoteLinkTargetType} from '../types/domain';
+import {formatDate, formatLocalDate} from './format';
 
 export type GlobalSearchKind =
   | 'app-group'
@@ -326,7 +327,7 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
       add('task', {
         id: task.id,
         title: task.title,
-        detail: [task.status, task.details, task.dueLocalDate].filter(Boolean).join(' · '),
+        detail: [task.status, task.details, task.dueLocalDate ? formatLocalDate(task.dueLocalDate) : null].filter(Boolean).join(' · '),
       });
     }
   });
@@ -415,7 +416,7 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
       add('recurrence', {
         id: rule.id,
         title: `Recurring ${rule.kind} · ${rule.category || categoryNames.get(rule.categoryId ?? '') || 'Uncategorized'}`,
-        detail: `${rule.amountMinor} ${rule.currency} · ${rule.cadence} · next ${rule.nextOccurrenceLocalDate}${rule.isPaused ? ' · paused' : ''}`,
+        detail: `${rule.amountMinor} ${rule.currency} · ${rule.cadence} · next ${formatLocalDate(rule.nextOccurrenceLocalDate)}${rule.isPaused ? ' · paused' : ''}`,
       });
     }
   });
@@ -439,7 +440,7 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
     if (includesQuery(normalizedQuery, [session.status, session.stopReason, session.startedAt, session.endedAt, taskTitle, projectName, noteTitle, appGroupName])) {
       add('focus-session', {
         id: session.id,
-        title: `Focus session Â· ${session.startedAt.slice(0, 10)}`,
+        title: `Focus session · ${formatDate(session.startedAt)}`,
         detail: [session.status, taskTitle, projectName, noteTitle, appGroupName].filter(Boolean).join(' Â· '),
       });
     }
@@ -451,7 +452,7 @@ export function searchGlobal(data: AppData, query: string, options: GlobalSearch
         add('usage', {
           id: snapshot.id,
           title: snapshot.displayName,
-          detail: `${snapshot.localDate} · ${snapshot.packageName}`,
+          detail: `${formatLocalDate(snapshot.localDate)} · ${snapshot.packageName}`,
         });
       }
     });

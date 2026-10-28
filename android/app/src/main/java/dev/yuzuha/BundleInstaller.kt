@@ -680,9 +680,9 @@ class YuzuhaBundleInstaller internal constructor(
   private class InvalidStateException(cause: Throwable? = null) : Exception(cause)
 
   companion object {
-    const val DEFAULT_METADATA_URL = "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.2.json"
-    const val EMBEDDED_VERSION = "0.2.0"
-    const val NATIVE_VERSION = "0.2.0"
+    const val DEFAULT_METADATA_URL = "https://github.com/Tsukugi/Yuzuha/releases/latest/download/bundle-0.3.json"
+    const val EMBEDDED_VERSION = "0.3.0"
+    const val NATIVE_VERSION = "0.3.0"
     const val APP_ID = "yuzuha-mobile"
     const val RUNTIME = "0.86.0"
     const val MAX_BUNDLE_BYTES = 64L * 1024L * 1024L

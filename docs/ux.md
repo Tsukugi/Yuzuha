@@ -1,5 +1,12 @@
 # UX plan
 
+The [28.10.2026 usability fixes](usability-fixes-2026-10-28.md) resolve
+YZ-018–YZ-024 within the documented Android emulator scope. Known shared actions
+keep visible labels beside icons; selected segments/chips include check marks.
+Android Back dismisses menus before navigation and confirms discard in primary
+capture forms. Money actions stay above the keyboard, while date/time are in
+optional details. Data tools feedback remains visible outside disclosures.
+
 Status: Current Android MVP through the 2026-08-21 UI standardization pass.
 
 Shared visual and control rules are defined in [UI standardization](ui-standardization.md).
@@ -7,7 +14,7 @@ This document remains the source for product flows, screen behavior, and empty s
 
 ## Navigation
 
-Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Home shows one compact Money widget with the current main-currency balance and selected-period spending/income; tapping it opens the Money list. Normal Home cards and bottom tabs open the current list view. Home also has a Settings action that opens the dedicated Settings view without changing the selected product tab.
+Use a bottom navigation with four destinations: Home, Money, Notes, and Tasks. App time is opened from Home and Settings because it depends on a system permission. Overview, Money, Notes, Tasks, and App Time use the same contextual header. Each header shows live scope or count data and a vertical three-dot menu whose cog-labeled Settings row opens the dedicated Settings view without changing the selected product tab.
 
 When Android sends Yuzuha text, show `Shared capture` with the subject/body preview and `Save as note`, `Save as task`, and `Dismiss`. Saving a note uses the subject or first line as its title. Saving a task uses the same title, stores the full text as details, uses Inbox and Normal priority, and routes to Tasks. When Android sends a supported image, PDF, or plain-text file, show its name, MIME type, and known size; offer `Save as note` and `Dismiss`, then store the file as a note attachment after checksum verification. Empty, unsupported, or over-limit payloads create no record. Do not fetch URLs or show shared content on a lock screen before the user opens the app. Launcher shortcuts labeled Add money, Add note, Add task, and App time open the matching add form or screen without creating a record. The Android summary widget shows only open-task and active-note counts, updates after committed workspace changes, and opens Yuzuha on tap.
 
@@ -19,17 +26,19 @@ Android deep links use the exact routes `yuzuha://open/money`, `yuzuha://open/no
 
 The first visible action on a screen should match the main job for that screen. Optional setup and management must not compete with it.
 
-- Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Settings, Review, and data tools sit behind labeled Home actions; week-start setup stays under Dashboard period.
-- Settings opens from the Home header. It shows Appearance as a closed disclosure and Code updates expanded by default so the Android update action is easy to find. The code-update text states that native changes still need an APK and that a prepared bundle applies after reopening.
-- Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, periodic-money management, filters, optional payee/note fields, balances, and account/payee/category management use closed sections. A new operation can be marked Repeat inside the normal add form; only then do its period and weekday toggles appear.
-- Notes opens on the current note list with an always-visible search field, All/Pinned/Archived chips, pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Attachments, links, and destructive actions stay behind each card's More action.
-- Tasks opens with All/Today/Upcoming/Completed tabs, Today and Upcoming sections, a compact overview, compact task rows, and one floating Add task action. The form appears only after Add task or an edit/search-focus action. Task tools, Agenda, Overdue, sorting, and reminders/dependencies/projects/templates/lists/recurrence use closed sections. Search focus opens the section that contains the focused record.
-- App Time keeps the Usage Access state and selected-period report visible. Focus sessions and time goals use closed sections; app-group editing opens only when requested.
-- Search keeps the query visible. Archived-result controls and the Usage Access note use Search options.
+- Home keeps the compact Money widget, Search workspace, the period selector, and the App Time/Tasks/Notes summary cards visible. Review and data tools stay behind labeled Home actions; Dashboard period contains only its Day/Week/Month view filter.
+- Settings opens from every primary screen's three-dot menu. Its React Native Paper root lists Appearance, General, Money, Task organization, App time, Task reminders, and Code updates as compact rows. Tapping one row opens one dedicated detail screen; Back returns to the list, no category controls expand inline, and bottom navigation is absent on Settings and other secondary screens.
+- Money opens with a green balance/activity card, then the current entry list and Add money entry. A spending overview follows the list with category bars and a daily income/spending chart using the active scope. The form appears only after Add money entry or an edit/search-focus action. Budgets, reports, transfers, splits, periodic-money management, filters, optional payee/note fields, and balances stay with Money; Settings Money owns account, category, and payee management. The normal add form starts with Repeat operation closed; opening it exposes Repeat, which reveals its period and weekday toggles.
+- Notes opens on the current note list with an always-visible search field, one Notes view menu (All/Pinned/Archived), pinned and recent sections, compact tappable cards, and one floating Add note action. The form appears only after Add note or an edit/search-focus action; it starts with title and body, while formatting and tags are under More note details. Each card uses a vertical overflow menu for task conversion, pin/archive, links, attachments, and delete.
+- Tasks opens with one full-width All/Today/Upcoming/Completed scope menu, Today and Upcoming sections, compact task rows, and one floating Add task action. The form appears only after Add task or an edit/search-focus action. Agenda, Overdue, and derived view/sort controls remain with Tasks. Dependencies, projects, templates, lists, recurring rules, and reminder configuration are in Settings. Search focus opens the relevant Settings detail for organization records.
+- App Time keeps the Usage Access state, selected-period report, and focus sessions visible or directly reachable. Settings App time owns package inclusion, time goals, and app groups; excluded rows remain labeled in the report.
+- Search keeps the query visible and exposes one direct Include archived records toggle; it does not open a one-option disclosure.
 - Data tools starts with export, import, restore, and delete sections closed. The user opens only the operation needed.
 - Review stays read-only with one period selector and four source cards because those cards are the page's main job.
 
-The disclosure control uses a visible title, a short state summary, a plus/minus state, an accessible expanded state, and a touch target of at least 44 dp. The layout change is local view state only: it adds no record, schema field, migration, network request, worker, or polling loop.
+Secondary in-screen disclosures use a visible title, a short state summary, a plus/minus state, an accessible expanded state, and a touch target of at least 44 dp. Settings categories are navigation rows, not disclosures. The layout change is local view state only: it adds no record, schema field, migration, network request, worker, or polling loop.
+
+Home, Review and App Time use one labeled Period menu showing its current value. Money capture uses the same pattern for type, category and multi-account choices; Notes uses it for view scope. Alternatives appear only when opened. Money report keeps its full-width period menu.
 
 The UI standardization pass applies the shared typed spacing scale to `App.tsx`
 and the full `MainApp.tsx` screen style set: no app-level padding, margin, or
@@ -39,6 +48,8 @@ shared primitive extraction remains planned in [UI standardization](ui-standardi
 ## Theme behavior
 
 The default contrast mode is `System`, which follows Android light or dark mode. Settings offers temporary `Light` and `Dark` overrides and five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. The selected palette keeps its light and dark contrast values. Selecting System removes the contrast override. Contrast and palette choices are presentation state only, reset on relaunch, and are not stored in AppData or included in exports. Preview cards for the five ideas live in `docs/theme-ideas/`.
+
+Visible dates use `DD.MM` when the date is in the current year and `DD.MM.YYYY` only for another year. A one-day range shows one date. Storage continues to use the existing ISO timestamp and strict local-date contracts.
 
 ## First run
 
@@ -70,7 +81,7 @@ Money shows a split-aware spending overview after the current entry list. Catego
 
 ### Read Notes
 
-Notes shows current records first. Search stays visible at the top, and the All, Pinned, and Archived chips change the local list without changing saved data. With no search, pinned notes appear in their own section and the remaining active notes appear under Recent notes. Each card shows a short preview, tags, updated time, and compact metadata; tapping the card or Open opens the existing editor. More reveals task conversion, pin/archive, links, attachments, and delete. The floating plus button is the only normal add action, and it opens the form after the list has been seen.
+Notes shows current records first. Search stays visible at the top, and the Notes view menu (All, Pinned, Archived) changes the local list without changing saved data. With no search, pinned notes appear in their own section and the remaining active notes appear under Recent notes. Each card shows a short preview, tags, updated time, and compact metadata; tapping the card opens the existing editor. Its vertical overflow menu contains task conversion, pin/archive, link management, attachment management, and delete without expanding a command row below the card. The floating plus button is the only normal add action, and it opens the form after the list has been seen.
 
 ### Read Tasks
 
@@ -94,7 +105,7 @@ The recurring-task form asks for a title, details, first due date, optional loca
 
 The Task view has List and Agenda modes. Agenda shows dated tasks grouped for the next 14 device-local calendar days and keeps completed tasks in their date group. Undated tasks stay in List mode. List mode can sort by Manual, Due date, or Priority. Manual order is stored per task list; the All list view exposes Up and Down controls when Manual sorting is selected, while Due date puts undated tasks last and Priority puts High before Normal before Low. The current agenda remains device-local and does not expose a timezone preference; week-based Home, Money, App Time, Review, and budget views now use the saved Sunday/Monday setting.
 
-The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder. The Notification settings card has a Task reminders On/Off switch. Off clears native reminder alarms but keeps logical reminder times; On rebuilds future alarms. It also accepts an optional daily `HH:mm` start and end; both fields are required when enabled, equal values are rejected, and clearing both disables quiet hours. It lets the user choose a snooze duration of 15m, 30m, 1h, or 2h; the default is 1h. A reminder inside the same-day or overnight window is delivered at the local window end. The notification uses generic text rather than task details; tapping it opens the matching task in edit mode, `Complete` marks the existing open task complete without reopening it, and `Snooze` sets a new reminder using the selected duration when the category is enabled.
+The task form also has one optional reminder field in strict `YYYY-MM-DDTHH:mm` local time. A reminder must be in the future. Saving asks for Android notification permission when required; denial leaves the task saved without a reminder and shows the error. Replacing or clearing a reminder cancels the old schedule. Completed tasks cannot keep an active reminder. The Settings Task reminders card has a Task reminders On/Off switch. Off clears native reminder alarms but keeps logical reminder times; On rebuilds future alarms. It also accepts an optional daily `HH:mm` start and end; both fields are required when enabled, equal values are rejected, and clearing both disables quiet hours. It lets the user choose a snooze duration of 15m, 30m, 1h, or 2h; the default is 1h. A reminder inside the same-day or overnight window is delivered at the local window end. The notification uses generic text rather than task details; tapping it opens the matching task in edit mode, `Complete` marks the existing open task complete without reopening it, and `Snooze` sets a new reminder using the selected duration when the category is enabled.
 
 ### Add a task to the calendar
 
@@ -231,9 +242,9 @@ Money opens a Budgets screen. The user chooses an active expense category, curre
 
 Money rows open in edit mode. The user can update or delete the entry, and the screen clearly shows the editing state. Account and category management uses archive instead of hiding records. The last active account shows a disabled archive action.
 
-App Time shows an Include/Exclude action for each package. Excluding a package updates the total immediately and keeps the permission/read state visible. The weekly goal form accepts a name, daily or weekly period, and minutes, then shows current progress.
+Settings App time shows an Include/Exclude action for each known package. Excluding a package updates the App Time total and analysis immediately; the report labels excluded rows. The weekly goal form remains in App Time and accepts a name, daily or weekly period, and minutes, then shows current progress.
 
-The App Time screen also has local Focus sessions. The user can start one manual session with optional task, project, note, and app-group links, see a live elapsed value while the screen is open, then Complete or Stop it. Recent sessions show their duration and links. App groups are named package lists; they can be archived or deleted when unused. This flow does not block apps or run a background timer.
+The App Time screen shows Usage Access and the selected usage report before the optional Focus sessions section. The user can start one manual session with optional task, project, note, and app-group links, see a live elapsed value while the screen is open, then Complete or Stop it. Recent sessions show their duration and links. App groups are named package lists; they can be archived or deleted when unused. This flow does not block apps or run a background timer.
 
 ## Phase 2 shipped flow: App Time
 
@@ -248,3 +259,12 @@ Money entry history has a compact filter card with Period, Type, and Category co
 Money reports have Day/Week/Month/Year/Custom controls and All/Expense/Income and Category chips. An Account filter is shown only when there are multiple active accounts; with one active account the report scope is all accounts. A `Report scope` card states the exact local range, active filters, and that transfers and out-of-range entries are excluded; separate currency cards never mix totals. Category selection follows split-line categories too. Filter state resets when the screen is left.
 
 The Money form has an optional Payee selector with `No payee`, active payees, and an archived selected payee only while editing old history. The management card can create and archive payees; duplicate names show an inline store error and no record is written.
+
+## Secondary flows on request — YZ-025
+
+[Implemented scope and evidence](progressive-disclosure-2026-10-28.md).
+Keep the primary action, current value, source content and validation visible.
+Creation/configuration forms, repeat setup, search naming, delivery options and
+focus history start closed. Opening an edit target reveals its matching form;
+folding does not clear the draft. Android Back closes open choices/sections
+before screen navigation. Use tooltips only for brief help, not essential flows.

@@ -194,3 +194,14 @@ After the product has users, measure outcomes rather than time spent in the app:
 - notifications are useful without becoming a source of complaints;
 - users can understand and control every permission and data path;
 - critical startup, sync, migration, and deletion failures have deterministic handling.
+
+## Interaction load rule
+
+A supported flow does not need every step visible at entry. Show the main job,
+current selection and source content first. Reveal optional setup, continuations
+and history through labeled menus or expandable sections. Use a modal when a
+flow requires a separate decision, and a tooltip only for brief help. Preserve
+drafts when folding and keep validation visible. Review each addition by asking:
+can the user find the main action, understand the current state and request the
+next step without seeing every alternative at once?
+The implemented local scope is [YZ-025](progressive-disclosure-2026-10-28.md).

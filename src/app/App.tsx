@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {StyleSheet} from 'react-native';
+import {ActivityIndicator, Surface, Text} from 'react-native-paper';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import {AppStoreProvider} from '../data/AppStore';
 import {nativeBundleInstaller, type LaunchDecision} from '../installer/BundleInstaller';
@@ -44,10 +45,10 @@ function StartupScreen({message}: {message: string}) {
   const {colors} = useAppTheme();
   return (
     <SafeAreaView style={[styles.startup, {backgroundColor: colors.background}]}>
-      <View>
+      <Surface elevation={0} style={{backgroundColor: colors.background}}>
         <Text style={[styles.message, {color: colors.muted}]}>{message}</Text>
         <ActivityIndicator color={colors.accent} style={styles.spinner} />
-      </View>
+      </Surface>
     </SafeAreaView>
   );
 }

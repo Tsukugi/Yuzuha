@@ -43,6 +43,7 @@ describe('period helpers', () => {
     expect(periodLabel('day')).toBe('Today');
     expect(periodLabel('week')).toBe('This week');
     expect(periodLabel('month')).toBe('This month');
-    expect(formatPeriodRange(getPeriodRange(now, 'week'))).toBe('2026-07-20 to 2026-07-26');
+    expect(formatPeriodRange(getPeriodRange(now, 'week'), now)).toBe('20.07 to 26.07');
+    expect(formatPeriodRange(getPeriodRange(now, 'day'), now)).toBe('26.07');
   });
 });

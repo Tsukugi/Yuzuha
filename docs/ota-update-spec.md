@@ -24,9 +24,9 @@ Yuzuha now has an Android startup bundle gate and manual OTA path:
   exact size and SHA-256 hash before it is stored as pending.
 - The app uses the newest verified private bundle or the embedded bundle when
   the remote check is unavailable or invalid.
-- Settings has a visible Android `Code updates` action. It checks and prepares
-  a verified bundle while the current process keeps running; Data tools keeps
-  the same action as a collapsed secondary path.
+- Settings has the single visible Android `Code updates` action. It checks and
+  prepares a verified bundle while the current process keeps running. Data
+  tools contains data operations and does not duplicate update configuration.
 - State schema 2 stores current, pending, attempted, and blocked-version data.
   A pending bundle is selected only on a later launch and is promoted after
   the React root reports health.
@@ -135,10 +135,9 @@ shells install the newest patch APK directly.
 
 ### Entry point
 
-Add a Home `Settings` action and a Settings view. The Settings view keeps
-Appearance closed and opens the Android `Code updates` disclosure by default,
-so the user can find the OTA action without searching through data operations.
-Data tools keeps a collapsed copy of the same control as a secondary path.
+The primary-header menu opens Settings. Its compact root includes a dedicated
+Android `Code updates` detail, so the OTA action has one predictable owner and
+does not appear among data operations.
 
 The disclosure shows:
 
@@ -770,3 +769,11 @@ unresolved:
 
 These are hard gates. Do not add fallback downloads, unsigned paths, silent
 retries, or guessed compatibility behavior to work around them.
+
+## Native font boundary (0.3.0)
+
+The 0.3 baseline ships the icon font/native library in its APK. Metro resolves
+the static icon entry, so signed bundles contain JavaScript only. Publish
+bundle-0.3.json for that line; preserve bundle-0.2.json and legacy bundle.json.
+Do not target the new UI bundle at native 0.2.x. See DEC-104 and the
+[release record](releases/v0.3.0.md).

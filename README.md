@@ -11,6 +11,22 @@ The app has an Android-first product plan and a native shell that can also suppo
 
 ## Repository status
 
+Release [0.3.0](docs/releases/v0.3.0.md) is being prepared as a native baseline:
+the APK supplies icon fonts; subsequent compatible 0.3.x releases can use OTA.
+Older 0.2.x uses the signed APK updater. Earlier compatibility feeds are preserved.
+
+The [progressive-disclosure pass](docs/progressive-disclosure-2026-10-28.md)
+(YZ-025) keeps current values and primary actions visible while opening choices,
+secondary forms and focus history on demand. Validation: 64 suites / 324 tests,
+typecheck, lint, Android build and targeted API 35 smoke at 320×640 dp. Unpublished.
+
+The [28.10.2026 usability fixes](docs/usability-fixes-2026-10-28.md) address
+YZ-018–YZ-024 from the initial smoke: visible period choices, Android Back
+navigation and draft confirmation, visible restore feedback, periodic capture,
+permission refresh on resume, action icons and selected marks, and money actions
+that stay above the keyboard. Validation covers 64 Jest suites / 320 tests and
+an API 35 emulator at 320×640 dp. These local changes are not published.
+
 Task lists now support local create, rename, archive/restore, and delete controls. Recurring task rules can create date-based tasks on startup, with explicit All, One, or Skip handling for missed dates. Tasks can also have one optional Android local reminder. Inbox is protected, and a list with tasks or recurring rules must be emptied before deletion.
 
 The current core includes the TypeScript app shell, a transactional SQLite repository, an embedded-bundle launch gate, Android/iOS native projects, Home/Money/Notes/Tasks flows, Android app-time reads, package exclusions, time goals, local app groups, manual focus sessions with optional task/project/note/app-group links, note links to tasks/projects/money/focus sessions, bounded note formatting with plain-text fallback, money editing/deletion, archive controls, currency-separated reports, same-currency account transfers, exact-sum split entries, source-backed budgets, normalized financial tables, one-period budget carry-forward, versioned JSON/CSV exports, password-encrypted XChaCha20-Poly1305 backups with previewed restore, validated JSON restore with preview and confirmation, confirmed local deletion, recurring money rules with deterministic missed-occurrence policies, local note attachments for images, PDFs, and plain text, normalized note tags, case-insensitive search over note text, tags, attachment names, and current linked targets, note edit/pin/archive/restore/delete controls, local saved searches, local global search across supported workspace records with readable linked-note matches and tappable owning-tab routing plus exact money, note, task, project, task-template, task-list, app-group, and budget focus, app-group and budget editing, note-to-task conversion with stable source links, task create/edit/delete controls, task priorities, task lists, local task projects with active/completed/archive controls, optional task-to-project links, one optional same-list task parent with cycle rejection and child promotion on parent deletion, local task templates with active/archive controls and direct task creation, task dependencies with cycle rejection and completed-prerequisite blocking, persisted manual task order with Up/Down controls, manual/due-date/priority list sorting, a device-local 14-day task agenda, due-date filters, recurring task rules with optional local reminder times, one optional Android task reminder per task, notification permission handling, boot rescheduling, local daily quiet-hours settings, deterministic quiet-hours alarm projection, separate global and recurring-task reminder switches that clear native alarms without deleting logical reminder times, notification taps that open the matching task, and idempotent Android `Complete` and configurable `Snooze` actions. Sync and broader full-product notification phases remain planned.
@@ -19,7 +35,13 @@ The current Android reminder notification also supports a `Snooze` action using 
 
 Home now shows one compact Money widget with the current main-currency balance and selected-period activity. Tapping it opens the Money list. Home, Money, Notes, and Tasks each have a floating add action. Home expands it into Add money, Add note, and Add task; the other screens open their existing add form directly.
 
-The Android Money/Home UI pass removes the app title/description block from the shell, keeps the primary action visible, and puts optional controls behind labeled sections. Money shows a reference-style balance/activity card, current entries, Add money entry, split-aware spending bars, and a daily income/spending chart. Home keeps only the compact Money widget. The shared UI scale uses tighter headings, cards, lists, forms, shadows, and FAB spacing across the primary screens to keep the layout quiet. Secondary tools now use smaller nested disclosures for backup choices, focus links, task management, task overview, and budget creation; note cards show one action until expanded. This is derived view state and styling only and adds no schema, network request, worker, or background process.
+Overview, Money, Notes, Tasks, and App Time share a contextual header with live scope/count data and a vertical three-dot menu. The menu exposes a cog-labeled Settings action. Settings owns persisted week-start and reminder preferences plus Money supporting records, task organization, App Time inclusion, time goals, and app groups. Temporary view filters and creation forms stay with their source screens.
+
+The Android Money/Home UI pass removes the app title/description block from the shell, keeps the primary action visible, and puts optional controls behind labeled sections. Money shows a reference-style balance/activity card, current entries, Add money entry, split-aware spending bars, and a daily income/spending chart. Home keeps only the compact Money widget. The shared UI scale uses tighter headings, cards, lists, forms, shadows, and FAB spacing across the primary screens to keep the layout quiet. Secondary tools now use smaller nested disclosures for backup choices, focus links, task management, task overview, and budget creation; note-card commands use a vertical overflow menu. This is derived view state and styling only and adds no schema, network request, worker, or background process.
+
+The React UI uses React Native Paper 5.15.3 with Material Design Icons 13.1.3. Settings has seven compact categories: Appearance, General, Money, Task organization, App time, Task reminders, and Code updates. Each opens as a separate mobile detail screen instead of expanding below the category list. Paper receives Yuzuha's current light/dark palette tokens.
+
+Visible dates use `DD.MM` in the current year and add `.YYYY` only for another year. Stored ISO timestamps and local `YYYY-MM-DD` values are unchanged.
 
 The UI standardization pass applies typed shared spacing, radius, and touch-target tokens across the app-level `App.tsx` and `MainApp.tsx` styles. Padding, margins, and gaps no longer use raw numbers; standard targets are 44 dp for interactive controls, 48 dp for primary form actions, 56 dp for the FAB, and 48 dp for bottom tabs. See [the UI standard](docs/ui-standardization.md) and the current emulator evidence in [testing](docs/testing.md).
 
@@ -29,7 +51,7 @@ The app supports System, Light, and Dark contrast modes plus five temporary colo
 
 Five preview-only theme idea cards are kept in [`docs/theme-ideas/`](docs/theme-ideas/). They document the palette directions used by the current Settings selectors.
 
-Notes now opens with an always-visible search field, All/Pinned/Archived filters, pinned and recent sections, compact tappable note cards, collapsed note actions/details, and one floating Add note action. The note form still appears only after Add note, edit focus, or a launcher action. This is local view state and styling only; note data, attachments, links, and saved searches keep their current behavior.
+Notes now opens with an always-visible search field, All/Pinned/Archived filters, pinned and recent sections, compact tappable note cards, a vertical overflow menu for each card, and one floating Add note action. Links and attachments open only from the matching menu command. The note form still appears only after Add note, edit focus, or a launcher action. This is local view state and styling only; note data, attachments, links, and saved searches keep their current behavior.
 
 Tasks now opens with All/Today/Upcoming/Completed tabs, Today and Upcoming sections, a collapsed task overview, compact task rows, and one floating Add task action. Task tools and deeper filters stay below the main dashboard, with each management group collapsed until needed. The task form still appears only after Add task, edit focus, or a launcher action; reminders, projects, dependencies, recurrence, agenda, and lists keep their current behavior.
 
@@ -43,9 +65,10 @@ Android also accepts four strict local deep links: `yuzuha://open/money`, `yuzuh
 
 App Time offers Today, This week, and This month reports. Refresh reads each local day once, shows the exact local date range and last-read time, and saves the complete selected-period result together. Its Analysis section derives daily average, active-app count, top-app share, busiest day, and previous-period change from included local usage. It adds no background polling.
 
-Home now uses the same local Day/Week/Month selector. Money totals use only the main currency in that range; app time, due-task counts, and recent note updates state the selected range. The selector is view state only and adds no schema or background work.
+Home uses the same local Day/Week/Month selector. Money totals use only the main currency in that range; app time, due-task counts, and recent note updates state the selected range. Search, Review, and Data tools are direct actions rather than content that expands below Home. The selector is view state only and adds no schema or background work.
 
 Money entry history now has local All/Day/Week/Month/Year/Custom, Type, and Category filters. Custom intervals include the selected start date and exclude the selected end date. The Account filter appears only when there are multiple active accounts; with one active account the all-accounts scope is automatic. The visible list shows the newest occurrence first, and currency-separated filtered totals use the same current records and filter, preserve the split-entry list rules, and add no schema, migration, or background work.
+The separate Money report uses one full-width period menu for Day/Week/Month/Year/Custom so no option wraps onto an orphaned second row. Its secondary route hides the primary bottom navigation.
 Money forms use Android's OS date and time dialogs for local occurrence values; task due/reminder fields and other local date/time fields use the same bridge. Cancel leaves the previous value unchanged. Money occurrences and task reminders are stored as UTC ISO timestamps after validation; date-only due/recurrence values and quiet-hour times remain local strings. iOS picker parity remains planned.
 
 Periodic money operations start from the normal Add money entry form. Turning on Repeat reveals the cadence and interval; repeating every day also shows compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggles. New operations start today, and only selected weekdays are applied. The separate Periodic money view is list-first and supports pause, resume, and confirmed delete; existing generated entries stay in history.
@@ -54,12 +77,12 @@ Home can open a read-only period Review. It combines main-currency money, includ
 
 Android startup checks signed bundle metadata before creating the React host. A newer compatible bundle is downloaded only after metadata, Ed25519 signature, size, and SHA-256 checks pass; otherwise the newest verified private bundle or embedded baseline starts. Native `0.2.0` and later also check a separate signed APK manifest after launch health is reported. Same-line releases prefer OTA. Cross-line releases download and verify the latest patch APK directly, then use bounded root installation or Android's standard installer. The checks have bounded requests and no polling worker.
 
-Home now opens a dedicated `Settings` view. On Android, its expanded `Code
-updates` section can check for and prepare a newer signed JavaScript bundle
+Home opens a dedicated `Settings` view. On Android, its `Code updates` detail
+can check for and prepare a newer signed JavaScript bundle
 while the current app keeps running; the prepared code applies after the next
 launch and rolls back if it does not report a healthy root. Native app changes
-still require a new APK. Data tools keeps the same update control as a
-secondary path.
+still require a new APK. Settings is the only UI owner of this control; Data
+tools contains data operations only.
 The OTA trust anchor is a new project Ed25519 key; its private key stays
 outside the repository, and changing the pin requires a new APK plus
 republished signed metadata. See the release procedure for the public-key

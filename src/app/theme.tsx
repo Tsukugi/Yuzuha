@@ -1,5 +1,6 @@
 import {createContext, useContext, useMemo, useState, type ReactNode} from 'react';
 import {useColorScheme} from 'react-native';
+import {MD3DarkTheme, MD3LightTheme, PaperProvider} from 'react-native-paper';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
@@ -235,8 +236,31 @@ export function ThemeProvider({children}: {children: ReactNode}) {
     () => ({colors: THEME_PALETTES[palette][resolvedMode], mode, resolvedMode, palette, setMode, setPalette}),
     [mode, palette, resolvedMode],
   );
+  const paperTheme = useMemo(() => {
+    const colors = value.colors;
+    const base = resolvedMode === 'dark' ? MD3DarkTheme : MD3LightTheme;
+    return {
+      ...base,
+      dark: resolvedMode === 'dark',
+      colors: {
+        ...base.colors,
+        primary: colors.accent,
+        onPrimary: colors.accentText,
+        primaryContainer: colors.accent,
+        onPrimaryContainer: colors.accentText,
+        background: colors.background,
+        onBackground: colors.text,
+        surface: colors.card,
+        onSurface: colors.text,
+        surfaceVariant: colors.cardRaised,
+        onSurfaceVariant: colors.muted,
+        outline: colors.border,
+        error: colors.danger,
+      },
+    };
+  }, [resolvedMode, value.colors]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={value}><PaperProvider theme={paperTheme}>{children}</PaperProvider></ThemeContext.Provider>;
 }
 
 export function useAppTheme(): ThemeContextValue {

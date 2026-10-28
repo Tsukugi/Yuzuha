@@ -1,4 +1,4 @@
-import {formatDateTime, formatMoney, sumMoney} from './format';
+import {formatDate, formatDateTime, formatLocalDate, formatMoney, sumMoney} from './format';
 import type {MoneyEntry} from '../types/domain';
 
 const entry = (kind: MoneyEntry['kind'], amountMinor: number): MoneyEntry => ({
@@ -26,6 +26,13 @@ describe('money helpers', () => {
   });
 
   it('formats money timestamps with both date and time', () => {
-    expect(formatDateTime('2026-07-26T12:34:00.000Z')).toContain('2026');
+    const localTimestamp = new Date(2026, 8, 2, 14, 5).toISOString();
+
+    const sameYear = new Date(2026, 0, 1);
+
+    expect(formatDate(localTimestamp, sameYear)).toBe('02.09');
+    expect(formatDateTime(localTimestamp, sameYear)).toBe('02.09, 14:05');
+    expect(formatLocalDate('2026-09-02', sameYear)).toBe('02.09');
+    expect(formatLocalDate('2025-09-02', sameYear)).toBe('02.09.2025');
   });
 });

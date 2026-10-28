@@ -118,8 +118,8 @@ The installer returns one typed result:
 
 The UI may provide retry for a failed remote check, but retry must call the same deterministic installer path. Do not activate an unverified file or silently ignore a failed first install.
 
-The Settings screen has an expanded Android `Code updates` section. Data tools
-keeps the same control collapsed as a secondary path. `Check for updates` and
+The Settings screen has a dedicated Android `Code updates` detail and is the
+only UI owner of the update controls. `Check for updates` and
 `Download update` call the native bridge. JavaScript does not fetch, hash,
 verify, or select a bundle. A downloaded update stays pending and the current
 process continues to run its current bundle. The user is told to close and
@@ -174,7 +174,7 @@ The provider inventory paragraph below is historical implementation wording. The
 
 The current JavaScript path still checks the embedded bundle gate before mounting `AppStoreProvider`. The provider then opens the local SQLite repository, requires repository schema 3 and app schema 33, expands due money and task rules, copies any recurring-rule local reminder times into generated tasks, and synchronizes future open-task reminders through the current quiet-hours projection before `MainApp` receives the workspace. It also validates project references, task template fields and references, app-group records, focus-session states, task parent references, same-list parent links, parent cycles, task dependency references, cycles, and per-list task sort order before the workspace is shown. That synchronization is empty when the global `taskRemindersEnabled` flag is off. When the global flag is on, tasks linked to a recurring rule are also filtered by `recurringTaskRemindersEnabled`; one-off task reminders remain active when only the recurring flag is off. Both flags pause native alarms without deleting logical reminder timestamps, and turning them back on rebuilds future schedules. A current-schema validation, recurrence-expansion, project, template, app-group, focus-session, subtask, dependency, sort-order, or reminder-sync error is shown as a deterministic workspace error after the bundle has been verified; old schemas are rejected and are not guessed or upgraded. Restore also synchronizes the incoming projected reminder set before committing it, subject to both restored category flags.
 
-The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, writes a pending record, and only then selects the private bundle path. The root app reports launch health through `YuzuhaInstaller.markLaunchSuccessful`, which promotes the pending record to current. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the newest verified candidate; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. A failed pending launch is rolled back and its exact version is blocked. The Data tools screen can run the same native check and prepare a pending update while the current process continues. No retry loop or background update worker is started.
+The current Android gate runs once in `MainApplication` before the React host is created. It starts one background metadata request with 1.5-second connection/read bounds, validates Ed25519 metadata against the pinned public key, limits bundle downloads to 64 MiB and 5 seconds of read time, hashes bytes while writing a temporary file, writes a pending record, and only then selects the private bundle path. The root app reports launch health through `YuzuhaInstaller.markLaunchSuccessful`, which promotes the pending record to current. A valid but not newer release keeps the newest verified local bundle. Timeout or network failure keeps the newest verified candidate; invalid metadata, signature, compatibility, size, or hash keeps the same verified candidate. A failed pending launch is rolled back and its exact version is blocked. Settings Code updates can run the same native check and prepare a pending update while the current process continues. No retry loop or background update worker is started.
 
 The current public pairing is recovery `0.1.11` for native `0.1.3` and native
 updater `0.2.0` with version code `7`, embedded bundle `0.2.0`,
@@ -187,3 +187,13 @@ legacy product-data migration path.
 ## Developer note
 
 This contract is a startup dependency. Any change to metadata fields, cache paths, version rules, verification, activation, timeout, or rollback must update `architecture.md`, `testing.md`, and `release.md` in the same change.
+
+## Native 0.3.0 icon baseline
+
+The release prepared on 28.10.2026 starts native 0.3 with embedded version
+0.3.0 and bundle-0.3.json. The APK includes MaterialDesignIcons.ttf and its
+native library. Metro uses the static icon entry so OTA has no font asset.
+Native 0.2.x receives the complete 0.3.0 APK through android-update.json;
+its bundle-0.2.json feed and legacy bundle.json remain preserved. Trust key,
+metadata schemas, private cache and startup verification rules are unchanged.
+See [release record](releases/v0.3.0.md).

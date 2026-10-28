@@ -771,3 +771,45 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Reason: The first journal rows now match the recent activity a user is most likely to inspect after reading the totals.
 - Consequence: Filters and currency-separated totals use the same records as before. No data, schema, migration, export, network, worker, timer, or polling contract changes.
 - Validation: Focused sorting and filtering tests prove descending instants, deterministic ties, unchanged source order, and unchanged summaries.
+
+## DEC-104: Use one primary-header menu and one configuration owner
+
+- Status: Accepted.
+- Context: Home had a direct Settings button and stored week-start configuration beside a view-period filter. Tasks stored reminder preferences inside a broad task-management disclosure. Money, Notes, Tasks, and App Time did not share a header action pattern.
+- Decision: Give Overview, Money, Notes, Tasks, and App Time one contextual `TabHeader` with a vertical-three-dot overflow button and a cog-labeled Settings row. Move persisted week-start, App Time package inclusion/exclusion, and task-reminder configuration to the central Settings screen. Keep temporary filters, creation forms, goals, and supporting-record management on their source screens.
+- Reason: Configuration gets one predictable location while each tab header still reports the current data scope or record counts.
+- Consequence: Existing AppData and AppStore operations are reused. No schema, migration, permission, network request, worker, timer, or polling contract changes.
+- Validation: Focused renderer tests prove overflow/menu routing and the Settings-owned configuration sections; typecheck, lint, full Jest, and Android UI smoke remain release gates.
+
+## DEC-105: Use Paper drill-down screens for top-level Settings
+
+- Status: Accepted.
+- Context: Expanding several top-level Settings categories inline produced one long mobile page, moved later categories after every tap, and made categories look like conditional form fields.
+- Decision: Add React Native Paper 5.15.3 and Material Design Icons 13.1.3, map Paper's MD3 theme to the existing Yuzuha palette tokens, and use its app bar, surface, list, and icon primitives for Settings. The root renders five compact navigation rows; selecting one row replaces the root with one category detail screen, and Back returns to the root.
+- Reason: Top-level settings are destinations, not optional content within one task. A maintained Android-first component library supplies consistent touch feedback, icons, surfaces, and accessibility while preserving Yuzuha's colors.
+- Consequence: This is the first bounded Paper adoption. Other screens still use current shared components until they are migrated and visually tested. No data, schema, installer, permission, network, worker, timer, or polling contract changes.
+- Validation: Focused renderer tests must prove that controls are absent from the root, only the selected detail renders, and Back returns to the root. Typecheck, lint, full Jest, an Android build, and visible dark-mode API 35 smoke remain gates.
+
+## DEC-106: Keep configuration in Settings and mobile choices uncompressed
+
+- Status: Accepted.
+- Context: Supporting-record configuration still appeared below source-screen content, several dynamic choice rows compressed desktop-style options into 320 dp, and dates repeated the current year.
+- Decision: Expand Settings to seven drill-down categories and move Money accounts/categories/payees, task organization, and App Time inclusion/time goals/app groups there. Keep temporary filters and capture forms on source screens. Use full-width or wrapping controls when labels cannot fit, hide bottom navigation on secondary screens, and format visible dates as `DD.MM` for the current year or `DD.MM.YYYY` otherwise.
+- Reason: Configuration has one predictable owner, mobile content no longer shifts open below unrelated sections, and dates keep only the context needed to distinguish them.
+- Consequence: Search focus for project/template/list/app-group records routes into the matching Settings detail. Storage, schemas, installer behavior, permissions, network work, workers, timers, and polling are unchanged.
+- Validation: Focused navigation and format tests, 63 suites/311 tests, typecheck, lint, diff checks, a `localTest` build, and visible 320x640 API 35 screenshots of Home, Tasks, Settings, note overflow actions, Money tools/forms, account balances, and detail routes.
+
+## DEC-104: Ship the icon font in native 0.3.0
+
+- Context: Release preflight of the current UI failed because the dynamic icon
+  entry emits a TTF Metro asset. The OTA contract only carries JavaScript, and
+  native 0.2.0 does not contain the icon font/library.
+- Decision: Start native 0.3.0 (version code 9); resolve Material Design Icons
+  through its static entry and include the font through the native dependency.
+  Keep React Native 0.86.0, React 19.2.8 and the existing data schemas unchanged.
+  Publish a full signed APK plus the same-version signed embedded-baseline bundle.
+- Consequence: Native 0.2.x upgrades through the signed APK updater; it must not
+  receive this UI as a same-line OTA. Preserve 0.1 and 0.2 metadata pointers and
+  add bundle-0.3.json. Future compatible 0.3.x patches can use JavaScript-only OTA.
+- Validation: Deterministic failing OTA build and resolver tests precede the fix;
+  see docs/releases/v0.3.0.md for the final artifact and publication evidence.

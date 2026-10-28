@@ -36,6 +36,32 @@ Current update recovery status: `YZ-012` is published. OTA `0.1.10` was incompat
 
 ## Current repository status
 
+Current release preparation: native 0.3.0 / version code 9 is required for the
+icon font/library. Metro uses the static icon entry to keep OTA asset-free.
+Embedded, native and TypeScript versions are 0.3.0; the new endpoint is
+bundle-0.3.json. Preserve older feed pointers; native 0.2.x upgrades by APK.
+See `docs/releases/v0.3.0.md` and DEC-104 for verification/publication status.
+
+Current progressive-disclosure status: YZ-025 replaces repeated period, Money
+choice and Notes-view alternatives with current-value menus. Secondary creation,
+repeat, saved-search, delivery and focus-history controls open on request; drafts
+survive folding, edit targets reveal their form and validation stays visible.
+The final 64-suite / 324-test run, typecheck, lint, localTest build and targeted
+API 35 smoke at 320×640 dp support the scope in
+`docs/progressive-disclosure-2026-10-28.md`. These changes are unpublished and
+add no schema, dependency, installer or background-work change.
+
+Current usability fix status: YZ-018–YZ-024 are implemented and checked with
+64 suites / 320 tests, typecheck, lint, a localTest APK build and API 35 emulator
+smoke at 320×640 dp. Home/Review period choices now use one current-value menu (YZ-025); Android Back closes
+menus, returns through Settings and confirms discard for primary capture forms.
+Data tools has fixed visible feedback. Periodic capture starts with Repeat on;
+App Time rechecks permission on resume. Shared action icons retain labels and
+selected controls show checks. Money Save/Cancel sit outside the scroll and rise
+above the keyboard; occurrence date/time live in optional details. Add buttons
+reserve their own space. See `docs/usability-fixes-2026-10-28.md` for evidence and
+limits. These local changes are not a publication or a full accessibility audit.
+
 The recurring-task pass is implemented: date-based rules can be created, paused/resumed, and deleted. Startup expands due rules once using explicit all/one/skip missed-occurrence policies. Custom lists can be created, renamed, archived/restored, and deleted only when unused by tasks or recurring rules. Inbox cannot be archived or deleted.
 
 The task-reminder pass is implemented: an open task can have one optional Android local reminder. The reminder uses a strict local date-time, Android notification permission, a stable task ID, AlarmManager, and boot rescheduling. Completing, deleting, clearing, or replacing a reminder cancels the old schedule. Daily local quiet hours are stored and project reminders inside the quiet window to its end. The local Task reminders category setting can remove all native reminder alarms without deleting logical reminder times; re-enabling it rebuilds future alarms. The notification opens the matching task, its `Complete` action completes an existing open task exactly once, or its configurable `Snooze` action stores the selected duration after the action time and reschedules through quiet hours. Missing, completed, and paused-category targets are ignored. Sync remains planned.
@@ -47,6 +73,8 @@ Current schema boundary: the periodic weekday pass supersedes the earlier schema
 Current report status: Money reports now accept local Day/Week/Month, type, category, and account filters. The scope card states the exact range, active filters, and exclusions; split lines are filtered by their own category IDs and currencies remain separate. Report filters are derived state only and add no schema, migration, network request, or background process.
 
 Current Android UI review status: the primary Home, Money, Notes, Tasks, Search, App Time, Data tools, Review, and Money report screens use labeled progressive-disclosure sections for optional filters, settings, management, formatting, restore/import actions, focus tools, and task tools. The primary capture controls remain visible. Data tools starts with all export, import, restore, and delete sections closed. The pass adds no schema, network request, worker, or background process. Check the implementation and UI smoke evidence before describing the layout as shipped.
+
+Current primary-header status: Overview, Money, Notes, Tasks, and App Time use the same contextual header with live scope/count data and a vertical three-dot menu. Its cog-labeled Settings action opens the central Settings view. Settings owns persisted preferences and supporting-record configuration: Money accounts/categories/payees, task organization, App Time inclusion/time goals/app groups, reminders, appearance, and code updates. Temporary filters and capture forms stay on their source screens. The seven-row React Native Paper Settings root opens one dedicated detail at a time; Back returns to the list, and bottom navigation is hidden on secondary screens. Visible dates use `DD.MM` in the current year and `DD.MM.YYYY` for other years without changing stored values. Money report periods use one full-width menu on 320 dp screens, note-card actions use a vertical overflow menu, and App Time places Usage Access/report content before optional focus tools. Focused tests, the full 63-suite/311-test run, and visible API 35 emulator smoke prove the current navigation and render. Evidence is under `artifacts/mobile-cleanup-emulator-2026-09-02/`. This adds no schema, migration, network request, worker, timer, or polling loop.
 
 Current theme status: Settings Appearance supports System, Light, and Dark contrast modes plus five temporary color palettes: Moss, Ocean, Sunset, Plum, and Citrus. The palette and contrast choices are React view state only, reset on relaunch, and do not change AppData, exports, or background behavior. Preview-only concept cards are in `docs/theme-ideas/`. Check `src/app/theme.tsx`, the Settings test, and the theme test before describing this as shipped.
 

@@ -4,6 +4,28 @@ Status: Current Android native release process. The release APK is signed with a
 
 ## Current pass release notes
 
+2026-09-02 Paper mobile-layout and Settings ownership pass (`YZ-017`, resolved):
+
+- Moved Money accounts/categories/payees, task organization, App Time inclusion/time goals/app groups, and persisted preferences into seven drill-down Settings categories.
+- Replaced compressed mobile choice rows where needed, including a full-width five-option Money report period menu and wrapping dynamic record chips. Secondary routes hide bottom navigation. Home, Review, Search, Money reports, and metric rows no longer repeat or expand trivial context.
+- Money account balances now open as a dedicated secondary screen, and the four-choice reminder snooze setting uses a full-width menu rather than a rigid row.
+- Note-card commands now use a vertical overflow menu, and App Time shows Usage Access/report content before optional focus tools.
+- User-facing dates use `DD.MM` in the current year and include `.YYYY` only for another year. Stored date and timestamp contracts are unchanged.
+- The current validation is 63 suites/311 tests, typecheck, lint, diff checks, a successful `localTest` build/install, and visible 320x640 API 35 emulator evidence under `artifacts/mobile-cleanup-emulator-2026-09-02/`.
+
+2026-09-02 mobile Settings navigation (`YZ-016`):
+
+- Replaced the stacked Settings accordions with a compact category list and one dedicated detail screen at a time.
+- Added React Native Paper 5.15.3 and Material Design Icons 13.1.3. Paper's theme maps to Yuzuha's current palette and contrast tokens; this is the first bounded UI-library slice, not a claim that every screen has been migrated.
+- Back returns from a category to the Settings list before returning to the source tab. The data model, installer behavior, permissions, and background behavior are unchanged.
+
+2026-09-02 primary tab headers and centralized settings (`YZ-014`):
+
+- Overview, Money, Notes, Tasks, and App Time now share a contextual header with live scope/count data and a vertical three-dot overflow button.
+- The menu contains a cog-labeled Settings action. This original pass moved week-start, App Time package inclusion/exclusion, and task-reminder configuration; the later `YZ-017` pass expands Settings ownership to supporting records while keeping temporary view filters on source screens.
+- Visible API 35 emulator smoke covered all five headers, their overflow menus, Settings routing, and return context. It found and then verified the `YZ-015` one-account grammar fix; the rebuilt Money header shows `EUR · 1 active account`.
+- The change adds no schema, migration, network request, worker, timer, or polling loop.
+
 2026-09-02 newest-first Money history (`YZ-013`):
 
 - The visible filtered Money journal now sorts by `occurredAt` descending, with a stable ID tie-breaker, so recent activity appears directly below the totals.
@@ -756,6 +778,10 @@ Use when adding languages, layout systems, charts, gestures, or large feature ar
 
 ## Public rollout stages
 
+### 0.2.1 release record
+
+Published 2026-09-02 as a compatible patch for native 0.2.x (version code 8). The signed APK and OTA bundle are documented in `docs/releases/v0.2.1.md`; both delivery metadata files passed their checkers and the 0.1.11 legacy feed pointer was preserved.
+
 1. Internal build: trusted devices, debug diagnostics, test data only.
 2. Closed beta: staged native or bundle rollout with explicit feedback and rollback owner.
 3. Open beta: monitor startup, migration, sync, export, and crash metrics; keep known limits public.
@@ -763,3 +789,31 @@ Use when adding languages, layout systems, charts, gestures, or large feature ar
 5. Maintenance: patch supported native versions, bundle versions, schema versions, and security dependencies according to the support policy.
 
 Full-product phases may ship independently, but a later phase cannot silently change the meaning of existing money totals, task recurrence, reminders, or exported data.
+
+## Unpublished usability fixes — 2026-10-28
+
+YZ-018–YZ-024 change local UI and Android Back/permission lifecycle behavior.
+They add shared action icons and selected marks, visible period choices and
+restore feedback, periodic capture defaults, and money actions above the
+keyboard. No schema, dependency, version, installer or release-feed change is
+included. Existing signed release hashes do not describe this workspace build.
+See [validation and localTest APK identity](usability-fixes-2026-10-28.md).
+
+## Unpublished progressive-disclosure pass — 2026-10-28
+
+YZ-025 reduces initially visible alternatives and configuration forms using
+current-value menus and closed secondary sections. Primary capture, saved
+content and validation remain visible; folding preserves drafts. The final
+64-suite / 324-test run, typecheck, lint, localTest build and targeted Android
+smoke are recorded in [the report](progressive-disclosure-2026-10-28.md).
+No schema, dependency, version, installer or release-feed change is included.
+
+## Native 0.3.0 release — 28.10.2026
+
+[Release preparation and verification](releases/v0.3.0.md) supersedes the
+unpublished notes above once publication is verified. Icon resources require
+native-baseline classification, version 0.3.0 and version code 9. Older native
+0.2.x uses the signed APK update path; only native 0.3.x accepts bundle-0.3.json.
+Keep earlier compatibility pointers on the latest release. Metro static icon
+resolution removes the unsupported OTA font asset without changing the signed
+single-file bundle format. React Native, React and data schemas are unchanged.

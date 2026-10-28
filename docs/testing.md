@@ -1,5 +1,26 @@
 # Testing strategy
 
+## 2026-10-28 progressive-disclosure verification
+
+[YZ-025](progressive-disclosure-2026-10-28.md) records the current final run:
+64 suites / 324 tests, typecheck, lint, x86_64 localTest build and targeted API 35
+smoke at 320×640 dp. Evidence is under
+`artifacts/progressive-disclosure-2026-10-28/`. The report distinguishes final
+and intermediate screenshots and retains the exploratory Back/keyboard failure.
+These unpublished checks do not claim exhaustive app or accessibility coverage.
+
+## 2026-10-28 usability smoke and fixes
+
+The [initial smoke](usability-smoke-2026-10-28.md) preserves the pre-fix findings.
+The [fix verification](usability-fixes-2026-10-28.md) records YZ-018–YZ-024,
+nine focused regressions, the final 64-suite / 320-test run, typecheck, lint,
+and a successful x86_64 localTest build. API 35 emulator checks at 320×640 dp
+cover periods, draft keep/discard, nested Android Back navigation, visible
+restore errors, periodic defaults, permission grant/return, rendered icons,
+and money Save/Cancel with the complete software keyboard visible.
+Evidence: `artifacts/usability-fixes-2026-10-28/`. Local changes are unpublished;
+physical-device, iOS and comprehensive accessibility checks remain outside this pass.
+
 Status: Current test strategy through the 2026-08-22 money-range, OS-picker, and App Time-analysis pass. Unit tests and Android smoke checks exist for the current implementation; the later full-product matrix remains planned. Older phase evidence below is historical and does not describe current compatibility behavior.
 
 The OTA trust anchor was freshly generated for this project on 2026-08-05.
@@ -13,7 +34,7 @@ must not require a committed private-key fixture.
 ## Latest-only schema boundary
 
 - Focused Jest rejects old app JSON schema, old encrypted backup schema, old SQLite repository schema, incomplete current SQLite settings, and missing current record fields instead of applying defaults.
-- The current suite is 63 Jest suites and 300 tests. Money range/sort/filter/report validation, native-picker bridge rules, usage-metric derivation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the Settings OTA entry point, APK/bundle update rules and release metadata, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered.
+- The current source suite is 63 Jest suites and 303 tests. Money range/sort/filter/report validation, native-picker bridge rules, usage-metric derivation, note-link validation, linked-target search/navigation/task-focus rules, rich-note parsing/editing, AppStore lifecycle, SQLite persistence, JSON/backup validation, latest-import undo, current money CSV behavior, the shared primary header and Settings ownership, singular/plural Money header counts, APK/bundle update rules and release metadata, the five-palette theme behavior, account-choice visibility, and shared UI token sizes plus raw-spacing protection have focused tests; legacy migration and AsyncStorage import suites were removed with the code they covered. Jest excludes ignored `dist/` build copies so generated bundles cannot duplicate or contaminate source-suite results.
 - The repeated-write regression test starts two money saves together and verifies that both committed entries remain after the AppStore commit queue runs.
 - Fresh SQLite startup seeds current app schema 33 data directly; old local database files and missing current metadata, including the latest-import receipt, note links, and periodic weekdays, are rejected by repository validation.
 
@@ -75,8 +96,12 @@ must not require a committed private-key fixture.
 - Xiaomi rejects adb touch injection with `INJECT_EVENTS`; supported cold/warm intents were used for the Money list and add-form hierarchy checks, and manual tapping remains required for arbitrary touch paths.
 - The periodic-money APK was rebuilt and installed on Xiaomi `42adce68`. The normal New money entry form hierarchy shows one `Repeat` switch and no `No, one time`, `Yes`, missed-date, or first-date controls. Xiaomi blocks automated touch injection, so activating the switch and checking the expanded compact Mon/Tue/Wed/Thu/Fri/Sat/Sun toggle row remains a manual tap check; the weekday selection and weekend-skipping behavior are covered by recurrence tests. New operations use today as their internal start date. Existing periodic operations are managed from the separate list-first view with pause/resume and confirmed delete controls.
 - App Time shows the Usage Access state with Focus sessions collapsed. Review shows its period selector and four read-only source cards. Data tools shows all export, import, restore, and delete sections collapsed at first entry; backup sub-options are also collapsed until selected.
-- The focused Settings screen test shows `Settings`, the expanded `Code updates` disclosure, the running bundle label, and the `Check for updates` action. Appearance remains collapsed on first entry. The screen reuses the native installer bridge and adds no direct JavaScript download path.
+- The focused Settings/header tests prove that a contextual primary header exposes one accessible vertical overflow button, reveals the cog-labeled Settings row, and invokes its route once. The Settings root shows seven category rows but none of their controls. Opening a category renders only that detail; Back returns to the category list. The suite covers navigation ownership, hidden secondary bottom navigation, week-start writes, package exclusion, reminder saving, palette selection, update controls, and the local Appearance smoke route.
+- The rebuilt `localTest` APK with React Native Paper 5.15.3 and Material Design Icons 13.1.3 installed on visible API 35 `emulator-5556` without clearing app data. The Settings root fit all five icon/summary/chevron rows on one 320×640 screen with no inline controls. Appearance opened as its own screen, Dark became selected, and Back returned to the compact dark root. No filtered app fatal or React Native JavaScript errors appeared. Evidence is `19-paper-settings-root-light.png`, `20-paper-appearance-dark.png`, `21-paper-settings-root-dark.png`, and matching XML under `artifacts/header-settings-emulator-2026-09-02/`.
+- Visible API 35 emulator `emulator-5556` smoke installed the rebuilt `dev.yuzuha.localtest` APK without clearing either Yuzuha package. UI hierarchies prove contextual headers and accessible three-dot controls on Overview, Money, Notes, Tasks, and App Time; opened menus prove the cog + Settings row; Settings opened from Overview and App Time and Back returned to App Time. The first Money pass exposed `1 active accounts`; `YZ-015` added a failing formatter test and the rebuilt APK now shows `EUR · 1 active account`. No filtered app fatal or React Native JavaScript errors appeared. Screenshots, matching XML, and the captured log are under `artifacts/header-settings-emulator-2026-09-02/`.
 - The focused Settings test expands Appearance, finds all five palette choices, and proves the Ocean selection state. `theme.test.tsx` proves the provider changes the active palette and accent token from Moss to Plum. Typecheck covers every palette's typed light/dark token set. The choices remain view state and add no data write.
+- The `format` and period tests prove current-year `DD.MM`, other-year `DD.MM.YYYY`, current-year date-time output, and one-date rendering for a one-day range. The rebuilt `localTest` APK visibly shows `Today · 02.09` on API 35 without changing stored values. Focused layout tests also cover all Money tool routes as secondary and all five Money report period labels. Emulator evidence `37-report-period-menu-final.png` and `38-report-period-options.png` proves one full-width selected period, all five menu options, and no bottom navigation under the report.
+- The final 320×640 route pass is under `artifacts/paper-migration-emulator-2026-09-02/`. Evidence `53-report-mobile-selector.png` and `54-report-period-options-final.png` shows the report period as one full-width menu. `82-note-actions-menu-final.png` shows every note command, including Delete, in a vertical overflow menu instead of an expanding action row. `60-data-tools-final.png` confirms Code updates is absent from Data tools. `62-settings-root-final.png` through `67-settings-code-updates-final.png` cover the Settings root and configuration details. `69-money-budget-final.png` through `77-money-repeat-weekdays-all.png` cover Money secondary routes and the wrapped weekday controls. `78-app-time-primary-first-final.png` shows Usage Access before optional focus tools. The full JavaScript suite passes 63 suites and 311 tests. Follow-up mobile cleanup evidence under `artifacts/mobile-cleanup-emulator-2026-09-02/` covers the single-column Money period selector and dedicated Account balances route.
 - The `localTest` build type installs as `dev.yuzuha.localtest`, keeps the production workspace untouched, and returns `embedded` / `LOCAL_BUNDLE_ONLY` before React starts. Its native unit test proves no remote metadata or bundle request is made. Xiaomi installation and launch of this current-code variant are the required device smoke path when the production package contains an older OTA cache.
 - Xiaomi `42adce68` passed the current-code `localTest` smoke: `dev.yuzuha.localtest` installed without clearing `dev.yuzuha`, the explicit `dev.yuzuha.OPEN_APPEARANCE` route opened Settings with Appearance expanded, and the screenshot shows Moss, Ocean, Sunset, Plum, and Citrus. Logcat reports `embedded` version `0.1.3` with `LOCAL_BUNDLE_ONLY`, `Running "Yuzuha"`, and no filtered app fatal or React Native errors. The screenshot is `dist/ui-audit/xiaomi-localtest-appearance.png`.
 - The current Java 17 release APK was installed over the existing same-signed package on Xiaomi `42adce68` (`M2012K11AG`). `MainActivity` resumed and the UI hierarchy showed Home `Overview`, `Open Settings`, Money, Notes, and Tasks with no app fatal or React Native error. The native installer selected the cached verified OTA bundle `0.1.6`, so this phone run proves package/startup health but does not prove that the newly embedded palette JavaScript ran. MIUI rejects `adb shell input tap` with `INJECT_EVENTS`; Settings palette interaction therefore remains manual on this device.
@@ -581,3 +606,11 @@ Each phase must test fresh install, upgrade from the previous phase, offline use
 - Android build: `app:assembleDebug` passes with the native Usage Access package.
 - Emulator: permission settings opened, Usage Access granted, usage read completed, top-app rows rendered, and Home card updated.
 - Phone `42adce68`: updated APK installed and `MainActivity` resumed without app errors. Interactive input remains blocked by the device’s `INJECT_EVENTS` policy.
+
+## Native 0.3.0 release verification
+
+The release preflight first reproduced rejection of the dynamic icon TTF.
+Two resolver tests then failed before the static mapping and passed after it.
+The real signed bundle build verifies that no Metro assets remain. See
+[0.3.0](releases/v0.3.0.md) for final tests, APK verification and publication
+status. Evidence is under artifacts/release-2026-10-28/.
