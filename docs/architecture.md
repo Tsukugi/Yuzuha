@@ -288,4 +288,4 @@ Material Design Icons font/native support belongs to the APK. Metro's explicit
 resolver maps the icon package to its static entry, including Paper's import;
 other modules delegate to Metro unchanged. Native 0.3.0 is required for this
 resource contract. OTA remains one JavaScript file, never a font archive.
-See [release record](releases/v0.3.0.md) and DEC-104.
+See [release record](releases/v0.3.0.md) and DEC-107.

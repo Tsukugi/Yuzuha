@@ -269,3 +269,12 @@ Completion requires tests proving:
 
 Device proof needs one non-root Android run and one controlled rooted emulator
 run. Unit tests alone do not prove either installer UI or root behavior.
+
+## Native 0.3.0 resource baseline
+
+The 28.10.2026 release requires native 0.3.0 for the icon font/library. It adds
+bundle-0.3.json and a signed complete 0.3.0 APK (version code 9). Native 0.2.x
+uses the existing verified cross-line APK updater. The latest release retains
+the signed 0.2.1 bundle-0.2.json and 0.1.11 legacy bundle.json unchanged.
+This changes no updater verification or installation rule. See
+[0.3.0 release record](releases/v0.3.0.md) and DEC-107.

@@ -799,7 +799,7 @@ Status: Initial planning record. Add a dated entry when a decision changes.
 - Consequence: Search focus for project/template/list/app-group records routes into the matching Settings detail. Storage, schemas, installer behavior, permissions, network work, workers, timers, and polling are unchanged.
 - Validation: Focused navigation and format tests, 63 suites/311 tests, typecheck, lint, diff checks, a `localTest` build, and visible 320x640 API 35 screenshots of Home, Tasks, Settings, note overflow actions, Money tools/forms, account balances, and detail routes.
 
-## DEC-104: Ship the icon font in native 0.3.0
+## DEC-107: Ship the icon font in native 0.3.0
 
 - Context: Release preflight of the current UI failed because the dynamic icon
   entry emits a TTF Metro asset. The OTA contract only carries JavaScript, and

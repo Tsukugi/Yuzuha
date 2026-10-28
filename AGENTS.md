@@ -40,7 +40,7 @@ Current release preparation: native 0.3.0 / version code 9 is required for the
 icon font/library. Metro uses the static icon entry to keep OTA asset-free.
 Embedded, native and TypeScript versions are 0.3.0; the new endpoint is
 bundle-0.3.json. Preserve older feed pointers; native 0.2.x upgrades by APK.
-See `docs/releases/v0.3.0.md` and DEC-104 for verification/publication status.
+See `docs/releases/v0.3.0.md` and DEC-107 for verification/publication status.
 
 Current progressive-disclosure status: YZ-025 replaces repeated period, Money
 choice and Notes-view alternatives with current-value menus. Secondary creation,

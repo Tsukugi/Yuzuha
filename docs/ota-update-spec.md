@@ -775,5 +775,5 @@ retries, or guessed compatibility behavior to work around them.
 The 0.3 baseline ships the icon font/native library in its APK. Metro resolves
 the static icon entry, so signed bundles contain JavaScript only. Publish
 bundle-0.3.json for that line; preserve bundle-0.2.json and legacy bundle.json.
-Do not target the new UI bundle at native 0.2.x. See DEC-104 and the
+Do not target the new UI bundle at native 0.2.x. See DEC-107 and the
 [release record](releases/v0.3.0.md).
