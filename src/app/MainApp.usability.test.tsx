@@ -157,7 +157,6 @@ it('YZ-024 money actions occupy a reserved row outside the scrolling form', asyn
   const actions = renderer.root.findByProps({accessibilityLabel: 'Money form actions'});
   expect(actions.findAllByType(Button).map(n => n.props.accessibilityLabel)).toEqual(['Save entry', 'Cancel']);
   expect(renderer.root.findAllByType(ScrollView).every(scroll => !scroll.findAllByType(View).includes(actions))).toBe(true);
-  expect(createStyles(THEME_PALETTES.moss.light).fab).not.toHaveProperty('position', 'absolute');
   expect(renderer.root.findByType(KeyboardAvoidingView).props.behavior).toBe(Platform.OS === 'ios' ? 'padding' : 'height');
   expect(texts()).not.toContain('Occurred date and time');
   press('Show More entry details');
@@ -216,4 +215,16 @@ it('YZ-025 validation feedback stays visible when its optional form is folded', 
   press('Hide Add account');
   expect(renderer.root.findAllByProps({accessibilityLabel: 'New account name'})).toHaveLength(0);
   expect(texts()).toContain('Account already exists.');
+});
+
+it('YZ-027 add buttons overlay full-height lists with scroll-end clearance', async () => {
+  const styles = createStyles(THEME_PALETTES.moss.light);
+  expect(styles.fab).toMatchObject({position: 'absolute', bottom: 16, right: 16});
+  expect(styles.fab).not.toHaveProperty('margin');
+  expect(styles.fabLayer).toMatchObject({position: 'absolute', bottom: 0, left: 0, right: 0});
+  await mount();
+  const home = renderer.root.findByType(HomeScreen);
+  expect(home.findByType(ScrollView).props.contentContainerStyle).toEqual(
+    expect.arrayContaining([expect.objectContaining({paddingBottom: 96})]),
+  );
 });

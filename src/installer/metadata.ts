@@ -14,7 +14,7 @@ export interface BundleMetadata {
 
 export const BUNDLE_RUNTIME = '0.86.0' as const;
 export const BUNDLE_NATIVE_VERSION = '0.3.0' as const;
-export const EMBEDDED_BUNDLE_VERSION = '0.3.0' as const;
+export const EMBEDDED_BUNDLE_VERSION = '0.3.1' as const;
 export const PINNED_PUBLIC_KEY = 'MCowBQYDK2VwAyEAHtg4xjISeTsnO7iXTHPfyv6MTBQvEKcbYXot6em3V8s=' as const;
 
 const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;

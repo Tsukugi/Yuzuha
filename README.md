@@ -155,3 +155,22 @@ The Android build needs Android Studio, an Android SDK, Java 17, and a configure
 ## Installer rule
 
 Every startup follows [the installer contract](docs/installer.md) and [the Android channel policy](docs/android-updates.md). Same-line code uses a verified pending OTA with rollback. A newer native line uses the latest release's verified APK directly, not patch zero plus intermediate OTAs. Rooted devices use a fixed bounded `pm install -r` path; other devices enter Android's package installer. Never activate or install unverified or partial bytes.
+
+
+## Floating add buttons — YZ-027 (30.10.2026)
+
+The local UI fix restores overlay add buttons on Home, Money, Notes and Tasks.
+The scroll viewport extends behind the button; only the end of the scrollable
+content has 96 dp clearance, so the last record can scroll above it. Home quick
+capture also uses an overlay layer with pass-through hit testing outside its
+controls. Money form Save/Cancel remain in their separate keyboard-safe row.
+This supersedes earlier wording that add buttons reserve their own row.
+Regression and validation evidence: `docs/fab-overlay-2026-10-30.md`.
+This change is local and unpublished; no schema, dependency or native change.
+
+
+0.3.1 release preparation (30.10.2026): compatible patch, Android code 10,
+embedded bundle 0.3.1, native baseline 0.3.0 and bundle-0.3.json unchanged.
+The patch restores overlay FABs (YZ-027). Publish a same-version signed APK and
+bundle; preserve bundle.json and bundle-0.2.json. Verification and publication
+status: `docs/releases/v0.3.1.md`. No schema or native API change.

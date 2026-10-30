@@ -573,7 +573,7 @@ export function HomeScreen({
   );
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, styles.fabScrollContent]}>
       <TabHeader
         title="Overview"
         subtitle={formatPeriodRange(range)}
@@ -2357,7 +2357,7 @@ export function MoneyScreen({focusMoneyId, focusBudgetId, openAdd, onAddHandled,
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, !entryFormOpen && styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         <TabHeader
           title="Money"
           subtitle={entryFormOpen ? editingId ? 'Edit entry' : recurrenceEnabled ? 'New periodic operation' : 'New entry' : entryHeaderSubtitle}
@@ -4213,7 +4213,7 @@ function NotesScreen({focusNoteId, openAdd, onAddHandled, onFocusHandled, onSeco
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scrollContent, !noteFormOpen && styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         <TabHeader
           title="Notes"
           subtitle={noteFormOpen ? editingNoteId ? 'Edit note' : 'New note' : `${data.notes.filter(note => !note.isArchived).length} active · ${data.notes.filter(note => note.isArchived).length} archived`}
@@ -5318,7 +5318,7 @@ function TasksScreen({focusTaskId, focusProjectId, focusTemplateId, focusListId,
           <Appbar.Content title={configurationTitle} titleStyle={styles.settingsAppbarTitle} />
         </Appbar.Header>
       )}
-      <ScrollView contentContainerStyle={configurationOnly ? styles.settingsDetailContent : styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={configurationOnly ? styles.settingsDetailContent : [styles.scrollContent, !taskFormOpen && styles.fabScrollContent]} keyboardShouldPersistTaps="handled">
         {!configurationOnly && <TabHeader
           title="Tasks"
           subtitle={taskFormOpen ? editingTaskId ? 'Edit task' : 'New task' : `${currentData.tasks.filter(task => task.status === 'open').length} open · ${completedThisWeek} completed this week`}
@@ -6138,8 +6138,9 @@ export function createStyles(colors: ThemeColors) {
   noteTag: {backgroundColor: colors.cardRaised, borderRadius: 10, color: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: UI_TOKENS.spacing.sm, paddingVertical: UI_TOKENS.spacing.xs},
   noteCardMetaRow: {alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: UI_TOKENS.spacing.sm, marginTop: UI_TOKENS.spacing.md},
   noteCardMeta: {color: colors.muted, fontSize: 12},
-  fabLayer: {position: 'relative'},
-  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.fab, alignSelf: 'flex-end', margin: UI_TOKENS.spacing.lg, height: UI_TOKENS.target.fab, justifyContent: 'center', width: UI_TOKENS.target.fab},
+  fabScrollContent: {paddingBottom: UI_TOKENS.spacing.fabClearance},
+  fabLayer: {position: 'absolute', bottom: 0, left: 0, right: 0},
+  fab: {alignItems: 'center', backgroundColor: colors.accent, borderRadius: UI_TOKENS.radius.fab, position: 'absolute', bottom: UI_TOKENS.spacing.lg, right: UI_TOKENS.spacing.lg, height: UI_TOKENS.target.fab, justifyContent: 'center', width: UI_TOKENS.target.fab},
   fabIcon: {color: colors.accentText, fontSize: 32, fontWeight: '300', lineHeight: 36},
   quickCaptureOptionContent: {alignItems: 'center', flexDirection: 'row', gap: UI_TOKENS.spacing.sm},
   quickCaptureMenu: {backgroundColor: colors.card, borderColor: colors.border, borderRadius: 14, borderWidth: 1, bottom: UI_TOKENS.spacing.menuBottom, elevation: 3, padding: UI_TOKENS.spacing.xs, position: 'absolute', right: UI_TOKENS.spacing.lg, shadowColor: colors.shadow, shadowOffset: {height: 2, width: 0}, shadowOpacity: 0.08, shadowRadius: 6, width: 160},

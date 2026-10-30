@@ -6,6 +6,15 @@ ID and record the release or implementation note that contains the evidence.
 
 ## Resolved items
 
+### YZ-027 — Restore floating add buttons
+
+Absolute overlay FABs restore the full-height list viewport on Home, Money,
+Notes and Tasks. Scroll-end clearance keeps the final record accessible;
+Money form actions retain their keyboard-safe row. The regression failed before
+and passed after the fix; 65 suites / 327 tests, typecheck, lint, localTest build
+and API 35 320×640 dp smoke support the bounded claim. See
+[validation and limits](fab-overlay-2026-10-30.md). Release 0.3.1 is being prepared.
+
 ### YZ-026 — Ship icon resources through the native baseline
 
 The preflight reproduced unsupported Metro font assets. Static icon resolution

@@ -268,3 +268,15 @@ Creation/configuration forms, repeat setup, search naming, delivery options and
 focus history start closed. Opening an edit target reveals its matching form;
 folding does not clear the draft. Android Back closes open choices/sections
 before screen navigation. Use tooltips only for brief help, not essential flows.
+
+
+## Floating add buttons — YZ-027 (30.10.2026)
+
+The local UI fix restores overlay add buttons on Home, Money, Notes and Tasks.
+The scroll viewport extends behind the button; only the end of the scrollable
+content has 96 dp clearance, so the last record can scroll above it. Home quick
+capture also uses an overlay layer with pass-through hit testing outside its
+controls. Money form Save/Cancel remain in their separate keyboard-safe row.
+This supersedes earlier wording that add buttons reserve their own row.
+Regression and validation evidence: `docs/fab-overlay-2026-10-30.md`.
+This change is local and unpublished; no schema, dependency or native change.

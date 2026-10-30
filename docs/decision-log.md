@@ -813,3 +813,15 @@ Status: Initial planning record. Add a dated entry when a decision changes.
   add bundle-0.3.json. Future compatible 0.3.x patches can use JavaScript-only OTA.
 - Validation: Deterministic failing OTA build and resolver tests precede the fix;
   see docs/releases/v0.3.0.md for the final artifact and publication evidence.
+
+
+## DEC-108: Release the floating-button repair as compatible 0.3.1
+
+- Context: Add buttons occupied a reserved row, removing 88 dp from list viewports.
+- Decision: Overlay FABs with scroll-end clearance; keep money Save/Cancel in
+  their keyboard-safe row. Increment package/embedded version to 0.3.1 and
+  Android code to 10; keep native baseline 0.3.0 and existing line endpoint.
+- Consequence: Native 0.3.0 can receive this JavaScript-only repair through OTA.
+  Every version still publishes its complete signed APK. Preserve earlier feeds.
+- Validation: Failing-before/passing-after regression, full Jest, typecheck,
+  lint and compact Android smoke; see docs/releases/v0.3.1.md.

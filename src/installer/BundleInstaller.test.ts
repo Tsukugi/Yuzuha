@@ -4,7 +4,7 @@ describe('NativeBundleInstaller', () => {
   it('uses the embedded baseline when the native bridge is unavailable', async () => {
     await expect(new NativeBundleInstaller(null).launch()).resolves.toEqual({
       kind: 'embedded',
-      version: '0.3.0',
+      version: '0.3.1',
     });
   });
 
@@ -45,7 +45,7 @@ describe('NativeBundleInstaller', () => {
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.3.0',
+      currentVersion: '0.3.1',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });
@@ -57,7 +57,7 @@ describe('NativeBundleInstaller', () => {
     };
     await expect(new NativeBundleInstaller(bridge).checkForUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.3.0',
+      currentVersion: '0.3.1',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });
@@ -96,7 +96,7 @@ describe('NativeBundleInstaller', () => {
 
     await expect(new NativeBundleInstaller(bridge).applyNativeUpdate()).resolves.toEqual({
       kind: 'error',
-      currentVersion: '0.3.0',
+      currentVersion: '0.3.1',
       reasonCode: 'INVALID_NATIVE_RESULT',
     });
   });

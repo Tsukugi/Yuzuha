@@ -99,8 +99,8 @@ android {
         applicationId "dev.yuzuha"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "0.3.0"
+        versionCode 10
+        versionName "0.3.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "boolean", "YUZUHA_LOCAL_BUNDLE_ONLY", "false"
         manifestPlaceholders = [usesCleartextTraffic: "false"]

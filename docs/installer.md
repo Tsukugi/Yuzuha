@@ -202,3 +202,10 @@ Publication update (28.10.2026): these UI changes are included in the verified
 [0.3.0 native baseline](releases/v0.3.0.md). Earlier unpublished/intermediate
 notes above retain their original test context. Latest delivery includes the
 complete signed APK and 0.3 bundle, with both earlier bundle feeds preserved.
+
+
+0.3.1 release preparation (30.10.2026): compatible patch, Android code 10,
+embedded bundle 0.3.1, native baseline 0.3.0 and bundle-0.3.json unchanged.
+The patch restores overlay FABs (YZ-027). Publish a same-version signed APK and
+bundle; preserve bundle.json and bundle-0.2.json. Verification and publication
+status: `docs/releases/v0.3.1.md`. No schema or native API change.

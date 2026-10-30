@@ -24,7 +24,7 @@ class BundleInstallerFlowTest {
 
   @Test
   fun signedStartupBundleIsPromotedOnlyAfterHealth() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(release.metadata, release.bundle)
     val root = temporaryFolder.newFolder("files")
     val installer = createInstaller(root, release, network)
@@ -32,7 +32,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("reason=${launch.reasonCode}", "remote-activated", launch.kind)
-    assertEquals("0.3.1", launch.version)
+    assertEquals("0.3.2", launch.version)
     assertEquals(release.bundle.toList(), File(requireNotNull(launch.bundlePath)).readBytes().toList())
     var state = File(root, "installer/state.json").readText()
     assertTrue(state.contains("\"pending\""))
@@ -42,13 +42,13 @@ class BundleInstallerFlowTest {
 
     state = File(root, "installer/state.json").readText()
     assertTrue(state.contains("\"current\""))
-    assertTrue(state.contains("\"version\":\"0.3.1\""))
+    assertTrue(state.contains("\"version\":\"0.3.2\""))
     assertFalse(state.contains("\"pending\""))
   }
 
   @Test
   fun localBundleOnlyBuildUsesEmbeddedBundleWithoutFetchingRemoteOta() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(release.metadata, release.bundle)
     val root = temporaryFolder.newFolder("files")
     val installer = YuzuhaBundleInstaller(
@@ -63,7 +63,7 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.3.0", launch.version)
+    assertEquals("0.3.1", launch.version)
     assertEquals("LOCAL_BUNDLE_ONLY", launch.reasonCode)
     assertEquals(0, network.metadataRequests)
     assertEquals(0, network.bundleRequests)
@@ -92,13 +92,13 @@ class BundleInstallerFlowTest {
     val launch = installer.await()
 
     assertEquals("local-current", launch.kind)
-    assertEquals("0.3.0", launch.version)
+    assertEquals("0.3.1", launch.version)
     assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun manualDownloadKeepsCurrentProcessAndPreservesProductFiles() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val productFile = File(root, "workspace.db").apply { writeText("keep me") }
@@ -106,14 +106,14 @@ class BundleInstallerFlowTest {
 
     val launch = installer.await()
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.3.0", launch.version)
+    assertEquals("0.3.1", launch.version)
 
     network.metadata = release.metadata
     network.bundle = release.bundle
     val check = installer.checkForUpdate()
     assertEquals("reason=${check.reasonCode}", "available", check.kind)
     assertEquals("prepared", installer.downloadUpdate().kind)
-    assertEquals("0.3.0", installer.await().version)
+    assertEquals("0.3.1", installer.await().version)
     assertEquals("keep me", productFile.readText())
     assertEquals(1, network.bundleRequests)
 
@@ -124,7 +124,7 @@ class BundleInstallerFlowTest {
 
   @Test
   fun olderEndpointDoesNotReplaceNewerPendingBundle() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val olderRelease = ReleaseFixture.create("0.1.5", release.keyPair)
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
@@ -140,13 +140,13 @@ class BundleInstallerFlowTest {
     val result = installer.downloadUpdate()
 
     assertEquals("prepared", result.kind)
-    assertEquals("0.3.1", result.availableVersion)
+    assertEquals("0.3.2", result.availableVersion)
     assertEquals(1, network.bundleRequests)
   }
 
   @Test
   fun olderVerifiedLocalBundleDoesNotOverrideEmbeddedBaseline() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val verifiedDirectory = File(root, "installer/verified").apply { mkdirs() }
@@ -160,13 +160,13 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("offline-local", launch.kind)
-    assertEquals("0.3.0", launch.version)
+    assertEquals("0.3.1", launch.version)
     assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun incompatibleCachedStateFailsClosedToEmbeddedBundle() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val verifiedDirectory = File(root, "installer/verified").apply { mkdirs() }
@@ -180,14 +180,14 @@ class BundleInstallerFlowTest {
     val launch = createInstaller(root, release, network).await()
 
     assertEquals("embedded", launch.kind)
-    assertEquals("0.3.0", launch.version)
+    assertEquals("0.3.1", launch.version)
     assertEquals("INVALID_STATE", launch.reasonCode)
     assertEquals(null, launch.bundlePath)
   }
 
   @Test
   fun pendingBundleIsRolledBackAndBlockedAfterUnhealthyLaunch() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val firstInstaller = createInstaller(root, release, network)
@@ -198,24 +198,24 @@ class BundleInstallerFlowTest {
     assertEquals("reason=${prepared.reasonCode}", "prepared", prepared.kind)
 
     val attemptedInstaller = createInstaller(root, release, network)
-    assertEquals("0.3.1", attemptedInstaller.await().version)
+    assertEquals("0.3.2", attemptedInstaller.await().version)
     val rolledBackInstaller = createInstaller(root, release, network)
 
     val rollback = rolledBackInstaller.await()
 
     assertEquals("embedded", rollback.kind)
-    assertEquals("0.3.0", rollback.version)
+    assertEquals("0.3.1", rollback.version)
     assertEquals("BLOCKED_VERSION", rollback.reasonCode)
     assertEquals("BLOCKED_VERSION", rolledBackInstaller.checkForUpdate().reasonCode)
     assertEquals(1, network.bundleRequests)
     val state = File(root, "installer/state.json").readText()
     assertFalse(state.contains("\"pending\""))
-    assertTrue(state.contains("\"blockedVersion\":\"0.3.1\""))
+    assertTrue(state.contains("\"blockedVersion\":\"0.3.2\""))
   }
 
   @Test
   fun tamperedBundleDoesNotCreatePendingState() {
-    val release = ReleaseFixture.create("0.3.1")
+    val release = ReleaseFixture.create("0.3.2")
     val network = FixtureNetwork(null, null)
     val root = temporaryFolder.newFolder("files")
     val installer = createInstaller(root, release, network)
@@ -236,7 +236,7 @@ class BundleInstallerFlowTest {
 
   @Test
   fun newerNativeRequirementIsReportedAsCompatibilityInsteadOfSignatureFailure() {
-    val release = ReleaseFixture.create("0.3.1", minNativeVersion = "0.4.0")
+    val release = ReleaseFixture.create("0.3.2", minNativeVersion = "0.4.0")
     val network = FixtureNetwork(release.metadata, release.bundle)
     val installer = createInstaller(temporaryFolder.newFolder("incompatible-native"), release, network)
 
