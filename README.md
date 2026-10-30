@@ -166,11 +166,11 @@ capture also uses an overlay layer with pass-through hit testing outside its
 controls. Money form Save/Cancel remain in their separate keyboard-safe row.
 This supersedes earlier wording that add buttons reserve their own row.
 Regression and validation evidence: `docs/fab-overlay-2026-10-30.md`.
-This change is local and unpublished; no schema, dependency or native change.
+This change is published in 0.3.1; no schema, dependency or native API change.
 
 
-0.3.1 release preparation (30.10.2026): compatible patch, Android code 10,
+0.3.1 published release (30.10.2026): compatible patch, Android code 10,
 embedded bundle 0.3.1, native baseline 0.3.0 and bundle-0.3.json unchanged.
-The patch restores overlay FABs (YZ-027). Publish a same-version signed APK and
-bundle; preserve bundle.json and bundle-0.2.json. Verification and publication
-status: `docs/releases/v0.3.1.md`. No schema or native API change.
+The patch restores overlay FABs (YZ-027). Same-version signed APK and
+bundle are published; bundle.json and bundle-0.2.json are preserved. Live OTA
+activation and next-launch promotion passed on native 0.3.0. Evidence: `docs/releases/v0.3.1.md`. No schema or native API change.

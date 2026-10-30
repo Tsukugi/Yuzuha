@@ -14,7 +14,7 @@ Use simple wording. Do not claim that a feature exists until the implementation 
 7. Android release versions are update contracts. A native-incompatible release increments the minor version and resets patch to zero, such as `0.2.0`. Compatible JavaScript OTAs stay on that major/minor line and increment patch. Every version must also publish a complete signed APK. A device on the same major/minor line prefers OTA; a device on an older line downloads the latest version's APK directly. `native-release` requires an explicit `native-baseline` or `compatible-patch` classification and rejects a version whose patch component contradicts it. Do not publish one incompatible bundle as the global latest for older native shells.
 8. Native `0.2.0` and later must check the signed native-release manifest, automatically download a newer verified APK, use the silent `su`/`pm install -r` path only after a successful bounded root probe, and otherwise open Android's standard package installer without a second in-app confirmation. APK size, hash, package ID, increasing version code, and release signer must be verified before either path. See `docs/android-updates.md`.
 
-Current release status: GitHub releases `Tsukugi/Yuzuha` `v0.1.11` and `v0.2.0` are published. `v0.1.11` is the signed recovery bundle/APK for native `0.1.3`; `v0.2.0` is the signed native updater baseline. Latest v0.3.0 preserves `bundle.json` at `0.1.11` and `bundle-0.2.json` at `0.2.1`, adds `bundle-0.3.json` at `0.3.0`, and points `android-update.json` to the verified complete `0.3.0` APK. Emulator tests prove signed-package replacement with workspace preservation, Android's non-root installer UI, and controlled rooted installation; a physical Pixel remains unverified. Local release keys remain outside the committed tree.
+Current release status: GitHub releases `Tsukugi/Yuzuha` `v0.1.11` and `v0.2.0` are published. `v0.1.11` is the signed recovery bundle/APK for native `0.1.3`; `v0.2.0` is the signed native updater baseline. Latest v0.3.1 preserves `bundle.json` at `0.1.11` and `bundle-0.2.json` at `0.2.1`, serves `bundle-0.3.json` at `0.3.1`, and points `android-update.json` to the verified complete `0.3.1` APK. Emulator tests prove signed-package replacement with workspace preservation, Android's non-root installer UI, and controlled rooted installation; a physical Pixel remains unverified. Local release keys remain outside the committed tree.
 
 Current update recovery status: `YZ-012` is published. OTA `0.1.10` was incompatible with the older native `0.1.3` line that accepted OTA `0.1.8`. Published recovery `0.1.11` restores that feed, and published native `0.2.0` provides verified automatic APK download with root/default Android installation. Native `0.1.3` lacks the APK installer bridge and requires one explicit bootstrap install of `0.2.0`; do not claim that `0.1.11` can add that native ability. The authoritative contract is `docs/android-updates.md`.
 
@@ -36,9 +36,9 @@ Current update recovery status: `YZ-012` is published. OTA `0.1.10` was incompat
 
 ## Current repository status
 
-Current published release: native 0.3.0 / version code 9 is required for the
+Current native baseline: native 0.3.0 / version code 9 is required for the
 icon font/library. Metro uses the static icon entry to keep OTA asset-free.
-Embedded, native and TypeScript versions are 0.3.0; the new endpoint is
+Current package/embedded version is 0.3.1 (code 10); native baseline stays 0.3.0. The endpoint is
 bundle-0.3.json. Preserve older feed pointers; native 0.2.x upgrades by APK.
 See `docs/releases/v0.3.0.md` and DEC-107 for verified publication evidence.
 
@@ -136,11 +136,11 @@ capture also uses an overlay layer with pass-through hit testing outside its
 controls. Money form Save/Cancel remain in their separate keyboard-safe row.
 This supersedes earlier wording that add buttons reserve their own row.
 Regression and validation evidence: `docs/fab-overlay-2026-10-30.md`.
-This change is local and unpublished; no schema, dependency or native change.
+This change is published in 0.3.1; no schema, dependency or native API change.
 
 
-0.3.1 release preparation (30.10.2026): compatible patch, Android code 10,
+0.3.1 published release (30.10.2026): compatible patch, Android code 10,
 embedded bundle 0.3.1, native baseline 0.3.0 and bundle-0.3.json unchanged.
-The patch restores overlay FABs (YZ-027). Publish a same-version signed APK and
-bundle; preserve bundle.json and bundle-0.2.json. Verification and publication
-status: `docs/releases/v0.3.1.md`. No schema or native API change.
+The patch restores overlay FABs (YZ-027). Same-version signed APK and
+bundle are published; bundle.json and bundle-0.2.json are preserved. Live OTA
+activation and next-launch promotion passed on native 0.3.0. Evidence: `docs/releases/v0.3.1.md`. No schema or native API change.

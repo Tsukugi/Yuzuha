@@ -13,7 +13,7 @@ Notes and Tasks. Scroll-end clearance keeps the final record accessible;
 Money form actions retain their keyboard-safe row. The regression failed before
 and passed after the fix; 65 suites / 327 tests, typecheck, lint, localTest build
 and API 35 320×640 dp smoke support the bounded claim. See
-[validation and limits](fab-overlay-2026-10-30.md). Release 0.3.1 is being prepared.
+[validation and limits](fab-overlay-2026-10-30.md). Release 0.3.1 is published; live OTA activation and next-launch promotion passed.
 
 ### YZ-026 — Ship icon resources through the native baseline
 
